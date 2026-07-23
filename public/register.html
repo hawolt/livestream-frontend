@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en" class="live-host">
+<head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/png" href="/static/img/favicon.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Create your account</title>
+    <link rel="stylesheet" href="/static/css/shared.css" />
+    <link rel="stylesheet" href="/static/css/site.css" />
+    <style>
+        .auth-page { min-height: calc(100dvh - 52px); }
+    </style>
+</head>
+<body>
+<header class="site-nav">
+    <a class="site-brand" href="/">hawolt</a>
+    <nav class="site-links">
+        <a class="site-link" href="/" data-nav="browse">Browse</a>
+    </nav>
+    <div class="site-nav-right" id="site-nav-right"></div>
+</header>
+<div class="auth-page">
+    <div class="login-wrap">
+        <div class="login-eyebrow">Streaming Solutions</div>
+        <h1 class="login-heading">hawolt</h1>
+        <form id="register-form">
+            <div class="login-fields">
+                <input id="username" type="text" autocomplete="username" placeholder="Username" required />
+                <input id="email" type="email" autocomplete="email" placeholder="Email address" required />
+                <div>
+                    <input id="password" type="password" autocomplete="new-password" placeholder="Password" required minlength="8" />
+                    <div class="login-hint">At least 8 characters.</div>
+                </div>
+            </div>
+            <div id="hcaptcha-container" style="margin-top:4px"></div>
+            <button type="submit" id="btn-register" class="login-btn">Create your streaming account</button>
+            <div id="error"></div>
+        </form>
+        <div class="login-footer">Already have an account? <a href="/login">Sign in</a></div>
+    </div>
+</div>
+<script>window.HCAPTCHA_SITEKEY = "ca58c42a-bf10-4fd4-b2f2-78a23bcccd04";</script>
+<script src="/register.js" type="module"></script>
+<script src="https://js.hcaptcha.com/1/api.js?onload=onHCaptchaLoad&render=explicit" async defer></script>
+</body>
+</html>

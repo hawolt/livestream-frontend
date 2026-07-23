@@ -1,0 +1,86 @@
+<div id="pane-overlay" class="tab-pane">
+    <div class="card-grid-2">
+        <div class="card" style="padding:24px">
+            <div class="section-title">Chat overlay builder</div>
+            <p style="font-size:13px;color:var(--muted);margin:0 0 16px">
+                Customize how your chat looks as an OBS Browser Source, with a live preview on the right.
+            </p>
+
+            <label style="display:block;margin-bottom:16px">
+                <span>Size</span>
+                <select id="ov-size">
+                    <option value="s">Small</option>
+                    <option value="m" selected>Medium</option>
+                    <option value="l">Large</option>
+                </select>
+                <div class="hint">Text size of chat messages.</div>
+            </label>
+
+            <label style="display:block;margin-bottom:16px">
+                <span>Fade</span>
+                <input id="ov-fade" type="number" min="0" max="600" value="0">
+                <div class="hint">Seconds before a message disappears. 0 = messages never disappear.</div>
+            </label>
+
+            <label style="display:flex;align-items:flex-start;gap:8px;margin-bottom:16px">
+                <input type="checkbox" id="ov-badges" checked style="margin-top:3px">
+                <span>
+                    <span>Badges</span>
+                    <div class="hint">Role badges before names.</div>
+                </span>
+            </label>
+
+            <label style="display:flex;align-items:flex-start;gap:8px;margin-bottom:16px">
+                <input type="checkbox" id="ov-emotes" checked style="margin-top:3px">
+                <span>
+                    <span>Emotes</span>
+                    <div class="hint">Render 7TV global emotes as images.</div>
+                </span>
+            </label>
+
+            <label style="display:flex;align-items:flex-start;gap:8px;margin-bottom:16px">
+                <input type="checkbox" id="ov-bg" style="margin-top:3px">
+                <span>
+                    <span>Background</span>
+                    <div class="hint">Dark pill behind each line, for readability on bright video.</div>
+                </span>
+            </label>
+
+            <label style="display:flex;align-items:flex-start;gap:8px;margin-bottom:16px">
+                <input type="checkbox" id="ov-shadow" checked style="margin-top:3px">
+                <span>
+                    <span>Text shadow</span>
+                    <div class="hint">Drop shadow behind text for legibility.</div>
+                </span>
+            </label>
+
+            <label style="display:block;margin-bottom:8px">
+                <span>Align</span>
+                <select id="ov-align">
+                    <option value="left" selected>Left</option>
+                    <option value="right">Right</option>
+                </select>
+                <div class="hint">Which side messages line up against.</div>
+            </label>
+
+            <div style="margin-top:16px">
+                <label style="font-size:12px;color:var(--muted)">Overlay URL</label>
+                <div style="display:flex;gap:6px;align-items:center">
+                    <code id="ov-url" style="font-size:11px;word-break:break-all;flex:1"></code>
+                    <button class="btn btn-sm" id="ov-url-copy" type="button">Copy</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="card" style="padding:24px">
+            <div class="section-title">Preview</div>
+            <div class="ov-preview-toolbar">
+                <button class="btn btn-sm btn-primary" id="ov-bg-checker" type="button">Checkerboard</button>
+                <button class="btn btn-sm" id="ov-bg-dark" type="button">Dark</button>
+            </div>
+            <div class="ov-preview-frame bg-checker" id="ov-preview-frame">
+                <iframe id="ov-preview-iframe" title="Overlay preview"></iframe>
+            </div>
+        </div>
+    </div>
+</div>

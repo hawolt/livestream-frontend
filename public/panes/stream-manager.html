@@ -1,0 +1,34 @@
+<div id="pane-stream-manager" class="tab-pane">
+    <div class="card" style="padding:24px;margin-bottom:16px">
+        <div class="section-title">Stream info</div>
+        <div id="live-info-body">Loading...</div>
+    </div>
+    <div class="card" style="padding:24px;margin-bottom:16px">
+        <div class="section-title">Moderators</div>
+        <p style="font-size:13px;color:var(--muted);margin:0 0 12px">
+            Appointed in chat with <code>.mod USERNAME</code>. Removing one here revokes the mod role immediately.
+        </p>
+        <div class="tbl-wrap">
+            <table>
+                <thead>
+                <tr><th>Username</th><th>Added</th><th></th></tr>
+                </thead>
+                <tbody id="live-mods-body"><tr><td colspan="3" class="empty">Loading...</td></tr></tbody>
+            </table>
+        </div>
+    </div>
+    <div class="card" style="padding:24px">
+        <div class="section-title">Banned users</div>
+        <p style="font-size:13px;color:var(--muted);margin:0 0 12px">
+            Bans placed by staff can only be lifted by staff and show here as "Staff ban" with no remove button.
+        </p>
+        <div class="tbl-wrap">
+            <table>
+                <thead>
+                <tr><th>Label</th><th>Banned by</th><th>Expires</th><th>Date</th><th></th></tr>
+                </thead>
+                <tbody id="live-bans-body"><tr><td colspan="5" class="empty">Loading...</td></tr></tbody>
+            </table>
+        </div>
+    </div>
+</div>

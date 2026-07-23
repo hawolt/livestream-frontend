@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en" class="live-host">
+<head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/png" href="/static/img/favicon.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Explore</title>
+    <link rel="canonical" href="https://live.hawolt.com/" />
+    <meta name="description" content="Watch live streams, no login required." />
+    <meta property="og:site_name" content="hawolt" />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="hawolt live" />
+    <meta property="og:description" content="Watch live streams, no login required." />
+    <meta property="og:url" content="https://live.hawolt.com/" />
+    <meta property="og:image" content="https://live.hawolt.com/api/live/site-preview.jpg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="hawolt live" />
+    <meta name="twitter:description" content="Watch live streams, no login required." />
+    <meta name="twitter:image" content="https://live.hawolt.com/api/live/site-preview.jpg" />
+    <link rel="stylesheet" href="/static/css/shared.css" />
+    <link rel="stylesheet" href="/static/css/site.css" />
+    <link rel="stylesheet" href="/static/css/explore.css" />
+</head>
+<body>
+<header class="site-nav">
+    <a class="site-brand" href="/">hawolt</a>
+    <nav class="site-links">
+        <a class="site-link" href="/" data-nav="browse">Browse</a>
+    </nav>
+    <div class="site-nav-right" id="site-nav-right"></div>
+</header>
+<div class="sub-nav">
+    <div class="explore-modes">
+        <button class="explore-mode-btn active" id="mode-streams" type="button">Streams</button>
+        <button class="explore-mode-btn" id="mode-categories" type="button">Categories</button>
+    </div>
+</div>
+<main class="explore-main" id="explore-page" hidden>
+    <div class="explore-drill hidden" id="explore-drill">
+        <button class="explore-back" id="explore-back" type="button">&larr; Back to categories</button>
+        <div class="explore-drill-title" id="explore-drill-title"></div>
+    </div>
+    <div class="explore-empty hidden" id="explore-empty">No one is live right now</div>
+    <div class="explore-grid" id="explore-grid"></div>
+</main>
+<script src="/explore.js" type="module"></script>
+</body>
+</html>

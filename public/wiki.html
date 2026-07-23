@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en" class="live-host">
+<head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/png" href="/static/img/favicon.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>API Documentation</title>
+    <meta name="description" content="Developer documentation for integration" />
+    <meta property="og:site_name" content="hawolt" />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="hawolt API documentation" />
+    <meta property="og:description" content="Developer documentation for integration" />
+    <meta property="og:url" content="https://live.hawolt.com/wiki" />
+    <meta property="og:image" content="https://live.hawolt.com/api/live/site-preview.jpg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="hawolt API documentation" />
+    <meta name="twitter:description" content="Developer documentation for integration" />
+    <meta name="twitter:image" content="https://live.hawolt.com/api/live/site-preview.jpg" />
+    <link rel="stylesheet" href="/static/css/shared.css" />
+    <link rel="stylesheet" href="/static/css/site.css" />
+    <style>
+        .wiki-page { max-width: 1060px; margin: 0 auto; padding: 40px 24px 120px; display: flex; gap: 40px; align-items: flex-start; }
+        .wiki-side { flex: 0 0 200px; position: sticky; top: 72px; }
+        .wiki-side-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .1em; color: var(--dim); margin-bottom: 10px; }
+        .wiki-side a { display: flex; align-items: center; justify-content: center; padding: 8px 10px; border-radius: 6px; color: var(--muted); font-size: 13px; text-decoration: none; text-align: center; }
+        .wiki-side a:hover { color: var(--text); background: var(--surface); }
+        .wiki-side a.active { color: var(--green); background: var(--surface); font-weight: 600; }
+        .wiki-content { flex: 1; min-width: 0; }
+        .wiki-content section[data-topic] { display: none; }
+        .wiki-content section[data-topic].active { display: block; }
+        .wiki-content h1 { font-size: 22px; color: #fff; margin: 0 0 6px; }
+        .wiki-content .intro { color: var(--muted); font-size: 13px; margin-bottom: 28px; }
+        .wiki-content h2 {
+            font-size: 11px; font-weight: 700; text-transform: uppercase;
+            letter-spacing: .1em; color: var(--green); margin: 34px 0 10px;
+            border-bottom: 1px solid var(--border); padding-bottom: 8px;
+        }
+        .wiki-content p { margin-bottom: 10px; font-size: 13px; line-height: 1.65; }
+        .wiki-content ul { margin: 0 0 12px 18px; font-size: 13px; }
+        .wiki-content li { margin-bottom: 6px; line-height: 1.6; }
+        .wiki-content a { color: var(--green); text-underline-offset: 3px; }
+        .wiki-content code { font-size: 12px; background: var(--surface); border: 1px solid var(--border); border-radius: 4px; padding: 1px 5px; }
+        .wiki-content pre {
+            border: 1px solid var(--border); background: var(--surface); border-radius: 10px;
+            padding: 14px 16px; margin: 0 0 12px; font-size: 12px; line-height: 1.7; overflow-x: auto;
+        }
+        .wiki-content pre code { background: none; border: none; padding: 0; }
+        .wiki-content table { width: 100%; border-collapse: collapse; font-size: 13px; margin-bottom: 12px; }
+        .wiki-content th, .wiki-content td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+        .wiki-content th { color: var(--dim); font-size: 11px; text-transform: uppercase; letter-spacing: .06em; }
+        @media (max-width: 760px) {
+            .wiki-page { flex-direction: column; gap: 20px; }
+            .wiki-side { position: static; flex: none; width: 100%; display: flex; flex-wrap: wrap; gap: 4px; }
+            .wiki-side-title { display: none; }
+        }
+    </style>
+</head>
+<body>
+<header class="site-nav">
+    <a class="site-brand" href="/">hawolt</a>
+    <nav class="site-links">
+        <a class="site-link" href="/" data-nav="browse">Browse</a>
+    </nav>
+    <div class="site-nav-right" id="site-nav-right"></div>
+</header>
+<div class="wiki-page">
+    <aside class="wiki-side">
+        <div class="wiki-side-title">Topics</div>
+        <nav id="wiki-topics"></nav>
+    </aside>
+    <main class="wiki-content" id="wiki-content">
+
+        <section data-topic="chat" data-title="Chat bots">
+            <h1>Chat bots</h1>
+            <p class="intro">Chat is plain IRC (RFC 1459 subset + IRCv3 tags). Any TCP or WebSocket client works.</p>
+
+            <h2>Endpoints</h2>
+            <table>
+                <tr><th>Transport</th><th>Endpoint</th><th>Framing</th></tr>
+                <tr><td>TCP</td><td><code><span data-fill="host">live.example.com</span>:6667</code></td><td><code>\r\n</code>-terminated lines, max 512 bytes</td></tr>
+                <tr><td>WebSocket</td><td><code>wss://<span data-fill="host">live.example.com</span>/ws/irc</code></td><td>one IRC line per text frame</td></tr>
+            </table>
+
+            <h2>Authentication</h2>
+            <ul>
+                <li>Generate a token <a href="/dashboard/settings">here</a>.</li>
+                <li>Tokens do not expire. Rotating the token or an account suspension revokes access within 90 seconds.</li>
+                <li>The token grants chat access only, nothing else.</li>
+                <li>Send <code>PASS &lt;token&gt;</code> as the first command. The server assigns your account name and ignores whatever <code>NICK</code> you send.</li>
+                <li>Connections without <code>PASS</code> are read-only guests and cannot send messages.</li>
+            </ul>
+
+            <h2>Example session</h2>
+            <p>Server lines start with <code>:</code> or <code>PING</code>.</p>
+            <pre><code>PASS &lt;token&gt;
+NICK bot
+USER bot 0 * :bot
+:server 001 mybot :Welcome
+JOIN #streamer
+:mybot!mybot@host JOIN #streamer
+PRIVMSG #streamer :hello chat
+:go-irc PING go-irc
+PONG :go-irc</code></pre>
+            <p>Unanswered <code>PING</code> disconnects after 90 s.</p>
+
+            <h2>Receiving</h2>
+            <pre><code>:alice!alice@host PRIVMSG #streamer :hello everyone
+:alice!alice@host PRIVMSG #streamer hi
+:go-irc PING go-irc</code></pre>
+            <p>
+                The leading <code>:</code> on the trailing parameter is omitted when it contains no spaces,
+                and <code>PING</code> may arrive with a server prefix; parse both forms.
+            </p>
+            <p>
+                Joining a channel delivers the member list (<code>353</code>/<code>366</code>), a replay of the last
+                10 messages, and any pinned messages. Each name in the <code>353</code> list carries a role prefix:
+            </p>
+            <table>
+                <tr><th>Prefix</th><th>Role</th></tr>
+                <tr><td><code>%</code></td><td>staff</td></tr>
+                <tr><td><code>@</code></td><td>channel owner</td></tr>
+                <tr><td><code>&amp;</code></td><td>bot</td></tr>
+                <tr><td><code>+</code></td><td>moderator</td></tr>
+                <tr><td><code>~</code></td><td>VIP</td></tr>
+                <tr><td><code>=</code></td><td>unverified account</td></tr>
+                <tr><td><code>?</code></td><td>guest</td></tr>
+            </table>
+
+            <h2>Tags</h2>
+            <p><code>CAP REQ :message-tags echo-message draft/message-redaction</code> before registration, then <code>CAP END</code>.</p>
+            <table>
+                <tr><th>Tag</th><th>Meaning</th></tr>
+                <tr><td><code>msgid</code></td><td>stable message id (replies, deletion)</td></tr>
+                <tr><td><code>color</code></td><td>sender display color</td></tr>
+                <tr><td><code>+reply=&lt;msgid&gt;</code></td><td>reply marker; send as client tag to reply</td></tr>
+                <tr><td><code>REDACT</code> line</td><td>message deleted; drop it from logs</td></tr>
+            </table>
+
+            <h2>Commands</h2>
+            <table>
+                <tr><th>Command</th><th>Rank</th><th>Effect</th></tr>
+                <tr><td><code>.whisper &lt;user&gt; &lt;text&gt;</code> / <code>.w</code></td><td>any</td><td>private message</td></tr>
+                <tr><td><code>.ban &lt;user&gt;</code> <code>.timeout &lt;user&gt; &lt;min&gt;</code> <code>.unban &lt;user&gt;</code></td><td>mod</td><td>moderation</td></tr>
+                <tr><td><code>.delete &lt;msgid&gt;</code></td><td>mod</td><td>delete message</td></tr>
+                <tr><td><code>.pin &lt;msgid&gt;</code> <code>.unpin [msgid]</code></td><td>mod</td><td>pins</td></tr>
+                <tr><td><code>.mod .unmod .vip .unvip &lt;user&gt;</code></td><td>owner</td><td>roles</td></tr>
+            </table>
+            <p>Bots get mod rank only via <code>.mod</code> from the channel owner.</p>
+
+            <h2>Limits</h2>
+            <table>
+                <tr><th>Limit</th><th>Value</th></tr>
+                <tr><td>Line length</td><td>512 bytes incl. <code>\r\n</code>, longer is truncated</td></tr>
+                <tr><td>Message rate</td><td>~2/s below mod rank, excess dropped with NOTICE</td></tr>
+                <tr><td>Connections</td><td>8 per account, oldest evicted</td></tr>
+                <tr><td>Content</td><td>automod filters slurs server-side</td></tr>
+                <tr><td>WS close codes</td><td><code>4400</code> flood&ensp;<code>4401</code> ping timeout&ensp;<code>4402</code> queue overflow&ensp;<code>4403</code> auth revoked</td></tr>
+            </table>
+        </section>
+
+    </main>
+</div>
+<script type="module" src="/wiki.js"></script>
+</body>
+</html>

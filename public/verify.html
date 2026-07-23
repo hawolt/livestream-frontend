@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/png" href="/static/img/favicon.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Verify Email</title>
+    <link rel="stylesheet" href="/static/css/shared.css" />
+    <link rel="stylesheet" href="/static/css/site.css" />
+    <style>
+        .auth-page { min-height: calc(100dvh - 52px); }
+    </style>
+</head>
+<body>
+<header class="site-nav">
+    <a class="site-brand" href="/">hawolt</a>
+    <nav class="site-links">
+        <a class="site-link" href="/" data-nav="browse">Browse</a>
+    </nav>
+    <div class="site-nav-right" id="site-nav-right"></div>
+</header>
+<div class="auth-page">
+    <div class="login-wrap">
+        <div class="login-eyebrow">Email Verification</div>
+        <div id="verify-msg" style="text-align:center;margin:24px 0;color:var(--muted)">Verifying…</div>
+        <div id="verify-action" style="text-align:center;display:none">
+            <a href="/dashboard" class="btn-go-login">Go to Dashboard</a>
+        </div>
+    </div>
+</div>
+<script src="/verify.js" type="module"></script>
+</body>
+</html>

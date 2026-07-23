@@ -1,0 +1,137 @@
+const TURNSTILE_SRC = "https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit";
+
+let configLoaded = false;
+let enabled = false;
+let sitekey = "";
+let scriptLoaded = false;
+let cached: { token: string; exp: number } | null = null;
+let inflight: Promise<string> | null = null;
+let anchorEl: HTMLElement | null = null;
+
+export function setCaptchaAnchor(el: HTMLElement | null): void {
+    anchorEl = el;
+}
+
+async function loadConfig(): Promise<void> {
+    if (configLoaded) return;
+    configLoaded = true;
+    try {
+        const r = await fetch("/api/live/captcha/config");
+        if (r.ok) {
+            const c = await r.json();
+            enabled = !!c?.enabled;
+            sitekey = typeof c?.sitekey === "string" ? c.sitekey : "";
+        }
+    } catch {}
+}
+
+function loadScript(): Promise<void> {
+    if (scriptLoaded && (window as any).turnstile) return Promise.resolve();
+    return new Promise((resolve, reject) => {
+        const s = document.createElement("script");
+        s.src = TURNSTILE_SRC;
+        s.async = true;
+        s.defer = true;
+        s.onload = () => { scriptLoaded = true; resolve(); };
+        s.onerror = () => reject(new Error("turnstile load failed"));
+        document.head.appendChild(s);
+    });
+}
+
+function markVisibleWhenExpanded(container: HTMLElement): void {
+    if (typeof ResizeObserver !== "function") return;
+    const ro = new ResizeObserver(() => {
+        if (container.offsetHeight < 20) return;
+        ro.disconnect();
+        container.classList.add("captcha-slot-visible");
+        container.style.background = "rgba(46,204,113,.14)";
+        container.style.border = "1px solid rgba(46,204,113,.45)";
+        container.style.borderRadius = "10px";
+        container.style.boxShadow = "0 0 14px rgba(46,204,113,.25)";
+        container.style.padding = "10px";
+        container.style.margin = "8px 8px 0";
+    });
+    ro.observe(container);
+}
+
+function makeContainer(): HTMLElement {
+    const container = document.createElement("div");
+    container.className = "captcha-slot";
+    if (anchorEl && anchorEl.isConnected && anchorEl.offsetWidth > 0) {
+        container.style.cssText =
+            "flex:0 0 auto;display:flex;justify-content:center;max-width:100%;overflow:hidden";
+        anchorEl.prepend(container);
+    } else {
+        container.style.cssText =
+            "position:fixed;z-index:2147483647;right:16px;top:calc(16px + env(safe-area-inset-top,0px));max-width:calc(100vw - 32px)";
+        document.body.appendChild(container);
+    }
+    markVisibleWhenExpanded(container);
+    return container;
+}
+
+function solve(): Promise<string> {
+    return new Promise((resolve, reject) => {
+        const ts = (window as any).turnstile;
+        if (!ts) { reject(new Error("turnstile unavailable")); return; }
+        const container = makeContainer();
+        let done = false;
+        let widgetId: string | undefined;
+        const finish = (fn: () => void) => {
+            if (done) return;
+            done = true;
+            try { if (widgetId) ts.remove(widgetId); } catch {}
+            container.remove();
+            fn();
+        };
+        try {
+            widgetId = ts.render(container, {
+                sitekey,
+                appearance: "interaction-only",
+                callback: (token: string) => finish(() => resolve(token)),
+                "error-callback": () => finish(() => reject(new Error("turnstile error"))),
+                "timeout-callback": () => finish(() => reject(new Error("turnstile timeout"))),
+            });
+        } catch (e) {
+            finish(() => reject(e instanceof Error ? e : new Error(String(e))));
+            return;
+        }
+        window.setTimeout(() => finish(() => reject(new Error("turnstile timeout"))), 20000);
+    });
+}
+
+async function mint(): Promise<string> {
+    try {
+        await loadScript();
+        const provToken = await solve();
+        const r = await fetch("/api/live/captcha/token", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ token: provToken }),
+        });
+        if (!r.ok) return "";
+        const j = await r.json();
+        if (typeof j?.token !== "string" || !j.token) return "";
+        cached = { token: j.token, exp: Date.now() / 1000 + (typeof j.ttl === "number" ? j.ttl : 1800) };
+        return j.token;
+    } catch {
+        return "";
+    }
+}
+
+export async function getCaptchaToken(): Promise<string> {
+    await loadConfig();
+    if (!enabled || !sitekey) return "";
+    if (cached && cached.exp - 60 > Date.now() / 1000) return cached.token;
+    if (!inflight) inflight = mint().finally(() => { inflight = null; });
+    return inflight;
+}
+
+export async function captchaQuery(): Promise<string> {
+    const t = await getCaptchaToken();
+    return t ? `&t=${encodeURIComponent(t)}` : "";
+}
+
+export function warmCaptcha(): void {
+    void getCaptchaToken();
+}

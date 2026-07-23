@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<link rel="icon" type="image/png" href="/static/img/favicon.png">
+<title>error</title>
+<style>
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+  src: url('/fonts/jbmono-latin.woff2') format('woff2');
+}
+:root {
+  --bg: #0d0d0d;
+  --text: #c8c8c8;
+  --dim: #888;
+  --green: #4ade80;
+  --red: #f87171;
+  --bright: #e8e8e8;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 14px;
+  line-height: 1.7;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100dvh;
+  overflow: hidden;
+}
+#rain {
+  position: fixed;
+  inset: 0;
+  opacity: .35;
+  pointer-events: none;
+}
+main {
+  position: relative;
+  width: min(560px, 92vw);
+  padding: 24px;
+}
+.line { margin: 0 0 4px; word-break: break-all; }
+.dim { color: var(--dim); }
+.status { color: var(--red); }
+.prompt { margin-top: 22px; }
+a { color: var(--green); text-decoration: none; text-underline-offset: 3px; }
+a:hover { text-decoration: underline; }
+a:focus-visible { outline: 1px solid var(--green); outline-offset: 3px; }
+.glitch {
+  position: relative;
+  margin: 26px 0 22px;
+  font-size: clamp(84px, 22vw, 150px);
+  font-weight: 700;
+  line-height: 1;
+  color: var(--bright);
+  user-select: none;
+}
+.glitch::before,
+.glitch::after {
+  content: attr(data-text);
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  opacity: 0;
+  pointer-events: none;
+}
+.glitch::before { color: var(--green); animation: glitch-a 7s steps(1) infinite; }
+.glitch::after { color: var(--red); animation: glitch-b 7s steps(1) infinite; }
+@keyframes glitch-a {
+  0%, 100% { opacity: 0; }
+  1% { opacity: .7; transform: translate(-3px, 2px); clip-path: inset(12% 0 56% 0); }
+  2% { transform: translate(2px, -1px); clip-path: inset(62% 0 10% 0); }
+  3% { opacity: 0; }
+  52% { opacity: .7; transform: translate(3px, 1px); clip-path: inset(34% 0 38% 0); }
+  53.5% { opacity: 0; }
+}
+@keyframes glitch-b {
+  0%, 100% { opacity: 0; }
+  1% { opacity: .7; transform: translate(3px, -2px); clip-path: inset(48% 0 24% 0); }
+  2% { transform: translate(-2px, 1px); clip-path: inset(8% 0 74% 0); }
+  3% { opacity: 0; }
+  52.5% { opacity: .7; transform: translate(-3px, -1px); clip-path: inset(68% 0 6% 0); }
+  54% { opacity: 0; }
+}
+.cursor {
+  display: inline-block;
+  margin-left: 6px;
+  color: var(--green);
+  animation: blink 1.1s steps(1) infinite;
+}
+@keyframes blink { 50% { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) {
+  .glitch::before, .glitch::after { animation: none; opacity: 0; }
+  .cursor { animation: none; }
+  #rain { display: none; }
+}
+</style>
+</head>
+<body>
+<canvas id="rain"></canvas>
+<main>
+  <p class="line dim">$ curl -i https://<span id="host"><!--#echo encoding="entity" var="HTTP_HOST" --></span><span id="path"><!--#echo encoding="entity" var="REDIRECT_URL" --></span></p>
+  <p class="line"><span id="proto"><!--#echo encoding="entity" var="SERVER_PROTOCOL" --></span> <span class="status"><span id="code"><!--#echo encoding="entity" var="REDIRECT_STATUS" --></span> <span id="reason"></span></span></p>
+  <h1 class="glitch" id="big" data-text=""></h1>
+  <p class="line">&gt; <span id="msg"></span></p>
+  <p class="line dim">&gt; <span id="hint"></span></p>
+  <p class="line prompt">$ <a href="/">cd /</a><span class="cursor">&#9608;</span></p>
+</main>
+<script>
+(function () {
+  var reasons = {
+    400: 'Bad Request', 401: 'Unauthorized', 402: 'Payment Required', 403: 'Forbidden',
+    404: 'Not Found', 405: 'Method Not Allowed', 406: 'Not Acceptable', 408: 'Request Timeout',
+    409: 'Conflict', 410: 'Gone', 411: 'Length Required', 412: 'Precondition Failed',
+    413: 'Content Too Large', 414: 'URI Too Long', 415: 'Unsupported Media Type',
+    416: 'Range Not Satisfiable', 417: 'Expectation Failed', 421: 'Misdirected Request',
+    422: 'Unprocessable Content', 429: 'Too Many Requests', 431: 'Request Header Fields Too Large',
+    451: 'Unavailable For Legal Reasons', 500: 'Internal Server Error', 501: 'Not Implemented',
+    502: 'Bad Gateway', 503: 'Service Unavailable', 504: 'Gateway Timeout',
+    505: 'HTTP Version Not Supported', 507: 'Insufficient Storage', 508: 'Loop Detected',
+    511: 'Network Authentication Required'
+  };
+
+  function fix(id, fallback) {
+    var el = document.getElementById(id);
+    var v = (el.textContent || '').trim();
+    if (!v || v === '(none)') el.textContent = fallback;
+    return el;
+  }
+
+  fix('host', location.host || 'localhost');
+  fix('path', location.pathname);
+  fix('proto', 'HTTP/1.1');
+
+  var codeEl = fix('code', '500');
+  var code = codeEl.textContent.trim();
+  if (!/^[45][0-9][0-9]$/.test(code)) code = '500';
+  codeEl.textContent = code;
+
+  var reason = reasons[code] || (code[0] === '4' ? 'Client Error' : 'Server Error');
+  document.getElementById('reason').textContent = reason;
+  document.title = code + ' ' + reason;
+
+  var big = document.getElementById('big');
+  big.textContent = code;
+  big.setAttribute('data-text', code);
+
+  function lines(c) {
+    if (c === '404') return ['the requested path does not exist on this server', 'check the url for typos or head back home'];
+    if (c === '401' || c === '403') return ['access to this resource is denied', 'sign in or verify you have permission'];
+    if (c === '429') return ['too many requests from this client', 'wait a moment before retrying'];
+    if (c[0] === '4') return ['the server could not process this request', 'check the request and try again'];
+    if (c === '502' || c === '503') return ['the upstream service is not responding', 'it is probably restarting, retry shortly'];
+    if (c === '504') return ['the upstream service took too long to respond', 'retry in a moment'];
+    return ['something broke on our end', 'retry shortly'];
+  }
+  var l = lines(code);
+  document.getElementById('msg').textContent = l[0];
+  document.getElementById('hint').textContent = l[1];
+
+  var reduced = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var canvas = document.getElementById('rain');
+  if (reduced || !canvas.getContext) { if (canvas.parentNode) canvas.parentNode.removeChild(canvas); return; }
+
+  var ctx = canvas.getContext('2d');
+  var size = 16, cols = 0, drops = [], W = 0, H = 0;
+  var chars = 'ｱｲｳｴｵｶｷｸｹｺｻｼｽｾｿﾀﾁﾂﾃﾄﾅﾆﾇﾈﾉ0123456789ABCDEF';
+
+  function resize() {
+    W = canvas.width = innerWidth;
+    H = canvas.height = innerHeight;
+    cols = Math.ceil(W / size);
+    drops = [];
+    for (var i = 0; i < cols; i++) drops.push(Math.floor(Math.random() * -H / size));
+    ctx.fillStyle = '#0d0d0d';
+    ctx.fillRect(0, 0, W, H);
+  }
+
+  function step() {
+    ctx.fillStyle = 'rgba(13, 13, 13, 0.14)';
+    ctx.fillRect(0, 0, W, H);
+    ctx.font = size + 'px monospace';
+    ctx.fillStyle = 'rgba(74, 222, 128, 0.30)';
+    for (var i = 0; i < cols; i++) {
+      var ch = chars[Math.floor(Math.random() * chars.length)];
+      ctx.fillText(ch, i * size, drops[i] * size);
+      if (drops[i] * size > H && Math.random() > 0.975) drops[i] = 0;
+      drops[i]++;
+    }
+  }
+
+  resize();
+  addEventListener('resize', resize);
+  setInterval(step, 95);
+})();
+</script>
+</body>
+</html>

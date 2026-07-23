@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Chat overlay</title>
+    <style>
+        html, body {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            background: transparent;
+            overflow: hidden;
+        }
+        body {
+            font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            font-size: 18px;
+        }
+        body[data-size="s"] { font-size: 14px; }
+        body[data-size="l"] { font-size: 24px; }
+
+        #chat-messages {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            align-items: flex-start;
+            gap: 2px;
+            padding: 8px;
+            overflow: hidden;
+        }
+        body[data-align="right"] #chat-messages { align-items: flex-end; }
+
+        .msg {
+            max-width: 100%;
+            line-height: 1.35;
+            color: #fff;
+            text-shadow: 0 1px 3px rgba(0,0,0,.9);
+            word-break: break-word;
+            transition: opacity .4s ease;
+        }
+        body[data-shadow="0"] .msg { text-shadow: none; }
+        body[data-align="right"] .msg { text-align: right; }
+        body[data-bg="1"] .msg {
+            background: rgba(0,0,0,.55);
+            border-radius: 6px;
+            padding: 3px 8px;
+        }
+        .msg.fade-out { opacity: 0; }
+
+        .nick { font-weight: 700; }
+
+        .badge {
+            display: inline-block;
+            height: 1.1em;
+            vertical-align: -0.21em;
+            margin-right: 2px;
+        }
+        .emote {
+            display: inline-block;
+            height: 1.6em;
+            vertical-align: -0.46em;
+            margin: 0 1px;
+        }
+        .emote-stack {
+            position: relative;
+            display: inline-block;
+        }
+        .emote-zw {
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            margin: 0;
+        }
+    </style>
+</head>
+<body>
+<div id="chat-messages"></div>
+<script src="/chat-overlay.js" type="module"></script>
+</body>
+</html>

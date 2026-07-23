@@ -1,0 +1,8 @@
+node_modules/
+public/*.js
+public/dash/
+public/details.html
+public/static/css/details.css
+.DS_Store
+.idea/
+.vscode/

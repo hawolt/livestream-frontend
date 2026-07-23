@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="de" class="live-host">
+<head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/png" href="/static/img/favicon.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="robots" content="noindex" />
+    <title>Impressum</title>
+    <link rel="stylesheet" href="/static/css/shared.css" />
+    <link rel="stylesheet" href="/static/css/site.css" />
+    <style>
+        .legal-page { max-width: 680px; margin: 0 auto; padding: 60px 24px 120px; }
+        .legal-page .name { font-size: clamp(18px, 6vw, 22px); font-weight: 700; color: #fff; }
+        .legal-page .back { display: inline-block; margin-top: 6px; color: var(--green); font-size: 12px; text-underline-offset: 3px; }
+        .legal-page h1 { font-size: 20px; color: #fff; margin: 48px 0 20px; }
+        .legal-page h2 {
+            font-size: 11px; font-weight: 700; text-transform: uppercase;
+            letter-spacing: .1em; color: var(--dim); margin: 32px 0 10px;
+        }
+        .legal-page p { margin-bottom: 10px; }
+        .legal-page a { color: var(--green); text-underline-offset: 3px; }
+        .legal-page .block {
+            border: 1px solid var(--border); background: var(--surface);
+            border-radius: 10px; padding: 18px 20px; margin-bottom: 6px;
+        }
+        .legal-page .placeholder { color: var(--red); }
+        .legal-page footer { margin-top: 80px; padding-top: 24px; border-top: 1px solid var(--border); font-size: 11px; color: var(--dim); }
+    </style>
+</head>
+<body>
+<header class="site-nav">
+    <a class="site-brand" href="/">hawolt</a>
+    <nav class="site-links">
+        <a class="site-link" href="/" data-nav="browse">Browse</a>
+    </nav>
+    <div class="site-nav-right" id="site-nav-right"></div>
+</header>
+<div class="legal-page">
+
+<div class="name">hawolt</div>
+<a class="back" href="/">&larr; back</a>
+
+<h1>Impressum</h1>
+<p style="color:var(--dim);font-size:12px;margin-bottom:24px">
+    Angaben gem&auml;&szlig; &sect; 5 TMG (Telemediengesetz)
+</p>
+
+<h2>Diensteanbieter</h2>
+<div class="block">
+    <p><strong style="color:#fff">[LEGAL_NAME]</strong></p>
+    <p>[LEGAL_STREET]</p>
+    <p>[LEGAL_CITY]</p>
+    <p>Deutschland</p>
+</div>
+
+<h2>Kontakt</h2>
+<div class="block">
+    <p>E-Mail: <a href="mailto:hello@hawolt.com">hello@hawolt.com</a></p>
+</div>
+
+<h2>Umsatzsteuer</h2>
+<div class="block">
+    <p>
+        Gem&auml;&szlig; &sect; 19 UStG wird keine Umsatzsteuer berechnet (Kleinunternehmerregelung).
+    </p>
+</div>
+
+<h2>Verantwortlich f&uuml;r den Inhalt nach &sect; 18 Abs. 2 MStV</h2>
+<div class="block">
+    <p>[LEGAL_NAME]</p>
+</div>
+
+<h2>EU-Streitschlichtung</h2>
+<div class="block">
+    <p style="font-size:13px;color:var(--text)">
+        Die Europ&auml;ische Kommission stellt eine Plattform zur Online-Streitbeilegung (OS) bereit:
+        <a href="https://ec.europa.eu/consumers/odr/" target="_blank">https://ec.europa.eu/consumers/odr/</a>.
+        Unsere E-Mail-Adresse finden Sie oben im Impressum.
+    </p>
+</div>
+
+<h2>Verbraucherstreitbeilegung / Universalschlichtungsstelle</h2>
+<div class="block">
+    <p style="font-size:13px;color:var(--text)">
+        Wir sind nicht bereit oder verpflichtet, an Streitbeilegungsverfahren vor einer
+        Verbraucherschlichtungsstelle teilzunehmen.
+    </p>
+</div>
+
+</div>
+<script src="/legal.js" type="module"></script>
+</body>
+</html>

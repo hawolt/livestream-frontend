@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en" class="live-host">
+<head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/png" href="/static/img/favicon.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Dashboard</title>
+    <link rel="stylesheet" href="/static/css/shared.css" />
+    <link rel="stylesheet" href="/static/css/site.css" />
+</head>
+<body>
+<header class="site-nav">
+    <a class="site-brand" href="/">hawolt</a>
+    <nav class="site-links">
+        <a class="site-link" href="/" data-nav="browse">Browse</a>
+    </nav>
+    <div class="site-nav-right" id="site-nav-right"></div>
+</header>
+
+<div class="dash-layout">
+    <aside class="dash-side" id="dash-side" hidden></aside>
+    <main id="panes"></main>
+</div>
+
+<div id="modal">
+    <div id="modal-box">
+        <div id="modal-head">
+            <h3 id="modal-title"></h3>
+            <button id="modal-close">&#x2715;</button>
+        </div>
+        <div id="modal-body"></div>
+        <div id="modal-foot"></div>
+    </div>
+</div>
+
+<script src="/dash/dashboard.js" type="module"></script>
+</body>
+</html>
