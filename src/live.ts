@@ -148,6 +148,7 @@ let lastProgressAt = 0;
 let lastObservedTime = -1;
 let healthTimer: number | null = null;
 let lastStateChangeAt = 0;
+let viewerId = "";
 
 function nextGen(): number {
     gen += 1;
@@ -783,13 +784,17 @@ function attachVideoFailureListeners(g: number): void {
 }
 
 function getViewerId(): string {
+    if (viewerId) return viewerId;
     const stored = readLocalStorage(HLS_HOST_ID_KEY);
-    if (stored && /^[0-9a-f]{16}$/.test(stored)) return stored;
+    if (stored && /^[0-9a-f]{16}$/.test(stored)) {
+        viewerId = stored;
+        return viewerId;
+    }
     const bytes = new Uint8Array(8);
     crypto.getRandomValues(bytes);
-    const id = Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
-    writeLocalStorage(HLS_HOST_ID_KEY, id);
-    return id;
+    viewerId = Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
+    writeLocalStorage(HLS_HOST_ID_KEY, viewerId);
+    return viewerId;
 }
 
 function sendHLSBeat(): void {

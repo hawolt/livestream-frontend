@@ -76,24 +76,30 @@ let destroyed = false;
 let pickerOpen = false;
 let capEcho = false;
 let capRedact = false;
+let pageGuestNick = "";
 
 function migrateGuestNick(): void {
     const legacy = readLocalStorage(LEGACY_NICK_KEY);
     if (legacy === null) return;
     if (!readLocalStorage(GUEST_NICK_KEY) && GUEST_NICK_RE.test(legacy)) {
+        pageGuestNick = legacy;
         writeLocalStorage(GUEST_NICK_KEY, legacy);
     }
     removeLocalStorage(LEGACY_NICK_KEY);
 }
 
 function guestNick(): string {
+    if (GUEST_NICK_RE.test(pageGuestNick)) return pageGuestNick;
     const stored = readLocalStorage(GUEST_NICK_KEY);
-    if (stored && GUEST_NICK_RE.test(stored)) return stored;
+    if (stored && GUEST_NICK_RE.test(stored)) {
+        pageGuestNick = stored;
+        return pageGuestNick;
+    }
     const buf = new Uint8Array(4);
     crypto.getRandomValues(buf);
-    const generated = "guest_" + Array.from(buf, (b) => b.toString(16).padStart(2, "0")).join("");
-    writeLocalStorage(GUEST_NICK_KEY, generated);
-    return generated;
+    pageGuestNick = "guest_" + Array.from(buf, (b) => b.toString(16).padStart(2, "0")).join("");
+    writeLocalStorage(GUEST_NICK_KEY, pageGuestNick);
+    return pageGuestNick;
 }
 
 function atBottom(): boolean {
@@ -1204,7 +1210,10 @@ function handle(line: IrcLine): void {
         case "001": {
             const confirmed = line.params[0] ?? nick;
             nick = confirmed;
-            if (GUEST_NICK_RE.test(confirmed)) writeLocalStorage(GUEST_NICK_KEY, confirmed);
+            if (GUEST_NICK_RE.test(confirmed)) {
+                pageGuestNick = confirmed;
+                writeLocalStorage(GUEST_NICK_KEY, confirmed);
+            }
             send(`JOIN ${channel}`);
             return;
         }

@@ -37,6 +37,7 @@ let chaseTimer: number | null = null;
 let hlsBeaconTimer: number | null = null;
 let retryTimer: number | null = null;
 let retryDelay = RETRY_MIN_MS;
+let viewerId = "";
 
 function nextGen(): number {
     gen += 1;
@@ -238,19 +239,21 @@ function restartAfterFailure(g: number): void {
 }
 
 function getViewerId(): string {
+    if (viewerId) return viewerId;
     try {
         const stored = localStorage.getItem(HOST_ID_KEY);
-        if (stored && /^[0-9a-f]{16}$/.test(stored)) return stored;
-        const bytes = new Uint8Array(8);
-        crypto.getRandomValues(bytes);
-        const id = Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
-        localStorage.setItem(HOST_ID_KEY, id);
-        return id;
-    } catch {
-        const bytes = new Uint8Array(8);
-        crypto.getRandomValues(bytes);
-        return Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
-    }
+        if (stored && /^[0-9a-f]{16}$/.test(stored)) {
+            viewerId = stored;
+            return viewerId;
+        }
+    } catch {}
+    const bytes = new Uint8Array(8);
+    crypto.getRandomValues(bytes);
+    viewerId = Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
+    try {
+        localStorage.setItem(HOST_ID_KEY, viewerId);
+    } catch {}
+    return viewerId;
 }
 
 function sendHLSBeat(): void {
