@@ -60,7 +60,8 @@ function clearWatchdog(): void {
     }
 }
 
-(window as unknown as Record<string, unknown>)["onHCaptchaLoad"] = () => {
+function onHCaptchaLoad(): void {
+    if (widgetId !== null) return;
     widgetId = hcaptcha.render("hcaptcha-container", {
         sitekey:            HCAPTCHA_SITEKEY,
         size:               "invisible",
@@ -68,7 +69,10 @@ function clearWatchdog(): void {
         "error-callback":   (err)   => { clearWatchdog(); showError(`Captcha error: ${err}`); resetBtn(); },
         "expired-callback": ()      => { clearWatchdog(); resetBtn(); if (widgetId !== null) hcaptcha.reset(widgetId); },
     });
-};
+}
+
+(window as unknown as Record<string, unknown>)["onHCaptchaLoad"] = onHCaptchaLoad;
+if (typeof hcaptcha !== "undefined") onHCaptchaLoad();
 
 form.addEventListener("submit", (e) => {
     e.preventDefault();
