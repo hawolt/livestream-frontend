@@ -321,9 +321,6 @@
             font-size: 12px;
             font-weight: 700;
             padding: 5px 12px;
-            min-width: 88px;
-            box-sizing: border-box;
-            text-align: center;
             border-radius: 6px;
             border: 1px solid var(--accent);
             background: var(--accent);
@@ -336,8 +333,9 @@
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            width: 28px;
-            height: 28px;
+            width: 24px;
+            height: 24px;
+            box-sizing: border-box;
             padding: 0;
             border-radius: 6px;
             background: none;
@@ -346,7 +344,6 @@
             cursor: pointer;
         }
         .live-follow-bell[hidden] { display: none; }
-        .live-follow-bell.reserved { visibility: hidden; }
         .live-follow-bell:hover { color: var(--text); }
         .live-follow-bell.on { color: var(--accent); }
         .live-follow-bell svg { width: 16px; height: 16px; }
