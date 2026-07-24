@@ -58,14 +58,23 @@ export function setBurgerExtra(provider: ((close: () => void) => HTMLElement[]) 
 }
 
 async function signOut(token: string | undefined, trigger: HTMLButtonElement): Promise<void> {
+    const originalLabel = trigger.textContent ?? "Sign out";
     trigger.disabled = true;
     try {
-        await fetch(`${API_BASE}/auth/logout`, {
+        const res = await fetch(`${API_BASE}/auth/logout`, {
             method: "POST",
             headers: { "Authorization": `Bearer ${token ?? ""}` },
             credentials: "include",
         });
-    } catch {}
+        if (!res.ok) throw new Error("logout failed");
+    } catch {
+        trigger.disabled = false;
+        trigger.textContent = "Sign out failed";
+        window.setTimeout(() => {
+            if (trigger.textContent === "Sign out failed") trigger.textContent = originalLabel;
+        }, 2000);
+        return;
+    }
     sessionStorage.removeItem("dash_token");
     sessionStorage.removeItem("dash_kind");
     location.reload();
