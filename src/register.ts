@@ -27,7 +27,8 @@ function resolveRedirect(): string {
     if (ret) {
         try {
             const url = new URL(ret, location.origin);
-            if (url.host === location.host) return url.toString();
+            const isHttp = url.protocol === "http:" || url.protocol === "https:";
+            if (isHttp && url.origin === location.origin && !url.username && !url.password) return url.toString();
         } catch {}
     }
     return "/dashboard";
