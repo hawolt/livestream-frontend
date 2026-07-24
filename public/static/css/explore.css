@@ -72,6 +72,16 @@
     gap: 18px;
 }
 
+.explore-stream-card {
+    position: relative;
+    min-width: 0;
+}
+
+.explore-stream-card > .explore-card {
+    box-sizing: border-box;
+    height: 100%;
+}
+
 .explore-card {
     display: block;
     background: var(--surface);
@@ -85,6 +95,51 @@
     text-align: left;
     padding: 0;
     transition: border-color .15s;
+}
+
+.explore-preview-layer {
+    position: absolute;
+    z-index: 1;
+    top: 1px;
+    right: 1px;
+    left: 1px;
+    width: auto;
+    aspect-ratio: 16 / 9;
+    border-radius: var(--radius) var(--radius) 0 0;
+    overflow: hidden;
+    pointer-events: none;
+}
+
+.explore-preview-frame {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    border: 0;
+    background: #000;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .15s ease;
+}
+
+.explore-stream-card.preview-playing .explore-preview-frame {
+    opacity: 1;
+}
+
+.explore-preview-status {
+    position: absolute;
+    z-index: 1;
+    right: 8px;
+    bottom: 8px;
+    max-width: calc(100% - 16px);
+    padding: 3px 7px;
+    border-radius: 3px;
+    background: rgba(0, 0, 0, .78);
+    color: #e5e5e5;
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 1.3;
+    pointer-events: none;
 }
 
 .explore-card:hover { border-color: var(--accent); text-decoration: none; }
@@ -161,6 +216,7 @@ a.explore-card:hover, a.explore-card:hover * { text-decoration: none; }
 
 .explore-thumb .explore-tag {
     position: absolute;
+    z-index: 2;
     top: 8px;
     left: 8px;
     max-width: calc(100% - 16px);
@@ -168,6 +224,7 @@ a.explore-card:hover, a.explore-card:hover * { text-decoration: none; }
 
 .explore-thumb .explore-viewers {
     position: absolute;
+    z-index: 2;
     bottom: 8px;
     left: 8px;
     background: rgba(0, 0, 0, .72);
@@ -212,6 +269,10 @@ a.explore-card:hover, a.explore-card:hover * { text-decoration: none; }
     .explore-main { padding: 16px 16px 32px; }
     .explore-grid { grid-template-columns: 1fr; }
     .explore-category-name { font-size: 15px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .explore-preview-frame { transition: none; }
 }
 
 body.explore-framed .site-nav { display: none; }

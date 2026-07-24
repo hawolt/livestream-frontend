@@ -31,6 +31,20 @@ interface CategoryCardData {
     count: number;
 }
 
+interface StreamCard {
+    username: string;
+    root: HTMLDivElement;
+    link: HTMLAnchorElement;
+    image: HTMLImageElement;
+}
+
+interface StreamPreview {
+    card: StreamCard;
+    layer: HTMLDivElement;
+    frame: HTMLIFrameElement;
+    status: HTMLSpanElement;
+}
+
 const page = document.getElementById("explore-page") as HTMLElement;
 const gridEl = document.getElementById("explore-grid") as HTMLElement;
 const emptyEl = document.getElementById("explore-empty") as HTMLElement;
@@ -41,6 +55,8 @@ const modeStreamsBtn = document.getElementById("mode-streams") as HTMLButtonElem
 const modeCategoriesBtn = document.getElementById("mode-categories") as HTMLButtonElement;
 
 const POLL_MS = 10000;
+const PREVIEW_DELAY_MS = 300;
+const PREVIEW_MESSAGE_TYPE = "hawolt:stream-preview";
 const NO_CATEGORY_LABEL = "No category";
 
 let streams: ExploreStream[] = [];
@@ -50,8 +66,13 @@ let drillCategoryId: CategorySelector = null;
 let mediaBase = "";
 let pollRequestId = 0;
 let lastAppliedPollRequestId = 0;
+let previewTimer: number | null = null;
+let pendingPreview: StreamCard | null = null;
+let activePreview: StreamPreview | null = null;
+let deferredGridChildren: HTMLElement[] | null = null;
 
 const isFramed = window.self !== window.top || new URLSearchParams(location.search).get("framed") === "1";
+const hoverPreviewMedia = window.matchMedia("(any-hover: hover) and (any-pointer: fine) and (prefers-reduced-motion: no-preference)");
 
 function thumbUrl(s: ExploreStream): string {
     const minute = Math.floor(Date.now() / 60000);
@@ -63,11 +84,10 @@ function viewersIcon(): string {
     return `<svg viewBox="0 0 24 24"><circle cx="12" cy="7.2" r="4.2"/><path d="M12 13.4c-4.8 0-8 2.6-8 6.6h16c0-4-3.2-6.6-8-6.6z"/></svg>`;
 }
 
-const streamCards = new Map<string, HTMLAnchorElement>();
+const streamCards = new Map<string, StreamCard>();
 
-function updateStreamThumbnail(a: HTMLAnchorElement, s: ExploreStream): void {
-    const img = a.querySelector<HTMLImageElement>(".explore-thumb img");
-    if (!img) return;
+function updateStreamThumbnail(card: StreamCard, s: ExploreStream): void {
+    const img = card.image;
     const src = thumbUrl(s);
     if (img.dataset["thumbSrc"] === src) return;
     img.dataset["thumbSrc"] = src;
@@ -75,17 +95,85 @@ function updateStreamThumbnail(a: HTMLAnchorElement, s: ExploreStream): void {
     img.src = src;
 }
 
-function updateStreamCard(a: HTMLAnchorElement, s: ExploreStream): void {
-    const tag = a.querySelector(".explore-tag");
+function updateStreamCard(card: StreamCard, s: ExploreStream): void {
+    const tag = card.link.querySelector(".explore-tag");
     if (tag) tag.textContent = s.category ?? NO_CATEGORY_LABEL;
-    const viewersText = a.querySelector(".explore-viewers span");
+    const viewersText = card.link.querySelector(".explore-viewers span");
     if (viewersText) viewersText.textContent = `${s.viewers.toLocaleString()} viewers`;
-    const title = a.querySelector(".explore-card-title");
+    const title = card.link.querySelector(".explore-card-title");
     if (title) title.textContent = s.title ? s.title : "No title";
-    updateStreamThumbnail(a, s);
+    updateStreamThumbnail(card, s);
 }
 
-function buildStreamCard(s: ExploreStream): HTMLAnchorElement {
+function clearPendingPreview(): void {
+    if (previewTimer !== null) {
+        window.clearTimeout(previewTimer);
+        previewTimer = null;
+    }
+    pendingPreview = null;
+}
+
+function applyDeferredGrid(): void {
+    const deferred = deferredGridChildren;
+    deferredGridChildren = null;
+    if (deferred) setGridChildren(deferred);
+}
+
+function stopStreamPreview(card?: StreamCard): void {
+    const stopsPending = !card || pendingPreview === card;
+    if (stopsPending) clearPendingPreview();
+    const preview = activePreview;
+    if (!preview || (card && preview.card !== card)) {
+        if (stopsPending) applyDeferredGrid();
+        return;
+    }
+    activePreview = null;
+    preview.card.root.classList.remove("preview-connecting", "preview-playing");
+    preview.layer.remove();
+    const stream = streams.find((item) => item.username === preview.card.username);
+    if (stream) updateStreamThumbnail(preview.card, stream);
+    applyDeferredGrid();
+}
+
+function startStreamPreview(card: StreamCard): void {
+    if (!card.root.isConnected || !hoverPreviewMedia.matches) return;
+    const frame = document.createElement("iframe");
+    frame.className = "explore-preview-frame";
+    frame.src = `/embed/${encodeURIComponent(card.username)}?preview=1`;
+    frame.allow = "autoplay";
+    frame.tabIndex = -1;
+    frame.title = `${card.username} muted stream preview`;
+    frame.setAttribute("aria-hidden", "true");
+
+    const status = document.createElement("span");
+    status.className = "explore-preview-status";
+    status.textContent = "Connecting preview";
+    status.setAttribute("aria-hidden", "true");
+
+    const layer = document.createElement("div");
+    layer.className = "explore-preview-layer";
+    layer.append(frame, status);
+
+    card.root.classList.add("preview-connecting");
+    activePreview = { card, layer, frame, status };
+    card.root.appendChild(layer);
+}
+
+function queueStreamPreview(card: StreamCard): void {
+    if (!hoverPreviewMedia.matches || pendingPreview === card || activePreview?.card === card) return;
+    stopStreamPreview();
+    pendingPreview = card;
+    previewTimer = window.setTimeout(() => {
+        previewTimer = null;
+        if (pendingPreview !== card) return;
+        pendingPreview = null;
+        startStreamPreview(card);
+    }, PREVIEW_DELAY_MS);
+}
+
+function buildStreamCard(s: ExploreStream): StreamCard {
+    const root = document.createElement("div");
+    root.className = "explore-stream-card";
     const a = document.createElement("a");
     a.className = "explore-card";
     a.href = `/${encodeURIComponent(s.username)}`;
@@ -113,8 +201,31 @@ function buildStreamCard(s: ExploreStream): HTMLAnchorElement {
     title.className = "explore-card-title";
     body.append(title, username);
     a.append(thumb, body);
-    updateStreamCard(a, s);
-    return a;
+    root.appendChild(a);
+
+    const card = { username: s.username, root, link: a, image: img };
+    thumb.addEventListener("pointerenter", (e) => {
+        if (e.pointerType === "mouse") queueStreamPreview(card);
+    });
+    thumb.addEventListener("pointerleave", () => stopStreamPreview(card));
+    updateStreamCard(card, s);
+    return card;
+}
+
+function setGridChildren(children: HTMLElement[]): void {
+    const current = Array.from(gridEl.children);
+    if (current.length === children.length && current.every((child, index) => child === children[index])) {
+        deferredGridChildren = null;
+        return;
+    }
+    const previewCard = activePreview?.card ?? pendingPreview;
+    if (previewCard && children.includes(previewCard.root)) {
+        deferredGridChildren = [...children];
+        return;
+    }
+    deferredGridChildren = null;
+    stopStreamPreview();
+    gridEl.replaceChildren(...children);
 }
 
 function renderStreamList(list: ExploreStream[]): void {
@@ -123,7 +234,7 @@ function renderStreamList(list: ExploreStream[]): void {
         if (!live.has(key)) streamCards.delete(key);
     }
     const sorted = [...list].sort((a, b) => b.viewers - a.viewers);
-    gridEl.replaceChildren(...sorted.map((s) => {
+    setGridChildren(sorted.map((s) => {
         let el = streamCards.get(s.username);
         if (el) {
             updateStreamCard(el, s);
@@ -131,7 +242,7 @@ function renderStreamList(list: ExploreStream[]): void {
             el = buildStreamCard(s);
             streamCards.set(s.username, el);
         }
-        return el;
+        return el.root;
     }));
 }
 
@@ -194,7 +305,7 @@ function updateModeButtons(): void {
 function renderStreamsMode(): void {
     drillEl.classList.add("hidden");
     if (!streams.length) {
-        gridEl.replaceChildren();
+        setGridChildren([]);
         showEmpty("No one is live right now");
         return;
     }
@@ -210,20 +321,20 @@ function renderCategoryGrid(): void {
         cards.push({ id: "none", name: NO_CATEGORY_LABEL, viewers: noCategory.reduce((sum, s) => sum + s.viewers, 0), count: noCategory.length });
     }
     if (!cards.length) {
-        gridEl.replaceChildren();
+        setGridChildren([]);
         showEmpty("No categories yet");
         return;
     }
     hideEmpty();
     cards.sort((a, b) => b.viewers - a.viewers);
-    gridEl.replaceChildren(...cards.map(categoryCardEl));
+    setGridChildren(cards.map(categoryCardEl));
 }
 
 function renderCategoryDrill(name: string, list: ExploreStream[]): void {
     drillEl.classList.remove("hidden");
     drillTitleEl.textContent = name;
     if (!list.length) {
-        gridEl.replaceChildren();
+        setGridChildren([]);
         showEmpty("No one is streaming in this category right now");
         return;
     }
@@ -234,7 +345,7 @@ function renderCategoryDrill(name: string, list: ExploreStream[]): void {
 function renderCategoryNotFound(): void {
     drillEl.classList.remove("hidden");
     drillTitleEl.textContent = "Category not found";
-    gridEl.replaceChildren();
+    setGridChildren([]);
     showEmpty("This category does not exist.");
 }
 
@@ -318,6 +429,32 @@ gridEl.addEventListener("click", (e) => {
 window.addEventListener("popstate", (e) => {
     const state = (e.state as ViewState | null) ?? stateFromLocation();
     applyState(state);
+});
+
+window.addEventListener("message", (e) => {
+    const preview = activePreview;
+    if (!preview || e.origin !== location.origin || e.source !== preview.frame.contentWindow) return;
+    const data = e.data as { type?: unknown; state?: unknown };
+    if (data?.type !== PREVIEW_MESSAGE_TYPE) return;
+    if (data.state === "playing") {
+        preview.card.root.classList.remove("preview-connecting");
+        preview.card.root.classList.add("preview-playing");
+        preview.status.textContent = "Muted preview";
+        return;
+    }
+    preview.card.root.classList.remove("preview-playing");
+    preview.card.root.classList.add("preview-connecting");
+    preview.status.textContent = data.state === "unavailable" ? "Preview unavailable" : "Connecting preview";
+});
+
+window.addEventListener("pagehide", () => stopStreamPreview());
+
+document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "hidden") stopStreamPreview();
+});
+
+hoverPreviewMedia.addEventListener("change", () => {
+    if (!hoverPreviewMedia.matches) stopStreamPreview();
 });
 
 async function poll(): Promise<void> {
