@@ -32,6 +32,7 @@ export interface LiveInfo {
     webhookStartUrl: string;
     webhookEndUrl: string;
     webhookSecret: string;
+    discordWebhookUrl: string;
     emoteTwitch: string;
 }
 
