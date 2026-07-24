@@ -48,6 +48,8 @@ let categories: ExploreCategory[] = [];
 let mode: Mode = "streams";
 let drillCategoryId: CategorySelector = null;
 let mediaBase = "";
+let pollRequestId = 0;
+let lastAppliedPollRequestId = 0;
 
 const isFramed = window.self !== window.top || new URLSearchParams(location.search).get("framed") === "1";
 
@@ -319,10 +321,13 @@ window.addEventListener("popstate", (e) => {
 });
 
 async function poll(): Promise<void> {
+    const requestId = ++pollRequestId;
     try {
         const res = await fetch("/api/live/explore");
         if (res.ok) {
             const data = await res.json();
+            if (requestId < lastAppliedPollRequestId) return;
+            lastAppliedPollRequestId = requestId;
             streams = Array.isArray(data.streams) ? data.streams : [];
             categories = Array.isArray(data.categories) ? data.categories : [];
             if (typeof data.mediaBase === "string") mediaBase = data.mediaBase.replace(/\/+$/, "");
