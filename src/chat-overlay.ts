@@ -16,6 +16,7 @@ const unverified = new Set<string>();
 const knownMembers = new Set<string>();
 
 let channel = "";
+let channelEmoteTwitchId = "";
 let nick = "";
 let joined = false;
 let sock: WebSocket | null = null;
@@ -129,24 +130,44 @@ function renderBody(text: string): DocumentFragment {
     return frag;
 }
 
+function ingestEmoteList(list: unknown): void {
+    if (!Array.isArray(list)) return;
+    for (const emote of list) {
+        const name: unknown = emote?.name;
+        const host = emote?.data?.host;
+        if (typeof name !== "string" || !name || typeof host?.url !== "string") continue;
+        const files: { name?: string }[] = host.files ?? [];
+        const file = files.find((f) => f.name === EMOTE_FILE) ?? files.find((f) => f.name === EMOTE_FILE_FALLBACK);
+        if (!file?.name) continue;
+        emotes.set(name, `https:${host.url}/${file.name}`);
+        const zw = ((emote?.flags ?? 0) & 1) !== 0 || ((emote?.data?.flags ?? 0) & 256) !== 0;
+        if (zw) zeroWidthEmotes.add(name);
+        else zeroWidthEmotes.delete(name);
+    }
+}
+
 async function loadEmotes(): Promise<void> {
     try {
         const res = await fetch(EMOTE_SET_URL);
-        if (!res.ok) return;
-        const data = await res.json();
-        for (const emote of data?.emotes ?? []) {
-            const name: unknown = emote?.name;
-            const host = emote?.data?.host;
-            if (typeof name !== "string" || !name || typeof host?.url !== "string") continue;
-            const files: { name?: string }[] = host.files ?? [];
-            const file = files.find((f) => f.name === EMOTE_FILE) ?? files.find((f) => f.name === EMOTE_FILE_FALLBACK);
-            if (!file?.name) continue;
-            emotes.set(name, `https:${host.url}/${file.name}`);
-            const zw = ((emote?.flags ?? 0) & 1) !== 0 || ((emote?.data?.flags ?? 0) & 256) !== 0;
-            if (zw) zeroWidthEmotes.add(name);
-            else zeroWidthEmotes.delete(name);
+        if (res.ok) ingestEmoteList((await res.json())?.emotes);
+    } catch {}
+    if (channelEmoteTwitchId) {
+        try {
+            const res = await fetch(`https://7tv.io/v3/users/twitch/${encodeURIComponent(channelEmoteTwitchId)}`);
+            if (res.ok) ingestEmoteList((await res.json())?.emote_set?.emotes);
+        } catch {}
+    }
+}
+
+async function loadChannelEmotes(user: string): Promise<void> {
+    try {
+        const res = await fetch(`/api/live/channel/${encodeURIComponent(user)}`);
+        if (res.ok) {
+            const info: any = await res.json();
+            if (info && typeof info.emoteTwitchId === "string") channelEmoteTwitchId = info.emoteTwitchId;
         }
     } catch {}
+    await loadEmotes();
 }
 
 function append(node: HTMLElement): void {
@@ -428,7 +449,7 @@ function boot(): void {
     if (!m) return;
     channel = `#${m[1].toLowerCase()}`;
     parseParams();
-    if (showEmotes) void loadEmotes();
+    if (showEmotes) void loadChannelEmotes(m[1].toLowerCase());
     if (demoMode) startDemo();
     else connect();
 }
