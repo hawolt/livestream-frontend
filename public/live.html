@@ -315,6 +315,38 @@
             align-items: center;
             gap: 10px;
         }
+        .live-follow { display: inline-flex; align-items: center; gap: 8px; }
+        .live-follow[hidden] { display: none; }
+        .live-follow-btn {
+            font-size: 12px;
+            font-weight: 700;
+            padding: 5px 12px;
+            border-radius: 6px;
+            border: 1px solid var(--accent);
+            background: var(--accent);
+            color: #000;
+            cursor: pointer;
+        }
+        .live-follow-btn:disabled { opacity: .6; cursor: default; }
+        .live-follow-btn.following { background: transparent; color: var(--text); border-color: var(--border); }
+        .live-follow-bell {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 28px;
+            height: 28px;
+            padding: 0;
+            border-radius: 6px;
+            background: none;
+            border: 1px solid transparent;
+            color: var(--muted);
+            cursor: pointer;
+        }
+        .live-follow-bell[hidden] { display: none; }
+        .live-follow-bell:hover { color: var(--text); }
+        .live-follow-bell.on { color: var(--accent); }
+        .live-follow-bell svg { width: 16px; height: 16px; }
+        .live-follow-count { font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
         #live-viewers {
             flex-shrink: 0;
             display: inline-flex;
@@ -1154,6 +1186,13 @@
             <div class="live-info-bar hidden" id="live-info-bar">
                 <div id="live-title"><span id="live-name"></span><span id="live-sep" class="hidden">&#183;</span><span id="live-title-text"></span><span id="live-category-sep" class="hidden">&#183;</span><a id="live-category" class="hidden"></a></div>
                 <div class="live-info-right">
+                    <span id="live-follow" class="live-follow" hidden>
+                        <button id="btn-follow" type="button" class="live-follow-btn">Follow</button>
+                        <button id="btn-follow-notify" type="button" class="live-follow-bell" hidden title="Email me when this channel goes live" aria-label="Email me when this channel goes live">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>
+                        </button>
+                        <span id="live-follow-count" class="live-follow-count"></span>
+                    </span>
                     <span id="live-viewers"><svg viewBox="0 0 24 24"><circle cx="12" cy="7.2" r="4.2"/><path d="M12 13.4c-4.8 0-8 2.6-8 6.6h16c0-4-3.2-6.6-8-6.6z"/></svg><span id="live-viewers-count"></span></span>
                     <span id="live-uptime" class="live-uptime" hidden></span>
                 </div>

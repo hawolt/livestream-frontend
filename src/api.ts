@@ -7,6 +7,7 @@ export interface AccountSettings {
     username?: string | null;
     usernameChangedAt?: number | null;
     usernameCooldownRemaining?: number;
+    liveNotify?: boolean;
 }
 
 export interface RegionOption {

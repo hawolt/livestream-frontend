@@ -38,6 +38,8 @@ async function loadSettings(): Promise<void> {
         if (usernameCurrent) usernameCurrent.value = s.username ?? getMe()?.username ?? "";
         formatUsernameHint(s);
         renderBotCard(typeof s.chatBotToken === "string" ? s.chatBotToken : null);
+        const liveNotify = document.getElementById("st-live-notify") as HTMLInputElement | null;
+        if (liveNotify) liveNotify.checked = s.liveNotify !== false;
     } catch { }
 }
 
@@ -180,6 +182,22 @@ export function init(): void {
 
     document.getElementById("st-chat-color")?.addEventListener("input", syncColorPreview);
     document.getElementById("st-username-new")?.addEventListener("input", updateUsernameSaveState);
+
+    document.getElementById("st-live-notify")?.addEventListener("change", async (e) => {
+        const cb = e.target as HTMLInputElement;
+        const saved = document.getElementById("st-live-notify-saved");
+        cb.disabled = true;
+        try {
+            await authFetch("/api/settings/live-notify", { method: "PUT", body: JSON.stringify({ enabled: cb.checked }) });
+            if (saved) { saved.textContent = "Saved"; saved.style.color = "var(--success)"; }
+        } catch (err) {
+            cb.checked = !cb.checked;
+            const msg = err instanceof Error ? err.message : String(err);
+            if (saved) { saved.textContent = msg; saved.style.color = "var(--red)"; }
+        }
+        cb.disabled = false;
+        if (saved) setTimeout(() => { saved.textContent = ""; }, 3000);
+    });
 
     async function saveChatColor(color: string | null): Promise<void> {
         const saved = document.getElementById("st-color-saved");
