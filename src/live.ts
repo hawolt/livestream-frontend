@@ -23,7 +23,14 @@ const uptimeEl = document.getElementById("live-uptime") as HTMLElement;
 const followWrapEl = document.getElementById("live-follow") as HTMLElement;
 const followBtnEl = document.getElementById("btn-follow") as HTMLButtonElement;
 const followBellEl = document.getElementById("btn-follow-notify") as HTMLButtonElement;
-const followCountEl = document.getElementById("live-follow-count") as HTMLElement;
+const loginModalEl = document.getElementById("login-modal") as HTMLElement;
+const loginModalCloseEl = document.getElementById("login-modal-close") as HTMLButtonElement;
+const loginModalTitleEl = document.getElementById("login-modal-title") as HTMLElement;
+const loginModalFormEl = document.getElementById("login-modal-form") as HTMLFormElement;
+const loginModalUserEl = document.getElementById("login-modal-user") as HTMLInputElement;
+const loginModalPassEl = document.getElementById("login-modal-pass") as HTMLInputElement;
+const loginModalErrorEl = document.getElementById("login-modal-error") as HTMLElement;
+const loginModalSubmitEl = document.getElementById("login-modal-submit") as HTMLButtonElement;
 const qualityEl = document.getElementById("live-quality") as HTMLElement;
 const btnLayoutToggle = document.getElementById("btn-layout-toggle") as HTMLButtonElement;
 const btnPlay = document.getElementById("btn-play") as HTMLButtonElement;
@@ -1712,8 +1719,15 @@ let following = false;
 let followNotify = false;
 let followWired = false;
 
-function setFollowCount(n: number): void {
-    followCountEl.textContent = n === 1 ? "1 follower" : `${n} followers`;
+function openLoginModal(): void {
+    loginModalErrorEl.textContent = "";
+    loginModalTitleEl.textContent = `Log in to follow ${username}`;
+    loginModalEl.hidden = false;
+    loginModalUserEl.focus();
+}
+
+function closeLoginModal(): void {
+    loginModalEl.hidden = true;
 }
 
 function renderFollow(): void {
@@ -1736,7 +1750,7 @@ function wireFollow(): void {
     followWired = true;
     followBtnEl.addEventListener("click", async () => {
         if (!followLoggedIn) {
-            location.href = `/login?return=${encodeURIComponent(location.href)}`;
+            openLoginModal();
             return;
         }
         followBtnEl.disabled = true;
@@ -1747,7 +1761,6 @@ function wireFollow(): void {
                 const j = await r.json();
                 following = !!j.following;
                 if (following) followNotify = j.notify !== false;
-                if (typeof j.count === "number") setFollowCount(j.count);
             }
         } catch {}
         followBtnEl.disabled = false;
@@ -1775,13 +1788,7 @@ function wireFollow(): void {
 }
 
 async function initFollow(): Promise<void> {
-    try {
-        const c = await fetch(`${API_BASE}/follows/count?username=${encodeURIComponent(username)}`, { credentials: "include" });
-        if (c.ok) {
-            const j = await c.json();
-            setFollowCount(typeof j.count === "number" ? j.count : 0);
-        }
-    } catch {}
+    wireLoginModal();
     let me = "";
     try {
         const s = await fetch(`${API_BASE}/auth/session`, { credentials: "include" });
@@ -1804,6 +1811,46 @@ async function initFollow(): Promise<void> {
     }
     wireFollow();
     renderFollow();
+}
+
+let loginModalWired = false;
+function wireLoginModal(): void {
+    if (loginModalWired) return;
+    loginModalWired = true;
+    loginModalCloseEl.addEventListener("click", closeLoginModal);
+    loginModalEl.addEventListener("click", (e) => {
+        if (e.target === loginModalEl) closeLoginModal();
+    });
+    document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape" && !loginModalEl.hidden) closeLoginModal();
+    });
+    loginModalFormEl.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const user = loginModalUserEl.value.trim();
+        const pass = loginModalPassEl.value;
+        if (!user || !pass) return;
+        loginModalErrorEl.textContent = "";
+        loginModalSubmitEl.disabled = true;
+        try {
+            const r = await fetch(`${API_BASE}/auth/login`, {
+                method: "POST",
+                credentials: "include",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ username: user, password: pass }),
+            });
+            if (r.ok) {
+                loginModalPassEl.value = "";
+                closeLoginModal();
+                await initFollow();
+                if (followLoggedIn && !followOwn && !following) followBtnEl.click();
+            } else {
+                loginModalErrorEl.textContent = "Invalid username or password.";
+            }
+        } catch {
+            loginModalErrorEl.textContent = "Login failed. Please try again.";
+        }
+        loginModalSubmitEl.disabled = false;
+    });
 }
 
 void boot();
