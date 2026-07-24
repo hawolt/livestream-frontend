@@ -63,6 +63,16 @@ function viewersIcon(): string {
 
 const streamCards = new Map<string, HTMLAnchorElement>();
 
+function updateStreamThumbnail(a: HTMLAnchorElement, s: ExploreStream): void {
+    const img = a.querySelector<HTMLImageElement>(".explore-thumb img");
+    if (!img) return;
+    const src = thumbUrl(s);
+    if (img.dataset["thumbSrc"] === src) return;
+    img.dataset["thumbSrc"] = src;
+    img.style.removeProperty("display");
+    img.src = src;
+}
+
 function updateStreamCard(a: HTMLAnchorElement, s: ExploreStream): void {
     const tag = a.querySelector(".explore-tag");
     if (tag) tag.textContent = s.category ?? NO_CATEGORY_LABEL;
@@ -70,6 +80,7 @@ function updateStreamCard(a: HTMLAnchorElement, s: ExploreStream): void {
     if (viewersText) viewersText.textContent = `${s.viewers.toLocaleString()} viewers`;
     const title = a.querySelector(".explore-card-title");
     if (title) title.textContent = s.title ? s.title : "No title";
+    updateStreamThumbnail(a, s);
 }
 
 function buildStreamCard(s: ExploreStream): HTMLAnchorElement {
@@ -82,8 +93,8 @@ function buildStreamCard(s: ExploreStream): HTMLAnchorElement {
     const img = document.createElement("img");
     img.loading = "lazy";
     img.alt = "";
-    img.src = thumbUrl(s);
     img.addEventListener("error", () => { img.style.display = "none"; });
+    img.addEventListener("load", () => { img.style.removeProperty("display"); });
     const tag = document.createElement("span");
     tag.className = "explore-tag";
     const viewers = document.createElement("span");
