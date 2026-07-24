@@ -402,7 +402,11 @@
             padding: 4px 6px;
         }
         .live-chat-head button:hover { color: var(--text); }
-        #btn-chat-users.active, #btn-chat-help.active { color: var(--accent); }
+        #btn-chat-users.active, #btn-chat-help.active, #btn-chat-settings.active { color: var(--accent); }
+        .live-chat-setting { display: flex; align-items: center; gap: 10px; padding: 8px 4px; font-size: 13px; color: var(--text); cursor: pointer; }
+        .live-chat-setting input { width: 16px; height: 16px; cursor: pointer; }
+        .live-chat-time { display: none; margin-right: 6px; color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
+        #live-chat-messages.show-timestamps .live-chat-time { display: inline; }
         .live-chat-head button svg { width: 17px; height: 17px; display: block; }
         #btn-chat-fullscreen svg {
             width: 16px;
@@ -1159,6 +1163,9 @@
             <div class="live-chat-head">
                 <span>Chat</span>
                 <div class="live-chat-head-actions">
+                    <button id="btn-chat-settings" type="button" title="Chat settings" aria-label="Chat settings">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 8 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H2a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 8a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V2a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H22a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                    </button>
                     <button id="btn-chat-help" type="button" title="Chat commands" aria-label="Chat commands">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9.2 9.2a2.8 2.8 0 015.4 1c0 1.9-2.8 2.5-2.8 2.5"/><line x1="12" y1="17" x2="12" y2="17"/></svg>
                     </button>
@@ -1190,6 +1197,18 @@
                 </div>
                 <div id="live-chat-help-body" class="live-chat-help-body"></div>
                 <div id="live-chat-help-foot" class="live-chat-help-foot"></div>
+            </div>
+            <div id="live-chat-settings" class="live-chat-help" hidden>
+                <div class="live-chat-help-head">
+                    <span>Chat settings</span>
+                    <button type="button" id="live-chat-settings-close" title="Close" aria-label="Close">&times;</button>
+                </div>
+                <div class="live-chat-help-body">
+                    <label class="live-chat-setting">
+                        <input type="checkbox" id="live-chat-ts-toggle" />
+                        <span>Show timestamps</span>
+                    </label>
+                </div>
             </div>
             <div id="live-chat-messages">
                 <div class="live-chat-empty">Connecting to chat...</div>

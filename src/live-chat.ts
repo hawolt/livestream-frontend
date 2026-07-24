@@ -15,6 +15,10 @@ const helpEl = document.getElementById("live-chat-help") as HTMLElement;
 const helpBodyEl = document.getElementById("live-chat-help-body") as HTMLElement;
 const helpFootEl = document.getElementById("live-chat-help-foot") as HTMLElement;
 const helpCloseEl = document.getElementById("live-chat-help-close") as HTMLButtonElement;
+const settingsBtnEl = document.getElementById("btn-chat-settings") as HTMLButtonElement;
+const settingsEl = document.getElementById("live-chat-settings") as HTMLElement;
+const settingsCloseEl = document.getElementById("live-chat-settings-close") as HTMLButtonElement;
+const timestampToggleEl = document.getElementById("live-chat-ts-toggle") as HTMLInputElement;
 const sendEl = document.getElementById("live-chat-send-btn") as HTMLButtonElement;
 const emoteBtnEl = document.getElementById("live-chat-emote-btn") as HTMLButtonElement;
 const pickerEl = document.getElementById("live-chat-picker") as HTMLElement;
@@ -55,6 +59,8 @@ const pinnedMsgs = new Map<string, { from: string; text: string }>();
 const dismissedPins = new Set<string>();
 let userlistOpen = false;
 let helpOpen = false;
+let settingsOpen = false;
+const TIMESTAMPS_KEY = "live-chat-timestamps";
 let helpBuilt = false;
 let suggestIndex = -1;
 let channelEmoteTwitchId = "";
@@ -290,6 +296,7 @@ function addMessage(from: string, text: string, msgid?: string, replyId?: string
         repliedToMe = quote.parentFrom.toLowerCase() === myNickLower();
     }
 
+    line.appendChild(buildTimeSpan());
     const who = document.createElement("span");
     who.className = "live-chat-nick";
     who.textContent = from;
@@ -483,6 +490,7 @@ function setUserlist(open: boolean): void {
     userlistEl.hidden = !open;
     if (open) {
         setHelp(false);
+        setSettings(false);
         renderUserlist();
         send(`NAMES ${channel}`);
     }
@@ -563,12 +571,44 @@ function setHelp(open: boolean): void {
     helpEl.hidden = !open;
     if (open) {
         setUserlist(false);
+        setSettings(false);
         if (!helpBuilt) buildHelp();
     }
 }
 
 function toggleHelp(): void {
     setHelp(!helpOpen);
+}
+
+function setSettings(open: boolean): void {
+    settingsOpen = open;
+    settingsBtnEl.classList.toggle("active", open);
+    settingsEl.hidden = !open;
+    if (open) {
+        setUserlist(false);
+        setHelp(false);
+    }
+}
+
+function toggleSettings(): void {
+    setSettings(!settingsOpen);
+}
+
+function applyTimestampPref(on: boolean): void {
+    msgsEl.classList.toggle("show-timestamps", on);
+    timestampToggleEl.checked = on;
+}
+
+function pad2(n: number): string {
+    return n < 10 ? `0${n}` : String(n);
+}
+
+function buildTimeSpan(): HTMLSpanElement {
+    const now = new Date();
+    const span = document.createElement("span");
+    span.className = "live-chat-time";
+    span.textContent = `${pad2(now.getHours())}:${pad2(now.getMinutes())}`;
+    return span;
 }
 
 function buildEmoteImg(name: string, url: string): HTMLImageElement {
@@ -1363,6 +1403,7 @@ function connect(): void {
     dismissedPins.clear();
     if (userlistOpen) setUserlist(false);
     if (helpOpen) setHelp(false);
+    if (settingsOpen) setSettings(false);
     capEcho = false;
     capRedact = false;
     updateComposer();
@@ -1438,6 +1479,13 @@ export function startChat(user: string, emoteTwitchId?: string): void {
     userlistCloseEl.addEventListener("click", () => setUserlist(false));
     helpBtnEl.addEventListener("click", toggleHelp);
     helpCloseEl.addEventListener("click", () => setHelp(false));
+    settingsBtnEl.addEventListener("click", toggleSettings);
+    settingsCloseEl.addEventListener("click", () => setSettings(false));
+    applyTimestampPref(readLocalStorage(TIMESTAMPS_KEY) === "1");
+    timestampToggleEl.addEventListener("change", () => {
+        applyTimestampPref(timestampToggleEl.checked);
+        writeLocalStorage(TIMESTAMPS_KEY, timestampToggleEl.checked ? "1" : "0");
+    });
     pickerFilterEl.addEventListener("input", () => renderPickerGrid(pickerFilterEl.value));
     inputEl.addEventListener("input", () => {
         autoGrowInput();
@@ -1468,6 +1516,7 @@ export function startChat(user: string, emoteTwitchId?: string): void {
         clearReply();
         if (userlistOpen) setUserlist(false);
         if (helpOpen) setHelp(false);
+        if (settingsOpen) setSettings(false);
     });
     connect();
 }
