@@ -1520,7 +1520,21 @@ function wireControls(): void {
 
     document.addEventListener("keydown", (ev) => {
         const target = ev.target as HTMLElement | null;
-        if (target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA")) return;
+        const interactive = target?.closest(
+            "a[href], button, input, select, textarea, [contenteditable]:not([contenteditable=false]), [role=button], [role=link], [role=slider], [role=textbox], [role=menuitem]",
+        );
+        if (ev.defaultPrevented || ev.repeat) return;
+        if (ev.key === "Escape") {
+            if (isChatFullscreen() && !chatFsNative) {
+                ev.preventDefault();
+                exitChatFullscreen();
+            } else if (cinemaMode && !isChatFullscreen() && !isVideoFullscreen()) {
+                ev.preventDefault();
+                exitCinemaMode();
+            }
+            return;
+        }
+        if (ev.altKey || ev.ctrlKey || ev.metaKey || ev.shiftKey || interactive) return;
         if (ev.key === " ") {
             ev.preventDefault();
             btnPlay.click();
@@ -1528,10 +1542,6 @@ function wireControls(): void {
             btnMute.click();
         } else if (ev.key === "f" || ev.key === "F") {
             btnFullscreen.click();
-        } else if (ev.key === "Escape" && isChatFullscreen() && !chatFsNative) {
-            exitChatFullscreen();
-        } else if (ev.key === "Escape" && cinemaMode && !isChatFullscreen() && !isVideoFullscreen()) {
-            exitCinemaMode();
         }
     });
 
