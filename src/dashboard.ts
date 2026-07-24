@@ -5,8 +5,6 @@ import {
     type MeInfo, type TabInfo, type TabModule,
 } from "./dash/core.ts";
 
-import { PRIVATE_TAB_LOADERS } from "./dash/private/index.ts";
-
 const TAB_LOADERS: Record<string, () => Promise<TabModule>> = {
     stream:           () => import("./dash/tabs/stream.ts"),
     "stream-manager": () => import("./dash/tabs/stream-manager.ts"),
@@ -14,7 +12,6 @@ const TAB_LOADERS: Record<string, () => Promise<TabModule>> = {
     "stream-health":  () => import("./dash/tabs/stream-health.ts"),
     "stream-summary": () => import("./dash/tabs/stream-summary.ts"),
     settings:         () => import("./dash/tabs/settings.ts"),
-    ...PRIVATE_TAB_LOADERS,
 };
 
 const tabById = new Map<string, TabInfo>();
@@ -24,6 +21,7 @@ let currentTab: string | null = null;
 let activationSeq = 0;
 let sidebarToggleLabel: HTMLElement | null = null;
 let closeSidebarMenu: (() => void) | null = null;
+let studioUrl: string | null = null;
 
 function tabFromLocation(): string | null {
     const m = location.pathname.match(/^\/dashboard(?:\.html)?\/([A-Za-z0-9_-]+)\/?$/);
@@ -164,6 +162,26 @@ function buildSidebar(tabs: TabInfo[]): void {
         appendSidebarLink(list, t);
     }
     for (const t of ungrouped) appendSidebarLink(list, t);
+
+    if (studioUrl) {
+        if (showHeaders) {
+            const header = document.createElement("div");
+            header.className = "dash-side-group";
+            header.textContent = "Studio";
+            list.appendChild(header);
+        }
+        list.appendChild(makeStudioLink("dash-side-link"));
+    }
+}
+
+function makeStudioLink(className: string): HTMLAnchorElement {
+    const a = document.createElement("a");
+    a.className = className;
+    a.href = studioUrl ?? "";
+    a.target = "_blank";
+    a.rel = "noopener noreferrer";
+    a.textContent = "Open Studio";
+    return a;
 }
 
 function makeBurgerTab(t: TabInfo, close: () => void): HTMLButtonElement {
@@ -178,7 +196,9 @@ function makeBurgerTab(t: TabInfo, close: () => void): HTMLButtonElement {
 function buildBurgerTabItems(close: () => void): HTMLElement[] {
     const distinctGroups = new Set(allTabs.map(t => t.group ?? "__none__"));
     if (distinctGroups.size < 2) {
-        return allTabs.map(t => makeBurgerTab(t, close));
+        const items: HTMLElement[] = allTabs.map(t => makeBurgerTab(t, close));
+        if (studioUrl) items.push(makeStudioLink("site-account-item"));
+        return items;
     }
 
     const order: string[] = [];
@@ -222,6 +242,7 @@ function buildBurgerTabItems(close: () => void): HTMLElement[] {
         section.append(header, list);
         out.push(section);
     }
+    if (studioUrl) out.push(makeStudioLink("site-account-item"));
     return out;
 }
 
@@ -259,6 +280,8 @@ function fetchMe(): Promise<Response | null> {
     }
 
     const tabs = (me.tabs ?? []).filter(t => TAB_LOADERS[t.id]);
+    const studioTabs = (me.tabs ?? []).filter(t => !TAB_LOADERS[t.id]);
+    studioUrl = studioTabs.length ? `https://studio.${baseDomain}${port}/dashboard` : null;
     allTabs = tabs;
     for (const t of tabs) tabById.set(t.id, t);
     buildSidebar(tabs);
