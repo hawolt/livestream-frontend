@@ -37,6 +37,7 @@ const MAX_SUGGESTIONS = 8;
 const MIN_SUGGEST_LEN = 2;
 const RETRY_MS = 5000;
 const FLOOD_RETRY_MS = 30000;
+const BAN_RETRY_MS = 30000;
 const SCROLL_SLACK_PX = 40;
 
 const emotes = new Map<string, string>();
@@ -70,6 +71,7 @@ let joined = false;
 let banned = false;
 let isAccount = false;
 let retryTimer: number | null = null;
+let banRetry = false;
 let destroyed = false;
 let pickerOpen = false;
 let capEcho = false;
@@ -1165,16 +1167,13 @@ function removeMember(key: string): void {
 }
 
 function enterBanned(): void {
-    if (banned) return;
-    banned = true;
-    joined = false;
-    addSystem("You are banned from this channel");
-    updateComposer();
-    destroyed = true;
-    if (retryTimer !== null) {
-        window.clearTimeout(retryTimer);
-        retryTimer = null;
+    if (!banned) {
+        banned = true;
+        joined = false;
+        addSystem("You are banned from this channel");
+        updateComposer();
     }
+    banRetry = true;
     sock?.close();
 }
 
@@ -1212,6 +1211,7 @@ function handle(line: IrcLine): void {
         case "JOIN": {
             const joiner = line.nick;
             if (joiner === nick && !joined) {
+                banned = false;
                 joined = true;
                 addSystem(`Connected as ${nick}`);
                 updateComposer();
@@ -1386,7 +1386,11 @@ function connect(): void {
         }
         const reason = CLOSE_REASONS[ev.code];
         if (reason) addSystem(reason);
-        scheduleRetry(ev.code === 4400 ? FLOOD_RETRY_MS : RETRY_MS);
+        const delay = banRetry || banned
+            ? BAN_RETRY_MS
+            : ev.code === 4400 ? FLOOD_RETRY_MS : RETRY_MS;
+        banRetry = false;
+        scheduleRetry(delay);
     };
     s.onerror = () => s.close();
 }
