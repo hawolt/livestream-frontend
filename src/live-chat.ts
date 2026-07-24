@@ -5,6 +5,7 @@ const msgsEl = document.getElementById("live-chat-messages") as HTMLElement;
 const inputEl = document.getElementById("live-chat-input") as HTMLTextAreaElement;
 const inputRowEl = document.getElementById("live-chat-inputrow") as HTMLElement;
 const guestLoginEl = document.getElementById("live-chat-guest-login") as HTMLAnchorElement;
+const verifyEl = document.getElementById("live-chat-verify") as HTMLAnchorElement;
 const usersBtnEl = document.getElementById("btn-chat-users") as HTMLButtonElement;
 const userlistEl = document.getElementById("live-chat-userlist") as HTMLElement;
 const pinnedEl = document.getElementById("live-chat-pinned") as HTMLElement;
@@ -801,6 +802,7 @@ async function checkAccountStatus(): Promise<void> {
 function showComposerInput(enabled: boolean): void {
     inputRowEl.hidden = false;
     guestLoginEl.hidden = true;
+    verifyEl.hidden = true;
     inputEl.disabled = !enabled;
     sendEl.disabled = !enabled;
     emoteBtnEl.disabled = !enabled;
@@ -814,15 +816,29 @@ function showComposerInput(enabled: boolean): void {
 function showGuestLogin(): void {
     inputRowEl.hidden = true;
     guestLoginEl.hidden = false;
+    verifyEl.hidden = true;
     guestLoginEl.href = `/login?return=${encodeURIComponent(location.href)}`;
     closePicker();
     hideSuggest();
+}
+
+function showVerifyEmail(): void {
+    inputRowEl.hidden = true;
+    guestLoginEl.hidden = true;
+    verifyEl.hidden = false;
+    closePicker();
+    hideSuggest();
+}
+
+function isSelfUnverified(): boolean {
+    return isAccount && unverified.has(myNickLower());
 }
 
 function updateComposer(): void {
     if (banned) {
         inputRowEl.hidden = true;
         guestLoginEl.hidden = true;
+        verifyEl.hidden = true;
         closePicker();
         hideSuggest();
         updateReplyBar();
@@ -835,6 +851,8 @@ function updateComposer(): void {
     }
     if (isGuestNow()) {
         showGuestLogin();
+    } else if (isSelfUnverified()) {
+        showVerifyEmail();
     } else {
         showComposerInput(true);
     }
