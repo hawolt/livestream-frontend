@@ -254,6 +254,7 @@ function buildActions(from: string, text: string, msgid: string): HTMLElement {
     reply.type = "button";
     reply.className = "live-chat-reply-btn";
     reply.title = "Reply";
+    reply.setAttribute("aria-label", `Reply to ${from}`);
     reply.textContent = "↩";
     reply.addEventListener("click", () => setReply(msgid, from, text));
     actions.appendChild(reply);
@@ -261,6 +262,7 @@ function buildActions(from: string, text: string, msgid: string): HTMLElement {
     pin.type = "button";
     pin.className = "live-chat-pin-btn";
     pin.title = "Pin message";
+    pin.setAttribute("aria-label", `Pin message from ${from}`);
     pin.textContent = "📌";
     pin.addEventListener("click", () => send(`PRIVMSG ${channel} :.pin ${msgid}`));
     actions.appendChild(pin);
@@ -268,6 +270,7 @@ function buildActions(from: string, text: string, msgid: string): HTMLElement {
     del.type = "button";
     del.className = "live-chat-del";
     del.title = "Delete message";
+    del.setAttribute("aria-label", `Delete message from ${from}`);
     del.textContent = "✕";
     del.addEventListener("click", () => send(`PRIVMSG ${channel} :.delete ${msgid}`));
     actions.appendChild(del);

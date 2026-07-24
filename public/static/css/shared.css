@@ -1101,3 +1101,20 @@ html.live-host .live-controls button:focus-visible {
     white-space: nowrap;
     border: 0;
 }
+
+html.live-host .live-chat-actions {
+    display: flex;
+    opacity: 0;
+    pointer-events: none;
+}
+
+html.live-host .live-chat-msg:hover .live-chat-actions,
+html.live-host .live-chat-msg:focus-within .live-chat-actions {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+html.live-host .live-chat-actions button:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+}
