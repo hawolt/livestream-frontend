@@ -22,11 +22,11 @@
     <main id="panes"></main>
 </div>
 
-<div id="modal">
-    <div id="modal-box">
+<div id="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title" aria-hidden="true">
+    <div id="modal-box" tabindex="-1">
         <div id="modal-head">
             <h3 id="modal-title"></h3>
-            <button id="modal-close">&#x2715;</button>
+            <button id="modal-close" type="button" aria-label="Close dialog">&#x2715;</button>
         </div>
         <div id="modal-body"></div>
         <div id="modal-foot"></div>
