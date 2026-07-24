@@ -29,6 +29,7 @@
             object-fit: contain;
             background: #000;
         }
+        body.embed-preview #embed-video { object-fit: cover; }
         #embed-poster {
             position: absolute;
             inset: 0;
@@ -61,6 +62,7 @@
         }
         #embed-unmute:hover { background: rgba(0, 0, 0, .9); }
         #embed-unmute.hidden { display: none; }
+        body.embed-preview #embed-unmute { display: none; }
         #embed-unmute svg { width: 16px; height: 16px; fill: currentColor; }
     </style>
 </head>
