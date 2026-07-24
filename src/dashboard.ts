@@ -178,8 +178,6 @@ function makeStudioLink(className: string): HTMLAnchorElement {
     const a = document.createElement("a");
     a.className = className;
     a.href = studioUrl ?? "";
-    a.target = "_blank";
-    a.rel = "noopener noreferrer";
     a.textContent = "Open Studio";
     return a;
 }
