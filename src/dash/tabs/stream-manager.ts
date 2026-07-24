@@ -96,9 +96,9 @@ function renderMods(): void {
     for (const m of modsCache) {
         const tr = document.createElement("tr");
         tr.innerHTML = `
-            <td>${esc(m.username)}</td>
-            <td>${fmtUnix(m.createdAt)}</td>
-            <td style="white-space:nowrap"><button class="btn btn-sm btn-danger" data-mod-remove="${m.id}">Remove</button></td>`;
+            <td data-label="Username">${esc(m.username)}</td>
+            <td data-label="Added">${fmtUnix(m.createdAt)}</td>
+            <td data-label="Actions" style="white-space:nowrap"><button class="btn btn-sm btn-danger" data-mod-remove="${m.id}">Remove</button></td>`;
         tbody.appendChild(tr);
     }
     tbody.querySelectorAll<HTMLButtonElement>("[data-mod-remove]").forEach(btn => {
@@ -147,11 +147,11 @@ function renderBans(): void {
             ? `<span style="color:var(--muted);font-size:12px">Staff ban</span>`
             : `<button class="btn btn-sm btn-danger" data-ban-remove="${b.id}">Remove</button>`;
         tr.innerHTML = `
-            <td>${esc(b.label)}</td>
-            <td>${esc(b.bannedBy)}</td>
-            <td>${expiry}</td>
-            <td>${fmtUnix(b.createdAt)}</td>
-            <td style="white-space:nowrap">${action}</td>`;
+            <td data-label="Label">${esc(b.label)}</td>
+            <td data-label="Banned by">${esc(b.bannedBy)}</td>
+            <td data-label="Expires">${expiry}</td>
+            <td data-label="Date">${fmtUnix(b.createdAt)}</td>
+            <td data-label="Actions" style="white-space:nowrap">${action}</td>`;
         tbody.appendChild(tr);
     }
     tbody.querySelectorAll<HTMLButtonElement>("[data-ban-remove]").forEach(btn => {
