@@ -1,6 +1,7 @@
 import { startChat } from "./live-chat";
 import { initSiteNav, markActive } from "./nav.ts";
 import { captchaQuery, getCaptchaToken, setCaptchaAnchor, warmCaptcha } from "./captcha.ts";
+import { readLocalStorage, writeLocalStorage } from "./storage.ts";
 
 const page = document.getElementById("live-page") as HTMLElement;
 const nameEl = document.getElementById("live-name") as HTMLElement;
@@ -764,12 +765,12 @@ function attachVideoFailureListeners(g: number): void {
 }
 
 function getViewerId(): string {
-    const stored = localStorage.getItem(HLS_HOST_ID_KEY);
+    const stored = readLocalStorage(HLS_HOST_ID_KEY);
     if (stored && /^[0-9a-f]{16}$/.test(stored)) return stored;
     const bytes = new Uint8Array(8);
     crypto.getRandomValues(bytes);
     const id = Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
-    localStorage.setItem(HLS_HOST_ID_KEY, id);
+    writeLocalStorage(HLS_HOST_ID_KEY, id);
     return id;
 }
 
@@ -1071,7 +1072,7 @@ function isPopoutMode(): boolean {
 }
 
 function getLayoutMode(): LiveLayoutMode {
-    const stored = localStorage.getItem(LAYOUT_KEY);
+    const stored = readLocalStorage(LAYOUT_KEY);
     return stored === "horizontal" || stored === "vertical" ? stored : "auto";
 }
 
@@ -1131,7 +1132,7 @@ function scheduleFullscreenSettle(): void {
 function cycleLayout(): void {
     const order: LiveLayoutMode[] = ["auto", "horizontal", "vertical"];
     const next = order[(order.indexOf(getLayoutMode()) + 1) % order.length];
-    localStorage.setItem(LAYOUT_KEY, next);
+    writeLocalStorage(LAYOUT_KEY, next);
     syncLayout();
 }
 
@@ -1261,7 +1262,7 @@ function setChatCollapsed(collapsed: boolean): void {
         return;
     }
     chatEl.classList.toggle("collapsed", collapsed);
-    localStorage.setItem(CHAT_COLLAPSE_KEY, collapsed ? "1" : "0");
+    writeLocalStorage(CHAT_COLLAPSE_KEY, collapsed ? "1" : "0");
     fitChat();
 }
 
@@ -1462,7 +1463,7 @@ function wireControls(): void {
         video.volume = v;
         video.muted = v === 0;
         updateVolumeUI();
-        localStorage.setItem(VOLUME_KEY, String(v));
+        writeLocalStorage(VOLUME_KEY, String(v));
     });
 
     btnFullscreen.addEventListener("click", () => {
@@ -1517,17 +1518,17 @@ function wireControls(): void {
     btnChatSide.addEventListener("click", () => {
         const left = !document.body.classList.contains("chat-left");
         document.body.classList.toggle("chat-left", left);
-        localStorage.setItem(CHAT_SIDE_KEY, left ? "left" : "right");
+        writeLocalStorage(CHAT_SIDE_KEY, left ? "left" : "right");
     });
     btnChatPopout.addEventListener("click", () => {
         const url = `/${encodeURIComponent(username)}?chat=popout`;
         window.open(url, `chat_${username}`, "width=420,height=760,menubar=no,toolbar=no,location=no");
     });
-    if (localStorage.getItem(CHAT_SIDE_KEY) === "left") document.body.classList.add("chat-left");
-    const storedChat = localStorage.getItem(CHAT_COLLAPSE_KEY);
+    if (readLocalStorage(CHAT_SIDE_KEY) === "left") document.body.classList.add("chat-left");
+    const storedChat = readLocalStorage(CHAT_COLLAPSE_KEY);
     setChatCollapsed(window.innerWidth <= COMPACT_MAX_WIDTH_PX ? false : storedChat === "1");
 
-    const storedVol = localStorage.getItem(VOLUME_KEY);
+    const storedVol = readLocalStorage(VOLUME_KEY);
     if (storedVol !== null) {
         const v = parseFloat(storedVol);
         if (!Number.isNaN(v) && v >= 0 && v <= 1) {

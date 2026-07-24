@@ -1,4 +1,5 @@
 import { API_BASE } from "./api.ts";
+import { readLocalStorage, removeLocalStorage, writeLocalStorage } from "./storage.ts";
 
 const msgsEl = document.getElementById("live-chat-messages") as HTMLElement;
 const inputEl = document.getElementById("live-chat-input") as HTMLTextAreaElement;
@@ -75,21 +76,21 @@ let capEcho = false;
 let capRedact = false;
 
 function migrateGuestNick(): void {
-    const legacy = localStorage.getItem(LEGACY_NICK_KEY);
+    const legacy = readLocalStorage(LEGACY_NICK_KEY);
     if (legacy === null) return;
-    if (!localStorage.getItem(GUEST_NICK_KEY) && GUEST_NICK_RE.test(legacy)) {
-        localStorage.setItem(GUEST_NICK_KEY, legacy);
+    if (!readLocalStorage(GUEST_NICK_KEY) && GUEST_NICK_RE.test(legacy)) {
+        writeLocalStorage(GUEST_NICK_KEY, legacy);
     }
-    localStorage.removeItem(LEGACY_NICK_KEY);
+    removeLocalStorage(LEGACY_NICK_KEY);
 }
 
 function guestNick(): string {
-    const stored = localStorage.getItem(GUEST_NICK_KEY);
+    const stored = readLocalStorage(GUEST_NICK_KEY);
     if (stored && GUEST_NICK_RE.test(stored)) return stored;
     const buf = new Uint8Array(4);
     crypto.getRandomValues(buf);
     const generated = "guest_" + Array.from(buf, (b) => b.toString(16).padStart(2, "0")).join("");
-    localStorage.setItem(GUEST_NICK_KEY, generated);
+    writeLocalStorage(GUEST_NICK_KEY, generated);
     return generated;
 }
 
@@ -1204,7 +1205,7 @@ function handle(line: IrcLine): void {
         case "001": {
             const confirmed = line.params[0] ?? nick;
             nick = confirmed;
-            if (GUEST_NICK_RE.test(confirmed)) localStorage.setItem(GUEST_NICK_KEY, confirmed);
+            if (GUEST_NICK_RE.test(confirmed)) writeLocalStorage(GUEST_NICK_KEY, confirmed);
             send(`JOIN ${channel}`);
             return;
         }
