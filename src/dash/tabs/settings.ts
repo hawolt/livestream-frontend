@@ -1,10 +1,20 @@
 import type { AccountSettings } from "../../api.ts";
 import { $, getMe, setToken, authFetch } from "../core.ts";
 
+let usernameCooldownRemaining = 0;
+
+function updateUsernameSaveState(): void {
+    const saveBtn = document.getElementById("btn-username-save") as HTMLButtonElement | null;
+    const current = (document.getElementById("st-username-current") as HTMLInputElement | null)?.value.trim() ?? "";
+    const next = (document.getElementById("st-username-new") as HTMLInputElement | null)?.value.trim() ?? "";
+    const capitalizationOnly = next !== current && next.toLowerCase() === current.toLowerCase();
+    if (saveBtn) saveBtn.disabled = usernameCooldownRemaining > 0 && !capitalizationOnly;
+}
+
 function formatUsernameHint(s: AccountSettings): void {
     const hint = document.getElementById("st-username-hint");
-    const saveBtn = document.getElementById("btn-username-save") as HTMLButtonElement | null;
     const remaining = s.usernameCooldownRemaining ?? 0;
+    usernameCooldownRemaining = remaining;
     if (hint) {
         if (remaining > 0) {
             const days = Math.ceil(remaining / 86400);
@@ -14,7 +24,7 @@ function formatUsernameHint(s: AccountSettings): void {
             hint.textContent = "You can change your username once every 30 days. Changing only the capitalization is always allowed.";
         }
     }
-    if (saveBtn) saveBtn.disabled = remaining > 0;
+    updateUsernameSaveState();
 }
 
 async function loadSettings(): Promise<void> {
@@ -164,6 +174,7 @@ export function init(): void {
     });
 
     document.getElementById("st-chat-color")?.addEventListener("input", syncColorPreview);
+    document.getElementById("st-username-new")?.addEventListener("input", updateUsernameSaveState);
 
     async function saveChatColor(color: string | null): Promise<void> {
         const saved = document.getElementById("st-color-saved");
@@ -202,6 +213,7 @@ export function init(): void {
             ($("st-username-current") as HTMLInputElement).value = res.username;
             ($("st-username-new") as HTMLInputElement).value = "";
             ($("st-username-password") as HTMLInputElement).value = "";
+            updateUsernameSaveState();
             status.textContent = "Saved";
             status.style.color = "var(--success)";
             setTimeout(() => { status.textContent = ""; }, 2500);
