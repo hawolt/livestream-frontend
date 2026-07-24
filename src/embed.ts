@@ -38,6 +38,7 @@ let hlsBeaconTimer: number | null = null;
 let retryTimer: number | null = null;
 let retryDelay = RETRY_MIN_MS;
 let viewerId = "";
+let hlsVideoCleanup: (() => void) | null = null;
 
 function nextGen(): number {
     gen += 1;
@@ -181,6 +182,8 @@ function stopHLSBeacon(): void {
 }
 
 function fullTeardown(): void {
+    hlsVideoCleanup?.();
+    hlsVideoCleanup = null;
     stopChase();
     stopHLSBeacon();
     if (ws) {
@@ -378,6 +381,11 @@ function startHLSTransport(g: number): void {
     video.addEventListener("playing", onPlaying);
     video.addEventListener("ended", onEnded);
     video.addEventListener("error", onError);
+    hlsVideoCleanup = () => {
+        video.removeEventListener("playing", onPlaying);
+        video.removeEventListener("ended", onEnded);
+        video.removeEventListener("error", onError);
+    };
 
     void getCaptchaToken().then(() => {
         if (!isCurrent(g)) return;
