@@ -1074,3 +1074,9 @@ input[type="checkbox"]:checked::after {
     margin-left: 8px;
 }
 #live-category.hidden { display: none; }
+
+html.live-host body.browse-mode .live-stage {
+    width: min(320px, calc(100vw - 32px)) !important;
+    height: auto !important;
+    aspect-ratio: 16 / 9 !important;
+}
