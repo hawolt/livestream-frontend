@@ -53,10 +53,10 @@ function markVisibleWhenExpanded(container: HTMLElement): void {
         if (container.offsetHeight < 20) return;
         ro.disconnect();
         container.classList.add("captcha-slot-visible");
-        container.style.background = "rgba(46,204,113,.14)";
-        container.style.border = "1px solid rgba(46,204,113,.45)";
-        container.style.borderRadius = "10px";
-        container.style.boxShadow = "0 0 14px rgba(46,204,113,.25)";
+        container.style.background = "var(--surface, #141414)";
+        container.style.border = "1px solid var(--border, #2e2e2e)";
+        container.style.borderRadius = "var(--radius, 6px)";
+        container.style.boxShadow = "var(--shadow, 0 1px 4px rgba(0,0,0,.5))";
         container.style.padding = "10px";
         container.style.margin = "8px 8px 0";
     });
@@ -96,6 +96,7 @@ function solve(): Promise<string> {
         try {
             widgetId = ts.render(container, {
                 sitekey,
+                theme: "dark",
                 appearance: "interaction-only",
                 callback: (token: string) => finish(() => resolve(token)),
                 "error-callback": () => finish(() => reject(new Error("turnstile error"))),
