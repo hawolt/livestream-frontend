@@ -33,11 +33,7 @@ async function loadSettings(): Promise<void> {
         ($("st-email") as HTMLInputElement).value = s.email ?? "";
         const banner = document.getElementById("settings-verify-banner");
         if (banner) banner.style.display = s.emailVerified === false ? "" : "none";
-        const colorInput = document.getElementById("st-chat-color") as HTMLInputElement | null;
-        if (colorInput && typeof s.chatColor === "string" && /^#[0-9a-fA-F]{6}$/.test(s.chatColor)) {
-            colorInput.value = s.chatColor;
-        }
-        syncColorPreview();
+        applyChatColor(s.chatColor);
         const usernameCurrent = document.getElementById("st-username-current") as HTMLInputElement | null;
         if (usernameCurrent) usernameCurrent.value = s.username ?? getMe()?.username ?? "";
         formatUsernameHint(s);
@@ -128,6 +124,15 @@ function syncColorPreview(): void {
     }
 }
 
+function applyChatColor(color: unknown): void {
+    const input = document.getElementById("st-chat-color") as HTMLInputElement | null;
+    if (!input) return;
+    input.value = typeof color === "string" && /^#[0-9a-fA-F]{6}$/.test(color)
+        ? color
+        : input.defaultValue;
+    syncColorPreview();
+}
+
 export function init(): void {
     const me = getMe();
     const flags = new Set((me?.flags ?? "").split(",").map(f => f.trim()).filter(Boolean));
@@ -180,6 +185,7 @@ export function init(): void {
         const saved = document.getElementById("st-color-saved");
         try {
             await authFetch("/api/settings/chat-color", { method: "PUT", body: JSON.stringify({ color: color ?? "" }) });
+            if (color === null) applyChatColor(null);
             if (saved) { saved.textContent = color ? "Saved" : "Reset to default"; saved.style.color = "var(--success)"; }
         } catch (err) {
             const msg = err instanceof Error ? err.message : String(err);
