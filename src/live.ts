@@ -929,9 +929,16 @@ function handleWSClose(g: number, ev: CloseEvent): void {
     }
 }
 
+function withCaptchaHint<T>(g: number, p: Promise<T>): Promise<T> {
+    const t = window.setTimeout(() => {
+        if (isCurrent(g) && !terminal) setPoster("Checking your browser…", false);
+    }, 300);
+    return p.finally(() => window.clearTimeout(t));
+}
+
 function startWSTransport(g: number): void {
     attachVideoFailureListeners(g);
-    void captchaQuery().then((tq) => {
+    void withCaptchaHint(g, captchaQuery()).then((tq) => {
     if (!isCurrent(g)) return;
     const path = `/ws/live?u=${encodeURIComponent(username)}&viewer_id=${encodeURIComponent(getViewerId())}${tq}`;
     const sock = new WebSocket(mediaWsUrl(path));
@@ -1000,7 +1007,7 @@ function startHLSTransport(g: number): void {
     track(() => video.removeEventListener("ended", onEnded));
 
     setState("buffering");
-    void getCaptchaToken().then(() => {
+    void withCaptchaHint(g, getCaptchaToken()).then(() => {
         if (!isCurrent(g)) return;
         video.src = src;
         void video.play().catch(() => {});
