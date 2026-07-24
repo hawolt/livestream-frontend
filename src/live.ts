@@ -63,6 +63,7 @@ const RETRY_MULT = 2;
 const WAITING_STALL_MS = 8000;
 const HEALTH_STALE_MS = 15000;
 const HEALTH_STUCK_MS = 20000;
+const HEALTH_CHECK_INTERVAL_MS = 5000;
 const FULLSCREEN_SETTLE_MS = 120;
 const CHAT_COLLAPSE_KEY = "live-chat-collapsed";
 const CHAT_MIN_PX = 300;
@@ -145,6 +146,7 @@ let genCleanup: Array<() => void> = [];
 let lastMediaArrivalAt = 0;
 let lastProgressAt = 0;
 let lastObservedTime = -1;
+let healthTimer: number | null = null;
 let lastStateChangeAt = 0;
 
 function nextGen(): number {
@@ -246,6 +248,7 @@ function enterTerminal(label: string): void {
     if (terminal) return;
     terminal = true;
     clearRetryTimer();
+    stopHealthTimer();
     nextGen();
     fullTeardown();
     setTerminal(label, true);
@@ -718,14 +721,29 @@ function healthCheck(): void {
     if (terminal) return;
     const now = Date.now();
     if (state === "playing") {
-        const mediaStale = now - lastMediaArrivalAt > HEALTH_STALE_MS;
+        const mediaStale = transportKind === "ws" && now - lastMediaArrivalAt > HEALTH_STALE_MS;
         const progressStale = !video.paused && now - lastProgressAt > HEALTH_STALE_MS;
         if (mediaStale || progressStale) healthRestart("stale-playing");
         return;
     }
-    if (state === "connecting" || state === "buffering" || state === "reconnecting") {
-        if (now - lastStateChangeAt > HEALTH_STUCK_MS) healthRestart(`stuck-${state}`);
-    }
+    const awaitingTransport = state === "connecting"
+        || state === "buffering"
+        || state === "reconnecting"
+        || (state === "offline" && startedOnce);
+    if (awaitingTransport && now - lastStateChangeAt > HEALTH_STUCK_MS) healthRestart(`stuck-${state}`);
+}
+
+function startHealthTimer(): void {
+    if (healthTimer !== null) return;
+    healthTimer = window.setInterval(() => {
+        if (document.visibilityState === "visible") healthCheck();
+    }, HEALTH_CHECK_INTERVAL_MS);
+}
+
+function stopHealthTimer(): void {
+    if (healthTimer === null) return;
+    window.clearInterval(healthTimer);
+    healthTimer = null;
 }
 
 function attachVideoFailureListeners(g: number): void {
@@ -939,9 +957,11 @@ function startHLSTransport(g: number): void {
 
 function beginTransport(): void {
     if (terminal) return;
+    startHealthTimer();
     clearRetryTimer();
     const g = nextGen();
     fullTeardown();
+    lastStateChangeAt = Date.now();
     lastMediaArrivalAt = Date.now();
     lastProgressAt = Date.now();
     lastObservedTime = video.currentTime;
@@ -962,6 +982,7 @@ function wirePageLifecycle(): void {
         if (terminal) return;
         pageHideTornDown = true;
         clearRetryTimer();
+        stopHealthTimer();
         nextGen();
         fullTeardown();
     });
@@ -1227,6 +1248,7 @@ function closeBrowseMini(): void {
     document.body.classList.add("browse-mini-closed");
     miniParked = true;
     clearRetryTimer();
+    stopHealthTimer();
     nextGen();
     fullTeardown();
     resetStreamInfo();
@@ -1443,7 +1465,7 @@ function wireControls(): void {
     video.addEventListener("loadedmetadata", updateQuality);
     startFpsMeter();
     video.addEventListener("timeupdate", () => {
-        if (video.currentTime > lastObservedTime + 0.01) {
+        if (Math.abs(video.currentTime - lastObservedTime) > 0.01) {
             lastObservedTime = video.currentTime;
             lastProgressAt = Date.now();
         }
