@@ -1747,7 +1747,13 @@ function renderFollow(): void {
     followBtnEl.hidden = false;
     followBtnEl.textContent = following ? "Following" : "Follow";
     followBtnEl.classList.toggle("following", following);
-    followBellEl.hidden = !following;
+    if (followLoggedIn) {
+        followBellEl.hidden = false;
+        followBellEl.classList.toggle("reserved", !following);
+    } else {
+        followBellEl.hidden = true;
+        followBellEl.classList.remove("reserved");
+    }
     followBellEl.classList.toggle("on", followNotify);
     followBellEl.title = followNotify ? "Email notifications on" : "Email me when this channel goes live";
 }
