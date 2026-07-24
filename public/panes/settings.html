@@ -39,6 +39,14 @@
             </div>
         </form>
 
+        <div class="section-title" style="margin-top:28px">Notifications</div>
+        <p style="color:var(--muted);font-size:13px;margin:0 0 12px">Get an email when a channel you follow goes live. You can also turn this off for a single channel from that channel's page.</p>
+        <label style="display:flex;align-items:center;gap:10px;cursor:pointer">
+            <input id="st-live-notify" type="checkbox" style="width:16px;height:16px;cursor:pointer" />
+            <span>Email me when channels I follow go live</span>
+            <span id="st-live-notify-saved" style="font-size:13px;color:var(--success)"></span>
+        </label>
+
         <div class="section-title" style="margin-top:28px">Chat Bot</div>
         <p style="color:var(--muted);font-size:13px;margin:0 0 12px">
             Connect a chat bot with a long-lived token. The bot chats as this account and never expires; rotating it invalidates the old token within about 90 seconds.

@@ -1,4 +1,5 @@
 import { startChat } from "./live-chat";
+import { API_BASE } from "./api.ts";
 import { initSiteNav, markActive } from "./nav.ts";
 import { captchaQuery, getCaptchaToken, setCaptchaAnchor, warmCaptcha } from "./captcha.ts";
 import { readLocalStorage, writeLocalStorage } from "./storage.ts";
@@ -19,6 +20,10 @@ const viewersCountEl = document.getElementById("live-viewers-count") as HTMLElem
 const viewersHeaderEl = document.getElementById("live-viewers-header") as HTMLElement;
 const viewersHeaderCountEl = document.getElementById("live-viewers-header-count") as HTMLElement;
 const uptimeEl = document.getElementById("live-uptime") as HTMLElement;
+const followWrapEl = document.getElementById("live-follow") as HTMLElement;
+const followBtnEl = document.getElementById("btn-follow") as HTMLButtonElement;
+const followBellEl = document.getElementById("btn-follow-notify") as HTMLButtonElement;
+const followCountEl = document.getElementById("live-follow-count") as HTMLElement;
 const qualityEl = document.getElementById("live-quality") as HTMLElement;
 const btnLayoutToggle = document.getElementById("btn-layout-toggle") as HTMLButtonElement;
 const btnPlay = document.getElementById("btn-play") as HTMLButtonElement;
@@ -1686,6 +1691,8 @@ async function boot(): Promise<void> {
         return;
     }
 
+    void initFollow();
+
     if (typeof MediaSource === "function" && typeof MediaSource.isTypeSupported === "function") {
         titleBar.classList.remove("hidden");
         transportKind = "ws";
@@ -1697,6 +1704,106 @@ async function boot(): Promise<void> {
         return;
     }
     beginTransport();
+}
+
+let followLoggedIn = false;
+let followOwn = false;
+let following = false;
+let followNotify = false;
+let followWired = false;
+
+function setFollowCount(n: number): void {
+    followCountEl.textContent = n === 1 ? "1 follower" : `${n} followers`;
+}
+
+function renderFollow(): void {
+    followWrapEl.hidden = false;
+    if (followOwn) {
+        followBtnEl.hidden = true;
+        followBellEl.hidden = true;
+        return;
+    }
+    followBtnEl.hidden = false;
+    followBtnEl.textContent = following ? "Following" : "Follow";
+    followBtnEl.classList.toggle("following", following);
+    followBellEl.hidden = !following;
+    followBellEl.classList.toggle("on", followNotify);
+    followBellEl.title = followNotify ? "Email notifications on" : "Email me when this channel goes live";
+}
+
+function wireFollow(): void {
+    if (followWired) return;
+    followWired = true;
+    followBtnEl.addEventListener("click", async () => {
+        if (!followLoggedIn) {
+            location.href = `/login?return=${encodeURIComponent(location.href)}`;
+            return;
+        }
+        followBtnEl.disabled = true;
+        try {
+            const method = following ? "DELETE" : "POST";
+            const r = await fetch(`${API_BASE}/follows/${encodeURIComponent(username)}`, { method, credentials: "include" });
+            if (r.ok) {
+                const j = await r.json();
+                following = !!j.following;
+                if (following) followNotify = j.notify !== false;
+                if (typeof j.count === "number") setFollowCount(j.count);
+            }
+        } catch {}
+        followBtnEl.disabled = false;
+        renderFollow();
+    });
+    followBellEl.addEventListener("click", async () => {
+        if (!following) return;
+        const next = !followNotify;
+        followBellEl.disabled = true;
+        try {
+            const r = await fetch(`${API_BASE}/follows/${encodeURIComponent(username)}/notify`, {
+                method: "PUT",
+                credentials: "include",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ enabled: next }),
+            });
+            if (r.ok) {
+                const j = await r.json();
+                followNotify = !!j.notify;
+            }
+        } catch {}
+        followBellEl.disabled = false;
+        renderFollow();
+    });
+}
+
+async function initFollow(): Promise<void> {
+    try {
+        const c = await fetch(`${API_BASE}/follows/count?username=${encodeURIComponent(username)}`, { credentials: "include" });
+        if (c.ok) {
+            const j = await c.json();
+            setFollowCount(typeof j.count === "number" ? j.count : 0);
+        }
+    } catch {}
+    let me = "";
+    try {
+        const s = await fetch(`${API_BASE}/auth/session`, { credentials: "include" });
+        if (s.ok) {
+            const j = await s.json();
+            me = String(j.username ?? "").toLowerCase();
+        }
+    } catch {}
+    followLoggedIn = me !== "";
+    followOwn = followLoggedIn && me === username;
+    if (followLoggedIn && !followOwn) {
+        try {
+            const st = await fetch(`${API_BASE}/follows/status?username=${encodeURIComponent(username)}`, { credentials: "include" });
+            if (st.ok) {
+                const j = await st.json();
+                following = !!j.following;
+                followNotify = !!j.notify;
+            }
+        } catch {}
+    }
+    wireFollow();
+    renderFollow();
 }
 
 void boot();
