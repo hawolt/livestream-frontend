@@ -1080,3 +1080,12 @@ html.live-host body.browse-mode .live-stage {
     height: auto !important;
     aspect-ratio: 16 / 9 !important;
 }
+
+html.live-host .live-stage:focus-within .live-controls {
+    opacity: 1;
+}
+
+html.live-host .live-controls button:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+}
