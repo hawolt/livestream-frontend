@@ -989,6 +989,7 @@ tr:last-child td { border-bottom: none; }
         word-break: break-word;
     }
     .tbl-wrap td::before {
+        content: attr(data-label);
         display: block;
         font-size: 11px;
         font-weight: 700;
@@ -1065,9 +1066,55 @@ input[type="checkbox"]:checked::after {
     margin: 0 5px 0 0;
 }
 
+.live-chat-inputrow[hidden] { display: none; }
+
 #live-category {
     color: var(--muted);
     font-size: 13px;
     margin-left: 8px;
 }
 #live-category.hidden { display: none; }
+
+html.live-host body.browse-mode .live-stage {
+    width: min(320px, calc(100vw - 32px)) !important;
+    height: auto !important;
+    aspect-ratio: 16 / 9 !important;
+}
+
+html.live-host .live-stage:focus-within .live-controls {
+    opacity: 1;
+}
+
+html.live-host .live-controls button:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+}
+
+.viewer-count-accessible {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+html.live-host .live-chat-actions {
+    display: flex;
+    opacity: 0;
+    pointer-events: none;
+}
+
+html.live-host .live-chat-msg:hover .live-chat-actions,
+html.live-host .live-chat-msg:focus-within .live-chat-actions {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+html.live-host .live-chat-actions button:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+}

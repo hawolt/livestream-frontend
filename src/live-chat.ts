@@ -1,4 +1,5 @@
 import { API_BASE } from "./api.ts";
+import { readLocalStorage, removeLocalStorage, writeLocalStorage } from "./storage.ts";
 
 const msgsEl = document.getElementById("live-chat-messages") as HTMLElement;
 const inputEl = document.getElementById("live-chat-input") as HTMLTextAreaElement;
@@ -36,6 +37,7 @@ const MAX_SUGGESTIONS = 8;
 const MIN_SUGGEST_LEN = 2;
 const RETRY_MS = 5000;
 const FLOOD_RETRY_MS = 30000;
+const BAN_RETRY_MS = 30000;
 const SCROLL_SLACK_PX = 40;
 
 const emotes = new Map<string, string>();
@@ -69,28 +71,35 @@ let joined = false;
 let banned = false;
 let isAccount = false;
 let retryTimer: number | null = null;
+let banRetry = false;
 let destroyed = false;
 let pickerOpen = false;
 let capEcho = false;
 let capRedact = false;
+let pageGuestNick = "";
 
 function migrateGuestNick(): void {
-    const legacy = localStorage.getItem(LEGACY_NICK_KEY);
+    const legacy = readLocalStorage(LEGACY_NICK_KEY);
     if (legacy === null) return;
-    if (!localStorage.getItem(GUEST_NICK_KEY) && GUEST_NICK_RE.test(legacy)) {
-        localStorage.setItem(GUEST_NICK_KEY, legacy);
+    if (!readLocalStorage(GUEST_NICK_KEY) && GUEST_NICK_RE.test(legacy)) {
+        pageGuestNick = legacy;
+        writeLocalStorage(GUEST_NICK_KEY, legacy);
     }
-    localStorage.removeItem(LEGACY_NICK_KEY);
+    removeLocalStorage(LEGACY_NICK_KEY);
 }
 
 function guestNick(): string {
-    const stored = localStorage.getItem(GUEST_NICK_KEY);
-    if (stored && GUEST_NICK_RE.test(stored)) return stored;
+    if (GUEST_NICK_RE.test(pageGuestNick)) return pageGuestNick;
+    const stored = readLocalStorage(GUEST_NICK_KEY);
+    if (stored && GUEST_NICK_RE.test(stored)) {
+        pageGuestNick = stored;
+        return pageGuestNick;
+    }
     const buf = new Uint8Array(4);
     crypto.getRandomValues(buf);
-    const generated = "guest_" + Array.from(buf, (b) => b.toString(16).padStart(2, "0")).join("");
-    localStorage.setItem(GUEST_NICK_KEY, generated);
-    return generated;
+    pageGuestNick = "guest_" + Array.from(buf, (b) => b.toString(16).padStart(2, "0")).join("");
+    writeLocalStorage(GUEST_NICK_KEY, pageGuestNick);
+    return pageGuestNick;
 }
 
 function atBottom(): boolean {
@@ -245,6 +254,7 @@ function buildActions(from: string, text: string, msgid: string): HTMLElement {
     reply.type = "button";
     reply.className = "live-chat-reply-btn";
     reply.title = "Reply";
+    reply.setAttribute("aria-label", `Reply to ${from}`);
     reply.textContent = "↩";
     reply.addEventListener("click", () => setReply(msgid, from, text));
     actions.appendChild(reply);
@@ -252,6 +262,7 @@ function buildActions(from: string, text: string, msgid: string): HTMLElement {
     pin.type = "button";
     pin.className = "live-chat-pin-btn";
     pin.title = "Pin message";
+    pin.setAttribute("aria-label", `Pin message from ${from}`);
     pin.textContent = "📌";
     pin.addEventListener("click", () => send(`PRIVMSG ${channel} :.pin ${msgid}`));
     actions.appendChild(pin);
@@ -259,6 +270,7 @@ function buildActions(from: string, text: string, msgid: string): HTMLElement {
     del.type = "button";
     del.className = "live-chat-del";
     del.title = "Delete message";
+    del.setAttribute("aria-label", `Delete message from ${from}`);
     del.textContent = "✕";
     del.addEventListener("click", () => send(`PRIVMSG ${channel} :.delete ${msgid}`));
     actions.appendChild(del);
@@ -1164,16 +1176,13 @@ function removeMember(key: string): void {
 }
 
 function enterBanned(): void {
-    if (banned) return;
-    banned = true;
-    joined = false;
-    addSystem("You are banned from this channel");
-    updateComposer();
-    destroyed = true;
-    if (retryTimer !== null) {
-        window.clearTimeout(retryTimer);
-        retryTimer = null;
+    if (!banned) {
+        banned = true;
+        joined = false;
+        addSystem("You are banned from this channel");
+        updateComposer();
     }
+    banRetry = true;
     sock?.close();
 }
 
@@ -1204,13 +1213,17 @@ function handle(line: IrcLine): void {
         case "001": {
             const confirmed = line.params[0] ?? nick;
             nick = confirmed;
-            if (GUEST_NICK_RE.test(confirmed)) localStorage.setItem(GUEST_NICK_KEY, confirmed);
+            if (GUEST_NICK_RE.test(confirmed)) {
+                pageGuestNick = confirmed;
+                writeLocalStorage(GUEST_NICK_KEY, confirmed);
+            }
             send(`JOIN ${channel}`);
             return;
         }
         case "JOIN": {
             const joiner = line.nick;
             if (joiner === nick && !joined) {
+                banned = false;
                 joined = true;
                 addSystem(`Connected as ${nick}`);
                 updateComposer();
@@ -1385,7 +1398,11 @@ function connect(): void {
         }
         const reason = CLOSE_REASONS[ev.code];
         if (reason) addSystem(reason);
-        scheduleRetry(ev.code === 4400 ? FLOOD_RETRY_MS : RETRY_MS);
+        const delay = banRetry || banned
+            ? BAN_RETRY_MS
+            : ev.code === 4400 ? FLOOD_RETRY_MS : RETRY_MS;
+        banRetry = false;
+        scheduleRetry(delay);
     };
     s.onerror = () => s.close();
 }

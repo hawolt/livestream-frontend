@@ -26,11 +26,11 @@
         <div id="section-login">
             <form id="login-form">
                 <div class="login-fields">
-                    <input id="username" type="text" autocomplete="username" placeholder="Username" required />
-                    <input id="password" type="password" autocomplete="current-password" placeholder="Password" required />
+                    <input id="username" type="text" autocomplete="username" placeholder="Username" aria-label="Username" required />
+                    <input id="password" type="password" autocomplete="current-password" placeholder="Password" aria-label="Password" required />
                 </div>
                 <button type="submit" id="btn-login" class="login-btn">Sign In</button>
-                <div id="error"></div>
+                <div id="error" role="alert"></div>
                 <div id="lockout"></div>
             </form>
             <div class="login-footer">No account yet? <a href="/register">Create one</a></div>
@@ -42,10 +42,10 @@
         <div id="section-forgot" style="display:none">
             <form id="forgot-form">
                 <div class="login-fields">
-                    <input id="forgot-email" type="email" autocomplete="email" placeholder="Your account email" required />
+                    <input id="forgot-email" type="email" autocomplete="email" placeholder="Your account email" aria-label="Your account email" required />
                 </div>
                 <button type="submit" id="btn-forgot" class="login-btn">Send reset link</button>
-                <div id="forgot-msg"></div>
+                <div id="forgot-msg" role="status"></div>
             </form>
             <div class="login-footer"><a href="#" id="btn-back-login">&#8592; Back to sign in</a></div>
         </div>

@@ -35,8 +35,40 @@ function tabFromLocation(): string | null {
 async function activateTab(tab: string, pushState = true): Promise<void> {
     const info = tabById.get(tab);
     if (!info || !TAB_LOADERS[tab]) return;
-    if (currentTab === tab && loadedModules.has(tab)) return;
     const seq = ++activationSeq;
+    if (currentTab === tab && loadedModules.has(tab)) return;
+
+    let mod = loadedModules.get(tab);
+    try {
+        if (!mod) {
+            const [html, loaded] = await Promise.all([
+                fetch(`/panes/${info.pane}.html`, { cache: "no-cache" }).then(r => {
+                    if (!r.ok) throw new Error(`pane ${info.pane}: ${r.status}`);
+                    return r.text();
+                }),
+                TAB_LOADERS[tab]!(),
+            ]);
+            if (seq !== activationSeq) return;
+            if (loadedModules.has(tab)) {
+                mod = loadedModules.get(tab)!;
+            } else {
+                $("panes").insertAdjacentHTML("beforeend", html);
+                mod = loaded;
+                const pane = $(`pane-${tab}`);
+                try {
+                    mod.init(pane);
+                } catch (error) {
+                    pane.remove();
+                    throw error;
+                }
+                loadedModules.set(tab, mod);
+            }
+        }
+    } catch {
+        if (seq === activationSeq) alert("Could not load this dashboard section. Check your connection and try again.");
+        return;
+    }
+    if (seq !== activationSeq || !mod) return;
 
     if (currentTab && currentTab !== tab) {
         loadedModules.get(currentTab)?.deactivate?.();
@@ -49,27 +81,6 @@ async function activateTab(tab: string, pushState = true): Promise<void> {
     if (sidebarToggleLabel) sidebarToggleLabel.textContent = info.label;
     closeSidebarMenu?.();
     if (pushState) history.pushState(null, "", `/dashboard/${tab}`);
-
-    let mod = loadedModules.get(tab);
-    if (!mod) {
-        const [html, loaded] = await Promise.all([
-            fetch(`/panes/${info.pane}.html`, { cache: "no-cache" }).then(r => {
-                if (!r.ok) throw new Error(`pane ${info.pane}: ${r.status}`);
-                return r.text();
-            }),
-            TAB_LOADERS[tab]!(),
-        ]);
-        if (loadedModules.has(tab)) {
-            mod = loadedModules.get(tab)!;
-        } else {
-            $("panes").insertAdjacentHTML("beforeend", html);
-            mod = loaded;
-            mod.init($(`pane-${tab}`));
-            loadedModules.set(tab, mod);
-        }
-    }
-    if (seq !== activationSeq) return;
-
     $$(".tab-pane").forEach(p => p.classList.toggle("active", p.id === `pane-${tab}`));
     mod.activate();
 }

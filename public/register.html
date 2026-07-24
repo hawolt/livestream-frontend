@@ -25,16 +25,16 @@
         <h1 class="login-heading">hawolt</h1>
         <form id="register-form">
             <div class="login-fields">
-                <input id="username" type="text" autocomplete="username" placeholder="Username" required />
-                <input id="email" type="email" autocomplete="email" placeholder="Email address" required />
+                <input id="username" type="text" autocomplete="username" placeholder="Username" aria-label="Username" required />
+                <input id="email" type="email" autocomplete="email" placeholder="Email address" aria-label="Email address" required />
                 <div>
-                    <input id="password" type="password" autocomplete="new-password" placeholder="Password" required minlength="8" />
-                    <div class="login-hint">At least 8 characters.</div>
+                    <input id="password" type="password" autocomplete="new-password" placeholder="Password" aria-label="Password" aria-describedby="register-password-hint" required minlength="8" />
+                    <div class="login-hint" id="register-password-hint">At least 8 characters.</div>
                 </div>
             </div>
             <div id="hcaptcha-container" style="margin-top:4px"></div>
             <button type="submit" id="btn-register" class="login-btn">Create your streaming account</button>
-            <div id="error"></div>
+            <div id="error" role="alert"></div>
         </form>
         <div class="login-footer">Already have an account? <a href="/login">Sign in</a></div>
     </div>

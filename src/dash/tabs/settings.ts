@@ -1,10 +1,20 @@
 import type { AccountSettings } from "../../api.ts";
 import { $, getMe, setToken, authFetch } from "../core.ts";
 
+let usernameCooldownRemaining = 0;
+
+function updateUsernameSaveState(): void {
+    const saveBtn = document.getElementById("btn-username-save") as HTMLButtonElement | null;
+    const current = (document.getElementById("st-username-current") as HTMLInputElement | null)?.value.trim() ?? "";
+    const next = (document.getElementById("st-username-new") as HTMLInputElement | null)?.value.trim() ?? "";
+    const capitalizationOnly = next !== current && next.toLowerCase() === current.toLowerCase();
+    if (saveBtn) saveBtn.disabled = usernameCooldownRemaining > 0 && !capitalizationOnly;
+}
+
 function formatUsernameHint(s: AccountSettings): void {
     const hint = document.getElementById("st-username-hint");
-    const saveBtn = document.getElementById("btn-username-save") as HTMLButtonElement | null;
     const remaining = s.usernameCooldownRemaining ?? 0;
+    usernameCooldownRemaining = remaining;
     if (hint) {
         if (remaining > 0) {
             const days = Math.ceil(remaining / 86400);
@@ -14,7 +24,7 @@ function formatUsernameHint(s: AccountSettings): void {
             hint.textContent = "You can change your username once every 30 days. Changing only the capitalization is always allowed.";
         }
     }
-    if (saveBtn) saveBtn.disabled = remaining > 0;
+    updateUsernameSaveState();
 }
 
 async function loadSettings(): Promise<void> {
@@ -23,11 +33,7 @@ async function loadSettings(): Promise<void> {
         ($("st-email") as HTMLInputElement).value = s.email ?? "";
         const banner = document.getElementById("settings-verify-banner");
         if (banner) banner.style.display = s.emailVerified === false ? "" : "none";
-        const colorInput = document.getElementById("st-chat-color") as HTMLInputElement | null;
-        if (colorInput && typeof s.chatColor === "string" && /^#[0-9a-fA-F]{6}$/.test(s.chatColor)) {
-            colorInput.value = s.chatColor;
-        }
-        syncColorPreview();
+        applyChatColor(s.chatColor);
         const usernameCurrent = document.getElementById("st-username-current") as HTMLInputElement | null;
         if (usernameCurrent) usernameCurrent.value = s.username ?? getMe()?.username ?? "";
         formatUsernameHint(s);
@@ -118,6 +124,15 @@ function syncColorPreview(): void {
     }
 }
 
+function applyChatColor(color: unknown): void {
+    const input = document.getElementById("st-chat-color") as HTMLInputElement | null;
+    if (!input) return;
+    input.value = typeof color === "string" && /^#[0-9a-fA-F]{6}$/.test(color)
+        ? color
+        : input.defaultValue;
+    syncColorPreview();
+}
+
 export function init(): void {
     const me = getMe();
     const flags = new Set((me?.flags ?? "").split(",").map(f => f.trim()).filter(Boolean));
@@ -164,11 +179,13 @@ export function init(): void {
     });
 
     document.getElementById("st-chat-color")?.addEventListener("input", syncColorPreview);
+    document.getElementById("st-username-new")?.addEventListener("input", updateUsernameSaveState);
 
     async function saveChatColor(color: string | null): Promise<void> {
         const saved = document.getElementById("st-color-saved");
         try {
             await authFetch("/api/settings/chat-color", { method: "PUT", body: JSON.stringify({ color: color ?? "" }) });
+            if (color === null) applyChatColor(null);
             if (saved) { saved.textContent = color ? "Saved" : "Reset to default"; saved.style.color = "var(--success)"; }
         } catch (err) {
             const msg = err instanceof Error ? err.message : String(err);
@@ -202,6 +219,7 @@ export function init(): void {
             ($("st-username-current") as HTMLInputElement).value = res.username;
             ($("st-username-new") as HTMLInputElement).value = "";
             ($("st-username-password") as HTMLInputElement).value = "";
+            updateUsernameSaveState();
             status.textContent = "Saved";
             status.style.color = "var(--success)";
             setTimeout(() => { status.textContent = ""; }, 2500);

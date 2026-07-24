@@ -276,7 +276,13 @@ function handle(line: IrcLine): void {
         case "REDACT": {
             if (line.params[0]?.toLowerCase() !== channel) return;
             const id = line.params[1];
-            if (id) msgsEl.querySelector(`.msg[data-msgid="${id}"]`)?.remove();
+            if (id) {
+                for (const el of Array.from(msgsEl.querySelectorAll<HTMLElement>(".msg[data-msgid]"))) {
+                    if (el.dataset["msgid"] !== id) continue;
+                    el.remove();
+                    break;
+                }
+            }
             return;
         }
         case "001":

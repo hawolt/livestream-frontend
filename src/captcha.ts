@@ -1,6 +1,7 @@
 const TURNSTILE_SRC = "https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit";
 
 let configLoaded = false;
+let configPromise: Promise<void> | null = null;
 let enabled = false;
 let sitekey = "";
 let scriptLoaded = false;
@@ -12,16 +13,24 @@ export function setCaptchaAnchor(el: HTMLElement | null): void {
     anchorEl = el;
 }
 
+async function fetchConfig(): Promise<void> {
+    const r = await fetch("/api/live/captcha/config");
+    if (!r.ok) throw new Error(`captcha config: ${r.status}`);
+    const c = await r.json();
+    enabled = !!c?.enabled;
+    sitekey = typeof c?.sitekey === "string" ? c.sitekey : "";
+    configLoaded = true;
+}
+
 async function loadConfig(): Promise<void> {
     if (configLoaded) return;
-    configLoaded = true;
+    if (!configPromise) {
+        configPromise = fetchConfig().finally(() => {
+            configPromise = null;
+        });
+    }
     try {
-        const r = await fetch("/api/live/captcha/config");
-        if (r.ok) {
-            const c = await r.json();
-            enabled = !!c?.enabled;
-            sitekey = typeof c?.sitekey === "string" ? c.sitekey : "";
-        }
+        await configPromise;
     } catch {}
 }
 

@@ -1,6 +1,7 @@
 import { startChat } from "./live-chat";
 import { initSiteNav, markActive } from "./nav.ts";
 import { captchaQuery, getCaptchaToken, setCaptchaAnchor, warmCaptcha } from "./captcha.ts";
+import { readLocalStorage, writeLocalStorage } from "./storage.ts";
 
 const page = document.getElementById("live-page") as HTMLElement;
 const nameEl = document.getElementById("live-name") as HTMLElement;
@@ -62,6 +63,7 @@ const RETRY_MULT = 2;
 const WAITING_STALL_MS = 8000;
 const HEALTH_STALE_MS = 15000;
 const HEALTH_STUCK_MS = 20000;
+const HEALTH_CHECK_INTERVAL_MS = 5000;
 const FULLSCREEN_SETTLE_MS = 120;
 const CHAT_COLLAPSE_KEY = "live-chat-collapsed";
 const CHAT_MIN_PX = 300;
@@ -144,7 +146,9 @@ let genCleanup: Array<() => void> = [];
 let lastMediaArrivalAt = 0;
 let lastProgressAt = 0;
 let lastObservedTime = -1;
+let healthTimer: number | null = null;
 let lastStateChangeAt = 0;
+let viewerId = "";
 
 function nextGen(): number {
     gen += 1;
@@ -245,6 +249,7 @@ function enterTerminal(label: string): void {
     if (terminal) return;
     terminal = true;
     clearRetryTimer();
+    stopHealthTimer();
     nextGen();
     fullTeardown();
     setTerminal(label, true);
@@ -300,18 +305,36 @@ function renderOdometer(el: HTMLElement, value: number): void {
     }
 }
 
+function setAccessibleViewerCount(container: HTMLElement, count: HTMLElement, value: number | null): void {
+    count.setAttribute("aria-hidden", "true");
+    container.querySelector("svg")?.setAttribute("aria-hidden", "true");
+    let accessible = container.querySelector<HTMLElement>(".viewer-count-accessible");
+    if (!accessible) {
+        accessible = document.createElement("span");
+        accessible.className = "viewer-count-accessible";
+        container.appendChild(accessible);
+    }
+    accessible.textContent = value === null
+        ? ""
+        : `${value.toLocaleString()} viewer${value === 1 ? "" : "s"}`;
+}
+
 function setViewers(n: number | null): void {
     if (typeof n === "number" && n >= 0) {
         renderOdometer(viewersCountEl, n);
+        setAccessibleViewerCount(viewersEl, viewersCountEl, n);
         viewersEl.classList.remove("hidden");
         renderOdometer(viewersHeaderCountEl, n);
+        setAccessibleViewerCount(viewersHeaderEl, viewersHeaderCountEl, n);
         viewersHeaderEl.classList.remove("hidden");
     } else {
         viewersCountEl.replaceChildren();
         delete viewersCountEl.dataset.odoPattern;
+        setAccessibleViewerCount(viewersEl, viewersCountEl, null);
         viewersEl.classList.add("hidden");
         viewersHeaderCountEl.replaceChildren();
         delete viewersHeaderCountEl.dataset.odoPattern;
+        setAccessibleViewerCount(viewersHeaderEl, viewersHeaderCountEl, null);
         viewersHeaderEl.classList.add("hidden");
     }
     updateInfoBar();
@@ -717,14 +740,29 @@ function healthCheck(): void {
     if (terminal) return;
     const now = Date.now();
     if (state === "playing") {
-        const mediaStale = now - lastMediaArrivalAt > HEALTH_STALE_MS;
+        const mediaStale = transportKind === "ws" && now - lastMediaArrivalAt > HEALTH_STALE_MS;
         const progressStale = !video.paused && now - lastProgressAt > HEALTH_STALE_MS;
         if (mediaStale || progressStale) healthRestart("stale-playing");
         return;
     }
-    if (state === "connecting" || state === "buffering" || state === "reconnecting") {
-        if (now - lastStateChangeAt > HEALTH_STUCK_MS) healthRestart(`stuck-${state}`);
-    }
+    const awaitingTransport = state === "connecting"
+        || state === "buffering"
+        || state === "reconnecting"
+        || (state === "offline" && startedOnce);
+    if (awaitingTransport && now - lastStateChangeAt > HEALTH_STUCK_MS) healthRestart(`stuck-${state}`);
+}
+
+function startHealthTimer(): void {
+    if (healthTimer !== null) return;
+    healthTimer = window.setInterval(() => {
+        if (document.visibilityState === "visible") healthCheck();
+    }, HEALTH_CHECK_INTERVAL_MS);
+}
+
+function stopHealthTimer(): void {
+    if (healthTimer === null) return;
+    window.clearInterval(healthTimer);
+    healthTimer = null;
 }
 
 function attachVideoFailureListeners(g: number): void {
@@ -764,13 +802,17 @@ function attachVideoFailureListeners(g: number): void {
 }
 
 function getViewerId(): string {
-    const stored = localStorage.getItem(HLS_HOST_ID_KEY);
-    if (stored && /^[0-9a-f]{16}$/.test(stored)) return stored;
+    if (viewerId) return viewerId;
+    const stored = readLocalStorage(HLS_HOST_ID_KEY);
+    if (stored && /^[0-9a-f]{16}$/.test(stored)) {
+        viewerId = stored;
+        return viewerId;
+    }
     const bytes = new Uint8Array(8);
     crypto.getRandomValues(bytes);
-    const id = Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
-    localStorage.setItem(HLS_HOST_ID_KEY, id);
-    return id;
+    viewerId = Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
+    writeLocalStorage(HLS_HOST_ID_KEY, viewerId);
+    return viewerId;
 }
 
 function sendHLSBeat(): void {
@@ -793,11 +835,25 @@ function startHLSBeacon(g: number): void {
     hlsBeaconTimer = window.setInterval(beat, HLS_BEACON_INTERVAL_MS);
 }
 
+function canUseNativeHLS(): boolean {
+    return video.canPlayType("application/vnd.apple.mpegurl") !== "";
+}
+
+function fallbackFromMSE(g: number): void {
+    if (!isCurrent(g)) return;
+    if (canUseNativeHLS()) {
+        transportKind = "hls";
+        beginTransport();
+        return;
+    }
+    enterTerminal("Playback not supported");
+}
+
 function attachMediaSource(g: number, codecs: string): void {
     const mime = `video/mp4; codecs="${codecs}"`;
     if (!MediaSource.isTypeSupported(mime)) {
         console.warn("live: unsupported codecs", codecs);
-        enterTerminal("Playback not supported");
+        fallbackFromMSE(g);
         return;
     }
     const ms = new MediaSource();
@@ -815,6 +871,10 @@ function attachMediaSource(g: number, codecs: string): void {
         try {
             sb = ms.addSourceBuffer(mime);
         } catch (e) {
+            if (e instanceof DOMException && e.name === "NotSupportedError") {
+                fallbackFromMSE(g);
+                return;
+            }
             console.warn("live: add source buffer failed, restarting player", e);
             restartAfterFailure(g);
             return;
@@ -938,9 +998,11 @@ function startHLSTransport(g: number): void {
 
 function beginTransport(): void {
     if (terminal) return;
+    startHealthTimer();
     clearRetryTimer();
     const g = nextGen();
     fullTeardown();
+    lastStateChangeAt = Date.now();
     lastMediaArrivalAt = Date.now();
     lastProgressAt = Date.now();
     lastObservedTime = video.currentTime;
@@ -961,6 +1023,8 @@ function wirePageLifecycle(): void {
         if (terminal) return;
         pageHideTornDown = true;
         clearRetryTimer();
+        stopHealthTimer();
+        nextGen();
         fullTeardown();
     });
     window.addEventListener("pageshow", (ev) => {
@@ -1071,7 +1135,7 @@ function isPopoutMode(): boolean {
 }
 
 function getLayoutMode(): LiveLayoutMode {
-    const stored = localStorage.getItem(LAYOUT_KEY);
+    const stored = readLocalStorage(LAYOUT_KEY);
     return stored === "horizontal" || stored === "vertical" ? stored : "auto";
 }
 
@@ -1131,7 +1195,7 @@ function scheduleFullscreenSettle(): void {
 function cycleLayout(): void {
     const order: LiveLayoutMode[] = ["auto", "horizontal", "vertical"];
     const next = order[(order.indexOf(getLayoutMode()) + 1) % order.length];
-    localStorage.setItem(LAYOUT_KEY, next);
+    writeLocalStorage(LAYOUT_KEY, next);
     syncLayout();
 }
 
@@ -1225,6 +1289,8 @@ function closeBrowseMini(): void {
     document.body.classList.add("browse-mini-closed");
     miniParked = true;
     clearRetryTimer();
+    stopHealthTimer();
+    nextGen();
     fullTeardown();
     resetStreamInfo();
     setState("offline");
@@ -1261,7 +1327,7 @@ function setChatCollapsed(collapsed: boolean): void {
         return;
     }
     chatEl.classList.toggle("collapsed", collapsed);
-    localStorage.setItem(CHAT_COLLAPSE_KEY, collapsed ? "1" : "0");
+    writeLocalStorage(CHAT_COLLAPSE_KEY, collapsed ? "1" : "0");
     fitChat();
 }
 
@@ -1440,7 +1506,7 @@ function wireControls(): void {
     video.addEventListener("loadedmetadata", updateQuality);
     startFpsMeter();
     video.addEventListener("timeupdate", () => {
-        if (video.currentTime > lastObservedTime + 0.01) {
+        if (Math.abs(video.currentTime - lastObservedTime) > 0.01) {
             lastObservedTime = video.currentTime;
             lastProgressAt = Date.now();
         }
@@ -1462,7 +1528,7 @@ function wireControls(): void {
         video.volume = v;
         video.muted = v === 0;
         updateVolumeUI();
-        localStorage.setItem(VOLUME_KEY, String(v));
+        writeLocalStorage(VOLUME_KEY, String(v));
     });
 
     btnFullscreen.addEventListener("click", () => {
@@ -1495,7 +1561,21 @@ function wireControls(): void {
 
     document.addEventListener("keydown", (ev) => {
         const target = ev.target as HTMLElement | null;
-        if (target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA")) return;
+        const interactive = target?.closest(
+            "a[href], button, input, select, textarea, [contenteditable]:not([contenteditable=false]), [role=button], [role=link], [role=slider], [role=textbox], [role=menuitem]",
+        );
+        if (ev.defaultPrevented || ev.repeat) return;
+        if (ev.key === "Escape") {
+            if (isChatFullscreen() && !chatFsNative) {
+                ev.preventDefault();
+                exitChatFullscreen();
+            } else if (cinemaMode && !isChatFullscreen() && !isVideoFullscreen()) {
+                ev.preventDefault();
+                exitCinemaMode();
+            }
+            return;
+        }
+        if (ev.altKey || ev.ctrlKey || ev.metaKey || ev.shiftKey || interactive) return;
         if (ev.key === " ") {
             ev.preventDefault();
             btnPlay.click();
@@ -1503,10 +1583,6 @@ function wireControls(): void {
             btnMute.click();
         } else if (ev.key === "f" || ev.key === "F") {
             btnFullscreen.click();
-        } else if (ev.key === "Escape" && isChatFullscreen() && !chatFsNative) {
-            exitChatFullscreen();
-        } else if (ev.key === "Escape" && cinemaMode && !isChatFullscreen() && !isVideoFullscreen()) {
-            exitCinemaMode();
         }
     });
 
@@ -1517,17 +1593,17 @@ function wireControls(): void {
     btnChatSide.addEventListener("click", () => {
         const left = !document.body.classList.contains("chat-left");
         document.body.classList.toggle("chat-left", left);
-        localStorage.setItem(CHAT_SIDE_KEY, left ? "left" : "right");
+        writeLocalStorage(CHAT_SIDE_KEY, left ? "left" : "right");
     });
     btnChatPopout.addEventListener("click", () => {
         const url = `/${encodeURIComponent(username)}?chat=popout`;
         window.open(url, `chat_${username}`, "width=420,height=760,menubar=no,toolbar=no,location=no");
     });
-    if (localStorage.getItem(CHAT_SIDE_KEY) === "left") document.body.classList.add("chat-left");
-    const storedChat = localStorage.getItem(CHAT_COLLAPSE_KEY);
+    if (readLocalStorage(CHAT_SIDE_KEY) === "left") document.body.classList.add("chat-left");
+    const storedChat = readLocalStorage(CHAT_COLLAPSE_KEY);
     setChatCollapsed(window.innerWidth <= COMPACT_MAX_WIDTH_PX ? false : storedChat === "1");
 
-    const storedVol = localStorage.getItem(VOLUME_KEY);
+    const storedVol = readLocalStorage(VOLUME_KEY);
     if (storedVol !== null) {
         const v = parseFloat(storedVol);
         if (!Number.isNaN(v) && v >= 0 && v <= 1) {
@@ -1610,10 +1686,10 @@ async function boot(): Promise<void> {
         return;
     }
 
-    if ("MediaSource" in window) {
+    if (typeof MediaSource === "function" && typeof MediaSource.isTypeSupported === "function") {
         titleBar.classList.remove("hidden");
         transportKind = "ws";
-    } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
+    } else if (canUseNativeHLS()) {
         titleBar.classList.remove("hidden");
         transportKind = "hls";
     } else {

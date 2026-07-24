@@ -44,6 +44,8 @@ let chaseTimer: number | null = null;
 let hlsBeaconTimer: number | null = null;
 let retryTimer: number | null = null;
 let retryDelay = RETRY_MIN_MS;
+let viewerId = "";
+let hlsVideoCleanup: (() => void) | null = null;
 
 function nextGen(): number {
     gen += 1;
@@ -191,6 +193,8 @@ function stopHLSBeacon(): void {
 }
 
 function fullTeardown(): void {
+    hlsVideoCleanup?.();
+    hlsVideoCleanup = null;
     stopChase();
     stopHLSBeacon();
     if (ws) {
@@ -252,19 +256,21 @@ function restartAfterFailure(g: number): void {
 }
 
 function getViewerId(): string {
+    if (viewerId) return viewerId;
     try {
         const stored = localStorage.getItem(HOST_ID_KEY);
-        if (stored && /^[0-9a-f]{16}$/.test(stored)) return stored;
-        const bytes = new Uint8Array(8);
-        crypto.getRandomValues(bytes);
-        const id = Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
-        localStorage.setItem(HOST_ID_KEY, id);
-        return id;
-    } catch {
-        const bytes = new Uint8Array(8);
-        crypto.getRandomValues(bytes);
-        return Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
-    }
+        if (stored && /^[0-9a-f]{16}$/.test(stored)) {
+            viewerId = stored;
+            return viewerId;
+        }
+    } catch {}
+    const bytes = new Uint8Array(8);
+    crypto.getRandomValues(bytes);
+    viewerId = Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
+    try {
+        localStorage.setItem(HOST_ID_KEY, viewerId);
+    } catch {}
+    return viewerId;
 }
 
 function sendHLSBeat(): void {
@@ -287,10 +293,24 @@ function startHLSBeacon(g: number): void {
     hlsBeaconTimer = window.setInterval(beat, HLS_BEACON_INTERVAL_MS);
 }
 
+function canUseNativeHLS(): boolean {
+    return video.canPlayType("application/vnd.apple.mpegurl") !== "";
+}
+
+function fallbackFromMSE(g: number): void {
+    if (!isCurrent(g)) return;
+    if (canUseNativeHLS()) {
+        transportKind = "hls";
+        beginTransport();
+        return;
+    }
+    enterTerminal("Playback not supported");
+}
+
 function attachMediaSource(g: number, codecs: string): void {
     const mime = `video/mp4; codecs="${codecs}"`;
     if (!MediaSource.isTypeSupported(mime)) {
-        restartAfterFailure(g);
+        fallbackFromMSE(g);
         return;
     }
     const ms = new MediaSource();
@@ -307,7 +327,11 @@ function attachMediaSource(g: number, codecs: string): void {
         let sb: SourceBuffer;
         try {
             sb = ms.addSourceBuffer(mime);
-        } catch {
+        } catch (error) {
+            if (error instanceof DOMException && error.name === "NotSupportedError") {
+                fallbackFromMSE(g);
+                return;
+            }
             restartAfterFailure(g);
             return;
         }
@@ -389,6 +413,11 @@ function startHLSTransport(g: number): void {
     video.addEventListener("playing", onPlaying);
     video.addEventListener("ended", onEnded);
     video.addEventListener("error", onError);
+    hlsVideoCleanup = () => {
+        video.removeEventListener("playing", onPlaying);
+        video.removeEventListener("ended", onEnded);
+        video.removeEventListener("error", onError);
+    };
 
     void getCaptchaToken().then(() => {
         if (!isCurrent(g)) return;
@@ -480,9 +509,9 @@ async function boot(): Promise<void> {
         }
     } catch {}
 
-    if ("MediaSource" in window) {
+    if (typeof MediaSource === "function" && typeof MediaSource.isTypeSupported === "function") {
         transportKind = "ws";
-    } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
+    } else if (canUseNativeHLS()) {
         transportKind = "hls";
     } else {
         enterTerminal("Playback not supported");
