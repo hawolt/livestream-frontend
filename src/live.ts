@@ -931,7 +931,7 @@ function handleWSClose(g: number, ev: CloseEvent): void {
 
 function withCaptchaHint<T>(g: number, p: Promise<T>): Promise<T> {
     const t = window.setTimeout(() => {
-        if (isCurrent(g) && !terminal) setPoster("Checking your browser…", false);
+        if (isCurrent(g) && !terminal) setPoster("Cloudflare is checking your browser…", false);
     }, 300);
     return p.finally(() => window.clearTimeout(t));
 }
