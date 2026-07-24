@@ -12,15 +12,22 @@ const RETRY_MAX_MS = 15000;
 const RETRY_MULT = 2;
 const HLS_BEACON_INTERVAL_MS = 10000;
 const HOST_ID_KEY = "live_hid";
+const PREVIEW_MESSAGE_TYPE = "hawolt:stream-preview";
 
 let username = "";
 let mediaBase = "";
 let transportKind: "ws" | "hls" | "none" = "none";
+const previewMode = new URLSearchParams(location.search).get("preview") === "1";
 
 function mediaWsUrl(path: string): string {
     if (mediaBase) return mediaBase.replace(/^http/, "ws") + path;
     const proto = location.protocol === "https:" ? "wss" : "ws";
     return `${proto}://${location.host}${path}`;
+}
+
+function notifyPreview(state: "connecting" | "playing" | "unavailable"): void {
+    if (!previewMode || window.parent === window) return;
+    window.parent.postMessage({ type: PREVIEW_MESSAGE_TYPE, state }, location.origin);
 }
 
 let gen = 0;
@@ -102,6 +109,10 @@ function setPoster(label: string | null): void {
 }
 
 function showUnmute(show: boolean): void {
+    if (previewMode) {
+        unmuteBtn.classList.add("hidden");
+        return;
+    }
     unmuteBtn.classList.toggle("hidden", !show);
 }
 
@@ -220,6 +231,7 @@ function setPlaying(): void {
     offline = false;
     setPoster(null);
     showUnmute(video.muted || video.volume === 0);
+    notifyPreview("playing");
 }
 
 function goOffline(g: number): void {
@@ -227,6 +239,7 @@ function goOffline(g: number): void {
     offline = true;
     fullTeardown();
     setPoster("Offline");
+    notifyPreview("unavailable");
     scheduleRestart(nextRetryDelay(), g);
 }
 
@@ -234,6 +247,7 @@ function restartAfterFailure(g: number): void {
     if (!isCurrent(g)) return;
     fullTeardown();
     setPoster(null);
+    notifyPreview("connecting");
     scheduleRestart(nextRetryDelay(), g);
 }
 
@@ -389,6 +403,7 @@ function beginTransport(): void {
     clearRetryTimer();
     const g = nextGen();
     fullTeardown();
+    notifyPreview("connecting");
     if (transportKind === "ws") startWSTransport(g);
     else if (transportKind === "hls") startHLSTransport(g);
     else goOffline(g);
@@ -401,9 +416,14 @@ function enterTerminal(label: string): void {
     nextGen();
     fullTeardown();
     setPoster(label);
+    notifyPreview("unavailable");
 }
 
 function wireUnmute(): void {
+    if (previewMode) {
+        showUnmute(false);
+        return;
+    }
     unmuteBtn.addEventListener("click", () => {
         video.muted = false;
         if (video.volume === 0) video.volume = 1;
@@ -425,6 +445,7 @@ function wirePageLifecycle(): void {
     window.addEventListener("pagehide", () => {
         if (terminal) return;
         clearRetryTimer();
+        nextGen();
         fullTeardown();
     });
     window.addEventListener("pageshow", (ev) => {
@@ -434,6 +455,7 @@ function wirePageLifecycle(): void {
 }
 
 async function boot(): Promise<void> {
+    if (previewMode) document.body.classList.add("embed-preview");
     wireUnmute();
     wirePageLifecycle();
 
