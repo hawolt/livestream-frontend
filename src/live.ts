@@ -962,6 +962,7 @@ function wirePageLifecycle(): void {
         if (terminal) return;
         pageHideTornDown = true;
         clearRetryTimer();
+        nextGen();
         fullTeardown();
     });
     window.addEventListener("pageshow", (ev) => {
@@ -1226,6 +1227,7 @@ function closeBrowseMini(): void {
     document.body.classList.add("browse-mini-closed");
     miniParked = true;
     clearRetryTimer();
+    nextGen();
     fullTeardown();
     resetStreamInfo();
     setState("offline");

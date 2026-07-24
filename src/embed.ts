@@ -425,6 +425,7 @@ function wirePageLifecycle(): void {
     window.addEventListener("pagehide", () => {
         if (terminal) return;
         clearRetryTimer();
+        nextGen();
         fullTeardown();
     });
     window.addEventListener("pageshow", (ev) => {
