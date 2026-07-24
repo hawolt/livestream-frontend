@@ -34,23 +34,44 @@ function resolveRedirect(): string {
     return "/dashboard";
 }
 
-const existing = sessionStorage.getItem("dash_token");
-if (existing) {
-    fetch(`${API_BASE}/auth/me`, { headers: { "Authorization": `Bearer ${existing}` } })
-        .then(r => { if (r.ok) location.href = resolveRedirect(); })
-        .catch(() => {});
-} else {
-    fetch(`${API_BASE}/auth/session`, { credentials: "include" })
-        .then(async r => {
-            if (!r.ok) return;
-            const data = await r.json() as { token?: string; kind?: string };
-            if (!data.token || data.kind !== "user") return;
-            sessionStorage.setItem("dash_token", data.token);
-            sessionStorage.setItem("dash_kind", data.kind);
-            location.href = resolveRedirect();
-        })
-        .catch(() => {});
+async function verifyToken(token: string): Promise<"valid" | "invalid" | "unavailable"> {
+    try {
+        const res = await fetch(`${API_BASE}/auth/me`, { headers: { "Authorization": `Bearer ${token}` } });
+        if (res.ok) return "valid";
+        return res.status === 401 ? "invalid" : "unavailable";
+    } catch {
+        return "unavailable";
+    }
 }
+
+async function bootFromCookie(): Promise<boolean> {
+    try {
+        const res = await fetch(`${API_BASE}/auth/session`, { credentials: "include" });
+        if (!res.ok) return false;
+        const data = await res.json() as { token?: string; kind?: string };
+        if (!data.token || data.kind !== "user") return false;
+        sessionStorage.setItem("dash_token", data.token);
+        sessionStorage.setItem("dash_kind", data.kind);
+        return true;
+    } catch {
+        return false;
+    }
+}
+
+async function boot(): Promise<void> {
+    const existing = sessionStorage.getItem("dash_token");
+    if (existing) {
+        const status = await verifyToken(existing);
+        if (status === "valid") { location.replace(resolveRedirect()); return; }
+        if (status === "invalid") {
+            sessionStorage.removeItem("dash_token");
+            sessionStorage.removeItem("dash_kind");
+        }
+    }
+    if (await bootFromCookie()) location.replace(resolveRedirect());
+}
+
+void boot();
 
 let captchaWatchdog: number | null = null;
 

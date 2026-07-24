@@ -63,12 +63,13 @@ function resolveRedirect(): string {
     return "/dashboard";
 }
 
-async function verifyToken(token: string): Promise<boolean> {
+async function verifyToken(token: string): Promise<"valid" | "invalid" | "unavailable"> {
     try {
         const res = await fetch(`${API_BASE}/auth/me`, { headers: { "Authorization": `Bearer ${token}` } });
-        return res.ok;
+        if (res.ok) return "valid";
+        return res.status === 401 ? "invalid" : "unavailable";
     } catch {
-        return false;
+        return "unavailable";
     }
 }
 
@@ -90,13 +91,14 @@ async function boot(): Promise<void> {
     const existing = sessionStorage.getItem("dash_token");
     const existingKind = sessionStorage.getItem("dash_kind");
     if (existing && (existingKind === "user" || !existingKind)) {
-        if (await verifyToken(existing)) { location.replace(resolveRedirect()); return; }
-        sessionStorage.removeItem("dash_token");
-        sessionStorage.removeItem("dash_kind");
-        showLoginPage();
-        return;
+        const status = await verifyToken(existing);
+        if (status === "valid") { location.replace(resolveRedirect()); return; }
+        if (status === "invalid") {
+            sessionStorage.removeItem("dash_token");
+            sessionStorage.removeItem("dash_kind");
+        }
     }
-    if (!existing && await bootFromCookie()) {
+    if (await bootFromCookie()) {
         location.replace(resolveRedirect());
         return;
     }
