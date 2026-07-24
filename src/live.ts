@@ -305,18 +305,36 @@ function renderOdometer(el: HTMLElement, value: number): void {
     }
 }
 
+function setAccessibleViewerCount(container: HTMLElement, count: HTMLElement, value: number | null): void {
+    count.setAttribute("aria-hidden", "true");
+    container.querySelector("svg")?.setAttribute("aria-hidden", "true");
+    let accessible = container.querySelector<HTMLElement>(".viewer-count-accessible");
+    if (!accessible) {
+        accessible = document.createElement("span");
+        accessible.className = "viewer-count-accessible";
+        container.appendChild(accessible);
+    }
+    accessible.textContent = value === null
+        ? ""
+        : `${value.toLocaleString()} viewer${value === 1 ? "" : "s"}`;
+}
+
 function setViewers(n: number | null): void {
     if (typeof n === "number" && n >= 0) {
         renderOdometer(viewersCountEl, n);
+        setAccessibleViewerCount(viewersEl, viewersCountEl, n);
         viewersEl.classList.remove("hidden");
         renderOdometer(viewersHeaderCountEl, n);
+        setAccessibleViewerCount(viewersHeaderEl, viewersHeaderCountEl, n);
         viewersHeaderEl.classList.remove("hidden");
     } else {
         viewersCountEl.replaceChildren();
         delete viewersCountEl.dataset.odoPattern;
+        setAccessibleViewerCount(viewersEl, viewersCountEl, null);
         viewersEl.classList.add("hidden");
         viewersHeaderCountEl.replaceChildren();
         delete viewersHeaderCountEl.dataset.odoPattern;
+        setAccessibleViewerCount(viewersHeaderEl, viewersHeaderCountEl, null);
         viewersHeaderEl.classList.add("hidden");
     }
     updateInfoBar();
