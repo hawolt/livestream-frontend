@@ -1065,6 +1065,8 @@ input[type="checkbox"]:checked::after {
     margin: 0 5px 0 0;
 }
 
+.live-chat-inputrow[hidden] { display: none; }
+
 #live-category {
     color: var(--muted);
     font-size: 13px;
