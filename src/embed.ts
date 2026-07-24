@@ -279,10 +279,24 @@ function startHLSBeacon(g: number): void {
     hlsBeaconTimer = window.setInterval(beat, HLS_BEACON_INTERVAL_MS);
 }
 
+function canUseNativeHLS(): boolean {
+    return video.canPlayType("application/vnd.apple.mpegurl") !== "";
+}
+
+function fallbackFromMSE(g: number): void {
+    if (!isCurrent(g)) return;
+    if (canUseNativeHLS()) {
+        transportKind = "hls";
+        beginTransport();
+        return;
+    }
+    enterTerminal("Playback not supported");
+}
+
 function attachMediaSource(g: number, codecs: string): void {
     const mime = `video/mp4; codecs="${codecs}"`;
     if (!MediaSource.isTypeSupported(mime)) {
-        restartAfterFailure(g);
+        fallbackFromMSE(g);
         return;
     }
     const ms = new MediaSource();
@@ -299,7 +313,11 @@ function attachMediaSource(g: number, codecs: string): void {
         let sb: SourceBuffer;
         try {
             sb = ms.addSourceBuffer(mime);
-        } catch {
+        } catch (error) {
+            if (error instanceof DOMException && error.name === "NotSupportedError") {
+                fallbackFromMSE(g);
+                return;
+            }
             restartAfterFailure(g);
             return;
         }
@@ -470,9 +488,9 @@ async function boot(): Promise<void> {
         }
     } catch {}
 
-    if ("MediaSource" in window) {
+    if (typeof MediaSource === "function" && typeof MediaSource.isTypeSupported === "function") {
         transportKind = "ws";
-    } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
+    } else if (canUseNativeHLS()) {
         transportKind = "hls";
     } else {
         enterTerminal("Playback not supported");
