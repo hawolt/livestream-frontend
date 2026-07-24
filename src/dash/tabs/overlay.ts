@@ -78,3 +78,11 @@ export function activate(): void {
     updateUrl();
     updatePreview();
 }
+
+export function deactivate(): void {
+    if (previewTimer !== null) {
+        window.clearTimeout(previewTimer);
+        previewTimer = null;
+    }
+    el<HTMLIFrameElement>("ov-preview-iframe").src = "about:blank";
+}
