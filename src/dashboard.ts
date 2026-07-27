@@ -1,8 +1,7 @@
-import { API_BASE } from "./api.ts";
 import { initSiteNav, setBurgerExtra } from "./nav.ts";
 import {
-    token, setMe, logoutRedirect, bootstrapSessionFromCookie, $, $$,
-    type MeInfo, type TabInfo, type TabModule,
+    setMe, loginRedirect, signOutAndRedirect, loadDashboardSession, startSessionRenewal, $, $$,
+    type TabInfo, type TabModule,
 } from "./dash/core.ts";
 
 const TAB_LOADERS: Record<string, () => Promise<TabModule>> = {
@@ -244,24 +243,55 @@ function buildBurgerTabItems(close: () => void): HTMLElement[] {
     return out;
 }
 
-function fetchMe(): Promise<Response | null> {
-    return fetch(`${API_BASE}/auth/me`, {
-        headers: { "Authorization": `Bearer ${token()}` },
-    }).catch(() => null);
+function showSessionProblem(state: "forbidden" | "unavailable"): void {
+    const panel = document.createElement("section");
+    panel.className = "card empty";
+    panel.setAttribute("role", "alert");
+
+    const title = document.createElement("h2");
+    title.textContent = state === "forbidden" ? "Dashboard access denied" : "Dashboard unavailable";
+
+    const message = document.createElement("p");
+    message.textContent = state === "forbidden"
+        ? "Your login is still active, but this account cannot open this dashboard."
+        : "Your login has been kept. Check your connection and try again.";
+
+    const actions = document.createElement("div");
+    actions.className = "toolbar";
+    actions.style.justifyContent = "center";
+
+    const retry = document.createElement("button");
+    retry.type = "button";
+    retry.className = "btn btn-primary";
+    retry.textContent = "Try again";
+    retry.addEventListener("click", () => location.reload());
+
+    const signOut = document.createElement("button");
+    signOut.type = "button";
+    signOut.className = "btn";
+    signOut.textContent = "Sign out";
+    signOut.addEventListener("click", signOutAndRedirect);
+
+    actions.append(retry, signOut);
+    panel.append(title, message, actions);
+    $("panes").replaceChildren(panel);
 }
 
 (async () => {
     void initSiteNav("dashboard");
 
-    if (!token() && !(await bootstrapSessionFromCookie())) { logoutRedirect(); return; }
-    let res = await fetchMe();
-    if (!res || !res.ok) {
-        if (!(await bootstrapSessionFromCookie())) { logoutRedirect(); return; }
-        res = await fetchMe();
-        if (!res || !res.ok) { logoutRedirect(); return; }
+    const session = await loadDashboardSession();
+    if (session.state === "signed-out") {
+        loginRedirect();
+        return;
     }
-    const me = await res.json() as MeInfo;
+    if (session.state !== "ready") {
+        showSessionProblem(session.state);
+        return;
+    }
+    const me = session.me;
     setMe(me);
+    startSessionRenewal();
 
     const isLiveHost = location.hostname.startsWith("live.");
     const baseDomain = location.hostname.replace(/^(live|admin)\./, "");

@@ -28,42 +28,141 @@ export function setToken(t: string): void {
 export const getMe = (): MeInfo | null => me;
 export function setMe(m: MeInfo): void { me = m; }
 
-export function logoutRedirect(): void {
-    if (TOKEN) {
-        fetch(`${API_BASE}/auth/logout`, {
-            method: "POST",
-            headers: { "Authorization": `Bearer ${TOKEN}` },
-            keepalive: true,
-        }).catch(() => {});
-    }
+function clearLocalSession(): void {
+    TOKEN = "";
+    me = null;
     sessionStorage.removeItem("dash_token");
     sessionStorage.removeItem("dash_kind");
+}
+
+export function loginRedirect(): void {
+    clearLocalSession();
     location.replace("/login");
 }
 
-export async function bootstrapSessionFromCookie(): Promise<boolean> {
-    const res = await fetch(`${API_BASE}/auth/session`).catch(() => null);
-    if (!res || !res.ok) return false;
-    const data = await res.json() as { token: string; kind: string };
-    setToken(data.token);
-    sessionStorage.setItem("dash_kind", data.kind);
-    return true;
+export function signOutAndRedirect(): void {
+    const headers = TOKEN ? { "Authorization": `Bearer ${TOKEN}` } : undefined;
+    fetch(`${API_BASE}/auth/logout`, {
+        method: "POST",
+        headers,
+        credentials: "include",
+        keepalive: true,
+    }).catch(() => {});
+    clearLocalSession();
+    location.replace("/login");
+}
+
+type SessionBootstrap = "authenticated" | "unauthenticated" | "unavailable";
+let sessionBootstrap: Promise<SessionBootstrap> | null = null;
+const SESSION_RENEWAL_CHECK_MS = 60 * 60 * 1000;
+let sessionRenewalStarted = false;
+
+async function requestSessionFromCookie(): Promise<SessionBootstrap> {
+    try {
+        const res = await fetch(`${API_BASE}/auth/session`, { credentials: "include" });
+        if (res.status === 401) return "unauthenticated";
+        if (!res.ok) return "unavailable";
+        const data = await res.json() as { token?: string; kind?: string };
+        if (!data.token || !data.kind) return "unavailable";
+        setToken(data.token);
+        sessionStorage.setItem("dash_kind", data.kind);
+        return "authenticated";
+    } catch {
+        return "unavailable";
+    }
+}
+
+function bootstrapSessionFromCookie(): Promise<SessionBootstrap> {
+    if (!sessionBootstrap) {
+        sessionBootstrap = requestSessionFromCookie().finally(() => {
+            sessionBootstrap = null;
+        });
+    }
+    return sessionBootstrap;
+}
+
+function renewSessionWhenVisible(): void {
+    if (!document.hidden) void bootstrapSessionFromCookie();
+}
+
+export function startSessionRenewal(): void {
+    if (sessionRenewalStarted) return;
+    sessionRenewalStarted = true;
+    window.setInterval(renewSessionWhenVisible, SESSION_RENEWAL_CHECK_MS);
+    document.addEventListener("visibilitychange", renewSessionWhenVisible);
+}
+
+type DashboardSession =
+    | { state: "ready"; me: MeInfo }
+    | { state: "signed-out" | "forbidden" | "unavailable" };
+
+async function fetchMe(): Promise<Response | null> {
+    return fetch(`${API_BASE}/auth/me`, {
+        headers: { "Authorization": `Bearer ${TOKEN}` },
+        credentials: "include",
+    }).catch(() => null);
+}
+
+async function dashboardResult(res: Response | null): Promise<DashboardSession> {
+    if (!res) return { state: "unavailable" };
+    if (res.status === 401) return { state: "signed-out" };
+    if (res.status === 403) return { state: "forbidden" };
+    if (!res.ok) return { state: "unavailable" };
+    try {
+        const data = await res.json() as MeInfo & { token?: string };
+        if (data.token) setToken(data.token);
+        return { state: "ready", me: data };
+    } catch {
+        return { state: "unavailable" };
+    }
+}
+
+export async function loadDashboardSession(): Promise<DashboardSession> {
+    let cookieAttempted = false;
+    if (!TOKEN) {
+        cookieAttempted = true;
+        const bootstrap = await bootstrapSessionFromCookie();
+        if (bootstrap === "unauthenticated") return { state: "signed-out" };
+        if (bootstrap === "unavailable") return { state: "unavailable" };
+    }
+
+    let res = await fetchMe();
+    if (res?.status === 401 && !cookieAttempted) {
+        cookieAttempted = true;
+        const bootstrap = await bootstrapSessionFromCookie();
+        if (bootstrap === "unauthenticated") return { state: "signed-out" };
+        if (bootstrap === "unavailable") return { state: "unavailable" };
+        res = await fetchMe();
+    }
+    return dashboardResult(res);
 }
 
 export async function authFetch<T>(path: string, init?: RequestInit): Promise<T> {
-    const headers: Record<string, string> = {
-        "Content-Type":  "application/json",
-        "Authorization": `Bearer ${TOKEN}`,
-        ...(init?.headers as Record<string, string> ?? {}),
-    };
+    const request = () => apiFetch<T>(path, {
+        ...init,
+        headers: {
+            "Content-Type":  "application/json",
+            "Authorization": `Bearer ${TOKEN}`,
+            ...(init?.headers as Record<string, string> ?? {}),
+        },
+    });
     try {
-        return await apiFetch<T>(path, { ...init, headers });
+        return await request();
     } catch (e) {
         const status = (e as { status?: number }).status;
-        if (status === 401 || status === 403) {
-            logoutRedirect();
+        if (status !== 401) throw e;
+        const bootstrap = await bootstrapSessionFromCookie();
+        if (bootstrap === "unauthenticated") {
+            loginRedirect();
+            throw e;
         }
-        throw e;
+        if (bootstrap === "unavailable") throw e;
+        try {
+            return await request();
+        } catch (retryError) {
+            if ((retryError as { status?: number }).status === 401) loginRedirect();
+            throw retryError;
+        }
     }
 }
 

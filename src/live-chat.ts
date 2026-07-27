@@ -43,6 +43,7 @@ const MIN_SUGGEST_LEN = 2;
 const RETRY_MS = 5000;
 const FLOOD_RETRY_MS = 30000;
 const BAN_RETRY_MS = 30000;
+const SESSION_RENEWAL_CHECK_MS = 60 * 60 * 1000;
 const SCROLL_SLACK_PX = 40;
 
 const emotes = new Map<string, string>();
@@ -85,6 +86,7 @@ let capEcho = false;
 let capRedact = false;
 let pageGuestNick = "";
 let accountStatusRevision = 0;
+let accountStatusTimer: number | null = null;
 let requestLogin: (() => void) | null = null;
 
 function migrateGuestNick(): void {
@@ -788,17 +790,29 @@ function isGuestNow(): boolean {
 
 async function checkAccountStatus(): Promise<void> {
     const revision = ++accountStatusRevision;
-    let account = false;
+    let account: boolean;
+    let renewed = false;
     try {
         const res = await fetch(`${API_BASE}/auth/session`, { credentials: "include" });
-        if (res.ok) {
+        if (res.status === 401) {
+            account = false;
+        } else {
+            if (!res.ok) return;
             const info: any = await res.json();
             account = !!info && (info.kind === "user" || info.kind === "admin") && typeof info.username === "string";
+            renewed = info?.renewed === true;
         }
-    } catch {}
+    } catch {
+        return;
+    }
     if (revision !== accountStatusRevision) return;
     isAccount = account;
     updateComposer();
+    if (account && renewed) restartChatConnection();
+}
+
+function checkAccountWhenVisible(): void {
+    if (!document.hidden) void checkAccountStatus();
 }
 
 function showComposerInput(enabled: boolean): void {
@@ -1493,6 +1507,10 @@ export function startChat(user: string, emoteTwitchId?: string, onLoginRequested
     migrateGuestNick();
     void loadEmotes();
     void checkAccountStatus();
+    if (accountStatusTimer === null) {
+        accountStatusTimer = window.setInterval(checkAccountWhenVisible, SESSION_RENEWAL_CHECK_MS);
+    }
+    document.addEventListener("visibilitychange", checkAccountWhenVisible);
     guestLoginEl.addEventListener("click", (event) => {
         if (!requestLogin) return;
         event.preventDefault();
@@ -1547,11 +1565,8 @@ export function startChat(user: string, emoteTwitchId?: string, onLoginRequested
     connect();
 }
 
-export function reconnectChatAfterLogin(): void {
-    accountStatusRevision++;
-    isAccount = true;
-    banned = false;
-    banRetry = false;
+function restartChatConnection(): void {
+    if (destroyed || banned) return;
     if (retryTimer !== null) {
         window.clearTimeout(retryTimer);
         retryTimer = null;
@@ -1564,8 +1579,22 @@ export function reconnectChatAfterLogin(): void {
     connect();
 }
 
+export function reconnectChatAfterLogin(): void {
+    accountStatusRevision++;
+    isAccount = true;
+    banned = false;
+    banRetry = false;
+    restartChatConnection();
+}
+
 export function stopChat(): void {
     destroyed = true;
+    accountStatusRevision++;
+    if (accountStatusTimer !== null) {
+        window.clearInterval(accountStatusTimer);
+        accountStatusTimer = null;
+    }
+    document.removeEventListener("visibilitychange", checkAccountWhenVisible);
     if (retryTimer !== null) window.clearTimeout(retryTimer);
     sock?.close();
 }

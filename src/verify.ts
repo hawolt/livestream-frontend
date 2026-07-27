@@ -9,18 +9,18 @@ document.documentElement.classList.toggle("live-host", location.hostname.startsW
 const msgEl    = document.getElementById("verify-msg")!;
 const actionEl = document.getElementById("verify-action")!;
 
-function signInUrl(kind?: string): string {
+function dashboardUrl(kind?: string): string {
     const baseDomain = location.hostname.replace(/^(live|admin)\./, "");
     const port = location.port ? `:${location.port}` : "";
     if (kind === "user") {
         return location.hostname.startsWith("live.")
-            ? "/login" : `${location.protocol}//live.${baseDomain}${port}/login`;
+            ? "/dashboard" : `${location.protocol}//live.${baseDomain}${port}/dashboard`;
     }
     if (kind === "admin") {
         return location.hostname.startsWith("admin.")
-            ? "/login" : `${location.protocol}//admin.${baseDomain}${port}/login`;
+            ? "/dashboard" : `${location.protocol}//admin.${baseDomain}${port}/dashboard`;
     }
-    return "/login";
+    return "/dashboard";
 }
 
 (async () => {
@@ -36,20 +36,12 @@ function signInUrl(kind?: string): string {
         const data = await res.json() as { ok?: boolean; error?: string; kind?: string };
 
         if (res.ok && data.ok) {
-            const token = sessionStorage.getItem("dash_token");
-            if (token) {
-                fetch(`${API_BASE}/auth/logout`, {
-                    method: "POST",
-                    headers: { "Authorization": `Bearer ${token}` },
-                }).finally(() => {});
-                sessionStorage.removeItem("dash_token");
-            }
-            const loginUrl = signInUrl(data.kind);
-            msgEl.textContent = "Your email has been verified. Please sign in to continue.";
+            const dashboard = dashboardUrl(data.kind);
+            msgEl.textContent = "Your email has been verified. Continue to your dashboard.";
             msgEl.style.color = "var(--green)";
-            actionEl.innerHTML = `<a href="${loginUrl}" class="btn-go-login">Sign In</a>`;
+            actionEl.innerHTML = `<a href="${dashboard}" class="btn-go-login">Continue</a>`;
             actionEl.style.display = "";
-            setTimeout(() => { location.href = loginUrl; }, 2500);
+            setTimeout(() => { location.href = dashboard; }, 2500);
         } else {
             msgEl.textContent = data.error ?? "Invalid or expired verification link.";
             msgEl.style.color = "var(--red)";

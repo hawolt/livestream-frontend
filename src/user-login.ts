@@ -73,17 +73,18 @@ async function verifyToken(token: string): Promise<"valid" | "invalid" | "unavai
     }
 }
 
-async function bootFromCookie(): Promise<boolean> {
+async function bootFromCookie(): Promise<"authenticated" | "unauthenticated" | "unavailable"> {
     try {
         const res = await fetch(`${API_BASE}/auth/session`, { credentials: "include" });
-        if (!res.ok) return false;
+        if (res.status === 401) return "unauthenticated";
+        if (!res.ok) return "unavailable";
         const data = await res.json() as { token?: string; kind?: string };
-        if (!data.token || data.kind !== "user") return false;
+        if (!data.token || data.kind !== "user") return "unavailable";
         sessionStorage.setItem("dash_token", data.token);
         sessionStorage.setItem("dash_kind", data.kind);
-        return true;
+        return "authenticated";
     } catch {
-        return false;
+        return "unavailable";
     }
 }
 
@@ -96,13 +97,21 @@ async function boot(): Promise<void> {
         if (status === "invalid") {
             sessionStorage.removeItem("dash_token");
             sessionStorage.removeItem("dash_kind");
+        } else {
+            showLoginPage();
+            showError("Could not verify your existing login. Check your connection and try again.");
+            return;
         }
     }
-    if (await bootFromCookie()) {
+    const cookie = await bootFromCookie();
+    if (cookie === "authenticated") {
         location.replace(resolveRedirect());
         return;
     }
     showLoginPage();
+    if (cookie === "unavailable") {
+        showError("Could not check your existing login. You can retry or sign in again.");
+    }
 }
 
 void boot();
