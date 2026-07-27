@@ -1,8 +1,9 @@
 import { reconnectChatAfterLogin, startChat } from "./live-chat";
-import { API_BASE } from "./api.ts";
+import { API_BASE, type LiveChannelInfo } from "./api.ts";
 import { initSiteNav, markActive } from "./nav.ts";
 import { captchaQuery, getCaptchaToken, setCaptchaAnchor, warmCaptcha } from "./captcha.ts";
 import { readLocalStorage, writeLocalStorage } from "./storage.ts";
+import { streamLanguageLabel } from "./stream-languages.ts";
 
 const page = document.getElementById("live-page") as HTMLElement;
 const nameEl = document.getElementById("live-name") as HTMLElement;
@@ -15,6 +16,8 @@ const titleBar = document.getElementById("live-info-bar") as HTMLElement;
 const titleEl = document.getElementById("live-title-text") as HTMLElement;
 const categoryEl = document.getElementById("live-category") as HTMLAnchorElement;
 const categorySepEl = document.getElementById("live-category-sep") as HTMLElement;
+const languageEl = document.getElementById("live-language") as HTMLElement;
+const languageSepEl = document.getElementById("live-language-sep") as HTMLElement;
 const viewersEl = document.getElementById("live-viewers") as HTMLElement;
 const viewersCountEl = document.getElementById("live-viewers-count") as HTMLElement;
 const viewersHeaderEl = document.getElementById("live-viewers-header") as HTMLElement;
@@ -1667,6 +1670,7 @@ async function boot(): Promise<void> {
     let title = "";
     let category = "";
     let categoryId: number | null = null;
+    let language = "und";
     let emoteTwitchId = "";
     try {
         const res = await fetch(`/api/live/channel/${encodeURIComponent(username)}`);
@@ -1676,20 +1680,23 @@ async function boot(): Promise<void> {
             return;
         }
         if (res.ok) {
-            const info: any = await res.json();
-            if (info && typeof info.title === "string") {
+            const info = await res.json() as Partial<LiveChannelInfo>;
+            if (typeof info.title === "string") {
                 title = info.title;
             }
-            if (info && typeof info.category === "string" && info.category) {
+            if (typeof info.category === "string" && info.category) {
                 category = info.category;
             }
-            if (info && typeof info.categoryId === "number") {
+            if (typeof info.categoryId === "number") {
                 categoryId = info.categoryId;
             }
-            if (info && typeof info.mediaBase === "string") {
+            if (typeof info.language === "string") {
+                language = info.language;
+            }
+            if (typeof info.mediaBase === "string") {
                 mediaBase = info.mediaBase.replace(/\/+$/, "");
             }
-            if (info && typeof info.emoteTwitchId === "string") {
+            if (typeof info.emoteTwitchId === "string") {
                 emoteTwitchId = info.emoteTwitchId;
             }
         }
@@ -1697,13 +1704,19 @@ async function boot(): Promise<void> {
     nameEl.textContent = username;
     document.title = username;
     titleEl.textContent = title;
-    sepEl.classList.toggle("hidden", !title);
     const hasCategory = !!category;
+    const languageLabel = streamLanguageLabel(language);
+    const hasLanguage = languageLabel !== null;
+    sepEl.classList.toggle("hidden", !title && !hasCategory && !hasLanguage);
     categoryEl.textContent = category;
     if (categoryId !== null) categoryEl.href = `/?category=${categoryId}`;
     else categoryEl.removeAttribute("href");
     categoryEl.classList.toggle("hidden", !hasCategory);
-    categorySepEl.classList.add("hidden");
+    categorySepEl.classList.toggle("hidden", !title || !hasCategory);
+    languageEl.textContent = languageLabel ?? "";
+    languageEl.classList.toggle("hidden", !hasLanguage);
+    languageSepEl.classList.toggle("hidden", !hasLanguage || (!title && !hasCategory));
+    languageEl.title = languageLabel ? `Stream language: ${languageLabel}` : "";
 
     wireLoginModal();
     startChat(username, emoteTwitchId, () => openLoginModal("chat"));

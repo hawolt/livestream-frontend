@@ -25,8 +25,8 @@
         }
 
         #live-name { font-weight: 700; color: var(--text); }
-        #live-sep, #live-category-sep { margin: 0 8px; color: var(--muted); }
-        #live-sep.hidden, #live-category-sep.hidden { display: none; }
+        #live-sep, #live-category-sep, #live-language-sep { margin: 0 8px; color: var(--muted); }
+        #live-sep.hidden, #live-category-sep.hidden, #live-language-sep.hidden { display: none; }
         .live-badge {
             position: absolute;
             top: 12px;
@@ -326,6 +326,12 @@
         }
         #live-category:hover, #live-category:focus-visible {
             text-decoration: underline;
+        }
+        #live-language {
+            color: var(--muted);
+        }
+        #live-language.hidden {
+            display: none;
         }
         .live-info-right {
             flex-shrink: 0;
@@ -1262,7 +1268,7 @@
                 </div>
             </div>
             <div class="live-info-bar hidden" id="live-info-bar">
-                <div id="live-title"><span id="live-name"></span><span id="live-sep" class="hidden">&#183;</span><span id="live-title-text"></span><span id="live-category-sep" class="hidden">&#183;</span><a id="live-category" class="hidden"></a></div>
+                <div id="live-title"><span id="live-name"></span><span id="live-sep" class="hidden">&#183;</span><span id="live-title-text"></span><span id="live-category-sep" class="hidden">&#183;</span><a id="live-category" class="hidden"></a><span id="live-language-sep" class="hidden">&#183;</span><span id="live-language" class="hidden"></span></div>
                 <div class="live-info-right">
                     <span id="live-follow" class="live-follow" hidden>
                         <button id="btn-follow" type="button" class="live-follow-btn">Follow</button>

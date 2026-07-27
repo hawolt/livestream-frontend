@@ -1,10 +1,12 @@
 import { initSiteNav } from "./nav.ts";
+import { streamLanguageLabel } from "./stream-languages.ts";
 
 interface ExploreStream {
     username: string;
     title: string;
     category: string | null;
     categoryId: number | null;
+    language: string;
     viewers: number;
     mediaBase?: string;
 }
@@ -102,6 +104,12 @@ function updateStreamCard(card: StreamCard, s: ExploreStream): void {
     if (viewersText) viewersText.textContent = `${s.viewers.toLocaleString()} viewers`;
     const title = card.link.querySelector(".explore-card-title");
     if (title) title.textContent = s.title ? s.title : "No title";
+    const language = card.link.querySelector<HTMLElement>(".explore-card-language");
+    const languageLabel = streamLanguageLabel(s.language);
+    if (language) {
+        language.textContent = languageLabel ?? "";
+        language.hidden = languageLabel === null;
+    }
     updateStreamThumbnail(card, s);
 }
 
@@ -197,9 +205,14 @@ function buildStreamCard(s: ExploreStream): StreamCard {
     const username = document.createElement("div");
     username.className = "explore-card-username";
     username.textContent = s.username;
+    const language = document.createElement("span");
+    language.className = "explore-card-language";
+    const identity = document.createElement("div");
+    identity.className = "explore-card-identity";
+    identity.append(username, language);
     const title = document.createElement("div");
     title.className = "explore-card-title";
-    body.append(title, username);
+    body.append(title, identity);
     a.append(thumb, body);
     root.appendChild(a);
 

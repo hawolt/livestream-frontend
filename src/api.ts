@@ -1,3 +1,5 @@
+import type { StreamLanguageCode } from "./stream-languages.ts";
+
 export interface AccountSettings {
     chatBotToken?: string | null;
     email: string | null;
@@ -29,11 +31,21 @@ export interface LiveInfo {
     title: string;
     category: string | null;
     categoryId: number | null;
+    language: StreamLanguageCode;
     webhookStartUrl: string;
     webhookEndUrl: string;
     webhookSecret: string;
     discordWebhookUrl: string;
     emoteTwitch: string;
+}
+
+export interface LiveChannelInfo {
+    title: string;
+    category: string | null;
+    categoryId: number | null;
+    language: StreamLanguageCode;
+    mediaBase: string;
+    emoteTwitchId: string | null;
 }
 
 export interface LiveCategory {
