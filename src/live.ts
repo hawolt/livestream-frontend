@@ -240,15 +240,19 @@ function setBadge(on: boolean): void {
     badgeEl.hidden = on;
 }
 
-function setPoster(label: string | null, isError = false): void {
+function setPoster(label: string | null, isError = false, isLoading = false): void {
     if (label === null) {
         posterEl.classList.add("hidden");
+        posterEl.classList.remove("loading");
         posterEl.textContent = "";
+        posterEl.setAttribute("aria-busy", "false");
         stageEl.classList.remove("terminal");
         return;
     }
     posterEl.textContent = label;
     posterEl.classList.toggle("error", isError);
+    posterEl.classList.toggle("loading", isLoading);
+    posterEl.setAttribute("aria-busy", String(isLoading));
     posterEl.classList.remove("hidden");
 }
 
@@ -460,15 +464,15 @@ function renderPlayerUI(): void {
             break;
         case "connecting":
             setBadge(false);
-            setPoster("Connecting...", false);
+            setPoster("Connecting", false, true);
             break;
         case "buffering":
             setBadge(false);
-            setPoster("Buffering...", false);
+            setPoster("Buffering", false, true);
             break;
         case "reconnecting":
             setBadge(false);
-            setPoster("Reconnecting...", false);
+            setPoster("Reconnecting", false, true);
             break;
         case "playing":
             setBadge(true);
@@ -931,7 +935,7 @@ function handleWSClose(g: number, ev: CloseEvent): void {
 
 function withCaptchaHint<T>(g: number, p: Promise<T>): Promise<T> {
     const t = window.setTimeout(() => {
-        if (isCurrent(g) && !terminal) setPoster("Cloudflare is checking your browser…", false);
+        if (isCurrent(g) && !terminal) setPoster("Cloudflare is checking your browser", false, true);
     }, 300);
     return p.finally(() => window.clearTimeout(t));
 }
