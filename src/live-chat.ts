@@ -84,6 +84,8 @@ let pickerOpen = false;
 let capEcho = false;
 let capRedact = false;
 let pageGuestNick = "";
+let accountStatusRevision = 0;
+let requestLogin: (() => void) | null = null;
 
 function migrateGuestNick(): void {
     const legacy = readLocalStorage(LEGACY_NICK_KEY);
@@ -785,17 +787,17 @@ function isGuestNow(): boolean {
 }
 
 async function checkAccountStatus(): Promise<void> {
+    const revision = ++accountStatusRevision;
+    let account = false;
     try {
         const res = await fetch(`${API_BASE}/auth/session`, { credentials: "include" });
         if (res.ok) {
             const info: any = await res.json();
-            isAccount = !!info && (info.kind === "user" || info.kind === "admin") && typeof info.username === "string";
-        } else {
-            isAccount = false;
+            account = !!info && (info.kind === "user" || info.kind === "admin") && typeof info.username === "string";
         }
-    } catch {
-        isAccount = false;
-    }
+    } catch {}
+    if (revision !== accountStatusRevision) return;
+    isAccount = account;
     updateComposer();
 }
 
@@ -1483,13 +1485,19 @@ function submit(): void {
     msgsEl.scrollTop = msgsEl.scrollHeight;
 }
 
-export function startChat(user: string, emoteTwitchId?: string): void {
+export function startChat(user: string, emoteTwitchId?: string, onLoginRequested?: () => void): void {
     channel = `#${user}`;
     channelEmoteTwitchId = emoteTwitchId ?? "";
+    requestLogin = onLoginRequested ?? null;
     inputEl.maxLength = MAX_TEXT;
     migrateGuestNick();
     void loadEmotes();
     void checkAccountStatus();
+    guestLoginEl.addEventListener("click", (event) => {
+        if (!requestLogin) return;
+        event.preventDefault();
+        requestLogin();
+    });
     sendEl.addEventListener("click", submit);
     replyCancelEl.addEventListener("click", clearReply);
     emoteBtnEl.addEventListener("click", togglePicker);
@@ -1536,6 +1544,23 @@ export function startChat(user: string, emoteTwitchId?: string): void {
         if (helpOpen) setHelp(false);
         if (settingsOpen) setSettings(false);
     });
+    connect();
+}
+
+export function reconnectChatAfterLogin(): void {
+    accountStatusRevision++;
+    isAccount = true;
+    banned = false;
+    banRetry = false;
+    if (retryTimer !== null) {
+        window.clearTimeout(retryTimer);
+        retryTimer = null;
+    }
+    const previous = sock;
+    sock = null;
+    joined = false;
+    updateComposer();
+    previous?.close();
     connect();
 }
 

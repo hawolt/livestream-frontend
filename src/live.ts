@@ -1,4 +1,4 @@
-import { startChat } from "./live-chat";
+import { reconnectChatAfterLogin, startChat } from "./live-chat";
 import { API_BASE } from "./api.ts";
 import { initSiteNav, markActive } from "./nav.ts";
 import { captchaQuery, getCaptchaToken, setCaptchaAnchor, warmCaptcha } from "./captcha.ts";
@@ -24,6 +24,7 @@ const followWrapEl = document.getElementById("live-follow") as HTMLElement;
 const followBtnEl = document.getElementById("btn-follow") as HTMLButtonElement;
 const followBellEl = document.getElementById("btn-follow-notify") as HTMLButtonElement;
 const loginModalEl = document.getElementById("login-modal") as HTMLElement;
+const loginModalBoxEl = loginModalEl.querySelector(".login-modal-box") as HTMLElement;
 const loginModalCloseEl = document.getElementById("login-modal-close") as HTMLButtonElement;
 const loginModalTitleEl = document.getElementById("login-modal-title") as HTMLElement;
 const loginModalFormEl = document.getElementById("login-modal-form") as HTMLFormElement;
@@ -31,6 +32,7 @@ const loginModalUserEl = document.getElementById("login-modal-user") as HTMLInpu
 const loginModalPassEl = document.getElementById("login-modal-pass") as HTMLInputElement;
 const loginModalErrorEl = document.getElementById("login-modal-error") as HTMLElement;
 const loginModalSubmitEl = document.getElementById("login-modal-submit") as HTMLButtonElement;
+const loginModalSignupEl = document.getElementById("login-modal-signup") as HTMLAnchorElement;
 const qualityEl = document.getElementById("live-quality") as HTMLElement;
 const btnLayoutToggle = document.getElementById("btn-layout-toggle") as HTMLButtonElement;
 const btnPlay = document.getElementById("btn-play") as HTMLButtonElement;
@@ -119,6 +121,7 @@ const ICON_FULLSCREEN_EXIT = '<svg viewBox="0 0 24 24"><path d="M9 4v5H4M15 4v5h
 const ICON_CINEMA = '<svg viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="12" rx="1.5" stroke="currentColor" stroke-width="2" fill="none"/><rect x="7" y="9" width="10" height="6" rx="1" stroke="currentColor" stroke-width="1.6" fill="none"/></svg>';
 
 let username = "";
+let chatPopout = false;
 
 type PlayerState = "offline" | "connecting" | "buffering" | "playing" | "reconnecting";
 
@@ -1640,8 +1643,8 @@ function wireControls(): void {
 }
 
 async function boot(): Promise<void> {
-    const isPopout = new URLSearchParams(location.search).get("chat") === "popout";
-    if (isPopout) document.body.classList.add("chat-popout");
+    chatPopout = new URLSearchParams(location.search).get("chat") === "popout";
+    if (chatPopout) document.body.classList.add("chat-popout");
 
     page.hidden = false;
     wireControls();
@@ -1702,9 +1705,10 @@ async function boot(): Promise<void> {
     categoryEl.classList.toggle("hidden", !hasCategory);
     categorySepEl.classList.add("hidden");
 
-    startChat(username, emoteTwitchId);
+    wireLoginModal();
+    startChat(username, emoteTwitchId, () => openLoginModal("chat"));
 
-    if (isPopout) {
+    if (chatPopout) {
         document.title = `${username} - chat`;
         return;
     }
@@ -1729,16 +1733,62 @@ let followOwn = false;
 let following = false;
 let followNotify = false;
 let followWired = false;
+let followRefreshRevision = 0;
 
-function openLoginModal(): void {
+type LoginIntent = "follow" | "chat";
+let loginIntent: LoginIntent = "follow";
+let loginModalWired = false;
+let loginRestoreFocus: HTMLElement | null = null;
+let loginAbort: AbortController | null = null;
+
+function openLoginModal(intent: LoginIntent): void {
+    loginIntent = intent;
     loginModalErrorEl.textContent = "";
-    loginModalTitleEl.textContent = `Log in to follow ${username}`;
+    loginModalTitleEl.textContent = intent === "follow" ? `Log in to follow ${username}` : "Log in to chat";
+    loginModalSignupEl.href = `/register?return=${encodeURIComponent(location.href)}`;
+    if (loginModalEl.hidden) {
+        loginRestoreFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    }
     loginModalEl.hidden = false;
     loginModalUserEl.focus();
 }
 
 function closeLoginModal(): void {
+    if (loginModalEl.hidden) return;
+    loginAbort?.abort();
+    loginAbort = null;
+    setLoginBusy(false);
     loginModalEl.hidden = true;
+    const restore = loginRestoreFocus;
+    loginRestoreFocus = null;
+    if (restore?.isConnected) restore.focus();
+}
+
+function setLoginBusy(busy: boolean): void {
+    loginModalFormEl.setAttribute("aria-busy", String(busy));
+    loginModalSubmitEl.disabled = busy;
+    loginModalSubmitEl.textContent = busy ? "Logging in…" : "Log in";
+}
+
+function trapLoginFocus(event: KeyboardEvent): void {
+    const focusable = Array.from(loginModalBoxEl.querySelectorAll<HTMLElement>(
+        "button:not([disabled]), input:not([disabled]), a[href], [tabindex]:not([tabindex='-1'])",
+    ));
+    if (!focusable.length) {
+        event.preventDefault();
+        loginModalBoxEl.focus();
+        return;
+    }
+    const first = focusable[0]!;
+    const last = focusable[focusable.length - 1]!;
+    const active = document.activeElement;
+    if (event.shiftKey && (active === first || !loginModalBoxEl.contains(active))) {
+        event.preventDefault();
+        last.focus();
+    } else if (!event.shiftKey && (active === last || !loginModalBoxEl.contains(active))) {
+        event.preventDefault();
+        first.focus();
+    }
 }
 
 function renderFollow(): void {
@@ -1761,7 +1811,7 @@ function wireFollow(): void {
     followWired = true;
     followBtnEl.addEventListener("click", async () => {
         if (!followLoggedIn) {
-            openLoginModal();
+            openLoginModal("follow");
             return;
         }
         followBtnEl.disabled = true;
@@ -1799,8 +1849,10 @@ function wireFollow(): void {
 }
 
 async function initFollow(): Promise<void> {
-    wireLoginModal();
+    const revision = ++followRefreshRevision;
     let me = "";
+    let nextFollowing = false;
+    let nextNotify = false;
     try {
         const s = await fetch(`${API_BASE}/auth/session`, { credentials: "include" });
         if (s.ok) {
@@ -1808,32 +1860,42 @@ async function initFollow(): Promise<void> {
             me = String(j.username ?? "").toLowerCase();
         }
     } catch {}
-    followLoggedIn = me !== "";
-    followOwn = followLoggedIn && me === username;
-    if (followLoggedIn && !followOwn) {
+    const nextLoggedIn = me !== "";
+    const nextOwn = nextLoggedIn && me === username;
+    if (nextLoggedIn && !nextOwn) {
         try {
             const st = await fetch(`${API_BASE}/follows/status?username=${encodeURIComponent(username)}`, { credentials: "include" });
             if (st.ok) {
                 const j = await st.json();
-                following = !!j.following;
-                followNotify = !!j.notify;
+                nextFollowing = !!j.following;
+                nextNotify = !!j.notify;
             }
         } catch {}
     }
+    if (revision !== followRefreshRevision) return;
+    followLoggedIn = nextLoggedIn;
+    followOwn = nextOwn;
+    following = nextFollowing;
+    followNotify = nextNotify;
     wireFollow();
     renderFollow();
 }
 
-let loginModalWired = false;
 function wireLoginModal(): void {
     if (loginModalWired) return;
     loginModalWired = true;
-    loginModalCloseEl.addEventListener("click", closeLoginModal);
+    loginModalCloseEl.addEventListener("click", () => closeLoginModal());
     loginModalEl.addEventListener("click", (e) => {
         if (e.target === loginModalEl) closeLoginModal();
     });
     document.addEventListener("keydown", (e) => {
-        if (e.key === "Escape" && !loginModalEl.hidden) closeLoginModal();
+        if (loginModalEl.hidden) return;
+        if (e.key === "Escape") {
+            e.preventDefault();
+            closeLoginModal();
+        } else if (e.key === "Tab") {
+            trapLoginFocus(e);
+        }
     });
     loginModalFormEl.addEventListener("submit", async (e) => {
         e.preventDefault();
@@ -1841,26 +1903,55 @@ function wireLoginModal(): void {
         const pass = loginModalPassEl.value;
         if (!user || !pass) return;
         loginModalErrorEl.textContent = "";
-        loginModalSubmitEl.disabled = true;
+        const intent = loginIntent;
+        const controller = new AbortController();
+        loginAbort?.abort();
+        loginAbort = controller;
+        setLoginBusy(true);
         try {
             const r = await fetch(`${API_BASE}/auth/login`, {
                 method: "POST",
                 credentials: "include",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ username: user, password: pass }),
+                signal: controller.signal,
             });
-            if (r.ok) {
-                loginModalPassEl.value = "";
-                closeLoginModal();
-                await initFollow();
-                if (followLoggedIn && !followOwn && !following) followBtnEl.click();
-            } else {
-                loginModalErrorEl.textContent = "Invalid username or password.";
+            const result = await r.json().catch(() => ({})) as {
+                token?: string;
+                kind?: string;
+                error?: string;
+                retryAfter?: number;
+            };
+            if (!r.ok || !result.token) {
+                if (r.status === 429) {
+                    const wait = result.retryAfter ? ` Try again in ${result.retryAfter} seconds.` : " Please try again later.";
+                    loginModalErrorEl.textContent = `Too many login attempts.${wait}`;
+                } else if (r.status === 401 || r.status === 403) {
+                    loginModalErrorEl.textContent = "Invalid username or password.";
+                } else {
+                    loginModalErrorEl.textContent = result.error || "Login is unavailable. Please try again.";
+                }
+                return;
             }
-        } catch {
-            loginModalErrorEl.textContent = "Login failed. Please try again.";
+            sessionStorage.setItem("dash_token", result.token);
+            if (result.kind) sessionStorage.setItem("dash_kind", result.kind);
+            else sessionStorage.removeItem("dash_kind");
+            loginModalPassEl.value = "";
+            loginAbort = null;
+            closeLoginModal();
+            reconnectChatAfterLogin();
+            if (!chatPopout) await initFollow();
+            if (intent === "follow" && followLoggedIn && !followOwn && !following) followBtnEl.click();
+        } catch (error) {
+            if (!(error instanceof DOMException && error.name === "AbortError")) {
+                loginModalErrorEl.textContent = "Could not reach the login service. Check your connection and try again.";
+            }
+        } finally {
+            if (loginAbort === controller) {
+                loginAbort = null;
+                setLoginBusy(false);
+            }
         }
-        loginModalSubmitEl.disabled = false;
     });
 }
 

@@ -1353,14 +1353,14 @@
     </div>
 </div>
 <iframe id="browse-iframe" class="browse-iframe" title="Browse" hidden></iframe>
-<div id="login-modal" class="login-modal" hidden>
-    <div class="login-modal-box">
+<div id="login-modal" class="login-modal" role="dialog" aria-modal="true" aria-labelledby="login-modal-title" hidden>
+    <div class="login-modal-box" tabindex="-1">
         <button type="button" id="login-modal-close" class="login-modal-close" aria-label="Close">&times;</button>
         <h3 id="login-modal-title">Log in to follow</h3>
-        <form id="login-modal-form" class="login-modal-form">
-            <input id="login-modal-user" type="text" placeholder="Username" autocomplete="username" />
-            <input id="login-modal-pass" type="password" placeholder="Password" autocomplete="current-password" />
-            <div id="login-modal-error" class="login-modal-error"></div>
+        <form id="login-modal-form" class="login-modal-form" aria-describedby="login-modal-error" aria-busy="false">
+            <input id="login-modal-user" type="text" placeholder="Username" aria-label="Username" autocomplete="username" required />
+            <input id="login-modal-pass" type="password" placeholder="Password" aria-label="Password" autocomplete="current-password" required />
+            <div id="login-modal-error" class="login-modal-error" role="alert" aria-live="polite" aria-atomic="true"></div>
             <button type="submit" id="login-modal-submit" class="login-modal-submit">Log in</button>
         </form>
         <div class="login-modal-alt">No account? <a id="login-modal-signup" href="/register">Create one</a></div>
