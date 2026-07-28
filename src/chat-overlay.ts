@@ -1,13 +1,14 @@
+import { ChatEmoteCatalog, type ChatEmoteScope } from "./chat-emotes.ts";
+
 const msgsEl = document.getElementById("chat-messages") as HTMLElement;
 
 const EMOTE_SET_URL = "https://7tv.io/v3/emote-sets/global";
-const EMOTE_FILE = "2x.webp";
-const EMOTE_FILE_FALLBACK = "1x.webp";
 const MAX_MESSAGES = 100;
 const RETRY_MS = 5000;
 const BAN_RETRY_MS = 30000;
+const RENDERED_BODY_CLASS = "rendered-emote-body";
 
-const emotes = new Map<string, string>();
+const emotes = new ChatEmoteCatalog();
 
 type Role = "op" | "staff" | "bot" | "mod";
 const roles = new Map<string, Role>();
@@ -82,8 +83,6 @@ function buildBadges(from: string): HTMLImageElement[] {
     return badges;
 }
 
-const zeroWidthEmotes = new Set<string>();
-
 function buildOverlayEmote(token: string, url: string): HTMLImageElement {
     const img = document.createElement("img");
     img.className = "emote";
@@ -103,8 +102,9 @@ function renderBody(text: string): DocumentFragment {
             pendingWs += token;
             continue;
         }
-        const url = showEmotes ? emotes.get(token) : undefined;
-        if (url && zeroWidthEmotes.has(token) && lastStack) {
+        const emote = showEmotes ? emotes.get(token) : undefined;
+        const url = emote?.url;
+        if (url && emote.zeroWidth && lastStack) {
             const img = buildOverlayEmote(token, url);
             img.classList.add("emote-zw");
             lastStack.appendChild(img);
@@ -130,36 +130,32 @@ function renderBody(text: string): DocumentFragment {
     return frag;
 }
 
-function ingestEmoteList(list: unknown): void {
-    if (!Array.isArray(list)) return;
-    for (const emote of list) {
-        const name: unknown = emote?.name;
-        const host = emote?.data?.host;
-        if (typeof name !== "string" || !name || typeof host?.url !== "string") continue;
-        const files: { name?: string }[] = host.files ?? [];
-        const file = files.find((f) => f.name === EMOTE_FILE) ?? files.find((f) => f.name === EMOTE_FILE_FALLBACK);
-        if (!file?.name) continue;
-        emotes.set(name, `https:${host.url}/${file.name}`);
-        const zw = ((emote?.flags ?? 0) & 1) !== 0 || ((emote?.data?.flags ?? 0) & 256) !== 0;
-        if (zw) zeroWidthEmotes.add(name);
-        else zeroWidthEmotes.delete(name);
+function buildRenderedBody(text: string): HTMLSpanElement {
+    const body = document.createElement("span");
+    body.className = RENDERED_BODY_CLASS;
+    body.dataset["rawText"] = text;
+    body.appendChild(renderBody(text));
+    return body;
+}
+
+function refreshEmoteRendering(): void {
+    for (const body of Array.from(msgsEl.querySelectorAll<HTMLElement>(`.${RENDERED_BODY_CLASS}`))) {
+        body.replaceChildren(renderBody(body.dataset["rawText"] ?? ""));
     }
 }
 
-async function loadEmotes(): Promise<void> {
+async function loadEmoteSet(url: string, scope: ChatEmoteScope): Promise<void> {
     try {
-        const res = await fetch(EMOTE_SET_URL);
-        if (res.ok) ingestEmoteList((await res.json())?.emotes);
+        const res = await fetch(url);
+        if (!res.ok) return;
+        const payload: any = await res.json();
+        const list = scope === "channel" ? payload?.emote_set?.emotes : payload?.emotes;
+        emotes.replace(scope, list);
+        refreshEmoteRendering();
     } catch {}
-    if (channelEmoteTwitchId) {
-        try {
-            const res = await fetch(`https://7tv.io/v3/users/twitch/${encodeURIComponent(channelEmoteTwitchId)}`);
-            if (res.ok) ingestEmoteList((await res.json())?.emote_set?.emotes);
-        } catch {}
-    }
 }
 
-async function loadChannelEmotes(user: string): Promise<void> {
+async function loadChannelEmoteSet(user: string): Promise<void> {
     try {
         const res = await fetch(`/api/live/channel/${encodeURIComponent(user)}`);
         if (res.ok) {
@@ -167,7 +163,16 @@ async function loadChannelEmotes(user: string): Promise<void> {
             if (info && typeof info.emoteTwitchId === "string") channelEmoteTwitchId = info.emoteTwitchId;
         }
     } catch {}
-    await loadEmotes();
+    if (!channelEmoteTwitchId) return;
+    const url = `https://7tv.io/v3/users/twitch/${encodeURIComponent(channelEmoteTwitchId)}`;
+    await loadEmoteSet(url, "channel");
+}
+
+async function loadChannelEmotes(user: string): Promise<void> {
+    await Promise.all([
+        loadEmoteSet(EMOTE_SET_URL, "global"),
+        loadChannelEmoteSet(user),
+    ]);
 }
 
 function append(node: HTMLElement): void {
@@ -191,7 +196,7 @@ function addMessage(from: string, text: string, msgid?: string): void {
     who.className = "nick";
     who.textContent = from;
     who.style.color = nickColor(from);
-    line.append(who, document.createTextNode(": "), renderBody(text));
+    line.append(who, document.createTextNode(": "), buildRenderedBody(text));
     append(line);
 }
 
@@ -412,7 +417,7 @@ const DEMO_LONG_USER = "northwind";
 const DEMO_INTERVAL_MS = 1500;
 
 function demoEmoteToken(): string {
-    if (emotes.size > 0) return emotes.keys().next().value as string;
+    if (emotes.size > 0) return emotes.names().next().value as string;
     return "nice";
 }
 

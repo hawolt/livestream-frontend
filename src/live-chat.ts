@@ -1,4 +1,5 @@
 import { API_BASE } from "./api.ts";
+import { ChatEmoteCatalog, type ChatEmoteScope } from "./chat-emotes.ts";
 import { readLocalStorage, removeLocalStorage, writeLocalStorage } from "./storage.ts";
 
 const msgsEl = document.getElementById("live-chat-messages") as HTMLElement;
@@ -34,8 +35,6 @@ const GUEST_NICK_KEY = "live-chat-guest-nick";
 const LEGACY_NICK_KEY = "live-chat-nick";
 const GUEST_NICK_RE = /^guest_[0-9a-f]{8}$/;
 const EMOTE_SET_URL = "https://7tv.io/v3/emote-sets/global";
-const EMOTE_FILE = "2x.webp";
-const EMOTE_FILE_FALLBACK = "1x.webp";
 const MAX_MESSAGES = 200;
 const MAX_TEXT = 400;
 const MAX_SUGGESTIONS = 8;
@@ -45,8 +44,9 @@ const FLOOD_RETRY_MS = 30000;
 const BAN_RETRY_MS = 30000;
 const SESSION_RENEWAL_CHECK_MS = 60 * 60 * 1000;
 const SCROLL_SLACK_PX = 40;
+const RENDERED_BODY_CLASS = "live-chat-rendered-body";
 
-const emotes = new Map<string, string>();
+const emotes = new ChatEmoteCatalog();
 
 type Role = "op" | "staff" | "bot" | "mod";
 const roles = new Map<string, Role>();
@@ -308,7 +308,7 @@ function addMessage(from: string, text: string, msgid?: string, replyId?: string
     who.style.color = nickColor(from);
     const badges = buildBadges(from);
     if (badges.length) line.append(...badges);
-    line.append(who, document.createTextNode(": "), renderBody(text));
+    line.append(who, document.createTextNode(": "), buildRenderedBody(text));
     if (from.toLowerCase() === myNickLower()) line.classList.add("live-chat-own");
     if (msgid) {
         line.dataset["msgid"] = msgid;
@@ -352,7 +352,7 @@ function addHiddenMessage(from: string, text: string): void {
     const badges = buildBadges(from);
     line.append(tag);
     if (badges.length) line.append(...badges);
-    line.append(who, document.createTextNode(": "), renderBody(text));
+    line.append(who, document.createTextNode(": "), buildRenderedBody(text));
     append(line);
 }
 
@@ -363,7 +363,7 @@ function addWhisper(from: string, target: string, text: string): void {
     tag.className = "live-chat-whisper-tag";
     const outgoing = from.toLowerCase() === myNickLower();
     tag.textContent = outgoing ? `↪ ${target}` : `${from} whispers`;
-    line.append(tag, document.createTextNode(": "), renderBody(text));
+    line.append(tag, document.createTextNode(": "), buildRenderedBody(text));
     append(line);
 }
 
@@ -404,7 +404,7 @@ function renderPins(): void {
         body.title = "Jump to message";
         const who = document.createElement("b");
         who.textContent = p.from;
-        body.append(who, document.createTextNode(": "), renderBody(p.text));
+        body.append(who, document.createTextNode(": "), buildRenderedBody(p.text));
         body.addEventListener("click", () => jumpToMessage(msgid));
         const close = document.createElement("button");
         close.type = "button";
@@ -696,7 +696,7 @@ function buildMention(name: string): HTMLSpanElement {
 }
 
 function renderToken(token: string): Node {
-    const emoteUrl = emotes.get(token);
+    const emoteUrl = emotes.get(token)?.url;
     if (emoteUrl) return buildEmoteImg(token, emoteUrl);
     const { core, trail } = splitTrailingPunctuation(token);
     if (core && MENTION_RE.test(core)) {
@@ -715,8 +715,6 @@ function renderToken(token: string): Node {
     return document.createTextNode(token);
 }
 
-const zeroWidthEmotes = new Set<string>();
-
 function renderBody(text: string): DocumentFragment {
     const frag = document.createDocumentFragment();
     let lastStack: HTMLElement | null = null;
@@ -727,8 +725,9 @@ function renderBody(text: string): DocumentFragment {
             pendingWs += token;
             continue;
         }
-        const url = emotes.get(token);
-        if (url && zeroWidthEmotes.has(token) && lastStack) {
+        const emote = emotes.get(token);
+        const url = emote?.url;
+        if (url && emote.zeroWidth && lastStack) {
             const img = buildEmoteImg(token, url);
             img.classList.add("live-chat-emote-zw");
             lastStack.appendChild(img);
@@ -755,33 +754,47 @@ function renderBody(text: string): DocumentFragment {
     return frag;
 }
 
-function ingestEmoteList(list: unknown): void {
-    if (!Array.isArray(list)) return;
-    for (const emote of list) {
-        const name: unknown = emote?.name;
-        const host = emote?.data?.host;
-        if (typeof name !== "string" || !name || typeof host?.url !== "string") continue;
-        const files: { name?: string }[] = host.files ?? [];
-        const file = files.find((f) => f.name === EMOTE_FILE) ?? files.find((f) => f.name === EMOTE_FILE_FALLBACK);
-        if (!file?.name) continue;
-        emotes.set(name, `https:${host.url}/${file.name}`);
-        const zw = ((emote?.flags ?? 0) & 1) !== 0 || ((emote?.data?.flags ?? 0) & 256) !== 0;
-        if (zw) zeroWidthEmotes.add(name);
-        else zeroWidthEmotes.delete(name);
+function buildRenderedBody(text: string): HTMLSpanElement {
+    const body = document.createElement("span");
+    body.className = RENDERED_BODY_CLASS;
+    body.dataset["rawText"] = text;
+    body.appendChild(renderBody(text));
+    return body;
+}
+
+function refreshEmoteRendering(): void {
+    const stick = atBottom();
+    const previousHeight = msgsEl.scrollHeight;
+    for (const body of Array.from(document.querySelectorAll<HTMLElement>(`.${RENDERED_BODY_CLASS}`))) {
+        body.replaceChildren(renderBody(body.dataset["rawText"] ?? ""));
+    }
+    if (pickerOpen) renderPickerGrid(pickerFilterEl.value);
+    if (!suggestEl.hidden) updateSuggest();
+    if (stick) {
+        msgsEl.scrollTop = msgsEl.scrollHeight;
+    } else {
+        msgsEl.scrollTop += msgsEl.scrollHeight - previousHeight;
     }
 }
 
-async function loadEmotes(): Promise<void> {
+async function loadEmoteSet(url: string, scope: ChatEmoteScope): Promise<void> {
     try {
-        const res = await fetch(EMOTE_SET_URL);
-        if (res.ok) ingestEmoteList((await res.json())?.emotes);
+        const res = await fetch(url);
+        if (!res.ok) return;
+        const payload: any = await res.json();
+        const list = scope === "channel" ? payload?.emote_set?.emotes : payload?.emotes;
+        emotes.replace(scope, list);
+        refreshEmoteRendering();
     } catch {}
+}
+
+async function loadEmotes(): Promise<void> {
+    const requests: Promise<void>[] = [loadEmoteSet(EMOTE_SET_URL, "global")];
     if (channelEmoteTwitchId) {
-        try {
-            const res = await fetch(`https://7tv.io/v3/users/twitch/${encodeURIComponent(channelEmoteTwitchId)}`);
-            if (res.ok) ingestEmoteList((await res.json())?.emote_set?.emotes);
-        } catch {}
+        const url = `https://7tv.io/v3/users/twitch/${encodeURIComponent(channelEmoteTwitchId)}`;
+        requests.push(loadEmoteSet(url, "channel"));
     }
+    await Promise.all(requests);
 }
 
 function nickColor(from: string): string {
@@ -888,7 +901,7 @@ function buildEmoteCell(name: string): HTMLButtonElement {
     cell.type = "button";
     cell.className = "live-chat-picker-cell";
     const img = document.createElement("img");
-    img.src = emotes.get(name) as string;
+    img.src = emotes.get(name)?.url ?? "";
     img.alt = name;
     img.title = name;
     img.loading = "lazy";
@@ -911,7 +924,7 @@ function renderPickerGrid(filter: string): void {
         return;
     }
     const lower = filter.trim().toLowerCase();
-    const names = Array.from(emotes.keys())
+    const names = Array.from(emotes.names())
         .filter((name) => !lower || name.toLowerCase().includes(lower))
         .sort((a, b) => a.localeCompare(b));
     if (!names.length) {
@@ -982,7 +995,7 @@ function matchEmotes(term: string): string[] {
     const lower = term.toLowerCase();
     const prefix: string[] = [];
     const substr: string[] = [];
-    for (const name of emotes.keys()) {
+    for (const name of emotes.names()) {
         const l = name.toLowerCase();
         if (l.startsWith(lower)) prefix.push(name);
         else if (l.includes(lower)) substr.push(name);
@@ -1137,7 +1150,7 @@ function updateSuggest(): void {
         return;
     }
     if (ctx.kind === "emote") {
-        renderSuggestItems(matchEmotes(ctx.term).map((name) => ({ label: name, insert: name, img: emotes.get(name) })));
+        renderSuggestItems(matchEmotes(ctx.term).map((name) => ({ label: name, insert: name, img: emotes.get(name)?.url })));
     } else {
         renderSuggestItems(matchMembers(ctx.term).map((name) => ({ label: name, insert: (ctx.withAt ? "@" : "") + name, color: nickColor(name) })));
     }
