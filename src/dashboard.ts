@@ -1,6 +1,6 @@
 import { initSiteNav, setBurgerExtra } from "./nav.ts";
 import {
-    setMe, loginRedirect, signOutAndRedirect, loadDashboardSession, startSessionRenewal, $, $$,
+    setMe, token, loginRedirect, signOutAndRedirect, loadDashboardSession, startSessionRenewal, $, $$,
     type TabInfo, type TabModule,
 } from "./dash/core.ts";
 
@@ -278,8 +278,6 @@ function showSessionProblem(state: "forbidden" | "unavailable"): void {
 }
 
 (async () => {
-    void initSiteNav("dashboard");
-
     const session = await loadDashboardSession();
     if (session.state === "signed-out") {
         loginRedirect();
@@ -290,8 +288,6 @@ function showSessionProblem(state: "forbidden" | "unavailable"): void {
         return;
     }
     const me = session.me;
-    setMe(me);
-    startSessionRenewal();
 
     const isLiveHost = location.hostname.startsWith("live.");
     const baseDomain = location.hostname.replace(/^(live|admin)\./, "");
@@ -299,13 +295,24 @@ function showSessionProblem(state: "forbidden" | "unavailable"): void {
     const tabPath = requestedTab ? `/${requestedTab}` : "";
     const port = location.port ? `:${location.port}` : "";
     if (me.kind === "user" && !isLiveHost) {
+        sessionStorage.removeItem("dash_token");
+        sessionStorage.removeItem("dash_kind");
         location.replace(`https://live.${baseDomain}${port}/dashboard${tabPath}`);
         return;
     }
     if (me.kind === "admin" && isLiveHost) {
+        sessionStorage.removeItem("dash_token");
+        sessionStorage.removeItem("dash_kind");
         location.replace(`https://admin.${baseDomain}${port}/dashboard${tabPath}`);
         return;
     }
+    setMe(me);
+    startSessionRenewal();
+    void initSiteNav("dashboard", [], {
+        kind: me.kind,
+        username: me.username,
+        token: token(),
+    });
 
     const tabs = (me.tabs ?? []).filter(t => TAB_LOADERS[t.id]);
     const studioTabs = (me.tabs ?? []).filter(t => !TAB_LOADERS[t.id]);

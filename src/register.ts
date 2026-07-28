@@ -36,29 +36,52 @@ function resolveRedirect(): string {
 
 async function verifyToken(token: string): Promise<"valid" | "invalid" | "unavailable"> {
     try {
-        const res = await fetch(`${API_BASE}/auth/me`, { headers: { "Authorization": `Bearer ${token}` } });
-        if (res.ok) return "valid";
+        const res = await fetch(`${API_BASE}/auth/me`, {
+            headers: { "Authorization": `Bearer ${token}` },
+            credentials: "include",
+        });
+        if (res.ok) {
+            const data = await res.json().catch(() => null) as { token?: string; kind?: string } | null;
+            if (!data?.token || data.kind !== "user") return "invalid";
+            sessionStorage.setItem("dash_token", data.token);
+            sessionStorage.setItem("dash_kind", data.kind);
+            return "valid";
+        }
         return res.status === 401 ? "invalid" : "unavailable";
     } catch {
         return "unavailable";
     }
 }
 
-async function bootFromCookie(): Promise<boolean> {
+async function bootFromCookie(): Promise<"authenticated" | "unauthenticated" | "unavailable" | "mismatch"> {
     try {
         const res = await fetch(`${API_BASE}/auth/session`, { credentials: "include" });
-        if (!res.ok) return false;
+        if (res.status === 401) return "unauthenticated";
+        if (!res.ok) return "unavailable";
         const data = await res.json() as { token?: string; kind?: string };
-        if (!data.token || data.kind !== "user") return false;
+        if (!data.token || !data.kind) return "unavailable";
+        if (data.kind !== "user") return "mismatch";
         sessionStorage.setItem("dash_token", data.token);
         sessionStorage.setItem("dash_kind", data.kind);
-        return true;
+        return "authenticated";
     } catch {
-        return false;
+        return "unavailable";
     }
 }
 
 async function boot(): Promise<void> {
+    const cookie = await bootFromCookie();
+    if (cookie === "authenticated") {
+        location.replace(resolveRedirect());
+        return;
+    }
+    if (cookie === "mismatch") {
+        sessionStorage.removeItem("dash_token");
+        sessionStorage.removeItem("dash_kind");
+        return;
+    }
+    if (cookie === "unavailable") return;
+
     const existing = sessionStorage.getItem("dash_token");
     if (existing) {
         const status = await verifyToken(existing);
@@ -68,7 +91,6 @@ async function boot(): Promise<void> {
             sessionStorage.removeItem("dash_kind");
         }
     }
-    if (await bootFromCookie()) location.replace(resolveRedirect());
 }
 
 void boot();

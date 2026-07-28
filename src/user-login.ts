@@ -65,21 +65,31 @@ function resolveRedirect(): string {
 
 async function verifyToken(token: string): Promise<"valid" | "invalid" | "unavailable"> {
     try {
-        const res = await fetch(`${API_BASE}/auth/me`, { headers: { "Authorization": `Bearer ${token}` } });
-        if (res.ok) return "valid";
+        const res = await fetch(`${API_BASE}/auth/me`, {
+            headers: { "Authorization": `Bearer ${token}` },
+            credentials: "include",
+        });
+        if (res.ok) {
+            const data = await res.json().catch(() => null) as { token?: string; kind?: string } | null;
+            if (!data?.token || data.kind !== "user") return "invalid";
+            sessionStorage.setItem("dash_token", data.token);
+            sessionStorage.setItem("dash_kind", data.kind);
+            return "valid";
+        }
         return res.status === 401 ? "invalid" : "unavailable";
     } catch {
         return "unavailable";
     }
 }
 
-async function bootFromCookie(): Promise<"authenticated" | "unauthenticated" | "unavailable"> {
+async function bootFromCookie(): Promise<"authenticated" | "unauthenticated" | "unavailable" | "mismatch"> {
     try {
         const res = await fetch(`${API_BASE}/auth/session`, { credentials: "include" });
         if (res.status === 401) return "unauthenticated";
         if (!res.ok) return "unavailable";
         const data = await res.json() as { token?: string; kind?: string };
-        if (!data.token || data.kind !== "user") return "unavailable";
+        if (!data.token || !data.kind) return "unavailable";
+        if (data.kind !== "user") return "mismatch";
         sessionStorage.setItem("dash_token", data.token);
         sessionStorage.setItem("dash_kind", data.kind);
         return "authenticated";
@@ -89,6 +99,23 @@ async function bootFromCookie(): Promise<"authenticated" | "unauthenticated" | "
 }
 
 async function boot(): Promise<void> {
+    const cookie = await bootFromCookie();
+    if (cookie === "authenticated") {
+        location.replace(resolveRedirect());
+        return;
+    }
+    if (cookie === "mismatch") {
+        sessionStorage.removeItem("dash_token");
+        sessionStorage.removeItem("dash_kind");
+        showLoginPage();
+        return;
+    }
+    if (cookie === "unavailable") {
+        showLoginPage();
+        showError("Could not check your existing login. You can retry or sign in again.");
+        return;
+    }
+
     const existing = sessionStorage.getItem("dash_token");
     const existingKind = sessionStorage.getItem("dash_kind");
     if (existing && (existingKind === "user" || !existingKind)) {
@@ -103,15 +130,7 @@ async function boot(): Promise<void> {
             return;
         }
     }
-    const cookie = await bootFromCookie();
-    if (cookie === "authenticated") {
-        location.replace(resolveRedirect());
-        return;
-    }
     showLoginPage();
-    if (cookie === "unavailable") {
-        showError("Could not check your existing login. You can retry or sign in again.");
-    }
 }
 
 void boot();

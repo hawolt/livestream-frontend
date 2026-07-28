@@ -42,7 +42,7 @@ const MIN_SUGGEST_LEN = 2;
 const RETRY_MS = 5000;
 const FLOOD_RETRY_MS = 30000;
 const BAN_RETRY_MS = 30000;
-const SESSION_RENEWAL_CHECK_MS = 60 * 60 * 1000;
+const SESSION_RENEWAL_CHECK_MS = 4 * 60 * 1000;
 const SCROLL_SLACK_PX = 40;
 const RENDERED_BODY_CLASS = "live-chat-rendered-body";
 
@@ -87,6 +87,9 @@ let capRedact = false;
 let pageGuestNick = "";
 let accountStatusRevision = 0;
 let accountStatusTimer: number | null = null;
+let accountStatusRequest: Promise<void> | null = null;
+let accountStatusResolved = false;
+let accountSessionToken = "";
 let requestLogin: (() => void) | null = null;
 
 function migrateGuestNick(): void {
@@ -809,10 +812,11 @@ function isGuestNow(): boolean {
     return !isAccount || guests.has(myNickLower());
 }
 
-async function checkAccountStatus(): Promise<void> {
+async function requestAccountStatus(): Promise<void> {
     const revision = ++accountStatusRevision;
     let account: boolean;
     let renewed = false;
+    let sessionToken = "";
     try {
         const res = await fetch(`${API_BASE}/auth/session`, { credentials: "include" });
         if (res.status === 401) {
@@ -822,14 +826,32 @@ async function checkAccountStatus(): Promise<void> {
             const info: any = await res.json();
             account = !!info && (info.kind === "user" || info.kind === "admin") && typeof info.username === "string";
             renewed = info?.renewed === true;
+            sessionToken = typeof info?.token === "string" ? info.token : "";
         }
     } catch {
         return;
     }
     if (revision !== accountStatusRevision) return;
+    const wasResolved = accountStatusResolved;
+    const wasAccount = isAccount;
+    const tokenChanged = accountSessionToken !== "" && sessionToken !== "" && sessionToken !== accountSessionToken;
+    const synchronize = wasResolved
+        ? account !== wasAccount || (account && (renewed || tokenChanged))
+        : account;
+    accountStatusResolved = true;
+    accountSessionToken = account ? sessionToken : "";
     isAccount = account;
     updateComposer();
-    if (account && renewed) restartChatConnection();
+    if (synchronize) restartChatConnection();
+}
+
+function checkAccountStatus(): Promise<void> {
+    if (!accountStatusRequest) {
+        accountStatusRequest = requestAccountStatus().finally(() => {
+            accountStatusRequest = null;
+        });
+    }
+    return accountStatusRequest;
 }
 
 function checkAccountWhenVisible(): void {
@@ -1607,6 +1629,8 @@ function restartChatConnection(): void {
 export function reconnectChatAfterLogin(): void {
     accountStatusRevision++;
     isAccount = true;
+    accountStatusResolved = true;
+    accountSessionToken = "";
     banned = false;
     banRetry = false;
     restartChatConnection();
@@ -1615,6 +1639,7 @@ export function reconnectChatAfterLogin(): void {
 export function stopChat(): void {
     destroyed = true;
     accountStatusRevision++;
+    accountStatusRequest = null;
     if (accountStatusTimer !== null) {
         window.clearInterval(accountStatusTimer);
         accountStatusTimer = null;

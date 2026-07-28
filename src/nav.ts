@@ -1,11 +1,39 @@
 import { API_BASE } from "./api.ts";
+import { sessionTokenMetadata } from "./session-token.ts";
 
 export type NavActive = "browse" | "dashboard" | null;
 
-interface SessionInfo {
+export interface SessionInfo {
     kind?: string;
     username?: string;
     token?: string;
+}
+
+const SESSION_RENEWAL_CHECK_MS = 60 * 60 * 1000;
+let sessionRenewalRequest: Promise<void> | null = null;
+let sessionRenewalStarted = false;
+
+function storeSessionToken(info: SessionInfo, tokenBeforeRequest: string): void {
+    if (info.kind !== "user" || typeof info.token !== "string") return;
+    const incoming = sessionTokenMetadata(info.token);
+    if (!incoming) return;
+    const currentToken = sessionStorage.getItem("dash_token") ?? "";
+    const current = sessionTokenMetadata(currentToken);
+    const changedDuringRequest = currentToken !== tokenBeforeRequest;
+    if (changedDuringRequest &&
+            (!current ||
+             current.identity !== incoming.identity ||
+             incoming.issuedAt <= current.issuedAt)) {
+        return;
+    }
+    if (!changedDuringRequest &&
+            current &&
+            current.identity === incoming.identity &&
+            incoming.issuedAt < current.issuedAt) {
+        return;
+    }
+    sessionStorage.setItem("dash_token", info.token);
+    sessionStorage.setItem("dash_kind", info.kind);
 }
 
 const GEAR_ICON = `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>`;
@@ -284,7 +312,35 @@ function buildSocialLinks(): HTMLElement[] {
     });
 }
 
-export async function initSiteNav(active: NavActive, pageControls: HTMLElement[] = []): Promise<void> {
+async function renewSession(): Promise<void> {
+    const tokenBeforeRequest = sessionStorage.getItem("dash_token") ?? "";
+    try {
+        const res = await fetch(`${API_BASE}/auth/session`, { credentials: "include" });
+        if (!res.ok) return;
+        const info = await res.json() as SessionInfo;
+        storeSessionToken(info, tokenBeforeRequest);
+    } catch {}
+}
+
+function renewSessionWhenVisible(): void {
+    if (document.hidden || sessionRenewalRequest) return;
+    sessionRenewalRequest = renewSession().finally(() => {
+        sessionRenewalRequest = null;
+    });
+}
+
+function startSessionRenewal(): void {
+    if (sessionRenewalStarted) return;
+    sessionRenewalStarted = true;
+    window.setInterval(renewSessionWhenVisible, SESSION_RENEWAL_CHECK_MS);
+    document.addEventListener("visibilitychange", renewSessionWhenVisible);
+}
+
+export async function initSiteNav(
+    active: NavActive,
+    pageControls: HTMLElement[] = [],
+    knownSession?: SessionInfo | null,
+): Promise<void> {
     markActive(active);
     insertMoreMenu();
 
@@ -305,13 +361,18 @@ export async function initSiteNav(active: NavActive, pageControls: HTMLElement[]
 
     for (const a of buildSocialLinks()) right.appendChild(a);
 
-    let info: SessionInfo | null = null;
-    try {
-        const res = await fetch(`${API_BASE}/auth/session`, { credentials: "include" });
-        if (res.ok) info = await res.json();
-    } catch {}
+    let info = knownSession ?? null;
+    const tokenBeforeRequest = sessionStorage.getItem("dash_token") ?? "";
+    if (knownSession === undefined) {
+        try {
+            const res = await fetch(`${API_BASE}/auth/session`, { credentials: "include" });
+            if (res.ok) info = await res.json();
+        } catch {}
+    }
 
     const signedIn = !!info && info.kind === "user" && typeof info.username === "string";
+    if (signedIn && knownSession === undefined) storeSessionToken(info as SessionInfo, tokenBeforeRequest);
+    if (knownSession === undefined) startSessionRenewal();
     right.appendChild(signedIn ? buildSignedIn(info as SessionInfo) : buildSignedOut());
     right.appendChild(buildBurger(signedIn ? (info as SessionInfo) : null, pageControls));
 }
