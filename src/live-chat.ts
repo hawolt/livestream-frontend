@@ -288,7 +288,7 @@ function buildActions(from: string, text: string, msgid: string): HTMLElement {
     return actions;
 }
 
-function addMessage(from: string, text: string, msgid?: string, replyId?: string): void {
+function addMessage(from: string, text: string, msgid?: string, replyId?: string, sentAt?: string): void {
     const line = document.createElement("div");
     line.className = "live-chat-msg";
     line.dataset["from"] = from;
@@ -301,7 +301,7 @@ function addMessage(from: string, text: string, msgid?: string, replyId?: string
         repliedToMe = quote.parentFrom.toLowerCase() === myNickLower();
     }
 
-    line.appendChild(buildTimeSpan());
+    line.appendChild(buildTimeSpan(sentAt));
     const who = document.createElement("span");
     who.className = "live-chat-nick";
     who.textContent = from;
@@ -608,11 +608,19 @@ function pad2(n: number): string {
     return n < 10 ? `0${n}` : String(n);
 }
 
-function buildTimeSpan(): HTMLSpanElement {
-    const now = new Date();
+function parseServerTime(value: string | undefined): Date {
+    if (value && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,9})?(?:Z|[+-]\d{2}:\d{2})$/.test(value)) {
+        const parsed = new Date(value);
+        if (Number.isFinite(parsed.getTime())) return parsed;
+    }
+    return new Date();
+}
+
+function buildTimeSpan(sentAt?: string): HTMLSpanElement {
+    const time = parseServerTime(sentAt);
     const span = document.createElement("span");
     span.className = "live-chat-time";
-    span.textContent = `${pad2(now.getHours())}:${pad2(now.getMinutes())}`;
+    span.textContent = `${pad2(time.getHours())}:${pad2(time.getMinutes())}`;
     return span;
 }
 
@@ -1142,6 +1150,7 @@ interface IrcLine {
     msgid?: string;
     reply?: string;
     color?: string;
+    time?: string;
     automod?: boolean;
 }
 
@@ -1151,6 +1160,7 @@ function parse(line: string): IrcLine | null {
     let msgid: string | undefined;
     let reply: string | undefined;
     let color: string | undefined;
+    let time: string | undefined;
     let automod = false;
     if (rest.startsWith("@")) {
         const sp = rest.indexOf(" ");
@@ -1162,6 +1172,7 @@ function parse(line: string): IrcLine | null {
             if (key === "msgid") msgid = val;
             else if (key === "+reply") reply = val;
             else if (key === "color") color = val;
+            else if (key === "time") time = val;
             else if (key === "automod") automod = true;
         }
         rest = rest.slice(sp + 1);
@@ -1194,6 +1205,7 @@ function parse(line: string): IrcLine | null {
     if (msgid) out.msgid = msgid;
     if (reply) out.reply = reply;
     if (color) out.color = color;
+    if (time) out.time = time;
     if (automod) out.automod = true;
     return out;
 }
@@ -1367,7 +1379,7 @@ function handle(line: IrcLine): void {
                 if (line.automod) {
                     if (!document.body.classList.contains("chat-popout")) addHiddenMessage(line.nick, body);
                 } else {
-                    addMessage(line.nick, body, line.msgid, line.reply);
+                    addMessage(line.nick, body, line.msgid, line.reply, line.time);
                 }
             } else {
                 addWhisper(line.nick, target, body);
@@ -1449,7 +1461,7 @@ function connect(): void {
     sock = s;
 
     s.onopen = () => {
-        send("CAP REQ :message-tags echo-message draft/message-redaction");
+        send("CAP REQ :message-tags echo-message draft/message-redaction server-time");
         send(`NICK ${nick}`);
         send(`USER ${nick} 0 * :${nick}`);
     };
