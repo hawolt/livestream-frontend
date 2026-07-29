@@ -55,7 +55,21 @@
 
 html.live-host { --font-ui: "Inter", sans-serif; }
 
-html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
+html {
+    scroll-behavior: smooth;
+    -webkit-text-size-adjust: 100%;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+}
+
+*::-webkit-scrollbar { width: 10px; height: 10px; }
+*::-webkit-scrollbar-track { background: transparent; }
+*::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border-radius: var(--radius);
+}
+*::-webkit-scrollbar-thumb:hover { background: var(--dim); }
+*::-webkit-scrollbar-corner { background: transparent; }
 
 body {
     background: var(--bg);
