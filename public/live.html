@@ -42,6 +42,12 @@
             pointer-events: none;
         }
         .live-badge[hidden] { display: none; }
+        .live-badge-paused {
+            left: 12px;
+            right: auto;
+            background: rgba(20, 20, 20, .85);
+            color: var(--accent);
+        }
 
         .live-main {
             flex: 1;
@@ -1276,6 +1282,7 @@
         <div class="live-left">
             <div class="live-stage" id="live-stage">
                 <span class="live-badge" id="live-badge" hidden>OFFLINE</span>
+                <span class="live-badge live-badge-paused" id="live-paused-indicator" hidden>PAUSED</span>
                 <video id="live-video" muted autoplay playsinline></video>
                 <div id="live-poster" class="hidden" role="status" aria-live="polite" aria-atomic="true" aria-busy="false"></div>
                 <div class="browse-mini-overlay" id="browse-mini-overlay" hidden>

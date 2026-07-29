@@ -10,6 +10,7 @@ const nameEl = document.getElementById("live-name") as HTMLElement;
 const sepEl = document.getElementById("live-sep") as HTMLElement;
 const badgeEl = document.getElementById("live-badge") as HTMLElement;
 const posterEl = document.getElementById("live-poster") as HTMLElement;
+const pausedIndicatorEl = document.getElementById("live-paused-indicator") as HTMLElement;
 const stageEl = document.getElementById("live-stage") as HTMLElement;
 const video = document.getElementById("live-video") as HTMLVideoElement;
 const titleBar = document.getElementById("live-info-bar") as HTMLElement;
@@ -69,6 +70,7 @@ const START_BEHIND_S = 0.8;
 const CHASE_GAP_S = 1.3;
 const CHASE_RATE = 1.08;
 const CHASE_STOP_S = 0.8;
+const PAUSED_TRACK_INTERVAL_MS = 1500;
 const SEEK_GAP_S = 6;
 const PRUNE_KEEP_S = 300;
 const LIVE_EDGE_SNAP_S = 2;
@@ -156,6 +158,10 @@ let behindLive = false;
 let seekDragging = false;
 let quotaKeepS = PRUNE_KEEP_S;
 let quotaFailStreak = 0;
+
+let clickPaused = false;
+let pendingPauseTap = true;
+let pausedFrameTimer: number | null = null;
 
 let cinemaMode = false;
 
@@ -707,6 +713,95 @@ function goLive(): void {
     updateSeekBar();
 }
 
+function hlsSeekableEnd(): number {
+    const s = video.seekable;
+    return s.length ? s.end(s.length - 1) : 0;
+}
+
+function hlsGoLive(): void {
+    const edge = hlsSeekableEnd();
+    if (edge > 0) {
+        try {
+            video.currentTime = edge;
+        } catch {}
+    }
+    void video.play().catch(() => {});
+}
+
+function setPausedIndicator(on: boolean): void {
+    pausedIndicatorEl.hidden = !on;
+}
+
+function stopPausedFrameTracking(): void {
+    if (pausedFrameTimer !== null) {
+        window.clearInterval(pausedFrameTimer);
+        pausedFrameTimer = null;
+    }
+}
+
+function pausedFrameTick(): void {
+    if (!clickPaused) return;
+    if (transportKind === "ws") {
+        if (behindLive) return;
+        const edge = bufferedEnd();
+        if (edge <= 0) return;
+        const start = bufferedStart();
+        try {
+            video.currentTime = Math.max(start, edge - START_BEHIND_S);
+        } catch {}
+    } else if (transportKind === "hls") {
+        const edge = hlsSeekableEnd();
+        if (edge <= 0) return;
+        try {
+            video.currentTime = edge;
+        } catch {}
+    }
+}
+
+function startPausedFrameTracking(): void {
+    if (pausedFrameTimer !== null) return;
+    pausedFrameTick();
+    pausedFrameTimer = window.setInterval(pausedFrameTick, PAUSED_TRACK_INTERVAL_MS);
+}
+
+function pauseForClick(): void {
+    clickPaused = true;
+    setPausedIndicator(true);
+    video.pause();
+    startPausedFrameTracking();
+}
+
+function unpauseFromClick(): void {
+    clickPaused = false;
+    stopPausedFrameTracking();
+    setPausedIndicator(false);
+    if (transportKind === "ws") {
+        goLive();
+        if (bufferedEnd() <= 0) void video.play().catch(() => {});
+    } else if (transportKind === "hls") {
+        hlsGoLive();
+    } else {
+        void video.play().catch(() => {});
+    }
+}
+
+function toggleClickPause(): void {
+    if (terminal || state !== "playing" || browseMode) return;
+    if (video.paused) unpauseFromClick();
+    else pauseForClick();
+}
+
+function wireVideoClickToPause(): void {
+    video.addEventListener("pointerdown", (ev) => {
+        pendingPauseTap = ev.pointerType === "mouse" ? true : stageEl.classList.contains("controls-visible");
+    });
+    video.addEventListener("click", (ev) => {
+        if (ev.target !== video) return;
+        if (!pendingPauseTap) return;
+        toggleClickPause();
+    });
+}
+
 function wireSeekBar(): void {
     const onDown = (ev: PointerEvent) => {
         if (transportKind !== "ws") return;
@@ -788,6 +883,9 @@ function fullTeardown(): void {
     seekBarEl.hidden = true;
     behindReadoutEl.hidden = true;
     btnLiveChip.hidden = true;
+    clickPaused = false;
+    stopPausedFrameTracking();
+    setPausedIndicator(false);
 }
 
 function goOffline(g: number): void {
@@ -1563,6 +1661,7 @@ function wireControls(): void {
     btnCinema.setAttribute("aria-label", "Cinema mode");
     btnCinema.title = "Cinema mode";
     wireSeekBar();
+    wireVideoClickToPause();
 
     btnPlay.addEventListener("click", () => {
         if (video.paused) {
@@ -1574,6 +1673,11 @@ function wireControls(): void {
 
     video.addEventListener("play", () => {
         updatePlayIcon();
+        if (clickPaused) {
+            clickPaused = false;
+            stopPausedFrameTracking();
+            setPausedIndicator(false);
+        }
         if (transportKind === "ws" && behindLive) return;
         const edge = bufferedEnd();
         if (edge > 0) {
