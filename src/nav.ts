@@ -9,7 +9,7 @@ export interface SessionInfo {
     token?: string;
 }
 
-const SESSION_RENEWAL_CHECK_MS = 60 * 60 * 1000;
+const SESSION_RENEWAL_CHECK_MS = 4 * 60 * 1000;
 let sessionRenewalRequest: Promise<void> | null = null;
 let sessionRenewalStarted = false;
 
