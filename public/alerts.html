@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Follow alerts overlay</title>
+    <style>
+        html, body {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            background: transparent;
+            overflow: hidden;
+        }
+        body {
+            font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            font-size: 22px;
+        }
+        body[data-size="s"] { font-size: 16px; }
+        body[data-size="l"] { font-size: 30px; }
+
+        #alert-stage {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            pointer-events: none;
+        }
+
+        .alert-card {
+            background: rgba(20, 18, 30, .85);
+            border: 1px solid rgba(255, 255, 255, .15);
+            border-radius: 16px;
+            padding: 18px 32px;
+            color: #fff;
+            text-align: center;
+            box-shadow: 0 10px 28px rgba(0, 0, 0, .5);
+        }
+
+        .alert-name {
+            font-size: 1.6em;
+            font-weight: 800;
+            text-shadow: 0 1px 3px rgba(0, 0, 0, .9);
+        }
+
+        .alert-caption {
+            margin-top: 4px;
+            font-size: .8em;
+            font-weight: 600;
+            letter-spacing: .04em;
+            text-transform: uppercase;
+            color: #ffd76a;
+        }
+
+        @keyframes alert-in {
+            0% { opacity: 0; transform: translateY(28px) scale(.85); }
+            60% { opacity: 1; transform: translateY(-6px) scale(1.04); }
+            100% { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        @keyframes alert-out {
+            from { opacity: 1; transform: translateY(0) scale(1); }
+            to { opacity: 0; transform: translateY(-28px) scale(.85); }
+        }
+        .alert-card.enter { animation: alert-in .5s cubic-bezier(.34, 1.56, .64, 1) forwards; }
+        .alert-card.exit { animation: alert-out .35s ease-in forwards; }
+    </style>
+</head>
+<body>
+<div id="alert-stage"></div>
+<script src="/follow-alerts.js" type="module"></script>
+</body>
+</html>
