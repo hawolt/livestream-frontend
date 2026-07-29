@@ -10,6 +10,7 @@ const TAB_LOADERS: Record<string, () => Promise<TabModule>> = {
     overlay:          () => import("./dash/tabs/overlay.ts"),
     "stream-health":  () => import("./dash/tabs/stream-health.ts"),
     "stream-summary": () => import("./dash/tabs/stream-summary.ts"),
+    activity:         () => import("./dash/tabs/activity.ts"),
     settings:         () => import("./dash/tabs/settings.ts"),
 };
 
