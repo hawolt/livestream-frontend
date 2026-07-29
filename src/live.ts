@@ -93,6 +93,7 @@ const CONTROLS_HIDE_MS = 3000;
 const LAYOUT_KEY = "live-layout";
 const LAYOUT_VERTICAL_QUERY = `(max-width: ${COMPACT_MAX_WIDTH_PX}px) and (orientation: portrait)`;
 const HLS_BEACON_INTERVAL_MS = 10000;
+const VIEWCOUNT_RETRY_MS = 5000;
 const HLS_HOST_ID_KEY = "live_hid";
 const VOLUME_KEY = "live-volume";
 
@@ -134,6 +135,8 @@ let terminal = false;
 let transportKind: "ws" | "hls" | "none" = "none";
 
 let ws: WebSocket | null = null;
+let viewcountSock: WebSocket | null = null;
+let viewcountRetryTimer: number | null = null;
 let mediaSource: MediaSource | null = null;
 let sourceBuffer: SourceBuffer | null = null;
 let appendQueue: ArrayBuffer[] = [];
@@ -360,6 +363,55 @@ function setViewers(n: number | null): void {
         viewersHeaderEl.classList.add("hidden");
     }
     updateInfoBar();
+}
+
+function clearViewcountRetryTimer(): void {
+    if (viewcountRetryTimer !== null) {
+        window.clearTimeout(viewcountRetryTimer);
+        viewcountRetryTimer = null;
+    }
+}
+
+function scheduleViewcountRetry(): void {
+    clearViewcountRetryTimer();
+    viewcountRetryTimer = window.setTimeout(() => {
+        viewcountRetryTimer = null;
+        connectViewcount();
+    }, VIEWCOUNT_RETRY_MS);
+}
+
+function connectViewcount(): void {
+    if (viewcountSock && (viewcountSock.readyState === WebSocket.CONNECTING || viewcountSock.readyState === WebSocket.OPEN)) return;
+    clearViewcountRetryTimer();
+    const proto = location.protocol === "https:" ? "wss" : "ws";
+    const s = new WebSocket(`${proto}://${location.host}/ws/events`);
+    viewcountSock = s;
+
+    s.onopen = () => {
+        if (viewcountSock !== s) return;
+        s.send(JSON.stringify({ watch: username }));
+    };
+
+    s.onmessage = (ev) => {
+        if (viewcountSock !== s || typeof ev.data !== "string") return;
+        let msg: any = {};
+        try {
+            msg = JSON.parse(ev.data);
+        } catch {
+            return;
+        }
+        if (msg.type === "viewcount" && typeof msg.viewers === "number") {
+            setViewers(msg.viewers > 0 ? msg.viewers : null);
+        }
+    };
+
+    s.onclose = () => {
+        if (viewcountSock !== s) return;
+        viewcountSock = null;
+        scheduleViewcountRetry();
+    };
+
+    s.onerror = () => s.close();
 }
 
 let streamStartMs = 0;
@@ -962,7 +1014,6 @@ function startWSTransport(g: number): void {
             try {
                 msg = JSON.parse(ev.data);
             } catch {}
-            if (typeof msg.viewers === "number") setViewers(msg.viewers);
             const codecs = typeof msg.codecs === "string" ? msg.codecs : "";
             if (!codecs) return;
             if (typeof msg.started === "number" && msg.started > 0) setStreamStart(msg.started);
@@ -1727,6 +1778,7 @@ async function boot(): Promise<void> {
     }
 
     void initFollow();
+    connectViewcount();
 
     if (typeof MediaSource === "function" && typeof MediaSource.isTypeSupported === "function") {
         titleBar.classList.remove("hidden");
