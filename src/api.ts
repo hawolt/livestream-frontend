@@ -2,6 +2,7 @@ import type { StreamLanguageCode } from "./stream-languages.ts";
 
 export interface AccountSettings {
     chatBotToken?: string | null;
+    overlayToken?: string | null;
     email: string | null;
     emailVerified: boolean;
     tenantName?: string | null;
