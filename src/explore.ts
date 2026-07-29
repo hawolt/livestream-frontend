@@ -56,7 +56,6 @@ const backBtn = document.getElementById("explore-back") as HTMLButtonElement;
 const modeStreamsBtn = document.getElementById("mode-streams") as HTMLButtonElement;
 const modeCategoriesBtn = document.getElementById("mode-categories") as HTMLButtonElement;
 
-const POLL_MS = 10000;
 const PREVIEW_DELAY_MS = 300;
 const PREVIEW_MESSAGE_TYPE = "hawolt:stream-preview";
 const NO_CATEGORY_LABEL = "No category";
@@ -66,8 +65,6 @@ let categories: ExploreCategory[] = [];
 let mode: Mode = "streams";
 let drillCategoryId: CategorySelector = null;
 let mediaBase = "";
-let pollRequestId = 0;
-let lastAppliedPollRequestId = 0;
 let previewTimer: number | null = null;
 let pendingPreview: StreamCard | null = null;
 let activePreview: StreamPreview | null = null;
@@ -76,10 +73,11 @@ let deferredGridChildren: HTMLElement[] | null = null;
 const isFramed = window.self !== window.top || new URLSearchParams(location.search).get("framed") === "1";
 const hoverPreviewMedia = window.matchMedia("(any-hover: hover) and (any-pointer: fine) and (prefers-reduced-motion: no-preference)");
 
+const thumbCacheKey = Math.floor(Date.now() / 60000);
+
 function thumbUrl(s: ExploreStream): string {
-    const minute = Math.floor(Date.now() / 60000);
     const base = typeof s.mediaBase === "string" ? s.mediaBase.replace(/\/+$/, "") : mediaBase;
-    return `${base}/thumb/${encodeURIComponent(s.username.toLowerCase())}.jpg?t=${minute}`;
+    return `${base}/thumb/${encodeURIComponent(s.username.toLowerCase())}.jpg?t=${thumbCacheKey}`;
 }
 
 function viewersIcon(): string {
@@ -474,14 +472,11 @@ hoverPreviewMedia.addEventListener("change", () => {
     if (!hoverPreviewMedia.matches) stopStreamPreview();
 });
 
-async function poll(): Promise<void> {
-    const requestId = ++pollRequestId;
+async function loadExplore(): Promise<void> {
     try {
         const res = await fetch("/api/live/explore");
         if (res.ok) {
             const data = await res.json();
-            if (requestId < lastAppliedPollRequestId) return;
-            lastAppliedPollRequestId = requestId;
             streams = Array.isArray(data.streams) ? data.streams : [];
             categories = Array.isArray(data.categories) ? data.categories : [];
             if (typeof data.mediaBase === "string") mediaBase = data.mediaBase.replace(/\/+$/, "");
@@ -499,8 +494,7 @@ async function boot(): Promise<void> {
     drillCategoryId = initial.categoryId;
     history.replaceState(initial, "", urlFor(initial.mode, initial.categoryId));
     updateModeButtons();
-    await poll();
-    setInterval(() => { void poll(); }, POLL_MS);
+    await loadExplore();
 }
 
 void boot();
