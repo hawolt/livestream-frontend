@@ -90,7 +90,8 @@ async function requestSessionFromCookie(): Promise<SessionBootstrap> {
         if (!res.ok) return "unavailable";
         const data = await res.json() as { token?: string; kind?: string; id?: number; tenantId?: number };
         if (!data.token || !data.kind || typeof data.id !== "number") return "unavailable";
-        if (me && sessionResponseIdentity(data) !== sessionResponseIdentity(me)) {
+        const meIdentity = me ? sessionResponseIdentity(me) : "";
+        if (meIdentity && sessionResponseIdentity(data) !== meIdentity) {
             return "mismatch";
         }
         const incoming = sessionTokenMetadata(data.token);
@@ -124,7 +125,22 @@ function bootstrapSessionFromCookie(): Promise<SessionBootstrap> {
 async function renewSessionWhenVisible(): Promise<void> {
     if (document.hidden) return;
     const bootstrap = await bootstrapSessionFromCookie();
-    if (bootstrap === "unauthenticated" || bootstrap === "mismatch") loginRedirect();
+    if (bootstrap === "mismatch") {
+        loginRedirect();
+        return;
+    }
+    if (bootstrap !== "unauthenticated") return;
+    // The renewal cookie lapsed, but the bearer token we're still holding may
+    // well be valid (it has its own lifetime and authFetch() keeps working off
+    // it independently of this cookie). Only force a logout once the bearer
+    // token itself is confirmed dead too - otherwise this background timer
+    // would cause the very "unexpected session loss" issue #37 fixed.
+    if (!TOKEN) {
+        loginRedirect();
+        return;
+    }
+    const res = await fetchMe();
+    if (res?.status === 401) loginRedirect();
 }
 
 export function startSessionRenewal(): void {
