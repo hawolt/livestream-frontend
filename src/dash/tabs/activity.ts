@@ -1,4 +1,3 @@
-import type { LiveInfo } from "../../api.ts";
 import { authFetch, esc, fmtDate, getMe, token } from "../core.ts";
 
 interface FollowEvent {
@@ -22,13 +21,7 @@ let concealed = sessionStorage.getItem(CONCEAL_KEY) === "1";
 let events: FollowEvent[] = [];
 let followerCount: number | null = null;
 let viewerCount: number | null = null;
-let viewerOffline = false;
-let keyHash: string | null = null;
 let chatLoaded = false;
-
-let streamWs: WebSocket | null = null;
-let streamReconnectTimer: number | null = null;
-let streamDead = true;
 
 let eventsWs: WebSocket | null = null;
 let eventsReconnectTimer: number | null = null;
@@ -44,10 +37,10 @@ function renderViewerChip(): void {
         return;
     }
     hintEl.textContent = "Click to hide";
-    if (viewerOffline) {
-        countEl.textContent = "Offline";
-    } else if (viewerCount === null) {
+    if (viewerCount === null) {
         countEl.textContent = "-";
+    } else if (viewerCount === 0) {
+        countEl.textContent = "Offline";
     } else {
         countEl.textContent = String(viewerCount);
     }
@@ -102,13 +95,21 @@ function connectEvents(): void {
     eventsWs = ws;
     ws.onopen = () => ws.send(JSON.stringify({ token: token() }));
     ws.onmessage = (e: MessageEvent) => {
-        const msg = JSON.parse(e.data as string) as { type: string; username?: string; at?: number };
+        const msg = JSON.parse(e.data as string) as {
+            type: string;
+            username?: string;
+            at?: number;
+            viewers?: number;
+        };
         if (msg.type === "follow" && msg.username && typeof msg.at === "number") {
             addEvent({ type: "follow", username: msg.username, at: msg.at });
             if (followerCount !== null) {
                 followerCount += 1;
                 renderFollowerCount();
             }
+        } else if (msg.type === "viewcount" && typeof msg.viewers === "number") {
+            viewerCount = msg.viewers;
+            renderViewerChip();
         } else if (msg.type === "error") {
             ws.close();
         }
@@ -118,57 +119,6 @@ function connectEvents(): void {
         eventsWs = null;
         if (!eventsDead) eventsReconnectTimer = window.setTimeout(connectEvents, RECONNECT_MS);
     };
-}
-
-function viewersFromSample(sample: { viewers?: number } | undefined): number | undefined {
-    return sample?.viewers;
-}
-
-function connectStream(): void {
-    if (streamDead || !keyHash) return;
-    const ws = new WebSocket(`wss://${location.host}/ws/stream`);
-    streamWs = ws;
-    ws.onopen = () => ws.send(JSON.stringify({ key_hash: keyHash, token: token() }));
-    ws.onmessage = (e: MessageEvent) => {
-        const msg = JSON.parse(e.data as string) as {
-            type: string;
-            data?: { samples?: Array<{ viewers?: number }>; sample?: { viewers?: number } };
-        };
-        if (msg.type === "offline") {
-            viewerOffline = true;
-            renderViewerChip();
-        } else if (msg.type === "data") {
-            viewerOffline = false;
-            const samples = msg.data?.samples ?? [];
-            const last = samples[samples.length - 1];
-            const v = viewersFromSample(last);
-            if (v !== undefined) viewerCount = v;
-            renderViewerChip();
-        } else if (msg.type === "delta") {
-            viewerOffline = false;
-            const v = viewersFromSample(msg.data?.sample);
-            if (v !== undefined) viewerCount = v;
-            renderViewerChip();
-        } else if (msg.type === "error") {
-            ws.close();
-        }
-    };
-    ws.onclose = () => {
-        if (streamWs !== ws) return;
-        streamWs = null;
-        if (!streamDead) streamReconnectTimer = window.setTimeout(connectStream, RECONNECT_MS);
-    };
-}
-
-async function initStream(): Promise<void> {
-    try {
-        const live = await authFetch<LiveInfo>("/api/live");
-        keyHash = live.keyHash || null;
-    } catch {
-        keyHash = null;
-    }
-    if (streamDead) return;
-    connectStream();
 }
 
 function loadChat(): void {
@@ -197,22 +147,11 @@ export function activate(): void {
     loadChat();
     void loadRecentFollows();
 
-    streamDead = false;
-    void initStream();
-
     eventsDead = false;
     connectEvents();
 }
 
 export function deactivate(): void {
-    streamDead = true;
-    if (streamReconnectTimer !== null) {
-        window.clearTimeout(streamReconnectTimer);
-        streamReconnectTimer = null;
-    }
-    streamWs?.close();
-    streamWs = null;
-
     eventsDead = true;
     if (eventsReconnectTimer !== null) {
         window.clearTimeout(eventsReconnectTimer);
