@@ -12,17 +12,19 @@
             <div style="font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-top:4px">Followers</div>
         </div>
     </div>
-    <div class="card" style="padding:24px;margin-bottom:16px">
-        <div class="section-title">Stream info</div>
-        <div id="live-info-body">Loading...</div>
-    </div>
     <div class="card-grid-2">
+        <div style="display:flex;flex-direction:column;gap:16px">
+            <div class="card" style="padding:24px;flex:1">
+                <div class="section-title">Stream info</div>
+                <div id="live-info-body">Loading...</div>
+            </div>
+            <div class="card" style="padding:24px;flex:1;display:flex;flex-direction:column;min-height:0">
+                <div class="section-title">Recent activity</div>
+                <div id="act-events-body" style="flex:1;overflow-y:auto;scrollbar-gutter:stable;padding-right:8px;min-height:0">Loading...</div>
+            </div>
+        </div>
         <div class="card" style="padding:0;overflow:hidden">
             <iframe id="act-chat-iframe" title="Chat" style="width:100%;height:600px;border:0;display:block"></iframe>
-        </div>
-        <div class="card" style="padding:24px">
-            <div class="section-title">Recent activity</div>
-            <div id="act-events-body" style="max-height:260px;overflow-y:auto;scrollbar-gutter:stable;padding-right:8px">Loading...</div>
         </div>
     </div>
 </div>
