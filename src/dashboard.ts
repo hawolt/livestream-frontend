@@ -284,6 +284,13 @@ function showSessionProblem(state: "forbidden" | "unavailable"): void {
         return;
     }
     if (session.state !== "ready") {
+        // loadDashboardSession() already knows the session state, so the
+        // success path passes it in as knownSession to avoid a second
+        // /auth/session round trip. Here we genuinely don't have a usable
+        // session yet, so let initSiteNav fetch it itself - without this the
+        // page renders with no top nav at all and the user can't get out
+        // except via the buttons showSessionProblem() happens to provide.
+        void initSiteNav("dashboard");
         showSessionProblem(session.state);
         return;
     }
