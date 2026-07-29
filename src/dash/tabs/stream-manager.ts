@@ -1,82 +1,11 @@
-import type { LiveInfo, LiveCategory, LiveMod, LiveBan } from "../../api.ts";
-import { STREAM_LANGUAGE_OPTIONS, type StreamLanguageCode } from "../../stream-languages.ts";
+import type { LiveMod, LiveBan } from "../../api.ts";
 import { esc, fmtDate, authFetch } from "../core.ts";
 
 const fmtUnix = (t: number | null | undefined): string =>
     t ? fmtDate(new Date(t * 1000).toISOString()) : "-";
 
-let liveCache: LiveInfo | null = null;
-let categoriesCache: LiveCategory[] = [];
 let modsCache: LiveMod[] = [];
 let bansCache: LiveBan[] = [];
-
-async function loadLive(): Promise<void> {
-    const el = document.getElementById("live-info-body");
-    if (el) el.textContent = "Loading...";
-    try {
-        const [info, cats] = await Promise.all([
-            authFetch<LiveInfo>("/api/live"),
-            authFetch<{ categories: LiveCategory[] }>("/api/live/categories"),
-        ]);
-        liveCache = info;
-        categoriesCache = cats.categories;
-        renderInfo();
-    } catch (e) {
-        if (el) el.textContent = String(e);
-    }
-}
-
-function renderInfo(): void {
-    const el = document.getElementById("live-info-body");
-    if (!el || !liveCache) return;
-    const options = [`<option value="" ${liveCache.categoryId === null ? "selected" : ""}>No category</option>`]
-        .concat(categoriesCache.map(c =>
-            `<option value="${c.id}" ${liveCache!.categoryId === c.id ? "selected" : ""}>${esc(c.name)}</option>`));
-    const languageOptions = STREAM_LANGUAGE_OPTIONS.map(({ code, label }) =>
-        `<option value="${code}" ${liveCache!.language === code ? "selected" : ""}>${esc(label)}</option>`);
-    el.innerHTML = `
-        <div class="form-grid">
-            <label class="span2"><span>Title</span><input id="live-info-title" type="text" maxlength="200" placeholder="Now streaming..." value="${esc(liveCache.title)}"></label>
-            <label><span>Category</span><select id="live-info-category">${options.join("")}</select></label>
-            <label><span>Language</span><select id="live-info-language">${languageOptions.join("")}</select></label>
-        </div>
-        <div style="font-size:12px;color:var(--muted);margin-top:6px">
-            Shown with your stream on the channel page and explorer. Categories are also used to group streams.
-        </div>
-        <div id="live-info-error" style="color:var(--red);font-size:13px;margin-top:8px"></div>
-        <div style="margin-top:12px;display:flex;align-items:center;gap:12px">
-            <button class="btn btn-primary" id="btn-live-info-save">Save Stream Info</button>
-            <span id="live-info-saved" style="font-size:13px;color:var(--success)"></span>
-        </div>`;
-    document.getElementById("btn-live-info-save")?.addEventListener("click", async () => {
-        if (!liveCache) return;
-        const btn = document.getElementById("btn-live-info-save") as HTMLButtonElement;
-        const errEl = document.getElementById("live-info-error")!;
-        const savedEl = document.getElementById("live-info-saved")!;
-        const title = (document.getElementById("live-info-title") as HTMLInputElement).value;
-        const catVal = (document.getElementById("live-info-category") as HTMLSelectElement).value;
-        const categoryId = catVal === "" ? null : Number(catVal);
-        const language = (document.getElementById("live-info-language") as HTMLSelectElement).value as StreamLanguageCode;
-        errEl.textContent = "";
-        savedEl.textContent = "";
-        btn.disabled = true;
-        try {
-            liveCache = await authFetch<LiveInfo>("/api/live/info", {
-                method: "PUT",
-                body: JSON.stringify({ title, categoryId, language }),
-            });
-            renderInfo();
-            const savedNow = document.getElementById("live-info-saved");
-            if (savedNow) {
-                savedNow.textContent = "Saved";
-                setTimeout(() => { savedNow.textContent = ""; }, 2500);
-            }
-        } catch (e) {
-            errEl.textContent = e instanceof Error ? e.message : String(e);
-            btn.disabled = false;
-        }
-    });
-}
 
 async function loadMods(): Promise<void> {
     const tbody = document.getElementById("live-mods-body");
@@ -181,7 +110,6 @@ function renderBans(): void {
 export function init(): void {}
 
 export function activate(): void {
-    void loadLive();
     void loadMods();
     void loadBans();
 }

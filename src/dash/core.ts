@@ -253,6 +253,10 @@ export const fmtDate = (s: string | null | undefined): string => {
     const [y, m, d] = raw.split('-');
     return `${d}.${m}.${y}`;
 };
+export const fmtTime = (s: string | null | undefined): string => {
+    if (!s) return "-";
+    return s.slice(11, 16);
+};
 export const esc = (s: string | null | undefined) =>
     String(s ?? "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;").replace(/`/g,"&#96;");
 
