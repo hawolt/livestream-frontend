@@ -1,5 +1,6 @@
 import { API_BASE } from "./api.ts";
 import { ChatEmoteCatalog, type ChatEmoteScope } from "./chat-emotes.ts";
+import { applyReplacement, wrapIndex, type ReplaceRange } from "./chat-suggest.ts";
 import { readLocalStorage, removeLocalStorage, writeLocalStorage } from "./storage.ts";
 
 const msgsEl = document.getElementById("live-chat-messages") as HTMLElement;
@@ -65,6 +66,8 @@ let settingsOpen = false;
 const TIMESTAMPS_KEY = "live-chat-timestamps";
 let helpBuilt = false;
 let suggestIndex = -1;
+let suggestItemsData: SuggestItem[] = [];
+let tabCycleRange: ReplaceRange | null = null;
 let channelEmoteTwitchId = "";
 
 const MENTION_RE = /^@([A-Za-z0-9_-]{1,32})$/;
@@ -513,8 +516,8 @@ const HELP_COMMANDS: { group: string; badge?: BadgeName; items: [string, string]
     {
         group: "Everyone",
         items: [
-            ["@name", "Mention someone - Tab to autocomplete."],
-            [":emote", "Insert a 7TV emote - Tab to autocomplete."],
+            ["@name", "Mention someone - Tab to autocomplete, keep pressing Tab to cycle."],
+            [":emote", "Insert a 7TV emote - Tab to autocomplete, keep pressing Tab to cycle."],
             [".whisper <user> <msg>", "Send a private message (alias .w)."],
             ["Reply", "Hover a message and click ↩ to reply to it."],
         ],
@@ -1037,8 +1040,8 @@ function matchEmotes(term: string): string[] {
 function acceptSuggestion(name: string): void {
     const range = currentWordRange();
     if (!range) return;
-    const val = inputEl.value;
-    inputEl.value = val.slice(0, range.start) + name + " " + val.slice(range.end);
+    const { value } = applyReplacement(inputEl.value, range, name + " ");
+    inputEl.value = value;
     const caret = range.start + name.length + 1;
     inputEl.setSelectionRange(caret, caret);
     inputEl.focus();
@@ -1049,6 +1052,8 @@ function hideSuggest(): void {
     suggestEl.hidden = true;
     suggestEl.replaceChildren();
     suggestIndex = -1;
+    suggestItemsData = [];
+    tabCycleRange = null;
 }
 
 function suggestItems(): HTMLElement[] {
@@ -1064,7 +1069,7 @@ function highlightSuggest(): void {
 function moveSuggest(delta: number): void {
     const items = suggestItems();
     if (!items.length) return;
-    suggestIndex = (((suggestIndex + delta) % items.length) + items.length) % items.length;
+    suggestIndex = wrapIndex(suggestIndex, delta, items.length);
     highlightSuggest();
 }
 
@@ -1074,6 +1079,24 @@ function acceptSelectedSuggestion(): boolean {
     if (!cur) return false;
     cur.click();
     return true;
+}
+
+function advanceTabCycle(back: boolean): void {
+    if (!tabCycleRange) {
+        const range = currentWordRange();
+        if (!range) return;
+        tabCycleRange = { start: range.start, end: range.end };
+        highlightSuggest();
+    } else {
+        moveSuggest(back ? -1 : 1);
+    }
+    const item = suggestItemsData[suggestIndex];
+    if (!item || !tabCycleRange) return;
+    const { value, end } = applyReplacement(inputEl.value, tabCycleRange, item.insert + " ");
+    inputEl.value = value;
+    tabCycleRange = { start: tabCycleRange.start, end };
+    inputEl.setSelectionRange(end, end);
+    inputEl.focus();
 }
 
 function matchMembers(term: string): string[] {
@@ -1132,11 +1155,14 @@ interface SuggestItem {
 }
 
 function renderSuggestItems(items: SuggestItem[]): void {
+    tabCycleRange = null;
     suggestEl.replaceChildren();
     if (!items.length) {
         suggestEl.hidden = true;
+        suggestItemsData = [];
         return;
     }
+    suggestItemsData = items;
     for (const it of items) {
         const item = document.createElement("button");
         item.type = "button";
@@ -1606,15 +1632,23 @@ export function startChat(user: string, emoteTwitchId?: string, onLoginRequested
     });
     inputEl.addEventListener("keydown", (e) => {
         const suggestOpen = !suggestEl.hidden;
-        if (suggestOpen && (e.key === "Tab" || e.key === "ArrowDown" || e.key === "ArrowUp")) {
+        if (suggestOpen && e.key === "Tab") {
             e.preventDefault();
-            const back = e.key === "ArrowUp" || (e.key === "Tab" && e.shiftKey);
-            moveSuggest(back ? -1 : 1);
+            advanceTabCycle(e.shiftKey);
             return;
+        }
+        if (suggestOpen && !tabCycleRange && (e.key === "ArrowDown" || e.key === "ArrowUp")) {
+            e.preventDefault();
+            moveSuggest(e.key === "ArrowUp" ? -1 : 1);
+            return;
+        }
+        if (tabCycleRange && (e.key === "ArrowDown" || e.key === "ArrowUp")) {
+            tabCycleRange = null;
         }
         if (e.key === "Enter" && !e.shiftKey) {
             e.preventDefault();
-            if (suggestOpen && acceptSelectedSuggestion()) return;
+            if (suggestOpen && !tabCycleRange && acceptSelectedSuggestion()) return;
+            tabCycleRange = null;
             submit();
         }
     });
