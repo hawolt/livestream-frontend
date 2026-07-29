@@ -79,7 +79,7 @@ const hoverPreviewMedia = window.matchMedia("(any-hover: hover) and (any-pointer
 function thumbUrl(s: ExploreStream): string {
     const minute = Math.floor(Date.now() / 60000);
     const base = typeof s.mediaBase === "string" ? s.mediaBase.replace(/\/+$/, "") : mediaBase;
-    return `${base}/thumb/${encodeURIComponent(s.username)}.jpg?t=${minute}`;
+    return `${base}/thumb/${encodeURIComponent(s.username.toLowerCase())}.jpg?t=${minute}`;
 }
 
 function viewersIcon(): string {
@@ -151,7 +151,7 @@ function startStreamPreview(card: StreamCard): void {
     if (!card.root.isConnected || !hoverPreviewMedia.matches) return;
     const frame = document.createElement("iframe");
     frame.className = "explore-preview-frame";
-    frame.src = `/embed/${encodeURIComponent(card.username)}?preview=1`;
+    frame.src = `/embed/${encodeURIComponent(card.username.toLowerCase())}?preview=1`;
     frame.allow = "autoplay";
     frame.tabIndex = -1;
     frame.title = `${card.username} muted stream preview`;
@@ -188,7 +188,7 @@ function buildStreamCard(s: ExploreStream): StreamCard {
     root.className = "explore-stream-card";
     const a = document.createElement("a");
     a.className = "explore-card";
-    a.href = `/${encodeURIComponent(s.username)}`;
+    a.href = `/${encodeURIComponent(s.username.toLowerCase())}`;
     if (isFramed) a.target = "_top";
     const thumb = document.createElement("div");
     thumb.className = "explore-thumb";

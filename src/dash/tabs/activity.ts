@@ -133,7 +133,7 @@ function loadChat(): void {
     if (!iframe) return;
     const username = getMe()?.username;
     if (!username) return;
-    iframe.src = `/${encodeURIComponent(username)}?chat=popout`;
+    iframe.src = `/${encodeURIComponent(username.toLowerCase())}?chat=popout`;
     chatLoaded = true;
 }
 

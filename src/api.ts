@@ -41,6 +41,7 @@ export interface LiveInfo {
 }
 
 export interface LiveChannelInfo {
+    username: string;
     title: string;
     category: string | null;
     categoryId: number | null;
