@@ -7,7 +7,7 @@ export function el<T extends HTMLElement = HTMLElement>(id: string): T {
 }
 
 export function username(): string {
-    return getMe()?.username ?? "demo";
+    return (getMe()?.username ?? "demo").toLowerCase();
 }
 
 export function setBackdrop(frameId: string, checkerId: string, darkId: string, mode: "checker" | "dark"): void {
