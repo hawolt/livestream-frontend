@@ -6,6 +6,7 @@ import {
 
 const TAB_LOADERS: Record<string, () => Promise<TabModule>> = {
     stream:           () => import("./dash/tabs/stream.ts"),
+    discord:          () => import("./dash/tabs/discord.ts"),
     "stream-manager": () => import("./dash/tabs/stream-manager.ts"),
     overlay:          () => import("./dash/tabs/overlay.ts"),
     "stream-health":  () => import("./dash/tabs/stream-health.ts"),
