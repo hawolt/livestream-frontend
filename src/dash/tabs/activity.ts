@@ -106,7 +106,9 @@ function connectEvents(): void {
             username?: string;
             at?: number;
             viewers?: number;
+            test?: boolean;
         };
+        if (msg.test) return;
         if (msg.type === "follow" && msg.username && typeof msg.at === "number") {
             addEvent({ type: "follow", username: msg.username, at: msg.at });
             if (followerCount !== null) {

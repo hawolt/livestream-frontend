@@ -72,6 +72,28 @@ async function loadFollowToken(): Promise<void> {
     updateFollowUrl();
 }
 
+async function sendTestAlert(): Promise<void> {
+    const btn = el<HTMLButtonElement>("fa-test-btn");
+    const status = el("fa-test-status");
+    btn.disabled = true;
+    status.textContent = "";
+    try {
+        await authFetch<void>("/api/follows/test", { method: "POST" });
+        status.textContent = "Test alert sent";
+        status.style.color = "var(--success)";
+    } catch (e) {
+        const code = (e as { status?: number }).status;
+        status.textContent = code === 429 ? "Please wait a moment" : "Failed to send test alert";
+        status.style.color = code === 429 ? "var(--muted)" : "var(--red)";
+    }
+    window.setTimeout(() => {
+        btn.disabled = false;
+    }, 2000);
+    window.setTimeout(() => {
+        status.textContent = "";
+    }, 4000);
+}
+
 async function rotateFollowToken(): Promise<void> {
     if (!confirm("Rotate the follow alert overlay token? The current overlay URL stops working immediately.")) return;
     const btn = el<HTMLButtonElement>("fa-token-btn");
@@ -96,6 +118,7 @@ export function init(): void {
         updateFollowUrl();
     });
     el("fa-token-btn").addEventListener("click", () => void rotateFollowToken());
+    el("fa-test-btn").addEventListener("click", () => void sendTestAlert());
 
     for (const id of ["fa-size", "fa-duration"]) {
         el(id).addEventListener("input", onFollowChange);
