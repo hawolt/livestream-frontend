@@ -659,7 +659,7 @@
         .live-chat-userlist[hidden] { display: none; }
         .live-chat-userlist-head {
             display: flex; align-items: center; justify-content: space-between;
-            height: 44px; flex-shrink: 0;
+            height: 52px; flex-shrink: 0;
             padding: 0 8px 0 14px;
             border-bottom: 1px solid var(--border);
             font-size: 13px; font-weight: 700; color: var(--text);
@@ -707,7 +707,7 @@
         .live-chat-help[hidden] { display: none; }
         .live-chat-help-head {
             display: flex; align-items: center; justify-content: space-between;
-            height: 44px; flex-shrink: 0;
+            height: 52px; flex-shrink: 0;
             padding: 0 8px 0 14px;
             border-bottom: 1px solid var(--border);
             font-size: 13px; font-weight: 700; color: var(--text);
@@ -802,7 +802,9 @@
             max-width: none !important;
             border-left: none;
         }
-        body.chat-popout .live-chat-head {
+        body.chat-popout .live-chat-head,
+        body.chat-popout .live-chat-userlist-head,
+        body.chat-popout .live-chat-help-head {
             padding-top: env(safe-area-inset-top);
             height: calc(52px + env(safe-area-inset-top));
         }
