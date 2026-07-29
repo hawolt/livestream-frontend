@@ -1,9 +1,10 @@
 import type { AccountSettings } from "../../api.ts";
-import { authFetch } from "../core.ts";
+import { authFetch, maskSecret } from "../core.ts";
 import { PREVIEW_DEBOUNCE_MS, el, username, setBackdrop, wireCopy } from "../overlay-shared.ts";
 
 let followPreviewTimer: number | null = null;
 let followToken: string | null = null;
+let revealed = false;
 
 function buildFollowParams(): URLSearchParams {
     const params = new URLSearchParams();
@@ -14,14 +15,26 @@ function buildFollowParams(): URLSearchParams {
     return params;
 }
 
-function updateFollowUrl(): void {
+function followUrl(): string {
+    if (!followToken) return "";
     const params = buildFollowParams();
+    params.set("token", followToken);
+    return `${location.origin}/alerts/${username()}?${params.toString()}`;
+}
+
+function maskedFollowUrl(): string {
+    if (!followToken) return "";
+    const qs = buildFollowParams().toString();
+    const prefix = qs ? `${qs}&` : "";
+    return `${location.origin}/alerts/${username()}?${prefix}token=${maskSecret(followToken)}`;
+}
+
+function updateFollowUrl(): void {
     if (!followToken) {
-        el("fa-url").textContent = "Generate a token to get your overlay URL.";
+        el("fa-url").textContent = "Loading...";
         return;
     }
-    params.set("token", followToken);
-    el("fa-url").textContent = `${location.origin}/alerts/${username()}?${params.toString()}`;
+    el("fa-url").textContent = revealed ? followUrl() : maskedFollowUrl();
 }
 
 function updateFollowPreview(): void {
@@ -41,29 +54,32 @@ function onFollowChange(): void {
     scheduleFollowPreview();
 }
 
-function renderFollowToken(): void {
-    el<HTMLButtonElement>("fa-token-btn").textContent = followToken ? "Rotate" : "Generate";
-    updateFollowUrl();
+function setTokenControlsEnabled(enabled: boolean): void {
+    el<HTMLButtonElement>("fa-token-btn").disabled = !enabled;
+    el<HTMLButtonElement>("fa-url-copy").disabled = !enabled;
+    el<HTMLButtonElement>("fa-url-reveal").disabled = !enabled;
 }
 
 async function loadFollowToken(): Promise<void> {
+    setTokenControlsEnabled(false);
     try {
         const s = await authFetch<AccountSettings>("/api/settings");
         followToken = typeof s.overlayToken === "string" ? s.overlayToken : null;
     } catch {
         followToken = null;
     }
-    renderFollowToken();
+    setTokenControlsEnabled(followToken !== null);
+    updateFollowUrl();
 }
 
 async function rotateFollowToken(): Promise<void> {
-    if (followToken && !confirm("Rotate the follow alert overlay token? The current overlay URL stops working immediately.")) return;
+    if (!confirm("Rotate the follow alert overlay token? The current overlay URL stops working immediately.")) return;
     const btn = el<HTMLButtonElement>("fa-token-btn");
     btn.disabled = true;
     try {
         const res = await authFetch<{ overlayToken: string }>("/api/settings/overlay-token/rotate", { method: "POST" });
         followToken = res.overlayToken;
-        renderFollowToken();
+        updateFollowUrl();
     } catch (e) {
         alert("Failed: " + (e instanceof Error ? e.message : String(e)));
     }
@@ -73,7 +89,12 @@ async function rotateFollowToken(): Promise<void> {
 export function init(): void {
     el("fa-bg-checker").addEventListener("click", () => setBackdrop("fa-preview-frame", "fa-bg-checker", "fa-bg-dark", "checker"));
     el("fa-bg-dark").addEventListener("click", () => setBackdrop("fa-preview-frame", "fa-bg-checker", "fa-bg-dark", "dark"));
-    wireCopy("fa-url-copy", () => el("fa-url").textContent ?? "");
+    wireCopy("fa-url-copy", () => followUrl());
+    el("fa-url-reveal").addEventListener("click", () => {
+        revealed = !revealed;
+        el<HTMLButtonElement>("fa-url-reveal").textContent = revealed ? "Hide" : "Reveal";
+        updateFollowUrl();
+    });
     el("fa-token-btn").addEventListener("click", () => void rotateFollowToken());
 
     for (const id of ["fa-size", "fa-duration"]) {
@@ -83,6 +104,8 @@ export function init(): void {
 
 export function activate(): void {
     setBackdrop("fa-preview-frame", "fa-bg-checker", "fa-bg-dark", "checker");
+    revealed = false;
+    el<HTMLButtonElement>("fa-url-reveal").textContent = "Reveal";
     updateFollowUrl();
     updateFollowPreview();
     void loadFollowToken();
@@ -94,4 +117,5 @@ export function deactivate(): void {
         followPreviewTimer = null;
     }
     el<HTMLIFrameElement>("fa-preview-iframe").src = "about:blank";
+    revealed = false;
 }

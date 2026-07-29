@@ -25,7 +25,7 @@
             <div style="margin-bottom:16px">
                 <label style="font-size:12px;color:var(--muted)">Overlay token</label>
                 <div style="display:flex;gap:6px;align-items:center">
-                    <button class="btn btn-sm" id="fa-token-btn" type="button">Generate</button>
+                    <button class="btn btn-sm" id="fa-token-btn" type="button">Rotate</button>
                 </div>
                 <div class="hint">Rotating the token invalidates the current overlay URL.</div>
             </div>
@@ -34,8 +34,10 @@
                 <label style="font-size:12px;color:var(--muted)">Overlay URL</label>
                 <div style="display:flex;gap:6px;align-items:center">
                     <code id="fa-url" style="font-size:11px;word-break:break-all;flex:1"></code>
+                    <button class="btn btn-sm" id="fa-url-reveal" type="button">Reveal</button>
                     <button class="btn btn-sm" id="fa-url-copy" type="button">Copy</button>
                 </div>
+                <div class="hint">The token is hidden by default so it does not leak if you share your screen. Copy always copies the full URL.</div>
             </div>
         </div>
 
