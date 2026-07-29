@@ -836,9 +836,15 @@ async function requestAccountStatus(): Promise<void> {
     const wasResolved = accountStatusResolved;
     const wasAccount = isAccount;
     const tokenChanged = accountSessionToken !== "" && sessionToken !== "" && sessionToken !== accountSessionToken;
+    // connect() authenticates over the WebSocket via the session cookie, so the
+    // very first status resolution after a fresh connect has nothing to
+    // synchronize: the connection already reflects whatever the cookie said.
+    // Only force a restart here if the join actually came up as a guest despite
+    // the account now reporting as logged in (a genuine identity mismatch).
+    const connectedAsGuest = joined && guests.has(myNickLower());
     const synchronize = wasResolved
         ? account !== wasAccount || (account && (renewed || tokenChanged))
-        : account;
+        : account && connectedAsGuest;
     accountStatusResolved = true;
     accountSessionToken = account ? sessionToken : "";
     isAccount = account;
