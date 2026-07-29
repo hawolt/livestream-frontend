@@ -1717,8 +1717,10 @@ async function boot(): Promise<void> {
     nameEl.textContent = displayUsername;
     document.title = displayUsername;
     browseMiniUsername.textContent = displayUsername;
-    setCaptchaAnchor(chatEl);
-    warmCaptcha();
+    if (!chatPopout) {
+        setCaptchaAnchor(chatEl);
+        warmCaptcha();
+    }
 
     let title = "";
     let category = "";
