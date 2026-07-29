@@ -80,8 +80,10 @@ async function boot(): Promise<void> {
         sessionStorage.removeItem("dash_kind");
         return;
     }
-    if (cookie === "unavailable") return;
 
+    // Note: cookie === "unavailable" deliberately falls through instead of
+    // bailing out here - a transient failure to reach /auth/session must not
+    // strand a user who still holds a perfectly valid bearer token.
     const existing = sessionStorage.getItem("dash_token");
     if (existing) {
         const status = await verifyToken(existing);

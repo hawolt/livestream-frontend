@@ -84,6 +84,7 @@ let destroyed = false;
 let pickerOpen = false;
 let capEcho = false;
 let capRedact = false;
+let pendingCapRequests = 0;
 let pageGuestNick = "";
 let accountStatusRevision = 0;
 let accountStatusTimer: number | null = null;
@@ -835,9 +836,15 @@ async function requestAccountStatus(): Promise<void> {
     const wasResolved = accountStatusResolved;
     const wasAccount = isAccount;
     const tokenChanged = accountSessionToken !== "" && sessionToken !== "" && sessionToken !== accountSessionToken;
+    // connect() authenticates over the WebSocket via the session cookie, so the
+    // very first status resolution after a fresh connect has nothing to
+    // synchronize: the connection already reflects whatever the cookie said.
+    // Only force a restart here if the join actually came up as a guest despite
+    // the account now reporting as logged in (a genuine identity mismatch).
+    const connectedAsGuest = joined && guests.has(myNickLower());
     const synchronize = wasResolved
         ? account !== wasAccount || (account && (renewed || tokenChanged))
-        : account;
+        : account && connectedAsGuest;
     accountStatusResolved = true;
     accountSessionToken = account ? sessionToken : "";
     isAccount = account;
@@ -1316,10 +1323,13 @@ function handle(line: IrcLine): void {
             const sub = (line.params[1] ?? "").toUpperCase();
             if (sub === "ACK") {
                 const granted = (line.params[2] ?? "").split(/\s+/);
-                capEcho = granted.includes("echo-message");
-                capRedact = granted.includes("draft/message-redaction");
+                if (granted.includes("echo-message")) capEcho = true;
+                if (granted.includes("draft/message-redaction")) capRedact = true;
             }
-            if (sub === "ACK" || sub === "NAK") send("CAP END");
+            if (sub === "ACK" || sub === "NAK") {
+                pendingCapRequests = Math.max(0, pendingCapRequests - 1);
+                if (pendingCapRequests === 0) send("CAP END");
+            }
             return;
         }
         case "REDACT": {
@@ -1487,6 +1497,7 @@ function connect(): void {
     if (settingsOpen) setSettings(false);
     capEcho = false;
     capRedact = false;
+    pendingCapRequests = 0;
     updateComposer();
     updateModTools();
     nick = guestNick();
@@ -1496,7 +1507,14 @@ function connect(): void {
     sock = s;
 
     s.onopen = () => {
-        send("CAP REQ :message-tags echo-message draft/message-redaction server-time");
+        // Sent as two CAP REQ lines: per IRCv3, a single CAP REQ is atomic, so a
+        // server that supports message-tags/echo-message/draft/message-redaction
+        // but not server-time would NAK the entire request if they were combined,
+        // silently losing echo-message and mod redaction. Each REQ below is
+        // ACK/NAK'd independently; CAP END is deferred until both are answered.
+        pendingCapRequests = 2;
+        send("CAP REQ :message-tags echo-message draft/message-redaction");
+        send("CAP REQ :server-time");
         send(`NICK ${nick}`);
         send(`USER ${nick} 0 * :${nick}`);
     };

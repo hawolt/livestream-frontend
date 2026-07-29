@@ -110,12 +110,10 @@ async function boot(): Promise<void> {
         showLoginPage();
         return;
     }
-    if (cookie === "unavailable") {
-        showLoginPage();
-        showError("Could not check your existing login. You can retry or sign in again.");
-        return;
-    }
 
+    // Note: cookie === "unavailable" deliberately falls through instead of
+    // bailing out here - a transient failure to reach /auth/session must not
+    // strand a user who still holds a perfectly valid bearer token.
     const existing = sessionStorage.getItem("dash_token");
     const existingKind = sessionStorage.getItem("dash_kind");
     if (existing && (existingKind === "user" || !existingKind)) {
@@ -131,6 +129,9 @@ async function boot(): Promise<void> {
         }
     }
     showLoginPage();
+    if (cookie === "unavailable") {
+        showError("Could not check your existing login. You can retry or sign in again.");
+    }
 }
 
 void boot();
