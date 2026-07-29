@@ -1,0 +1,53 @@
+<div id="pane-alertbox" class="tab-pane">
+    <div class="card-grid-2">
+        <div class="card" style="padding:24px">
+            <div class="section-title">Follow alerts</div>
+            <p style="font-size:13px;color:var(--muted);margin:0 0 16px">
+                Shows an animated card in OBS whenever someone follows your channel, one at a time.
+            </p>
+
+            <label style="display:block;margin-bottom:16px">
+                <span>Size</span>
+                <select id="fa-size">
+                    <option value="s">Small</option>
+                    <option value="m" selected>Medium</option>
+                    <option value="l">Large</option>
+                </select>
+                <div class="hint">Text size of the alert card.</div>
+            </label>
+
+            <label style="display:block;margin-bottom:16px">
+                <span>Duration</span>
+                <input id="fa-duration" type="number" min="1" max="120" value="5">
+                <div class="hint">Seconds an alert stays on screen before the next one shows.</div>
+            </label>
+
+            <div style="margin-bottom:16px">
+                <label style="font-size:12px;color:var(--muted)">Overlay token</label>
+                <div style="display:flex;gap:6px;align-items:center">
+                    <button class="btn btn-sm" id="fa-token-btn" type="button">Generate</button>
+                </div>
+                <div class="hint">Rotating the token invalidates the current overlay URL.</div>
+            </div>
+
+            <div style="margin-top:16px">
+                <label style="font-size:12px;color:var(--muted)">Overlay URL</label>
+                <div style="display:flex;gap:6px;align-items:center">
+                    <code id="fa-url" style="font-size:11px;word-break:break-all;flex:1"></code>
+                    <button class="btn btn-sm" id="fa-url-copy" type="button">Copy</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="card" style="padding:24px">
+            <div class="section-title">Preview</div>
+            <div class="ov-preview-toolbar">
+                <button class="btn btn-sm btn-primary" id="fa-bg-checker" type="button">Checkerboard</button>
+                <button class="btn btn-sm" id="fa-bg-dark" type="button">Dark</button>
+            </div>
+            <div class="ov-preview-frame bg-checker" id="fa-preview-frame">
+                <iframe id="fa-preview-iframe" title="Follow alert preview"></iframe>
+            </div>
+        </div>
+    </div>
+</div>

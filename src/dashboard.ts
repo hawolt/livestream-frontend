@@ -7,7 +7,8 @@ import {
 const TAB_LOADERS: Record<string, () => Promise<TabModule>> = {
     stream:           () => import("./dash/tabs/stream.ts"),
     "stream-manager": () => import("./dash/tabs/stream-manager.ts"),
-    overlay:          () => import("./dash/tabs/overlay.ts"),
+    chatbox:          () => import("./dash/tabs/chatbox.ts"),
+    alertbox:         () => import("./dash/tabs/alertbox.ts"),
     "stream-health":  () => import("./dash/tabs/stream-health.ts"),
     "stream-summary": () => import("./dash/tabs/stream-summary.ts"),
     activity:         () => import("./dash/tabs/activity.ts"),
