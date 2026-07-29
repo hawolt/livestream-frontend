@@ -151,8 +151,9 @@ function buildSignedIn(info: SessionInfo): HTMLElement {
     panel.className = "site-account-panel";
     panel.hidden = true;
 
-    const nameRow = document.createElement("div");
+    const nameRow = document.createElement("a");
     nameRow.className = "site-account-name";
+    nameRow.href = `/${encodeURIComponent(info.username ?? "")}`;
     nameRow.textContent = info.username ?? "";
 
     const dashLink = document.createElement("a");
@@ -264,8 +265,9 @@ function buildBurger(info: SessionInfo | null, pageControls: HTMLElement[]): HTM
         if (hasControls) panel.appendChild(sep());
 
         if (info) {
-            const nameRow = document.createElement("div");
+            const nameRow = document.createElement("a");
             nameRow.className = "site-account-name";
+            nameRow.href = `/${encodeURIComponent(info.username ?? "")}`;
             nameRow.textContent = info.username ?? "";
             panel.appendChild(nameRow);
             panel.appendChild(link("Dashboard", "/dashboard"));

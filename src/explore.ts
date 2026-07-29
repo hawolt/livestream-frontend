@@ -103,7 +103,11 @@ function updateStreamCard(card: StreamCard, s: ExploreStream): void {
     const viewersText = card.link.querySelector(".explore-viewers span");
     if (viewersText) viewersText.textContent = `${s.viewers.toLocaleString()} viewers`;
     const title = card.link.querySelector(".explore-card-title");
-    if (title) title.textContent = s.title ? s.title : "No title";
+    if (title) {
+        const text = s.title ? s.title : "No title";
+        title.textContent = text;
+        title.setAttribute("title", text);
+    }
     const language = card.link.querySelector<HTMLElement>(".explore-card-language");
     const languageLabel = streamLanguageLabel(s.language);
     if (language) {

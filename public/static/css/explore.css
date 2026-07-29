@@ -200,10 +200,9 @@ a.explore-card:hover, a.explore-card:hover * { text-decoration: none; }
     font-size: 13px;
     line-height: 1.4;
     color: var(--muted);
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
+    white-space: nowrap;
     overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .explore-card-meta {
