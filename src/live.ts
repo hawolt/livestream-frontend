@@ -570,6 +570,10 @@ function startChase(g: number): void {
             setState("playing");
         }
         updateInfoBar();
+        if (video.paused) {
+            updateSeekBar();
+            return;
+        }
         if (!behindLive) {
             const gap = edge - video.currentTime;
             if (gap > SEEK_GAP_S) {
@@ -595,7 +599,8 @@ function pruneBuffer(): void {
     if (!sourceBuffer || sourceBuffer.updating) return;
     const b = video.buffered;
     if (!b.length) return;
-    const cutoff = video.currentTime - PRUNE_KEEP_S;
+    const ref = video.paused ? b.end(b.length - 1) : video.currentTime;
+    const cutoff = ref - PRUNE_KEEP_S;
     if (cutoff > b.start(0) + 5) {
         try {
             sourceBuffer.remove(0, cutoff);
@@ -620,7 +625,8 @@ function pump(g: number): void {
                 if (quotaFailStreak > 1) {
                     quotaKeepS = Math.max(QUOTA_TRIM_FLOOR_S, quotaKeepS / 2);
                 }
-                const target = Math.max(b.start(0) + 1, video.currentTime - quotaKeepS);
+                const ref = video.paused ? b.end(b.length - 1) : video.currentTime;
+                const target = Math.max(b.start(0) + 1, ref - quotaKeepS);
                 try {
                     sourceBuffer.remove(0, target);
                 } catch {}
@@ -837,6 +843,7 @@ function healthCheck(): void {
     if (terminal) return;
     const now = Date.now();
     if (state === "playing") {
+        if (video.paused) return;
         const mediaStale = transportKind === "ws" && now - lastMediaArrivalAt > HEALTH_STALE_MS;
         const progressStale = !video.paused && now - lastProgressAt > HEALTH_STALE_MS;
         if (mediaStale || progressStale) healthRestart("stale-playing");
@@ -1597,6 +1604,10 @@ function wireControls(): void {
 
     video.addEventListener("play", () => {
         updatePlayIcon();
+        if (transportKind === "ws" && lastMediaArrivalAt > 0 && Date.now() - lastMediaArrivalAt > HEALTH_STALE_MS) {
+            healthRestart("resume-stale");
+            return;
+        }
         if (transportKind === "ws" && behindLive) return;
         const edge = bufferedEnd();
         if (edge > 0) {
