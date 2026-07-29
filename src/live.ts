@@ -125,6 +125,7 @@ const ICON_FULLSCREEN_EXIT = '<svg viewBox="0 0 24 24"><path d="M9 4v5H4M15 4v5h
 const ICON_CINEMA = '<svg viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="12" rx="1.5" stroke="currentColor" stroke-width="2" fill="none"/><rect x="7" y="9" width="10" height="6" rx="1" stroke="currentColor" stroke-width="1.6" fill="none"/></svg>';
 
 let username = "";
+let displayUsername = "";
 let chatPopout = false;
 
 type PlayerState = "offline" | "connecting" | "buffering" | "playing" | "reconnecting";
@@ -1707,14 +1708,15 @@ async function boot(): Promise<void> {
 
     const seg = location.pathname.split("/").filter(Boolean)[0] ?? "";
     username = seg.toLowerCase();
+    displayUsername = username;
     if (!/^[a-z0-9_-]{3,32}$/.test(username)) {
         nameEl.textContent = "No channel";
         enterTerminal("No channel");
         return;
     }
-    nameEl.textContent = username;
-    document.title = username;
-    browseMiniUsername.textContent = username;
+    nameEl.textContent = displayUsername;
+    document.title = displayUsername;
+    browseMiniUsername.textContent = displayUsername;
     setCaptchaAnchor(chatEl);
     warmCaptcha();
 
@@ -1732,6 +1734,9 @@ async function boot(): Promise<void> {
         }
         if (res.ok) {
             const info = await res.json() as Partial<LiveChannelInfo>;
+            if (typeof info.username === "string" && info.username) {
+                displayUsername = info.username;
+            }
             if (typeof info.title === "string") {
                 title = info.title;
             }
@@ -1752,8 +1757,9 @@ async function boot(): Promise<void> {
             }
         }
     } catch {}
-    nameEl.textContent = username;
-    document.title = username;
+    nameEl.textContent = displayUsername;
+    document.title = displayUsername;
+    browseMiniUsername.textContent = displayUsername;
     titleEl.textContent = title;
     const hasCategory = !!category;
     const languageLabel = streamLanguageLabel(language);
@@ -1773,7 +1779,7 @@ async function boot(): Promise<void> {
     startChat(username, emoteTwitchId, () => openLoginModal("chat"));
 
     if (chatPopout) {
-        document.title = `${username} - chat`;
+        document.title = `${displayUsername} - chat`;
         return;
     }
 
@@ -1809,7 +1815,7 @@ let loginAbort: AbortController | null = null;
 function openLoginModal(intent: LoginIntent): void {
     loginIntent = intent;
     loginModalErrorEl.textContent = "";
-    loginModalTitleEl.textContent = intent === "follow" ? `Log in to follow ${username}` : "Log in to chat";
+    loginModalTitleEl.textContent = intent === "follow" ? `Log in to follow ${displayUsername}` : "Log in to chat";
     loginModalSignupEl.href = `/register?return=${encodeURIComponent(location.href)}`;
     if (loginModalEl.hidden) {
         loginRestoreFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
