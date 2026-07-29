@@ -10,12 +10,20 @@ export function sessionTokenMetadata(token: string): SessionTokenMetadata | null
         const payload = atob(base64.padEnd(Math.ceil(base64.length / 4) * 4, "="));
         const parts = payload.split(":");
         const legacy = parts.length === 7;
-        const current = parts.length === 9 && parts[5] === "v2" && /^[0-9a-f]{32}$/.test(parts[6] ?? "");
-        if (!legacy && !current) return null;
+        let issuedAt: number;
+        if (legacy) {
+            issuedAt = Number(parts[5]);
+        } else {
+            const n = parts.length;
+            if (n < 9) return null;
+            const markerIndex = n - 4;
+            const nonceIndex = n - 3;
+            if (parts[markerIndex] !== "v2" || !/^[0-9a-f]{32}$/.test(parts[nonceIndex] ?? "")) return null;
+            issuedAt = Number(parts[n - 2]);
+        }
         const kind = parts[0];
         const principalId = Number(parts[1]);
         const tenantId = Number(parts[2]);
-        const issuedAt = Number(parts[legacy ? 5 : 7]);
         if ((kind !== "user" && kind !== "admin") ||
                 !Number.isSafeInteger(principalId) ||
                 !Number.isSafeInteger(tenantId) ||
