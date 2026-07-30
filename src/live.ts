@@ -148,6 +148,7 @@ interface LiveChannelRailStream {
 let mediaBase = "";
 let channelRailLoading = false;
 let channelRailStarted = false;
+let channelRailWasVisible = false;
 
 function mediaWsUrl(path: string): string {
     if (mediaBase) return mediaBase.replace(/^http/, "ws") + path;
@@ -408,8 +409,20 @@ function renderLiveChannelRail(streams: LiveChannelRailStream[]): void {
     setLiveChannelRailStatus(streams.length === 0 ? "No one is live right now" : null);
 }
 
+function isLiveChannelRailVisible(): boolean {
+    const d = document as FullscreenDoc;
+    const fullscreenElement = document.fullscreenElement ?? d.webkitFullscreenElement;
+    const fullscreenContainsRail = !fullscreenElement
+        || fullscreenElement === document.documentElement
+        || fullscreenElement.contains(channelRailEl);
+    return document.visibilityState === "visible"
+        && !document.body.classList.contains("browse-mode")
+        && channelRailEl.offsetParent !== null
+        && fullscreenContainsRail;
+}
+
 async function loadLiveChannelRail(): Promise<void> {
-    if (channelRailLoading || document.visibilityState === "hidden") return;
+    if (channelRailLoading || !isLiveChannelRailVisible()) return;
     channelRailLoading = true;
     try {
         const res = await fetch("/api/live/explore");
@@ -430,6 +443,14 @@ async function loadLiveChannelRail(): Promise<void> {
     }
 }
 
+function syncLiveChannelRailVisibility(): void {
+    if (!channelRailStarted) return;
+    const visible = isLiveChannelRailVisible();
+    const becameVisible = visible && !channelRailWasVisible;
+    channelRailWasVisible = visible;
+    if (becameVisible) void loadLiveChannelRail();
+}
+
 function setLiveChannelRailCollapsed(collapsed: boolean): void {
     channelRailEl.classList.toggle("collapsed", collapsed);
     channelRailToggleEl.setAttribute("aria-expanded", String(!collapsed));
@@ -448,11 +469,9 @@ function startLiveChannelRail(): void {
     channelRailToggleEl.addEventListener("click", () => {
         setLiveChannelRailCollapsed(!channelRailEl.classList.contains("collapsed"));
     });
-    document.addEventListener("visibilitychange", () => {
-        if (document.visibilityState === "visible") void loadLiveChannelRail();
-    });
+    document.addEventListener("visibilitychange", syncLiveChannelRailVisibility);
     window.setInterval(() => void loadLiveChannelRail(), CHANNEL_RAIL_POLL_MS);
-    void loadLiveChannelRail();
+    syncLiveChannelRailVisibility();
 }
 
 function setTerminal(label: string, isError = true): void {
@@ -1657,6 +1676,7 @@ function syncLayout(): void {
     btnLayoutToggle.setAttribute("aria-label", label);
     fitChat();
     updateCinemaButtonVisibility();
+    syncLiveChannelRailVisibility();
 }
 
 function cancelFullscreenSettle(): void {
@@ -1710,6 +1730,7 @@ function enterCinemaMode(): void {
     btnCinema.classList.add("active");
     btnCinema.setAttribute("aria-label", "Exit cinema mode");
     btnCinema.title = "Exit cinema mode";
+    syncLiveChannelRailVisibility();
     scheduleFullscreenSettle();
 }
 
@@ -1720,6 +1741,7 @@ function exitCinemaMode(): void {
     btnCinema.classList.remove("active");
     btnCinema.setAttribute("aria-label", "Cinema mode");
     btnCinema.title = "Cinema mode";
+    syncLiveChannelRailVisibility();
     scheduleFullscreenSettle();
 }
 
@@ -1777,6 +1799,7 @@ function applyBrowseMode(on: boolean, opts: { push?: boolean } = {}): void {
             goOffline(gen);
         }
     }
+    syncLiveChannelRailVisibility();
     scheduleFullscreenSettle();
 }
 
@@ -1876,6 +1899,7 @@ function updateChatFullscreenButton(): void {
 function applyChatFullscreenLayout(on: boolean): void {
     chatEl.classList.toggle("chat-fullscreen", on);
     document.body.classList.toggle("chat-fullscreen-lock", on);
+    syncLiveChannelRailVisibility();
 }
 
 function restoreChatScrollAndFocus(): void {
@@ -1950,6 +1974,7 @@ function onFullscreenChange(): void {
     }
     syncChatFullscreenFromDocument();
     updateChatFullscreenButton();
+    syncLiveChannelRailVisibility();
 }
 
 function wireControls(): void {
