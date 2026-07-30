@@ -49,10 +49,7 @@ export function resolveNextQuality(
     ladderKnown: boolean,
     sticky: string,
 ): string {
-    if (!ladderKnown) {
-        if (preference !== QUALITY_AUTO && preference !== QUALITY_SOURCE) return preference;
-        return QUALITY_SOURCE;
-    }
+    if (!ladderKnown) return QUALITY_SOURCE;
     if (preference !== QUALITY_AUTO) {
         return ladder.includes(preference) ? preference : QUALITY_SOURCE;
     }

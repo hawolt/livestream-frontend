@@ -613,10 +613,15 @@ function renderQualityMenu(): void {
     if (!qualityPopupEl.hidden) renderQualityPopupItems();
 }
 
-function applyQualityList(list: string[]): void {
+function applyQualityList(list: string[]): boolean {
     qualityLadder = list;
     qualityLadderKnown = true;
     renderQualityMenu();
+    if (transportKind !== "ws" || terminal || state === "offline") return false;
+    const next = resolveNextQuality(qualityPreference, qualityLadder, qualityLadderKnown, activeQuality);
+    if (next === requestedQuality) return false;
+    beginTransport();
+    return true;
 }
 
 function selectQuality(pref: string): void {
@@ -1287,7 +1292,7 @@ function startWSTransport(g: number): void {
             const codecs = typeof msg.codecs === "string" ? msg.codecs : "";
             if (!codecs) return;
             const list = parseQualitiesFrame(msg);
-            if (list) applyQualityList(list);
+            if (list && applyQualityList(list)) return;
             activeQuality = requestedQuality;
             renderQualityMenu();
             if (typeof msg.started === "number" && msg.started > 0) setStreamStart(msg.started);

@@ -56,7 +56,7 @@ test("steps up and down the ladder without going out of bounds", () => {
 
 test("resolves the next connection quality against preference and ladder knowledge", () => {
     expect(resolveNextQuality(QUALITY_AUTO, [], false, QUALITY_SOURCE)).toBe(QUALITY_SOURCE);
-    expect(resolveNextQuality("720p", [], false, QUALITY_SOURCE)).toBe("720p");
+    expect(resolveNextQuality("720p", [], false, QUALITY_SOURCE)).toBe(QUALITY_SOURCE);
     expect(resolveNextQuality(QUALITY_SOURCE, [], false, QUALITY_SOURCE)).toBe(QUALITY_SOURCE);
     expect(resolveNextQuality(QUALITY_AUTO, LADDER, true, "720p")).toBe("720p");
     expect(resolveNextQuality(QUALITY_AUTO, LADDER, true, "missing")).toBe("source");
