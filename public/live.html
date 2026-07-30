@@ -49,6 +49,168 @@
             min-height: 0;
         }
 
+        .live-channel-rail {
+            width: 232px;
+            flex: 0 0 auto;
+            order: 0;
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+            overflow: hidden;
+            background: var(--surface);
+            border-right: 1px solid var(--border);
+            transition: width .16s ease;
+        }
+        .live-channel-rail.collapsed { width: 120px; }
+        .live-channel-rail-head {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            height: 48px;
+            flex: 0 0 48px;
+            padding: 0 8px 0 14px;
+            border-bottom: 1px solid var(--border);
+        }
+        .live-channel-rail-title {
+            flex: 1;
+            min-width: 0;
+            overflow: hidden;
+            color: var(--text);
+            font-size: 12px;
+            font-weight: 700;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .live-channel-count {
+            min-width: 22px;
+            padding: 1px 6px;
+            border-radius: 999px;
+            background: var(--border);
+            color: var(--text);
+            font-size: 10px;
+            font-variant-numeric: tabular-nums;
+            text-align: center;
+        }
+        .live-channel-rail-toggle {
+            width: 30px;
+            height: 30px;
+            flex: 0 0 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: none;
+            border-radius: var(--radius);
+            background: none;
+            color: var(--dim);
+            cursor: pointer;
+            font-family: var(--font-ui);
+            font-size: 21px;
+            line-height: 1;
+        }
+        .live-channel-rail-toggle:hover { background: rgba(255,255,255,.06); color: var(--text); }
+        .live-channel-rail-toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+        .live-channel-rail-body { position: relative; flex: 1; min-height: 0; }
+        .live-channel-list {
+            height: 100%;
+            overflow-y: auto;
+            overscroll-behavior: contain;
+            padding: 5px 0;
+        }
+        .live-channel-item {
+            display: grid;
+            grid-template-columns: 38px minmax(0, 1fr) auto;
+            align-items: center;
+            gap: 9px;
+            min-height: 56px;
+            padding: 7px 10px 7px 11px;
+            border-left: 3px solid transparent;
+            color: var(--text);
+            text-decoration: none;
+        }
+        .live-channel-item:hover,
+        .live-channel-item:focus-visible {
+            background: rgba(255,255,255,.05);
+            color: var(--text);
+            text-decoration: none;
+        }
+        .live-channel-item:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+        .live-channel-item.active { border-left-color: var(--accent); background: var(--accent-pale); }
+        .live-channel-avatar-wrap { position: relative; width: 38px; height: 38px; }
+        .live-channel-avatar {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 38px;
+            height: 38px;
+            border: 1px solid var(--border);
+            border-radius: 50%;
+            background: var(--bg);
+            color: var(--text);
+            font-size: 13px;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+        .live-channel-online {
+            position: absolute;
+            right: -1px;
+            bottom: 0;
+            width: 10px;
+            height: 10px;
+            border: 2px solid var(--surface);
+            border-radius: 50%;
+            background: var(--red);
+        }
+        .live-channel-copy { min-width: 0; }
+        .live-channel-name,
+        .live-channel-category {
+            display: block;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .live-channel-name { color: var(--text); font-size: 12.5px; font-weight: 700; }
+        .live-channel-category { margin-top: 1px; color: var(--dim); font-size: 10.5px; }
+        .live-channel-viewers {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            color: var(--dim);
+            font-size: 10.5px;
+            font-variant-numeric: tabular-nums;
+            white-space: nowrap;
+        }
+        .live-channel-viewers::before {
+            content: "";
+            width: 6px;
+            height: 6px;
+            flex: 0 0 6px;
+            border-radius: 50%;
+            background: var(--red);
+        }
+        .live-channel-status {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+            color: var(--dim);
+            font-size: 11.5px;
+            text-align: center;
+        }
+        .live-channel-status[hidden] { display: none; }
+        .live-channel-rail.collapsed .live-channel-rail-title,
+        .live-channel-rail.collapsed .live-channel-count,
+        .live-channel-rail.collapsed .live-channel-viewers,
+        .live-channel-rail.collapsed .live-channel-status { display: none; }
+        .live-channel-rail.collapsed .live-channel-category { display: none; }
+        .live-channel-rail.collapsed .live-channel-rail-head { justify-content: center; padding: 0 8px; }
+        .live-channel-rail.collapsed .live-channel-item {
+            grid-template-columns: 38px minmax(0, 1fr);
+            gap: 8px;
+            padding: 7px 8px;
+        }
+
         .live-left {
             flex: 1;
             min-width: 0;
@@ -851,10 +1013,12 @@
             line-height: 1.5;
         }
 
-        body.chat-left:not(.is-vertical) .live-main { flex-direction: row-reverse; }
+        body.chat-left:not(.is-vertical) .live-left { order: 2; }
+        body.chat-left:not(.is-vertical) #live-chat { order: 1; }
         body.chat-left:not(.is-vertical) #live-chat { border-left: none; border-right: 1px solid var(--border); }
 
         body.chat-popout .site-nav,
+        body.chat-popout .live-channel-rail,
         body.chat-popout .live-left,
         body.chat-popout #btn-chat-fullscreen,
         body.chat-popout #btn-chat-collapse,
@@ -1133,6 +1297,7 @@
         .live-chat-suggest-dot { width: 12px; height: 12px; border-radius: 50%; display: inline-block; flex-shrink: 0; }
 
         .live-app.is-vertical .live-main { flex-direction: column; overflow-y: auto; }
+        .live-app.is-vertical .live-channel-rail { display: none; }
         .live-app.is-vertical .live-left { flex: 0 0 auto; }
         .live-app.is-vertical .live-stage { aspect-ratio: 16 / 9; flex: none; height: auto; }
         .live-app.is-vertical #live-chat { width: 100%; border-left: none; border-top: 1px solid var(--border); flex: 1 1 0; height: auto; min-height: 220px; }
@@ -1182,6 +1347,18 @@
             #btn-cinema { display: none; }
             .live-app:not(.is-vertical) #live-chat { width: 40%; max-width: 340px; }
         }
+        @media (max-width: 1180px) {
+            .live-channel-rail { width: 120px; }
+            .live-channel-rail-head { display: none; }
+            .live-channel-category,
+            .live-channel-viewers,
+            .live-channel-status { display: none; }
+            .live-channel-item {
+                grid-template-columns: 38px minmax(0, 1fr);
+                gap: 8px;
+                padding: 7px 8px;
+            }
+        }
         .is-vertical #btn-cinema { display: none; }
 
         #btn-chat-fullscreen { display: inline-flex; align-items: center; justify-content: center; }
@@ -1194,6 +1371,9 @@
             overflow: hidden;
         }
         body.chat-fullscreen-lock .site-nav {
+            display: none;
+        }
+        body.chat-fullscreen-lock .live-channel-rail {
             display: none;
         }
         body.chat-fullscreen-lock .live-main > .live-left {
@@ -1225,6 +1405,7 @@
         #btn-cinema.active { color: var(--accent); }
         body.cinema-mode { overflow: hidden; }
         body.cinema-mode .site-nav { display: none; }
+        body.cinema-mode .live-channel-rail { display: none; }
         body.cinema-mode .live-info-bar { display: none; }
         body.cinema-mode .live-app { height: 100vh; height: 100dvh; }
         body.cinema-mode .live-main { height: 100%; }
@@ -1329,6 +1510,17 @@
 </div>
 <div class="live-app" id="live-page" hidden>
     <div class="live-main">
+        <aside class="live-channel-rail" id="live-channel-rail" aria-label="Live channels">
+            <div class="live-channel-rail-head">
+                <span class="live-channel-rail-title">Live channels</span>
+                <span class="live-channel-count" id="live-channel-count" aria-live="polite">0</span>
+                <button class="live-channel-rail-toggle" id="live-channel-rail-toggle" type="button" title="Collapse live channels" aria-label="Collapse live channels" aria-expanded="true"><span id="live-channel-rail-toggle-glyph" aria-hidden="true">&lsaquo;</span></button>
+            </div>
+            <div class="live-channel-rail-body">
+                <nav class="live-channel-list" id="live-channel-list" aria-label="Streaming now"></nav>
+                <div class="live-channel-status" id="live-channel-status" role="status" aria-live="polite">Loading live channels...</div>
+            </div>
+        </aside>
         <div class="live-left">
             <div class="live-stage" id="live-stage">
                 <span class="live-badge" id="live-badge" hidden>OFFLINE</span>

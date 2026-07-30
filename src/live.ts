@@ -23,6 +23,13 @@ import {
 } from "./quality.ts";
 
 const page = document.getElementById("live-page") as HTMLElement;
+const mainEl = page.querySelector(".live-main") as HTMLElement;
+const channelRailEl = document.getElementById("live-channel-rail") as HTMLElement;
+const channelRailToggleEl = document.getElementById("live-channel-rail-toggle") as HTMLButtonElement;
+const channelRailToggleGlyphEl = document.getElementById("live-channel-rail-toggle-glyph") as HTMLElement;
+const channelListEl = document.getElementById("live-channel-list") as HTMLElement;
+const channelCountEl = document.getElementById("live-channel-count") as HTMLElement;
+const channelStatusEl = document.getElementById("live-channel-status") as HTMLElement;
 const nameEl = document.getElementById("live-name") as HTMLElement;
 const sepEl = document.getElementById("live-sep") as HTMLElement;
 const badgeEl = document.getElementById("live-badge") as HTMLElement;
@@ -116,6 +123,8 @@ const HLS_BEACON_INTERVAL_MS = 10000;
 const VIEWCOUNT_RETRY_MS = 5000;
 const HLS_HOST_ID_KEY = "live_hid";
 const VOLUME_KEY = "live-volume";
+const CHANNEL_RAIL_COLLAPSED_KEY = "live-channel-rail-collapsed";
+const CHANNEL_RAIL_POLL_MS = 10000;
 const QUALITY_STORAGE_KEY = "live-quality";
 const ABR_SAMPLE_INTERVAL_MS = 2000;
 const ABR_STALL_WINDOW_MS = 20000;
@@ -129,7 +138,16 @@ const ABR_UPGRADE_STREAK = 15;
 const ABR_COOLDOWN_MS = 20000;
 const ABR_THRESHOLDS = { cooldownMs: ABR_COOLDOWN_MS, downgradeStreak: ABR_DOWNGRADE_STREAK, upgradeStreak: ABR_UPGRADE_STREAK };
 
+interface LiveChannelRailStream {
+    username: string;
+    title: string;
+    category: string | null;
+    viewers: number;
+}
+
 let mediaBase = "";
+let channelRailLoading = false;
+let channelRailStarted = false;
 
 function mediaWsUrl(path: string): string {
     if (mediaBase) return mediaBase.replace(/^http/, "ws") + path;
@@ -310,6 +328,131 @@ function setPoster(label: string | null, isError = false, isLoading = false): vo
     posterEl.classList.toggle("loading", isLoading);
     posterEl.setAttribute("aria-busy", String(isLoading));
     posterEl.classList.remove("hidden");
+}
+
+const compactViewerFormatter = new Intl.NumberFormat(undefined, {
+    notation: "compact",
+    maximumFractionDigits: 1,
+});
+
+function normalizeLiveChannelRailStream(value: unknown): LiveChannelRailStream | null {
+    if (!value || typeof value !== "object") return null;
+    const stream = value as Partial<LiveChannelRailStream>;
+    if (typeof stream.username !== "string" || stream.username.trim().length === 0) return null;
+    return {
+        username: stream.username.trim(),
+        title: typeof stream.title === "string" ? stream.title : "",
+        category: typeof stream.category === "string" ? stream.category : null,
+        viewers: typeof stream.viewers === "number" && Number.isFinite(stream.viewers)
+            ? Math.max(0, Math.floor(stream.viewers))
+            : 0,
+    };
+}
+
+function liveChannelRailItem(stream: LiveChannelRailStream): HTMLAnchorElement {
+    const normalizedUsername = stream.username.toLowerCase();
+    const category = stream.category?.trim() || "No category";
+    const title = stream.title.trim() || "Untitled stream";
+
+    const link = document.createElement("a");
+    link.className = "live-channel-item";
+    link.href = `/${encodeURIComponent(normalizedUsername)}`;
+    link.title = `${stream.username} | ${title} | ${category}`;
+    link.setAttribute("aria-label", `${stream.username}, ${title}, ${category}, ${stream.viewers.toLocaleString()} viewers`);
+    if (normalizedUsername === username) {
+        link.classList.add("active");
+        link.setAttribute("aria-current", "page");
+    }
+
+    const avatarWrap = document.createElement("span");
+    avatarWrap.className = "live-channel-avatar-wrap";
+
+    const avatar = document.createElement("span");
+    avatar.className = "live-channel-avatar";
+    avatar.textContent = stream.username.slice(0, 1);
+
+    const online = document.createElement("span");
+    online.className = "live-channel-online";
+    online.setAttribute("aria-hidden", "true");
+    avatarWrap.append(avatar, online);
+
+    const copy = document.createElement("span");
+    copy.className = "live-channel-copy";
+
+    const name = document.createElement("span");
+    name.className = "live-channel-name";
+    name.textContent = stream.username;
+
+    const categoryEl = document.createElement("span");
+    categoryEl.className = "live-channel-category";
+    categoryEl.textContent = category;
+    copy.append(name, categoryEl);
+
+    const viewerCount = document.createElement("span");
+    viewerCount.className = "live-channel-viewers";
+    viewerCount.textContent = compactViewerFormatter.format(stream.viewers);
+
+    link.append(avatarWrap, copy, viewerCount);
+    return link;
+}
+
+function setLiveChannelRailStatus(label: string | null): void {
+    channelStatusEl.textContent = label ?? "";
+    channelStatusEl.hidden = label === null;
+}
+
+function renderLiveChannelRail(streams: LiveChannelRailStream[]): void {
+    streams.sort((a, b) => b.viewers - a.viewers || a.username.localeCompare(b.username));
+    channelCountEl.textContent = streams.length.toLocaleString();
+    channelListEl.replaceChildren(...streams.map(liveChannelRailItem));
+    setLiveChannelRailStatus(streams.length === 0 ? "No one is live right now" : null);
+}
+
+async function loadLiveChannelRail(): Promise<void> {
+    if (channelRailLoading || document.visibilityState === "hidden") return;
+    channelRailLoading = true;
+    try {
+        const res = await fetch("/api/live/explore");
+        if (!res.ok) throw new Error("live channels unavailable");
+        const data = await res.json() as { streams?: unknown };
+        const values = Array.isArray(data.streams) ? data.streams : [];
+        const streams = values
+            .map(normalizeLiveChannelRailStream)
+            .filter((stream): stream is LiveChannelRailStream => stream !== null);
+        renderLiveChannelRail(streams);
+    } catch {
+        if (channelListEl.childElementCount === 0) {
+            channelCountEl.textContent = "0";
+            setLiveChannelRailStatus("Live channels unavailable");
+        }
+    } finally {
+        channelRailLoading = false;
+    }
+}
+
+function setLiveChannelRailCollapsed(collapsed: boolean): void {
+    channelRailEl.classList.toggle("collapsed", collapsed);
+    channelRailToggleEl.setAttribute("aria-expanded", String(!collapsed));
+    const label = collapsed ? "Expand live channels" : "Collapse live channels";
+    channelRailToggleEl.title = label;
+    channelRailToggleEl.setAttribute("aria-label", label);
+    channelRailToggleGlyphEl.textContent = collapsed ? ">" : "<";
+    writeLocalStorage(CHANNEL_RAIL_COLLAPSED_KEY, collapsed ? "1" : "0");
+    fitChat();
+}
+
+function startLiveChannelRail(): void {
+    if (channelRailStarted) return;
+    channelRailStarted = true;
+    setLiveChannelRailCollapsed(readLocalStorage(CHANNEL_RAIL_COLLAPSED_KEY) === "1");
+    channelRailToggleEl.addEventListener("click", () => {
+        setLiveChannelRailCollapsed(!channelRailEl.classList.contains("collapsed"));
+    });
+    document.addEventListener("visibilitychange", () => {
+        if (document.visibilityState === "visible") void loadLiveChannelRail();
+    });
+    window.setInterval(() => void loadLiveChannelRail(), CHANNEL_RAIL_POLL_MS);
+    void loadLiveChannelRail();
 }
 
 function setTerminal(label: string, isError = true): void {
@@ -1700,7 +1843,8 @@ function fitChat(): void {
         return;
     }
     const aspect = video.videoWidth > 0 && video.videoHeight > 0 ? video.videoWidth / video.videoHeight : DEFAULT_ASPECT;
-    const ideal = window.innerWidth - stageH * aspect;
+    const railWidth = channelRailEl.offsetParent === null ? 0 : channelRailEl.getBoundingClientRect().width;
+    const ideal = mainEl.clientWidth - railWidth - stageH * aspect;
     const want = Math.round(Math.min(CHAT_MAX_PX, Math.max(CHAT_MIN_PX, ideal)));
     const current = parseFloat(chatEl.style.width) || 0;
     if (Math.abs(current - want) < CHAT_FIT_HYSTERESIS_PX) return;
@@ -1998,6 +2142,7 @@ async function boot(): Promise<void> {
     document.title = displayUsername;
     browseMiniUsername.textContent = displayUsername;
     if (!chatPopout) {
+        startLiveChannelRail();
         setCaptchaAnchor(chatEl);
         warmCaptcha();
     }
