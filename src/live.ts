@@ -4,6 +4,23 @@ import { initSiteNav, markActive } from "./nav.ts";
 import { captchaQuery, getCaptchaToken, setCaptchaAnchor, warmCaptcha } from "./captcha.ts";
 import { readLocalStorage, writeLocalStorage } from "./storage.ts";
 import { streamLanguageLabel } from "./stream-languages.ts";
+import {
+    QUALITY_AUTO,
+    QUALITY_SOURCE,
+    type AbrState,
+    classifyAbrSignal,
+    decideAbrAction,
+    downgradeTarget,
+    emptyAbrState,
+    isQualityOnlyFrame,
+    ladderIndex,
+    parseQualitiesFrame,
+    qualityLabel,
+    qualityWsParam,
+    resolveNextQuality,
+    stepAbrState,
+    upgradeTarget,
+} from "./quality.ts";
 
 const page = document.getElementById("live-page") as HTMLElement;
 const nameEl = document.getElementById("live-name") as HTMLElement;
@@ -37,6 +54,9 @@ const loginModalErrorEl = document.getElementById("login-modal-error") as HTMLEl
 const loginModalSubmitEl = document.getElementById("login-modal-submit") as HTMLButtonElement;
 const loginModalSignupEl = document.getElementById("login-modal-signup") as HTMLAnchorElement;
 const qualityEl = document.getElementById("live-quality") as HTMLElement;
+const qualitySelectEl = document.getElementById("live-quality-select") as HTMLElement;
+const qualityBtn = document.getElementById("btn-quality") as HTMLButtonElement;
+const qualityPopupEl = document.getElementById("live-quality-popup") as HTMLElement;
 const btnLayoutToggle = document.getElementById("btn-layout-toggle") as HTMLButtonElement;
 const btnPlay = document.getElementById("btn-play") as HTMLButtonElement;
 const btnMute = document.getElementById("btn-mute") as HTMLButtonElement;
@@ -96,6 +116,18 @@ const HLS_BEACON_INTERVAL_MS = 10000;
 const VIEWCOUNT_RETRY_MS = 5000;
 const HLS_HOST_ID_KEY = "live_hid";
 const VOLUME_KEY = "live-volume";
+const QUALITY_STORAGE_KEY = "live-quality";
+const ABR_SAMPLE_INTERVAL_MS = 2000;
+const ABR_STALL_WINDOW_MS = 20000;
+const ABR_STALL_THRESHOLD = 2;
+const ABR_MIN_BUFFER_S = 1;
+const ABR_COMFORTABLE_BUFFER_S = 3;
+const ABR_LAG_THRESHOLD_S = 3.5;
+const ABR_DROPPED_RATIO_THRESHOLD = 0.08;
+const ABR_DOWNGRADE_STREAK = 3;
+const ABR_UPGRADE_STREAK = 15;
+const ABR_COOLDOWN_MS = 20000;
+const ABR_THRESHOLDS = { cooldownMs: ABR_COOLDOWN_MS, downgradeStreak: ABR_DOWNGRADE_STREAK, upgradeStreak: ABR_UPGRADE_STREAK };
 
 let mediaBase = "";
 
@@ -156,6 +188,18 @@ let behindLive = false;
 let seekDragging = false;
 let quotaKeepS = PRUNE_KEEP_S;
 let quotaFailStreak = 0;
+
+let qualityLadder: string[] = [];
+let qualityLadderKnown = false;
+let qualityPreference: string = readLocalStorage(QUALITY_STORAGE_KEY) || QUALITY_AUTO;
+let activeQuality: string = QUALITY_SOURCE;
+let requestedQuality: string = QUALITY_SOURCE;
+let abrState: AbrState = emptyAbrState();
+let abrTimer: number | null = null;
+let stallTimestamps: number[] = [];
+let lastAbrSampleAt = 0;
+let lastDroppedFrames = 0;
+let lastTotalFrames = 0;
 
 let pendingPauseTap = true;
 
@@ -499,6 +543,99 @@ function resetStreamInfo(): void {
     qualityEl.textContent = "";
 }
 
+function qualityButtonLabel(): string {
+    if (qualityPreference === QUALITY_AUTO) {
+        return qualityLadder.length ? `Auto · ${qualityLabel(activeQuality)}` : "Auto";
+    }
+    return qualityLabel(qualityPreference);
+}
+
+function renderQualityPopupItems(): void {
+    qualityPopupEl.replaceChildren();
+    const entries: Array<[string, string]> = [[QUALITY_AUTO, "Auto"]];
+    for (const name of qualityLadder) entries.push([name, qualityLabel(name)]);
+    for (const [value, label] of entries) {
+        const item = document.createElement("button");
+        item.type = "button";
+        item.className = "live-quality-item";
+        item.setAttribute("role", "menuitemradio");
+        const active = value === qualityPreference;
+        item.classList.toggle("active", active);
+        item.setAttribute("aria-checked", String(active));
+        const labelEl = document.createElement("span");
+        labelEl.textContent = label;
+        const checkEl = document.createElement("span");
+        checkEl.className = "live-quality-check";
+        checkEl.textContent = "✓";
+        item.append(labelEl, checkEl);
+        item.addEventListener("click", () => selectQuality(value));
+        qualityPopupEl.appendChild(item);
+    }
+}
+
+function onOutsideQualityClick(ev: MouseEvent): void {
+    if (qualitySelectEl.contains(ev.target as Node)) return;
+    closeQualityPopup();
+}
+
+function onQualityKeydown(ev: KeyboardEvent): void {
+    if (ev.key === "Escape") closeQualityPopup();
+}
+
+function closeQualityPopup(): void {
+    if (qualityPopupEl.hidden) return;
+    qualityPopupEl.hidden = true;
+    qualityBtn.setAttribute("aria-expanded", "false");
+    document.removeEventListener("mousedown", onOutsideQualityClick, true);
+    document.removeEventListener("keydown", onQualityKeydown, true);
+}
+
+function toggleQualityPopup(): void {
+    if (!qualityPopupEl.hidden) {
+        closeQualityPopup();
+        return;
+    }
+    renderQualityPopupItems();
+    qualityPopupEl.hidden = false;
+    qualityBtn.setAttribute("aria-expanded", "true");
+    document.addEventListener("mousedown", onOutsideQualityClick, true);
+    document.addEventListener("keydown", onQualityKeydown, true);
+}
+
+function renderQualityMenu(): void {
+    const show = qualityLadder.length >= 2;
+    qualitySelectEl.hidden = !show;
+    if (!show) {
+        closeQualityPopup();
+        return;
+    }
+    qualityBtn.textContent = qualityButtonLabel();
+    if (!qualityPopupEl.hidden) renderQualityPopupItems();
+}
+
+function applyQualityList(list: string[]): void {
+    qualityLadder = list;
+    qualityLadderKnown = true;
+    renderQualityMenu();
+}
+
+function selectQuality(pref: string): void {
+    closeQualityPopup();
+    if (pref === qualityPreference) return;
+    qualityPreference = pref;
+    writeLocalStorage(QUALITY_STORAGE_KEY, qualityPreference);
+    resetAbr();
+    renderQualityMenu();
+    if (transportKind !== "ws" || terminal || state === "offline") return;
+    const next = resolveNextQuality(qualityPreference, qualityLadder, qualityLadderKnown, activeQuality);
+    if (next === requestedQuality) return;
+    beginTransport();
+}
+
+function wireQualityMenu(): void {
+    qualityBtn.addEventListener("click", toggleQualityPopup);
+}
+
 function bufferedEnd(): number {
     const b = video.buffered;
     return b.length ? b.end(b.length - 1) : 0;
@@ -593,6 +730,82 @@ function startChase(g: number): void {
         }
         updateSeekBar();
     }, 500);
+}
+
+function resetAbr(): void {
+    abrState = emptyAbrState();
+}
+
+function resetAbrSampling(): void {
+    stallTimestamps = [];
+    lastDroppedFrames = 0;
+    lastTotalFrames = 0;
+    lastAbrSampleAt = Date.now();
+}
+
+function stopAbrMonitor(): void {
+    if (abrTimer !== null) {
+        window.clearInterval(abrTimer);
+        abrTimer = null;
+    }
+}
+
+function startAbrMonitor(g: number): void {
+    stopAbrMonitor();
+    resetAbrSampling();
+    abrTimer = window.setInterval(() => {
+        if (!isCurrent(g)) {
+            stopAbrMonitor();
+            return;
+        }
+        abrTick(g);
+    }, ABR_SAMPLE_INTERVAL_MS);
+}
+
+function abrTick(g: number): void {
+    const now = Date.now();
+    const elapsed = lastAbrSampleAt > 0 ? now - lastAbrSampleAt : ABR_SAMPLE_INTERVAL_MS;
+    lastAbrSampleAt = now;
+    stallTimestamps = stallTimestamps.filter((t) => now - t <= ABR_STALL_WINDOW_MS);
+    if (qualityPreference !== QUALITY_AUTO || qualityLadder.length < 2 || state !== "playing") {
+        abrState = emptyAbrState();
+        return;
+    }
+    let droppedRatio: number | null = null;
+    if (typeof video.getVideoPlaybackQuality === "function") {
+        const q = video.getVideoPlaybackQuality();
+        const droppedDelta = q.droppedVideoFrames - lastDroppedFrames;
+        const totalDelta = q.totalVideoFrames - lastTotalFrames;
+        lastDroppedFrames = q.droppedVideoFrames;
+        lastTotalFrames = q.totalVideoFrames;
+        if (totalDelta > 0) droppedRatio = Math.max(0, droppedDelta) / totalDelta;
+    }
+    const edge = bufferedEnd();
+    const hasEdge = edge > 0 && video.buffered.length > 0;
+    const bufferAheadS = hasEdge ? Math.max(0, edge - video.currentTime) : ABR_COMFORTABLE_BUFFER_S;
+    const edgeLagS = hasEdge && !behindLive ? Math.max(0, edge - video.currentTime) : null;
+    const signal = classifyAbrSignal({
+        stallsInWindow: stallTimestamps.length,
+        stallThreshold: ABR_STALL_THRESHOLD,
+        bufferAheadS,
+        minBufferS: ABR_MIN_BUFFER_S,
+        comfortableBufferS: ABR_COMFORTABLE_BUFFER_S,
+        edgeLagS,
+        laggingThresholdS: ABR_LAG_THRESHOLD_S,
+        droppedFrameRatio: droppedRatio,
+        droppedRatioThreshold: ABR_DROPPED_RATIO_THRESHOLD,
+        paused: video.paused,
+    });
+    abrState = stepAbrState(abrState, signal, elapsed);
+    const currentIndex = ladderIndex(qualityLadder, activeQuality);
+    const action = decideAbrAction(abrState, qualityLadder.length, currentIndex, ABR_THRESHOLDS);
+    if (action === "hold") return;
+    const target = action === "downgrade" ? downgradeTarget(qualityLadder, activeQuality) : upgradeTarget(qualityLadder, activeQuality);
+    if (!target) return;
+    activeQuality = target;
+    resetAbr();
+    renderQualityMenu();
+    beginTransport();
 }
 
 function pruneBuffer(): void {
@@ -773,6 +986,7 @@ function stopHLSBeacon(): void {
 
 function fullTeardown(): void {
     stopChase();
+    stopAbrMonitor();
     stopHLSBeacon();
     clearWaitingTimer();
     if (ws) {
@@ -821,6 +1035,12 @@ function fullTeardown(): void {
 function goOffline(g: number): void {
     if (state !== "offline") resetRetryBackoff();
     resetStreamInfo();
+    qualityLadder = [];
+    qualityLadderKnown = false;
+    activeQuality = QUALITY_SOURCE;
+    requestedQuality = QUALITY_SOURCE;
+    resetAbr();
+    renderQualityMenu();
     setState("offline");
     scheduleRestart(nextRetryDelay(), g);
 }
@@ -882,6 +1102,7 @@ function attachVideoFailureListeners(g: number): void {
     };
     const onWaiting = () => {
         if (!isCurrent(g)) return;
+        stallTimestamps.push(Date.now());
         clearWaitingTimer();
         waitingTimer = window.setTimeout(() => {
             waitingTimer = null;
@@ -995,6 +1216,7 @@ function attachMediaSource(g: number, codecs: string): void {
         setState("buffering");
         pump(g);
         startChase(g);
+        startAbrMonitor(g);
     };
     ms.addEventListener("sourceopen", onSourceOpen, { once: true });
     track(() => ms.removeEventListener("sourceopen", onSourceOpen));
@@ -1002,8 +1224,20 @@ function attachMediaSource(g: number, codecs: string): void {
 
 function handleWSClose(g: number, ev: CloseEvent): void {
     const wasPlaying = state === "playing";
+    const attemptedQuality = requestedQuality;
     fullTeardown();
     if (ev.code === 4404) {
+        if (attemptedQuality !== QUALITY_SOURCE) {
+            console.warn("live: requested quality unavailable, falling back to source");
+            qualityLadder = qualityLadder.filter((q) => q !== attemptedQuality);
+            activeQuality = QUALITY_SOURCE;
+            requestedQuality = QUALITY_SOURCE;
+            resetAbr();
+            renderQualityMenu();
+            setState("reconnecting");
+            scheduleRestart(100, g);
+            return;
+        }
         console.log("live: channel offline, retrying");
         goOffline(g);
     } else if (ev.code === 4408) {
@@ -1032,7 +1266,9 @@ function startWSTransport(g: number): void {
     attachVideoFailureListeners(g);
     void withCaptchaHint(g, captchaQuery()).then((tq) => {
     if (!isCurrent(g)) return;
-    const path = `/ws/live?u=${encodeURIComponent(username)}&viewer_id=${encodeURIComponent(getViewerId())}${tq}`;
+    requestedQuality = resolveNextQuality(qualityPreference, qualityLadder, qualityLadderKnown, activeQuality);
+    const qParam = qualityWsParam(requestedQuality);
+    const path = `/ws/live?u=${encodeURIComponent(username)}&viewer_id=${encodeURIComponent(getViewerId())}${tq}${qParam}`;
     const sock = new WebSocket(mediaWsUrl(path));
     ws = sock;
     sock.binaryType = "arraybuffer";
@@ -1044,8 +1280,16 @@ function startWSTransport(g: number): void {
             try {
                 msg = JSON.parse(ev.data);
             } catch {}
+            if (isQualityOnlyFrame(msg)) {
+                applyQualityList(parseQualitiesFrame(msg) ?? []);
+                return;
+            }
             const codecs = typeof msg.codecs === "string" ? msg.codecs : "";
             if (!codecs) return;
+            const list = parseQualitiesFrame(msg);
+            if (list) applyQualityList(list);
+            activeQuality = requestedQuality;
+            renderQualityMenu();
             if (typeof msg.started === "number" && msg.started > 0) setStreamStart(msg.started);
             if (typeof msg.fps === "number" && msg.fps > 0) streamFps = msg.fps;
             if (typeof msg.width === "number" && typeof msg.height === "number" && msg.width > 0) {
@@ -1593,6 +1837,8 @@ function wireControls(): void {
     btnCinema.title = "Cinema mode";
     wireSeekBar();
     wireVideoClickToPause();
+    wireQualityMenu();
+    renderQualityMenu();
 
     btnPlay.addEventListener("click", () => {
         if (video.paused) {

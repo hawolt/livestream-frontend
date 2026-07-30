@@ -296,6 +296,62 @@
             white-space: nowrap;
         }
         .live-quality:empty { display: none; }
+        .live-quality-select {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+        .live-quality-select[hidden] { display: none; }
+        .live-controls-row .live-quality-btn {
+            flex-shrink: 0;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: .02em;
+            padding: 3px 9px;
+            border-radius: 10px;
+            background: rgba(255,255,255,.14);
+            color: var(--text);
+            white-space: nowrap;
+        }
+        .live-controls-row .live-quality-btn:hover { background: var(--accent); color: #000; }
+        .live-quality-popup {
+            position: absolute;
+            bottom: calc(100% + 8px);
+            right: 0;
+            min-width: 130px;
+            background: rgba(18,18,18,.96);
+            border: 1px solid rgba(255,255,255,.15);
+            border-radius: 8px;
+            box-shadow: 0 6px 20px rgba(0,0,0,.6);
+            padding: 6px;
+            display: flex;
+            flex-direction: column;
+            z-index: 45;
+        }
+        .live-quality-popup[hidden] { display: none; }
+        .live-quality-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            padding: 7px 10px;
+            font-size: 12px;
+            color: var(--text);
+            background: none;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            text-align: left;
+            white-space: nowrap;
+            font-family: inherit;
+        }
+        .live-quality-item:hover { background: rgba(255,255,255,.08); }
+        .live-quality-item.active { color: var(--accent); }
+        .live-quality-check {
+            opacity: 0;
+            font-size: 11px;
+        }
+        .live-quality-item.active .live-quality-check { opacity: 1; }
         .live-uptime {
             display: inline-flex;
             align-items: center;
@@ -1298,6 +1354,10 @@
                         <span id="live-behind" class="live-behind" hidden></span>
                         <button id="btn-live-chip" type="button" class="live-chip" hidden>LIVE</button>
                         <span id="live-quality" class="live-quality"></span>
+                        <div class="live-quality-select" id="live-quality-select" hidden>
+                            <button id="btn-quality" type="button" class="live-quality-btn" aria-haspopup="true" aria-expanded="false" title="Quality" aria-label="Quality"></button>
+                            <div class="live-quality-popup" id="live-quality-popup" hidden role="menu"></div>
+                        </div>
                         <button id="btn-cinema" type="button" title="Cinema mode" aria-label="Cinema mode"></button>
                         <button id="btn-fullscreen" type="button" title="Fullscreen" aria-label="Fullscreen"></button>
                     </div>
