@@ -19,6 +19,9 @@ function perkLabels(perks: BillingPerks | undefined): string[] {
     if (perks.adsOff) out.push("No ads");
     if (perks.largeUploads) out.push("Profile images up to 1 MiB");
     if (perks.animatedAvatar) out.push("Animated GIF profile images");
+    if (perks.transcode) out.push("Quality options for your viewers");
+    if (perks.irl) out.push("IRL ingests (SRT, SRTLA and RTMP)");
+    if (perks.remoteobs) out.push("Remote OBS studio");
     return out;
 }
 
