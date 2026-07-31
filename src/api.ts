@@ -19,6 +19,7 @@ export interface BillingTier {
     label: string;
     price: string;
     rank: number;
+    perks: BillingPerks;
 }
 
 export interface BillingPerks {
