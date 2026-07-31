@@ -153,7 +153,9 @@ async function openPortal(): Promise<void> {
     }
 }
 
-export function init(): void {}
+export function init(): void {
+    window.addEventListener("subscription-changed", () => void loadTiers());
+}
 
 export function activate(): void {
     void loadTiers();

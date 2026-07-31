@@ -2,8 +2,8 @@ import { initSiteNav, setBurgerExtra } from "./nav.ts";
 import { $, $$ } from "./dash/dom.ts";
 import "./dash/modal.ts";
 import {
-    setMe, token, loginRedirect, signOutAndRedirect, loadDashboardSession, startSessionRenewal,
-    type TabInfo, type TabModule,
+    authFetch, setMe, token, loginRedirect, signOutAndRedirect, loadDashboardSession, startSessionRenewal,
+    type MeInfo, type TabInfo, type TabModule,
 } from "./dash/session.ts";
 
 const TAB_LOADERS: Record<string, () => Promise<TabModule>> = {
@@ -139,6 +139,62 @@ function buildSidebarToggle(side: HTMLElement): HTMLElement {
     closeSidebarMenu = closeMenu;
     side.appendChild(toggle);
     return label;
+}
+
+const EVENTS_RECONNECT_MS = 5000;
+let eventsSocket: WebSocket | null = null;
+
+function connectDashboardEvents(): void {
+    const proto = location.protocol === "https:" ? "wss" : "ws";
+    const ws = new WebSocket(`${proto}://${location.host}/ws/events`);
+    eventsSocket = ws;
+    ws.onopen = () => ws.send(JSON.stringify({ token: token() }));
+    ws.onmessage = (e: MessageEvent) => {
+        let msg: { type?: string };
+        try {
+            msg = JSON.parse(e.data as string) as { type?: string };
+        } catch {
+            return;
+        }
+        if (msg.type === "subscription") {
+            window.dispatchEvent(new CustomEvent("subscription-changed"));
+            void refreshTabs();
+        }
+    };
+    ws.onclose = () => {
+        if (eventsSocket !== ws) return;
+        eventsSocket = null;
+        window.setTimeout(connectDashboardEvents, EVENTS_RECONNECT_MS);
+    };
+}
+
+async function refreshTabs(): Promise<void> {
+    let refreshed: MeInfo;
+    try {
+        refreshed = await authFetch<MeInfo>("/api/auth/me");
+    } catch {
+        return;
+    }
+    setMe(refreshed);
+    const tabs = (refreshed.tabs ?? []).filter(t => TAB_LOADERS[t.id]);
+    if (tabs.map(t => t.id).join(",") === allTabs.map(t => t.id).join(",")) return;
+    const studioTabs = (refreshed.tabs ?? []).filter(t => !TAB_LOADERS[t.id]);
+    const baseDomain = location.hostname.replace(/^(live|admin)\./, "");
+    const port = location.port ? `:${location.port}` : "";
+    studioUrl = studioTabs.length ? `https://studio.${baseDomain}${port}/dashboard` : null;
+    allTabs = tabs;
+    tabById.clear();
+    for (const t of tabs) tabById.set(t.id, t);
+    closeSidebarMenu?.();
+    $("dash-side").replaceChildren();
+    buildSidebar(tabs);
+    if (currentTab && tabById.has(currentTab)) {
+        const active = currentTab;
+        $$(".dash-side-link[data-tab]").forEach(b => b.classList.toggle("active", b.dataset["tab"] === active));
+        if (sidebarToggleLabel) sidebarToggleLabel.textContent = tabById.get(active)!.label;
+    } else if (tabs[0]) {
+        void activateTab(tabs[0].id);
+    }
 }
 
 function buildSidebar(tabs: TabInfo[]): void {
@@ -330,6 +386,7 @@ function showSessionProblem(state: "forbidden" | "unavailable"): void {
     buildSidebar(tabs);
     document.body.classList.add("dash-page");
     setBurgerExtra((close) => buildBurgerTabItems(close));
+    if (me.kind === "user") connectDashboardEvents();
 
     document.addEventListener("click", (e) => {
         const a = (e.target as HTMLElement).closest<HTMLElement>("[data-switch-tab]");
