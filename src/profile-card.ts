@@ -1,8 +1,10 @@
 import { hashColor } from "./chat/text.ts";
+import { PLATFORM_LABELS, PLATFORM_PATHS } from "./platform-icons.ts";
 
 export interface ProfileLink {
     label: string;
     url: string;
+    platform: string;
 }
 
 export interface Profile {
@@ -31,8 +33,9 @@ function parseLinks(raw: unknown): ProfileLink[] {
         if (!item || typeof item !== "object") continue;
         const label = typeof (item as { label?: unknown }).label === "string" ? (item as { label: string }).label : "";
         const url = typeof (item as { url?: unknown }).url === "string" ? (item as { url: string }).url : "";
+        const platform = typeof (item as { platform?: unknown }).platform === "string" ? (item as { platform: string }).platform : "";
         if (!label || !url) continue;
-        out.push({ label, url });
+        out.push({ label, url, platform });
     }
     return out;
 }
@@ -84,6 +87,21 @@ function buildAvatar(profile: Profile): HTMLElement {
     return fallback;
 }
 
+const SVG_NS = "http://www.w3.org/2000/svg";
+
+function buildPlatformIcon(platform: string): SVGSVGElement | null {
+    const d = PLATFORM_PATHS[platform];
+    if (!d) return null;
+    const svg = document.createElementNS(SVG_NS, "svg");
+    svg.setAttribute("class", "profile-card-link-icon");
+    svg.setAttribute("viewBox", "0 0 24 24");
+    svg.setAttribute("aria-hidden", "true");
+    const path = document.createElementNS(SVG_NS, "path");
+    path.setAttribute("d", d);
+    svg.appendChild(path);
+    return svg;
+}
+
 function followerLabel(count: number): string {
     return `${count.toLocaleString()} follower${count === 1 ? "" : "s"}`;
 }
@@ -126,7 +144,14 @@ export function renderProfileCard(container: HTMLElement, profile: Profile | nul
             const a = document.createElement("a");
             a.className = "profile-card-link";
             a.href = link.url;
-            a.textContent = link.label;
+            const glyph = buildPlatformIcon(link.platform);
+            if (glyph) {
+                a.appendChild(glyph);
+                a.title = PLATFORM_LABELS[link.platform] ?? link.platform;
+            }
+            const text = document.createElement("span");
+            text.textContent = link.label;
+            a.appendChild(text);
             a.target = "_blank";
             a.rel = "noopener noreferrer nofollow ugc";
             a.referrerPolicy = "no-referrer";

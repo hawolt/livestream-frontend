@@ -13,11 +13,18 @@ class StubElement {
     alt = "";
     loading = "";
     textContent = "";
+    title = "";
     style: Record<string, string> = {};
+    attrs: Record<string, string> = {};
     children: StubElement[] = [];
 
     constructor(tagName: string) {
         this.tagName = tagName;
+    }
+
+    setAttribute(name: string, value: string): void {
+        this.attrs[name] = value;
+        if (name === "class") this.className = value;
     }
 
     appendChild(child: StubElement): StubElement {
@@ -53,6 +60,9 @@ class StubElement {
 
 const stubDocument = {
     createElement(tagName: string): StubElement {
+        return new StubElement(tagName);
+    },
+    createElementNS(_ns: string, tagName: string): StubElement {
         return new StubElement(tagName);
     },
 };
@@ -107,13 +117,16 @@ describe("renderProfileCard", () => {
     });
 
     test("link anchors carry the right rel and referrer policy, and never show the raw url as text", () => {
-        render(container, makeProfile({ links: [{ label: "My site", url: "https://example.com/x" }] }));
+        render(container, makeProfile({ links: [{ label: "My site", url: "https://x.com/site", platform: "x" }] }));
         const anchor = container.findClass("profile-card-link");
         expect(anchor).not.toBeNull();
-        expect(anchor!.href).toBe("https://example.com/x");
+        expect(anchor!.href).toBe("https://x.com/site");
         expect(anchor!.rel).toBe("noopener noreferrer nofollow ugc");
         expect(anchor!.referrerPolicy).toBe("no-referrer");
-        expect(anchor!.textContent).toBe("My site");
+        expect(anchor!.descendants().map(el => el.textContent).join("")).toBe("My site");
+        const icon = anchor!.descendants().find(el => el.tagName === "svg");
+        expect(icon).not.toBeUndefined();
+        expect(icon!.attrs["viewBox"]).toBe("0 0 24 24");
     });
 
     test("a non https link is dropped rather than rendered", () => {

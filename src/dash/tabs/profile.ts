@@ -63,7 +63,7 @@ function buildLinkRow(link: ProfileLink): HTMLElement {
     const url = document.createElement("input");
     url.type = "text";
     url.maxLength = 512;
-    url.placeholder = "https://";
+    url.placeholder = "https://x.com/yourname";
     url.value = link.url;
     url.style.cssText = "flex:1";
 
