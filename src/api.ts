@@ -25,6 +25,8 @@ export interface BillingPerks {
     badge: boolean;
     chatColor: boolean;
     adsOff: boolean;
+    largeUploads: boolean;
+    animatedAvatar: boolean;
 }
 
 export interface BillingCurrent {
