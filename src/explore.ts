@@ -1,6 +1,7 @@
 import { initSiteNav } from "./nav.ts";
+import { loadAds, renderAdSlot } from "./ads.ts";
 import { ctx, isFramed, type CategorySelector, type ViewState } from "./explore/context.ts";
-import { backBtn, gridEl, modeCategoriesBtn, modeStreamsBtn, page } from "./explore/dom.ts";
+import { adEl, backBtn, gridEl, modeCategoriesBtn, modeStreamsBtn, page } from "./explore/dom.ts";
 import { loadExplore } from "./explore/poll.ts";
 import { applyState, navigate } from "./explore/render.ts";
 import { updateModeButtons } from "./explore/stream-cards.ts";
@@ -47,6 +48,7 @@ async function boot(): Promise<void> {
     history.replaceState(initial, "", urlFor(initial.mode, initial.categoryId));
     updateModeButtons();
     await loadExplore();
+    void loadAds("explore").then(ads => renderAdSlot(adEl, ads));
 }
 
 void boot();

@@ -16,6 +16,7 @@ const TAB_LOADERS: Record<string, () => Promise<TabModule>> = {
     "stream-summary": () => import("./dash/tabs/stream-summary.ts"),
     activity:         () => import("./dash/tabs/activity.ts"),
     settings:         () => import("./dash/tabs/settings.ts"),
+    subscription:     () => import("./dash/tabs/subscription.ts"),
 };
 
 const tabById = new Map<string, TabInfo>();

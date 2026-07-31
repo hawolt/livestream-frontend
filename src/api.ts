@@ -7,10 +7,37 @@ export interface AccountSettings {
     emailVerified: boolean;
     tenantName?: string | null;
     chatColor?: string | null;
+    chatColorAllowed?: boolean;
     username?: string | null;
     usernameChangedAt?: number | null;
     usernameCooldownRemaining?: number;
     liveNotify?: boolean;
+}
+
+export interface BillingTier {
+    key: string;
+    label: string;
+    price: string;
+    rank: number;
+}
+
+export interface BillingPerks {
+    badge: boolean;
+    chatColor: boolean;
+    adsOff: boolean;
+}
+
+export interface BillingCurrent {
+    tier: string;
+    status: string;
+    currentPeriodEnd: number | null;
+    perks: BillingPerks;
+}
+
+export interface BillingTiers {
+    enabled: boolean;
+    tiers: BillingTier[];
+    current: BillingCurrent | null;
 }
 
 export interface RegionOption {

@@ -3,6 +3,7 @@ export const nameEl = document.getElementById("live-name") as HTMLElement;
 export const sepEl = document.getElementById("live-sep") as HTMLElement;
 export const badgeEl = document.getElementById("live-badge") as HTMLElement;
 export const posterEl = document.getElementById("live-poster") as HTMLElement;
+export const adSlotEl = document.getElementById("live-ad-slot") as HTMLElement;
 export const stageEl = document.getElementById("live-stage") as HTMLElement;
 export const video = document.getElementById("live-video") as HTMLVideoElement;
 export const titleBar = document.getElementById("live-info-bar") as HTMLElement;

@@ -1,4 +1,4 @@
-import { BAN_RETRY_MS, RETRY_MS, ctx, knownMembers, msgsEl, roles, unverified, vips } from "./context.ts";
+import { BAN_RETRY_MS, RETRY_MS, ctx, knownMembers, msgsEl, roles, subscribers, unverified, vips } from "./context.ts";
 import type { Role } from "./context.ts";
 import type { IrcLine } from "./irc.ts";
 import { parse } from "./irc.ts";
@@ -20,6 +20,7 @@ function applyNamesList(names: string): void {
         let i = 0;
         let role: Role | null = null;
         let vip = false;
+        let sub = false;
         let unver = false;
         for (; i < raw.length; i++) {
             const ch = raw[i];
@@ -28,6 +29,7 @@ function applyNamesList(names: string): void {
             else if (ch === "&") role = "bot";
             else if (ch === "+") role = "mod";
             else if (ch === "~") vip = true;
+            else if (ch === "*") sub = true;
             else if (ch === "=") unver = true;
             else break;
         }
@@ -39,6 +41,8 @@ function applyNamesList(names: string): void {
         else roles.delete(key);
         if (vip) vips.add(key);
         else vips.delete(key);
+        if (sub) subscribers.add(key);
+        else subscribers.delete(key);
         if (unver) unverified.add(key);
         else unverified.delete(key);
     }
@@ -137,6 +141,7 @@ export function connect(): void {
     ctx.joined = false;
     roles.clear();
     vips.clear();
+    subscribers.clear();
     unverified.clear();
     knownMembers.clear();
     ctx.nick = guestNick();

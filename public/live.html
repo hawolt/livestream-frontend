@@ -108,6 +108,40 @@
             #live-poster.loading::before { animation: none; }
         }
 
+        #live-ad-slot {
+            position: absolute;
+            left: 50%;
+            bottom: 24px;
+            transform: translateX(-50%);
+            width: min(360px, 80%);
+            z-index: 2;
+        }
+        #live-ad-slot:empty { display: none; }
+        .ad-slot-link {
+            display: block;
+            position: relative;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            overflow: hidden;
+        }
+        .ad-slot-img {
+            display: block;
+            width: 100%;
+            max-height: 140px;
+            object-fit: cover;
+        }
+        .ad-label {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background: rgba(0,0,0,.65);
+            color: #fff;
+            font-size: 11px;
+            font-weight: 700;
+            padding: 2px 8px;
+            border-radius: 999px;
+        }
+
         .live-stage.terminal .live-controls { display: none; }
 
         .live-controls {
@@ -1334,6 +1368,7 @@
                 <span class="live-badge" id="live-badge" hidden>OFFLINE</span>
                 <video id="live-video" muted autoplay playsinline></video>
                 <div id="live-poster" class="hidden" role="status" aria-live="polite" aria-atomic="true" aria-busy="false"></div>
+                <div class="ad-slot" id="live-ad-slot"></div>
                 <div class="browse-mini-overlay" id="browse-mini-overlay" hidden>
                     <button id="browse-mini-return" class="browse-mini-return" type="button">Return to <span id="browse-mini-username"></span></button>
                     <button id="browse-mini-close" class="browse-mini-close" type="button" aria-label="Close mini player">&times;</button>

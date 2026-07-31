@@ -35,6 +35,7 @@ async function loadSettings(): Promise<void> {
         const banner = document.getElementById("settings-verify-banner");
         if (banner) banner.style.display = s.emailVerified === false ? "" : "none";
         applyChatColor(s.chatColor);
+        applyChatColorAllowed(s.chatColorAllowed !== false);
         const usernameCurrent = document.getElementById("st-username-current") as HTMLInputElement | null;
         if (usernameCurrent) usernameCurrent.value = s.username ?? getMe()?.username ?? "";
         formatUsernameHint(s);
@@ -134,6 +135,15 @@ function applyChatColor(color: unknown): void {
         ? color
         : input.defaultValue;
     syncColorPreview();
+}
+
+function applyChatColorAllowed(allowed: boolean): void {
+    const locked = document.getElementById("st-color-locked");
+    const input = document.getElementById("st-chat-color") as HTMLInputElement | null;
+    const saveBtn = document.getElementById("btn-color-save") as HTMLButtonElement | null;
+    if (locked) locked.style.display = allowed ? "none" : "";
+    if (input) input.disabled = !allowed;
+    if (saveBtn) saveBtn.disabled = !allowed;
 }
 
 export function init(): void {

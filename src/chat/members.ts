@@ -4,6 +4,7 @@ import { hashColor } from "./text.ts";
 export type Role = "op" | "staff" | "bot" | "mod";
 export const roles = new Map<string, Role>();
 export const vips = new Set<string>();
+export const subscribers = new Set<string>();
 export const unverified = new Set<string>();
 export const guests = new Set<string>();
 export const knownMembers = new Set<string>();
@@ -45,6 +46,7 @@ export const USERLIST_GROUPS: { label: string; bucket: number }[] = [
 export interface DecodedNamePrefix {
     role: Role | null;
     vip: boolean;
+    sub: boolean;
     unver: boolean;
     guest: boolean;
     name: string;
@@ -54,6 +56,7 @@ export function decodeNamePrefix(raw: string): DecodedNamePrefix {
     let i = 0;
     let role: Role | null = null;
     let vip = false;
+    let sub = false;
     let unver = false;
     let guest = false;
     for (; i < raw.length; i++) {
@@ -63,11 +66,12 @@ export function decodeNamePrefix(raw: string): DecodedNamePrefix {
         else if (ch === "&") role = "bot";
         else if (ch === "+") role = "mod";
         else if (ch === "~") vip = true;
+        else if (ch === "*") sub = true;
         else if (ch === "=") unver = true;
         else if (ch === "?") guest = true;
         else break;
     }
-    return { role, vip, unver, guest, name: raw.slice(i) };
+    return { role, vip, sub, unver, guest, name: raw.slice(i) };
 }
 
 export function applyNamesList(names: string): void {
@@ -82,6 +86,8 @@ export function applyNamesList(names: string): void {
         else roles.delete(key);
         if (decoded.vip) vips.add(key);
         else vips.delete(key);
+        if (decoded.sub) subscribers.add(key);
+        else subscribers.delete(key);
         if (decoded.unver) unverified.add(key);
         else unverified.delete(key);
         if (decoded.guest) guests.add(key);
@@ -95,6 +101,7 @@ export function removeMember(key: string): void {
     memberDisplay.delete(key);
     roles.delete(key);
     vips.delete(key);
+    subscribers.delete(key);
     unverified.delete(key);
     guests.delete(key);
 }
