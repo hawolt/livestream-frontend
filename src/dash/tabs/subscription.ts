@@ -23,6 +23,7 @@ function perkLabels(perks: BillingPerks | undefined): string[] {
     if (perks.irl) out.push("IRL ingests (SRT, SRTLA and RTMP)");
     if (perks.remoteobs) out.push("Remote OBS studio");
     if (perks.restream) out.push("Restream to other platforms");
+    if (perks.restreamPlus) out.push("Restream without broadcasting to this site");
     return out;
 }
 

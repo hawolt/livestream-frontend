@@ -32,6 +32,7 @@ export interface BillingPerks {
     irl?: boolean;
     remoteobs?: boolean;
     restream?: boolean;
+    restreamPlus?: boolean;
 }
 
 export interface BillingCurrent {
