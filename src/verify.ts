@@ -10,15 +10,15 @@ const msgEl    = document.getElementById("verify-msg")!;
 const actionEl = document.getElementById("verify-action")!;
 
 function dashboardUrl(kind?: string): string {
-    const baseDomain = location.hostname.replace(/^(live|admin)\./, "");
+    const baseDomain = location.hostname.replace(/^(live|admin|staff)\./, "");
     const port = location.port ? `:${location.port}` : "";
     if (kind === "user") {
         return location.hostname.startsWith("live.")
             ? "/dashboard" : `${location.protocol}//live.${baseDomain}${port}/dashboard`;
     }
     if (kind === "admin") {
-        return location.hostname.startsWith("admin.")
-            ? "/dashboard" : `${location.protocol}//admin.${baseDomain}${port}/dashboard`;
+        return location.hostname.startsWith("staff.")
+            ? "/dashboard" : `${location.protocol}//staff.${baseDomain}${port}/dashboard`;
     }
     return "/dashboard";
 }

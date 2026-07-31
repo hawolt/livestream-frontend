@@ -179,7 +179,7 @@ async function refreshTabs(): Promise<void> {
     const tabs = (refreshed.tabs ?? []).filter(t => TAB_LOADERS[t.id]);
     if (tabs.map(t => t.id).join(",") === allTabs.map(t => t.id).join(",")) return;
     const studioTabs = (refreshed.tabs ?? []).filter(t => !TAB_LOADERS[t.id]);
-    const baseDomain = location.hostname.replace(/^(live|admin)\./, "");
+    const baseDomain = location.hostname.replace(/^(live|admin|staff)\./, "");
     const port = location.port ? `:${location.port}` : "";
     studioUrl = studioTabs.length ? `https://studio.${baseDomain}${port}/dashboard` : null;
     allTabs = tabs;
@@ -354,7 +354,7 @@ function showSessionProblem(state: "forbidden" | "unavailable"): void {
     const me = session.me;
 
     const isLiveHost = location.hostname.startsWith("live.");
-    const baseDomain = location.hostname.replace(/^(live|admin)\./, "");
+    const baseDomain = location.hostname.replace(/^(live|admin|staff)\./, "");
     const requestedTab = tabFromLocation();
     const tabPath = requestedTab ? `/${requestedTab}` : "";
     const port = location.port ? `:${location.port}` : "";
@@ -367,7 +367,7 @@ function showSessionProblem(state: "forbidden" | "unavailable"): void {
     if (me.kind === "admin" && isLiveHost) {
         sessionStorage.removeItem("dash_token");
         sessionStorage.removeItem("dash_kind");
-        location.replace(`https://admin.${baseDomain}${port}/dashboard${tabPath}`);
+        location.replace(`https://staff.${baseDomain}${port}/dashboard${tabPath}`);
         return;
     }
     setMe(me);
