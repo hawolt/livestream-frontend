@@ -1,5 +1,4 @@
 export const page = document.getElementById("explore-page") as HTMLElement;
-export const adEl = document.getElementById("explore-ad") as HTMLElement;
 export const gridEl = document.getElementById("explore-grid") as HTMLElement;
 export const emptyEl = document.getElementById("explore-empty") as HTMLElement;
 export const drillEl = document.getElementById("explore-drill") as HTMLElement;

@@ -1,8 +1,7 @@
-import { adSlotEl, badgeEl, behindReadoutEl, btnLiveChip, posterEl, seekBarEl, stageEl, video } from "../dom.ts";
+import { badgeEl, behindReadoutEl, btnLiveChip, posterEl, seekBarEl, stageEl, video } from "../dom.ts";
 import { ctx, isCurrent, nextGen, runGenCleanup, type PlayerState } from "./context.ts";
 import { PRUNE_KEEP_S, RETRY_MAX_MS, RETRY_MIN_MS, RETRY_MULT } from "../constants.ts";
 import { QUALITY_SOURCE } from "../../quality.ts";
-import { loadAds, renderAdSlot, type AdSpot } from "../../ads.ts";
 import { stopChase } from "./chase.ts";
 import { resetAbr, stopAbrMonitor } from "./abr.ts";
 import { stopHLSBeacon, startHLSTransport } from "./hls.ts";
@@ -11,28 +10,10 @@ import { resetStreamInfo, setViewers } from "../stream-info.ts";
 import { renderQualityMenu } from "../quality-menu.ts";
 import { startWSTransport } from "./ws.ts";
 import { resetSeekDrag } from "../seekbar.ts";
+import { applyDefaultProfileVisibility } from "../../chat/panels.ts";
 
 let retryTimer: number | null = null;
 let retryDelay = RETRY_MIN_MS;
-
-let offlineAds: AdSpot[] | null = null;
-let offlineAdsRequested = false;
-
-function updateOfflineAdSlot(): void {
-    const showing = ctx.state === "offline" || ctx.terminal;
-    if (!showing) {
-        renderAdSlot(adSlotEl, []);
-        return;
-    }
-    if (!offlineAdsRequested) {
-        offlineAdsRequested = true;
-        void loadAds("offline").then(ads => {
-            offlineAds = ads;
-            updateOfflineAdSlot();
-        });
-    }
-    renderAdSlot(adSlotEl, offlineAds ?? []);
-}
 
 export function clearRetryTimer(): void {
     if (retryTimer !== null) {
@@ -111,7 +92,6 @@ export function enterTerminal(label: string): void {
     nextGen();
     fullTeardown();
     setTerminal(label, true);
-    updateOfflineAdSlot();
 }
 
 export function setState(next: PlayerState): void {
@@ -127,6 +107,7 @@ export function renderPlayerUI(): void {
         case "offline":
             setBadge(false);
             setPoster("Offline", false);
+            applyDefaultProfileVisibility(true);
             break;
         case "connecting":
             setBadge(false);
@@ -143,9 +124,9 @@ export function renderPlayerUI(): void {
         case "playing":
             setBadge(true);
             setPoster(null);
+            applyDefaultProfileVisibility(false);
             break;
     }
-    updateOfflineAdSlot();
 }
 
 export function fullTeardown(): void {

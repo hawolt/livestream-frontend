@@ -24,7 +24,16 @@
             min-height: 0;
         }
 
-        #live-name { font-weight: 700; color: var(--text); }
+        #live-name {
+            font: inherit;
+            font-weight: 700;
+            color: var(--text);
+            background: none;
+            border: none;
+            padding: 0;
+            cursor: pointer;
+        }
+        #live-name:hover, #live-name:focus-visible { text-decoration: underline; }
         #live-sep, #live-category-sep, #live-language-sep { margin: 0 8px; color: var(--muted); }
         #live-sep.hidden, #live-category-sep.hidden, #live-language-sep.hidden { display: none; }
         .live-badge {
@@ -108,15 +117,8 @@
             #live-poster.loading::before { animation: none; }
         }
 
-        #live-ad-slot {
-            position: absolute;
-            left: 50%;
-            bottom: 24px;
-            transform: translateX(-50%);
-            width: min(360px, 80%);
-            z-index: 2;
-        }
-        #live-ad-slot:empty { display: none; }
+        #live-chat-ad { flex: 0 0 auto; max-width: 100%; overflow: hidden; }
+        #live-chat-ad.ad-slot-filled { padding: 8px 8px 0; }
         .ad-slot-link {
             display: block;
             position: relative;
@@ -127,8 +129,9 @@
         .ad-slot-img {
             display: block;
             width: 100%;
-            max-height: 140px;
-            object-fit: cover;
+            max-height: 90px;
+            object-fit: contain;
+            background: rgba(255,255,255,.03);
         }
         .ad-label {
             position: absolute;
@@ -608,7 +611,7 @@
             padding: 4px 6px;
         }
         .live-chat-head button:hover { color: var(--text); }
-        #btn-chat-users.active, #btn-chat-help.active, #btn-chat-settings.active { color: var(--accent); }
+        #btn-chat-users.active, #btn-chat-help.active, #btn-chat-settings.active, #btn-chat-profile.active { color: var(--accent); }
         .live-chat-setting { display: flex; align-items: center; gap: 10px; padding: 8px 4px; font-size: 13px; color: var(--text); cursor: pointer; }
         .live-chat-setting input { width: 16px; height: 16px; cursor: pointer; }
         .live-chat-setting span {
@@ -811,11 +814,11 @@
             border-bottom: 1px solid var(--border);
             font-size: 13px; font-weight: 700; color: var(--text);
         }
-        #live-chat-help-close, #live-chat-settings-close {
+        #live-chat-help-close, #live-chat-settings-close, #live-chat-profile-close {
             width: 30px; height: 30px; display: inline-flex; align-items: center; justify-content: center;
             background: none; border: none; color: var(--muted); font-size: 20px; line-height: 1; cursor: pointer;
         }
-        #live-chat-help-close:hover, #live-chat-settings-close:hover { color: var(--text); }
+        #live-chat-help-close:hover, #live-chat-settings-close:hover, #live-chat-profile-close:hover { color: var(--text); }
         .live-chat-help-body {
             flex: 1;
             min-height: 0;
@@ -885,6 +888,54 @@
             line-height: 1.5;
         }
 
+        .live-chat-profile {
+            position: absolute;
+            inset: 0;
+            z-index: 25;
+            background: var(--surface);
+            display: flex;
+            flex-direction: column;
+        }
+        .live-chat-profile[hidden] { display: none; }
+        .live-chat-profile-head {
+            display: flex; align-items: center; justify-content: space-between;
+            height: 52px; flex-shrink: 0;
+            padding: 0 8px 0 14px;
+            border-bottom: 1px solid var(--border);
+            font-size: 13px; font-weight: 700; color: var(--text);
+        }
+        .live-chat-profile-body { flex: 1; min-height: 0; overflow-y: auto; }
+
+        .profile-card { display: flex; flex-direction: column; }
+        .profile-card-banner {
+            width: 100%;
+            aspect-ratio: 16 / 5;
+            overflow: hidden;
+            background: rgba(255,255,255,.03);
+            flex-shrink: 0;
+        }
+        .profile-card-banner img { display: block; width: 100%; height: 100%; object-fit: cover; }
+        .profile-card-head { display: flex; align-items: center; gap: 12px; padding: 14px; }
+        .profile-card-avatar, .profile-card-avatar-fallback {
+            width: 56px; height: 56px; border-radius: 50%; flex-shrink: 0; object-fit: cover;
+        }
+        .profile-card-avatar-fallback {
+            display: flex; align-items: center; justify-content: center;
+            font-size: 22px; font-weight: 700; color: #111;
+        }
+        .profile-card-identity { min-width: 0; }
+        .profile-card-username { font-size: 15px; font-weight: 700; color: var(--text); overflow-wrap: anywhere; }
+        .profile-card-followers { font-size: 12px; color: var(--muted); margin-top: 2px; }
+        .profile-card-bio {
+            padding: 0 14px 14px; margin: 0;
+            font-size: 13px; line-height: 1.6; color: var(--text);
+            white-space: pre-wrap; overflow-wrap: anywhere;
+        }
+        .profile-card-links { display: flex; flex-direction: column; gap: 6px; padding: 0 14px 14px; }
+        .profile-card-link { color: var(--accent); font-size: 13px; text-decoration: none; overflow-wrap: anywhere; }
+        .profile-card-link:hover { text-decoration: underline; }
+        .profile-card-empty { padding: 24px 14px; color: var(--muted); font-size: 13px; text-align: center; }
+
         body.chat-left:not(.is-vertical) .live-main { flex-direction: row-reverse; }
         body.chat-left:not(.is-vertical) #live-chat { border-left: none; border-right: 1px solid var(--border); }
 
@@ -893,7 +944,10 @@
         body.chat-popout #btn-chat-fullscreen,
         body.chat-popout #btn-chat-collapse,
         body.chat-popout #btn-chat-popout,
-        body.chat-popout #btn-chat-side { display: none; }
+        body.chat-popout #btn-chat-side,
+        body.chat-popout #btn-chat-profile,
+        body.chat-popout #live-chat-profile,
+        body.chat-popout #live-chat-ad { display: none; }
         body.chat-popout .live-app { height: 100%; }
         body.chat-popout .live-main { height: 100%; }
         body.chat-popout #live-chat {
@@ -1368,7 +1422,6 @@
                 <span class="live-badge" id="live-badge" hidden>OFFLINE</span>
                 <video id="live-video" muted autoplay playsinline></video>
                 <div id="live-poster" class="hidden" role="status" aria-live="polite" aria-atomic="true" aria-busy="false"></div>
-                <div class="ad-slot" id="live-ad-slot"></div>
                 <div class="browse-mini-overlay" id="browse-mini-overlay" hidden>
                     <button id="browse-mini-return" class="browse-mini-return" type="button">Return to <span id="browse-mini-username"></span></button>
                     <button id="browse-mini-close" class="browse-mini-close" type="button" aria-label="Close mini player">&times;</button>
@@ -1399,7 +1452,7 @@
                 </div>
             </div>
             <div class="live-info-bar hidden" id="live-info-bar">
-                <div id="live-title"><span id="live-name"></span><span id="live-sep" class="hidden">&#183;</span><span id="live-title-text"></span><span id="live-category-sep" class="hidden">&#183;</span><a id="live-category" class="hidden"></a><span id="live-language-sep" class="hidden">&#183;</span><span id="live-language" class="hidden"></span></div>
+                <div id="live-title"><button type="button" id="live-name"></button><span id="live-sep" class="hidden">&#183;</span><span id="live-title-text"></span><span id="live-category-sep" class="hidden">&#183;</span><a id="live-category" class="hidden"></a><span id="live-language-sep" class="hidden">&#183;</span><span id="live-language" class="hidden"></span></div>
                 <div class="live-info-right">
                     <span id="live-follow" class="live-follow" hidden>
                         <button id="btn-follow" type="button" class="live-follow-btn">Follow</button>
@@ -1413,9 +1466,13 @@
             </div>
         </div>
         <div id="live-chat">
+            <div class="ad-slot" id="live-chat-ad"></div>
             <div class="live-chat-head">
                 <span>Chat</span>
                 <div class="live-chat-head-actions">
+                    <button id="btn-chat-profile" type="button" title="Channel profile" aria-label="Channel profile">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><circle cx="8.5" cy="12" r="2"/><path d="M13 10h6M13 14h4"/></svg>
+                    </button>
                     <button id="btn-chat-settings" type="button" title="Settings" aria-label="Settings">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 8 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H2a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 8a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V2a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H22a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
                     </button>
@@ -1462,6 +1519,13 @@
                         <span>Show timestamps</span>
                     </label>
                 </div>
+            </div>
+            <div id="live-chat-profile" class="live-chat-profile" hidden>
+                <div class="live-chat-profile-head">
+                    <span>Profile</span>
+                    <button type="button" id="live-chat-profile-close" title="Back to chat" aria-label="Back to chat">&times;</button>
+                </div>
+                <div id="live-chat-profile-body" class="live-chat-profile-body"></div>
             </div>
             <div id="live-chat-messages">
                 <div class="live-chat-empty">Connecting to chat...</div>

@@ -5,6 +5,9 @@ import {
     helpEl,
     helpFootEl,
     msgsEl,
+    profileBodyEl,
+    profileBtnEl,
+    profileEl,
     settingsBtnEl,
     settingsEl,
     timestampToggleEl,
@@ -15,6 +18,7 @@ import {
 import { send } from "./connection.ts";
 import { buildBadges, makeBadge, type BadgeName } from "./badges.ts";
 import { memberDisplay, memberRankBucket, nickColor, USERLIST_GROUPS } from "./members.ts";
+import { loadProfile, renderProfileCard, type Profile } from "../profile-card.ts";
 
 export const TIMESTAMPS_KEY = "live-chat-timestamps";
 
@@ -64,6 +68,7 @@ export function setUserlist(open: boolean): void {
     if (open) {
         setHelp(false);
         setSettings(false);
+        setProfile(false);
         renderUserlist();
         send(`NAMES ${ctx.channel}`);
     }
@@ -145,6 +150,7 @@ export function setHelp(open: boolean): void {
     if (open) {
         setUserlist(false);
         setSettings(false);
+        setProfile(false);
         if (!ctx.helpBuilt) buildHelp();
     }
 }
@@ -160,11 +166,80 @@ export function setSettings(open: boolean): void {
     if (open) {
         setUserlist(false);
         setHelp(false);
+        setProfile(false);
     }
 }
 
 export function toggleSettings(): void {
     setSettings(!ctx.settingsOpen);
+}
+
+let profileData: Profile | null = null;
+let profileLoadedFor = "";
+let profileLoading = false;
+let profileDefaultDecided = false;
+let profileUserControlled = false;
+
+function loadProfileIfNeeded(): void {
+    const username = ctx.channel.slice(1);
+    if (!username || profileLoading || profileLoadedFor === username) return;
+    profileLoading = true;
+    void loadProfile(username).then(profile => {
+        profileLoading = false;
+        profileLoadedFor = username;
+        profileData = profile;
+        if (ctx.profileOpen) showProfileBody();
+    });
+}
+
+function showProfileBody(): void {
+    const username = ctx.channel.slice(1);
+    if (profileLoadedFor !== username) {
+        profileBodyEl.textContent = "Loading...";
+        loadProfileIfNeeded();
+        return;
+    }
+    if (profileData) {
+        renderProfileCard(profileBodyEl, profileData);
+        return;
+    }
+    profileBodyEl.replaceChildren();
+    const empty = document.createElement("div");
+    empty.className = "profile-card-empty";
+    empty.textContent = "This channel has no profile yet.";
+    profileBodyEl.appendChild(empty);
+}
+
+export function setProfile(open: boolean): void {
+    ctx.profileOpen = open;
+    profileBtnEl.classList.toggle("active", open);
+    profileEl.hidden = !open;
+    if (!open) return;
+    setUserlist(false);
+    setHelp(false);
+    setSettings(false);
+    showProfileBody();
+}
+
+export function toggleProfile(): void {
+    profileUserControlled = true;
+    setProfile(!ctx.profileOpen);
+}
+
+export function closeProfile(): void {
+    profileUserControlled = true;
+    setProfile(false);
+}
+
+export function openProfileFromUser(): void {
+    profileUserControlled = true;
+    setProfile(true);
+}
+
+export function applyDefaultProfileVisibility(offline: boolean): void {
+    if (profileDefaultDecided || profileUserControlled) return;
+    profileDefaultDecided = true;
+    setProfile(offline);
 }
 
 export function applyTimestampPref(on: boolean): void {

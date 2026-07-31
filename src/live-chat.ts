@@ -7,6 +7,8 @@ import {
     helpCloseEl,
     inputEl,
     pickerFilterEl,
+    profileBtnEl,
+    profileCloseEl,
     replyCancelEl,
     sendEl,
     settingsBtnEl,
@@ -29,11 +31,13 @@ import { autoGrowInput, closePicker, MAX_TEXT, renderPickerGrid, submit, toggleP
 import { clearReply } from "./chat/messages.ts";
 import {
     applyTimestampPref,
+    closeProfile,
     setHelp,
     setSettings,
     setUserlist,
     TIMESTAMPS_KEY,
     toggleHelp,
+    toggleProfile,
     toggleSettings,
     toggleUserlist,
 } from "./chat/panels.ts";
@@ -65,6 +69,8 @@ export function startChat(user: string, emoteTwitchId?: string, onLoginRequested
     helpCloseEl.addEventListener("click", () => setHelp(false));
     settingsBtnEl.addEventListener("click", toggleSettings);
     settingsCloseEl.addEventListener("click", () => setSettings(false));
+    profileBtnEl.addEventListener("click", toggleProfile);
+    profileCloseEl.addEventListener("click", closeProfile);
     applyTimestampPref(readLocalStorage(TIMESTAMPS_KEY) === "1");
     timestampToggleEl.addEventListener("change", () => {
         applyTimestampPref(timestampToggleEl.checked);
@@ -109,6 +115,7 @@ export function startChat(user: string, emoteTwitchId?: string, onLoginRequested
         if (ctx.userlistOpen) setUserlist(false);
         if (ctx.helpOpen) setHelp(false);
         if (ctx.settingsOpen) setSettings(false);
+        if (ctx.profileOpen) closeProfile();
     });
     connect();
 }

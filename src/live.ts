@@ -2,6 +2,7 @@ import { startChat } from "./live-chat";
 import { type LiveChannelInfo } from "./api.ts";
 import { initSiteNav } from "./nav.ts";
 import { setCaptchaAnchor, warmCaptcha } from "./captcha.ts";
+import { loadAds, renderAdSlot } from "./ads.ts";
 import { streamLanguageLabel } from "./stream-languages.ts";
 import {
     browseMiniUsername,
@@ -9,6 +10,7 @@ import {
     btnLayoutToggle,
     categoryEl,
     categorySepEl,
+    chatAdSlotEl,
     chatEl,
     languageEl,
     languageSepEl,
@@ -27,6 +29,7 @@ import { canUseNativeHLS } from "./live/player/hls.ts";
 import { openLoginModal, wireLoginModal } from "./live/login-modal.ts";
 import { initFollow } from "./live/follow.ts";
 import { connectViewcount } from "./live/stream-info.ts";
+import { openProfileFromUser } from "./chat/panels.ts";
 
 async function boot(): Promise<void> {
     const chatPopout = new URLSearchParams(location.search).get("chat") === "popout";
@@ -51,6 +54,10 @@ async function boot(): Promise<void> {
     if (!chatPopout) {
         setCaptchaAnchor(chatEl);
         warmCaptcha();
+        void loadAds("chat").then(ads => {
+            renderAdSlot(chatAdSlotEl, ads);
+            chatAdSlotEl.classList.toggle("ad-slot-filled", ads.length > 0);
+        });
     }
 
     let title = "";
@@ -118,6 +125,7 @@ async function boot(): Promise<void> {
 
     void initFollow();
     connectViewcount();
+    nameEl.addEventListener("click", openProfileFromUser);
 
     if (typeof MediaSource === "function" && typeof MediaSource.isTypeSupported === "function") {
         titleBar.classList.remove("hidden");
