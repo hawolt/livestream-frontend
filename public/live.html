@@ -419,7 +419,9 @@
             min-width: 0;
             font-size: 14px;
             color: var(--text);
-            word-break: break-word;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
         #live-category {
             color: inherit;
@@ -1226,7 +1228,7 @@
         .live-app.is-vertical .live-left { flex: 0 0 auto; }
         .live-app.is-vertical .live-stage { aspect-ratio: 16 / 9; flex: none; height: auto; }
         .live-app.is-vertical #live-chat { width: 100%; border-left: none; border-top: 1px solid var(--border); flex: 1 1 0; height: auto; min-height: 220px; }
-        .live-app.is-vertical .live-chat-head { justify-content: flex-end; border-bottom: none; }
+        .live-app.is-vertical .live-chat-head { justify-content: flex-end; }
         .live-app.is-vertical .live-chat-head span { display: none; }
 
         #live-viewers-count, #live-viewers-header-count {
@@ -1260,10 +1262,7 @@
             height: 1.25em;
         }
 
-        body:not(.is-vertical) #live-viewers-header { display: none; }
-        body.is-vertical #live-viewers-header { display: inline-flex; }
-        body.is-vertical #live-viewers-header.hidden { display: none; }
-        .live-app.is-vertical #live-info-bar #live-viewers { display: none; }
+        #live-viewers-header { display: none; }
 
         @media (max-width: 900px) {
             .live-chat-inputrow .live-chat-emote-btn { width: 44px; }
