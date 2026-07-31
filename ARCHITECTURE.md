@@ -11,13 +11,14 @@ All API descriptions in this document are from the client's perspective: the req
 - `API_BASE = "/api/main/v1"`. `apiFetch(path, init)` rewrites a leading `/api/` in the path to `API_BASE`, sends JSON, and throws an `Error` with a `.status` field on non-2xx responses (reading `{error}` from the body when present). `204` and empty bodies resolve to `undefined`.
 - Declares the response shapes the dashboard consumes: `AccountSettings`, `LiveInfo`, `LiveCategory`, `LiveBan`, `LiveMod`, `RegionOption`.
 
-### `src/dash/core.ts` (dashboard runtime)
+### `src/dash/` (dashboard runtime)
 
-- The session token lives in `sessionStorage` under `dash_token` (`token()` / `setToken()`), the session kind under `dash_kind`.
-- `bootstrapSessionFromCookie()` calls `GET /api/auth/session` and, if it returns `{token, kind}`, stores both. This is how a session established elsewhere on the site (via the session cookie) is picked up without a login form.
-- `authFetch()` wraps `apiFetch` with a `Bearer` header; a 401 or 403 triggers `logoutRedirect()` (best-effort `POST /api/auth/logout`, clear storage, `location.replace("/login")`).
-- `loadRegions()` fetches `GET /api/regions` once and caches the `{regions: [{id, label}]}` list for the session.
-- Also home to the modal (`openModal`/`closeModal` with focus trap and focus restore), `esc()` HTML escaping, secret masking, copy/reveal button wiring, and date/uptime formatters.
+- `session.ts`: the session token lives in `sessionStorage` under `dash_token` (`token()` / `setToken()`), the session kind under `dash_kind`. `bootstrapSessionFromCookie()` calls `GET /api/auth/session` and, if it returns `{token, kind}`, stores both. This is how a session established elsewhere on the site (via the session cookie) is picked up without a login form. `authFetch()` wraps `apiFetch` with a `Bearer` header; a 401 or 403 triggers `loginRedirect()`/`signOutAndRedirect()` (best-effort `POST /api/auth/logout`, clear storage, `location.replace("/login")`). Also holds `MeInfo`/`TabInfo`/`TabModule` and `loadDashboardSession()`.
+- `regions.ts`: `loadRegions()` fetches `GET /api/regions` once and caches the `{regions: [{id, label}]}` list for the session.
+- `modal.ts`: `openModal`/`closeModal` with focus trap and focus restore.
+- `format.ts`: `esc()` HTML escaping, secret masking, copy/reveal button wiring, and date/uptime formatters.
+- `dom.ts`: the `$`/`$$` element lookup helpers shared across the dashboard shell and tab modules.
+- `tabs/`: one module per dashboard tab, described under Dashboard below.
 
 ### `src/nav.ts` (site navbar)
 
@@ -25,8 +26,10 @@ All API descriptions in this document are from the client's perspective: the req
 
 - Marks the active nav item (`markActive`), inserts the kebab menu (API `/wiki`, Terms `/terms`, Privacy `/privacy`), and appends Discord/GitHub icon links.
 - Fetches `GET /api/auth/session` with credentials. A `kind === "user"` session renders the gear account menu (username, Dashboard link, Sign out); otherwise Login and Sign up links carrying `?return=<current URL>`.
-- Sign out posts `/api/auth/logout` with the session token, clears `dash_token`/`dash_kind`, and reloads.
+- Sign out (`signOut`, shared by the account menu and the hamburger menu) posts `/api/auth/logout` with the session token, clears `dash_token`/`dash_kind`, and reloads.
 - Builds a hamburger menu that mirrors the page's own control buttons (`pageControls`): it clones each visible `HTMLButtonElement` as a menu item that forwards the click and rebuilds itself, so labels stay current. `setBurgerExtra()` lets a page (the dashboard) prepend its own items.
+
+`initSiteNav` and `markActive` stay exported from `nav.ts` itself, which also keeps the kebab menu, the social links, and session renewal. The account gear menu and the hamburger menu live in `src/nav/`: `account-menu.ts` (`buildSignedIn`/`buildSignedOut`), `burger.ts` (`buildBurger`, `setBurgerExtra` and its provider state), and `dropdown.ts` (the shared open/close/outside-click/Escape wiring both menus use).
 
 ### `src/storage.ts`
 
@@ -45,16 +48,20 @@ The widget container is normally invisible. `setCaptchaAnchor(el)` picks where a
 
 State is `mode` (`"streams" | "categories"`) plus an optional category selector, driven entirely by the URL (`/?category=<id>`, `/?category=none` for uncategorized, anything else renders a not-found view). Mode switches and category drill-downs `pushState`; `popstate` restores state, so back/forward work.
 
-- **Polling**: `GET /api/live/explore` every 10 s. The response provides `streams` (`username`, `title`, `category`, `categoryId`, `viewers`, optional per-stream `mediaBase`), `categories` (`id`, `name`, `liveStreamCount`, `viewerCount`), and a default `mediaBase`. A request-id guard drops responses that arrive after a newer one was applied.
-- **Stream cards** are cached per username and updated in place across polls (title, category tag, viewer count); a card leaving the live set is dropped from the cache. Cards are sorted by viewers.
-- **Thumbnails** load from `<mediaBase>/thumb/<username>.jpg?t=<minute>`: the URL only changes once per minute, and `img.src` is only reassigned when the computed URL differs, so thumbnails do not flicker on every poll. Broken images hide themselves.
+- **Loading**: `GET /api/live/explore` once on boot. The response provides `streams` (`username`, `title`, `category`, `categoryId`, `viewers`, optional per-stream `mediaBase`), `categories` (`id`, `name`, `liveStreamCount`, `viewerCount`), and a default `mediaBase`.
+- **Stream cards** are cached per username and updated in place (title, category tag, viewer count); a card leaving the live set is dropped from the cache. Cards are sorted by viewers.
+- **Thumbnails** load from `<mediaBase>/thumb/<username>.jpg?t=<minute>`: the URL only changes once per minute, and `img.src` is only reassigned when the computed URL differs, so thumbnails do not flicker on re-render. Broken images hide themselves.
 - **Hover live preview**: on devices matching `(any-hover: hover) and (any-pointer: fine) and (prefers-reduced-motion: no-preference)`, hovering a card's thumbnail for 300 ms overlays an iframe of `/embed/<username>?preview=1`. The embed reports its state back via `postMessage` (`hawolt:stream-preview`, states `connecting`/`playing`/`unavailable`), which drives the card's status chip. Grid re-renders are deferred while a preview is active and applied when it ends; previews stop on pointer leave, page hide, or tab visibility loss.
 - **Category mode** renders category cards (plus a synthetic "No category" card when uncategorized streams exist), sorted by summed viewers; clicking one drills into its stream list.
 - **Framed mode**: when the page detects it is inside an iframe (or `?framed=1`), it skips the navbar, adds `explore-framed`, and stream card links get `target="_top"`. This is what the viewer's browse mode embeds.
 
+`explore.ts` is the entry: it wires the mode/back buttons, the grid's category click delegation, `popstate`, and boot. The rest lives in `src/explore/`: `context.ts` (shared state and types, `isFramed`), `dom.ts` (element lookups), `thumb-url.ts` (the pure minute-bucketed thumbnail URL builder), `stream-cards.ts` (card cache, grid rendering), `preview.ts` (the hover preview overlay and its `postMessage` handling), `categories.ts` (category grid and drill-down), `url-state.ts` (pure URL/`ViewState` conversion), `render.ts` (mode dispatch and `pushState` navigation), and `poll.ts` (the `GET /api/live/explore` load).
+
 ## Channel viewer (`src/live.ts`)
 
 Boot: the username is the first path segment, lowercased and validated against `^[a-z0-9_-]{3,32}$` (invalid means a terminal "No channel" state). `GET /api/live/channel/<username>` supplies `title`, `category`, `categoryId`, `mediaBase`, and `emoteTwitchId`; a 404 is terminal. Chat starts regardless of playback. `?chat=popout` puts the page in popout mode: chat only, no player boot, no layout persistence.
+
+`live.ts` is the entry (channel lookup, header fill-in, wiring). Its internals live in `src/live/`: `dom.ts` (element lookups), `constants.ts` (tuning constants), `icons.ts` (SVG strings), `format.ts` (`formatUptime`/`formatBehind`), `seekbar.ts`, `quality-menu.ts`, `stream-info.ts` (viewer odometer, viewcount socket, uptime, fps), `layout.ts`, `fullscreen.ts`, `cinema.ts`, `browse-mini.ts`, `controls.ts`, `follow.ts`, and `login-modal.ts`. The transport itself lives in `src/live/player/`: `context.ts` (the generation-guarded transport state), `lifecycle.ts` (teardown, restart, retry backoff), `ws.ts` (WS+MSE transport), `mse.ts` (SourceBuffer append/prune/quota), `hls.ts` (native HLS fallback and the presence beacon), `chase.ts`/`chase-decision.ts` (the latency chase), `health.ts` (the health timer), and `abr.ts` (adaptive quality sampling; the pure ABR decision itself stays in `src/quality.ts`).
 
 ### Transport selection
 
@@ -97,6 +104,8 @@ Sets `video.src = <mediaBase>/hls/<username>/live.m3u8` (after obtaining a captc
 
 Started by the viewer via `startChat(username, emoteTwitchId)`. Speaks the IRC line protocol over a WebSocket to `/ws/irc` on the page origin, one or more `\r\n`-separated lines per text frame.
 
+`live-chat.ts` is a facade exporting `startChat`/`stopChat`/`reconnectChatAfterLogin`; everything else lives in `src/chat/`: `dom.ts` (element lookups), `context.ts` (connection and identity state), `irc.ts` (line parsing), `text.ts` (truncation, escaping, mention matching), `members.ts` (roles, ranks, the NAMES prefix decoder), `badges.ts`, `render.ts` (message body token rendering), `messages.ts` (append/trim/reply bar/moderation actions), `pins.ts`, `panels.ts` (userlist and help/settings panels), `suggest.ts` (autocomplete), and `connection.ts` (connect/retry/dispatch). `chat-emotes.ts` stays at the top level and is used from `chat/`; the emote-picker autocomplete matching that used to live in a separate `chat-suggest.ts` is now part of `chat/suggest.ts`.
+
 ### Connection and identity
 
 On open the client sends `CAP REQ :message-tags echo-message draft/message-redaction`, then `NICK`/`USER` with a guest nick bid (a stored `guest_<8hex>` value under `live-chat-guest-nick`, generated if absent; a legacy key is migrated once). The server is the sole nick authority: the confirmed nick is read back from `001`, persisted only if it matches the guest pattern, and then the client joins `#<username>`. Signed-in state is checked separately via `GET /api/auth/session`; the session cookie also rides the WebSocket handshake, which is how an account gets its real name.
@@ -132,6 +141,8 @@ A reduced viewer for `/embed/<username>`: same generation-guarded transport mach
 
 `?preview=1` puts it in preview mode for the explorer's hover previews: the unmute button is suppressed and state transitions are reported to the parent window via `postMessage` with type `hawolt:stream-preview` and state `connecting`, `playing`, or `unavailable`.
 
+`embed.ts` is the entry; its transport lives in `src/embed/`: `context.ts`, `dom.ts`, `constants.ts`, `lifecycle.ts`, `mse.ts`, `chase.ts`, and `transport.ts` (WS and HLS). Pieces that are genuinely identical to the viewer's player live in `src/player-shared/`: `viewer-id.ts` (the persisted HLS viewer id) and `ws-url.ts` (media WS URL building); both `src/live/player/` and `src/embed/` import from there. The two transports are otherwise independent implementations, not a shared engine.
+
 ## OBS chat overlay (`src/chat-overlay.ts`)
 
 `/chat/<username>` renders a transparent, read-only chat for use as an OBS browser source. It connects to `/ws/irc` as a fresh random guest, requests only `message-tags draft/message-redaction`, joins the channel, and renders `PRIVMSG` lines with the same badge and zero-width-emote logic as the main client. It sends nothing but the registration handshake, `PONG`, `JOIN`, and `NAMES`; NOTICEs are never rendered; a `REDACT` removes the line entirely (unlike the viewer's placeholder). Reconnects every 5 s, or 30 s after a 474/KICK.
@@ -148,6 +159,8 @@ URL parameters:
 | `shadow=0` | Disable text shadow |
 | `align=right` | Right-align messages |
 | `demo=1` | No connection; loops a scripted set of sample messages (used by the dashboard's overlay preview) |
+
+`chat-overlay.ts` is the entry (URL params, boot). It reuses `src/chat/badges.ts`, `src/chat/render.ts`, and `src/chat/text.ts` rather than duplicating that rendering; the overlay-specific pieces live in `src/chat-overlay/`: `context.ts`, `irc.ts`, `connection.ts`, `render.ts`, `emote-source.ts`, and `demo.ts` (the `demo=1` scripted playback).
 
 ## Auth pages
 
@@ -167,18 +180,18 @@ Boot sequence:
 1. `initSiteNav("dashboard")`.
 2. Session: use the stored `dash_token`, else `bootstrapSessionFromCookie()`; then `GET /api/auth/me` with the Bearer token (one cookie-bootstrap retry on failure); any dead end redirects to `/login`.
 3. `me` provides `kind`, `username`, `flags`, `emailVerified`, and `tabs` (`[{id, label, pane, group?}]`), the sole source of which tabs exist. Boot also checks the session kind against the current hostname and redirects to the matching host when they disagree, preserving the requested tab; only `user` sessions are served by this dashboard.
-4. Granted tabs are filtered to those with an entry in `TAB_LOADERS` (`stream`, `stream-manager`, `overlay`, `stream-health`, `stream-summary`, `settings`). Granted tabs without a local loader are not rendered as tabs; their presence makes the sidebar (and the mobile hamburger) show a single external link instead.
+4. Granted tabs are filtered to those with an entry in `TAB_LOADERS` (`stream`, `discord`, `stream-manager`, `chatbox`, `alertbox`, `stream-health`, `stream-summary`, `activity`, `settings`). Granted tabs without a local loader are not rendered as tabs; their presence makes the sidebar (and the mobile hamburger) show a single external link instead.
 5. The sidebar is built with group headers (shown only when two or more distinct groups exist) plus a mobile toggle; `setBurgerExtra` injects the tab list into the shared navbar hamburger, as a one-open-at-a-time accordion when grouped.
 
 Routing: the tab comes from `/dashboard/<tab>` (with `/dashboard.html/<tab>` and a legacy `#tab` hash fallback). `activateTab` fetches `/panes/<pane>.html` and dynamic-imports the tab module in parallel on first activation, inserts the pane, calls `init(pane)` once, then on every activation toggles pane visibility, calls the previous tab's `deactivate?()` and the new tab's `activate()`, and `pushState`s the URL. An activation sequence counter discards stale async completions; a failed load alerts and leaves the current tab. `popstate` re-activates from the URL; unknown or ungranted tabs normalize to the first granted tab via `replaceState`. Elements with `data-switch-tab` anywhere in the document switch tabs on click.
 
-Tab modules export `init(pane)`, `activate()`, and optionally `deactivate()` (`TabModule` in `core.ts`). Panes live in `public/panes/<pane>.html` and contain only markup; all behavior is in the module.
+Tab modules export `init(pane)`, `activate()`, and optionally `deactivate()` (`TabModule` in `dash/session.ts`). Panes live in `public/panes/<pane>.html` and contain only markup; all behavior is in the module.
 
 ### Tabs (`src/dash/tabs/`)
 
 - **Stream** (`stream.ts`): loads `GET /api/live` (`LiveInfo`) and renders four cards. Ingest: RTMP URL, maskable stream key with rotate (`POST /api/live/rotate-key`), and, when `GET /api/regions` lists two or more regions, a region select that posts `{region}` to `/api/live/region` on change and re-renders the URLs. Playback: playback URL built from `ingestServer` plus `playbackKey` (rotate via `POST /api/live/playback-key/rotate`) and a public HLS playlist URL built from `mediaBase`. Channel: the public channel URL (or an explanation when the username cannot appear in a URL) and the 7TV borrow field posting `{twitch}` to `/api/live/emote-twitch`. Webhooks: start/end URLs saved via `PUT /api/live/webhooks`, signing secret with rotate (`POST /api/live/webhooks/rotate-secret`), and an integration modal documenting the delivery format (`X-Live-Signature`, `X-Live-Event-Id`, example payload).
 - **Stream Manager** (`stream-manager.ts`): title and category editing (`GET /api/live` + `GET /api/live/categories`, saved via `PUT /api/live/info`), the moderator list (`GET /api/live/mods`, `DELETE /api/live/mods/{id}`), and the ban list (`GET /api/live/bans`, `DELETE /api/live/bans/{id}`; entries with `bannedByRank > 2` show as "Staff ban" without a remove button).
-- **Overlay** (`overlay.ts`): a URL builder for the chat overlay. Controls map one-to-one to the overlay's URL params, the result is shown with a copy button, and a debounced (300 ms) preview iframe loads `/chat/<username>?...&demo=1` against a checkerboard or dark backdrop. `deactivate()` blanks the iframe.
+- **Overlay** (`chatbox.ts`): a URL builder for the chat overlay. Controls map one-to-one to the overlay's URL params, the result is shown with a copy button, and a debounced (300 ms) preview iframe loads `/chat/<username>?...&demo=1` against a checkerboard or dark backdrop. `deactivate()` blanks the iframe.
 - **Stream Health** (`stream-health.ts`) and **Stream Summary** (`stream-summary.ts`): fetch `GET /api/live` for `keyHash` and embed the `/details` page in an iframe (`#k=<keyHash>&n=<username>` plus `viewerEgress=1` for health, `charts=viewers` for summary). No `keyHash` shows a no-data state. The `/details` page itself is not part of this repository. An activation counter guards against stale async completions.
 - **Settings** (`settings.ts`): account email (`GET/PUT /api/settings`, with verification banner and `POST /api/auth/resend-verification`), chat color (`PUT /api/settings/chat-color`, live preview), username change (`PUT /api/settings/username` with current password; the response's fresh token replaces the stored one; a 429 cooldown message renders muted; capitalization-only changes bypass the cooldown client-side), password change (`PUT /api/settings/password`, adopting a returned token), and the chat bot token card (`POST /api/settings/chat-bot-token/rotate`, with reveal/copy and connection instructions for the IRC endpoints).
 
@@ -191,7 +204,7 @@ HTTP under `API_BASE = /api/main/v1` unless noted. Listed as consumed by this co
 | `GET /auth/session` | nav, dashboard, login, register, chat | `{token, kind, username}` from the session cookie |
 | `GET /auth/me` | dashboard, login, register | `{kind, username, flags, emailVerified, tabs}` |
 | `POST /auth/login`, `POST /auth/register` | auth pages | `{token, kind}` or `{error, retryAfter}` |
-| `POST /auth/logout` | nav, core, verify | fire and forget |
+| `POST /auth/logout` | nav, dashboard, verify | fire and forget |
 | `GET /auth/verify?token=` | verify | `{ok, kind, error}` |
 | `POST /auth/forgot-password`, `POST /auth/reset-password` | auth pages | `{ok, error}` |
 | `POST /auth/resend-verification` | settings | success/error |

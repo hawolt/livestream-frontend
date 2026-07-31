@@ -1,5 +1,5 @@
 import type { LiveInfo } from "../../api.ts";
-import { authFetch } from "../core.ts";
+import { authFetch } from "../session.ts";
 
 let shActivation = 0;
 

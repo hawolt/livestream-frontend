@@ -1,5 +1,6 @@
 import type { LiveInfo } from "../../api.ts";
-import { esc, authFetch } from "../core.ts";
+import { esc } from "../format.ts";
+import { authFetch } from "../session.ts";
 
 let liveCache: LiveInfo | null = null;
 

@@ -1,0 +1,8 @@
+export const page = document.getElementById("explore-page") as HTMLElement;
+export const gridEl = document.getElementById("explore-grid") as HTMLElement;
+export const emptyEl = document.getElementById("explore-empty") as HTMLElement;
+export const drillEl = document.getElementById("explore-drill") as HTMLElement;
+export const drillTitleEl = document.getElementById("explore-drill-title") as HTMLElement;
+export const backBtn = document.getElementById("explore-back") as HTMLButtonElement;
+export const modeStreamsBtn = document.getElementById("mode-streams") as HTMLButtonElement;
+export const modeCategoriesBtn = document.getElementById("mode-categories") as HTMLButtonElement;

@@ -1,5 +1,6 @@
 import type { AccountSettings } from "../../api.ts";
-import { $, getMe, setToken, authFetch } from "../core.ts";
+import { $ } from "../dom.ts";
+import { authFetch, getMe, setToken } from "../session.ts";
 
 let usernameCooldownRemaining = 0;
 

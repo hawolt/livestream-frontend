@@ -1,5 +1,6 @@
 import type { AccountSettings } from "../../api.ts";
-import { authFetch, maskSecret } from "../core.ts";
+import { maskSecret } from "../format.ts";
+import { authFetch } from "../session.ts";
 import { PREVIEW_DEBOUNCE_MS, el, username, setBackdrop, wireCopy } from "../overlay-shared.ts";
 
 let followPreviewTimer: number | null = null;
