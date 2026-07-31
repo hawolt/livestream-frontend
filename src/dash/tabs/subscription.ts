@@ -33,7 +33,7 @@ const PERK_FIELD: Record<string, keyof BillingPerks> = {
 
 function perkLabel(token: string): string {
     switch (token) {
-        case "badge": return "Subscriber badge in chat";
+        case "badge": return "Regular badge in chat";
         case "chat_color": return "Custom chat name color";
         case "ads_off": return "No ads";
         case "large_uploads": return "Profile images up to 1 MiB";

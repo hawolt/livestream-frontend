@@ -1,9 +1,9 @@
 import { isOwner } from "./context.ts";
 import { roles, subscribers, unverified, vips } from "./members.ts";
 
-export type BadgeName = "op" | "staff" | "bot" | "mod" | "vip" | "subscriber" | "unverified";
+export type BadgeName = "op" | "staff" | "bot" | "mod" | "vip" | "regular" | "unverified";
 export const BADGE_TITLE: Record<BadgeName, string> = {
-    op: "Owner", staff: "Staff", bot: "Bot", mod: "Mod", vip: "VIP", subscriber: "Subscriber", unverified: "Unverified",
+    op: "Owner", staff: "Staff", bot: "Bot", mod: "Mod", vip: "VIP", regular: "Regular", unverified: "Unverified",
 };
 
 export function makeBadge(name: BadgeName): HTMLImageElement {
@@ -25,7 +25,7 @@ export function buildBadges(from: string): HTMLImageElement[] {
     if (role === "bot") badges.push(makeBadge("bot"));
     if (role === "mod") badges.push(makeBadge("mod"));
     if (vips.has(key)) badges.push(makeBadge("vip"));
-    if (subscribers.has(key)) badges.push(makeBadge("subscriber"));
+    if (subscribers.has(key)) badges.push(makeBadge("regular"));
     if (unverified.has(key)) badges.push(makeBadge("unverified"));
     return badges;
 }

@@ -1,7 +1,7 @@
 import { hashColor } from "../chat/text.ts";
 import { MAX_MESSAGES, RENDERED_BODY_CLASS, ctx, emotes, isOwner, msgsEl, roles, subscribers, unverified, vips } from "./context.ts";
 
-type BadgeName = "op" | "staff" | "bot" | "mod" | "vip" | "subscriber" | "unverified";
+type BadgeName = "op" | "staff" | "bot" | "mod" | "vip" | "regular" | "unverified";
 
 function makeBadge(name: BadgeName): HTMLImageElement {
     const img = document.createElement("img");
@@ -21,7 +21,7 @@ function buildBadges(from: string): HTMLImageElement[] {
     if (role === "bot") badges.push(makeBadge("bot"));
     if (role === "mod") badges.push(makeBadge("mod"));
     if (vips.has(key)) badges.push(makeBadge("vip"));
-    if (subscribers.has(key)) badges.push(makeBadge("subscriber"));
+    if (subscribers.has(key)) badges.push(makeBadge("regular"));
     if (unverified.has(key)) badges.push(makeBadge("unverified"));
     return badges;
 }
