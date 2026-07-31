@@ -1,4 +1,4 @@
-import { getMe } from "./core.ts";
+import { getMe } from "./session.ts";
 
 export const PREVIEW_DEBOUNCE_MS = 300;
 

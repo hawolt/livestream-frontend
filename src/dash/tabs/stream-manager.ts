@@ -1,5 +1,6 @@
 import type { LiveMod, LiveBan } from "../../api.ts";
-import { esc, fmtDate, authFetch } from "../core.ts";
+import { esc, fmtDate } from "../format.ts";
+import { authFetch } from "../session.ts";
 
 const fmtUnix = (t: number | null | undefined): string =>
     t ? fmtDate(new Date(t * 1000).toISOString()) : "-";

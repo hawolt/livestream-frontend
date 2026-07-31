@@ -1,0 +1,8 @@
+export const ICON_PLAY = '<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>';
+export const ICON_PAUSE = '<svg viewBox="0 0 24 24"><path d="M6 5h4v14H6zM14 5h4v14h-4z"/></svg>';
+export const ICON_VOLUME = '<svg viewBox="0 0 24 24"><path d="M3 10v4h4l5 5V5L7 10H3z"/><path d="M15.5 8.5a5 5 0 010 7M18 6a8 8 0 010 12" stroke="currentColor" stroke-width="1.6" fill="none" stroke-linecap="round"/></svg>';
+export const ICON_VOLUME_LOW = '<svg viewBox="0 0 24 24"><path d="M3 10v4h4l5 5V5L7 10H3z"/><path d="M15.5 8.5a5 5 0 010 7" stroke="currentColor" stroke-width="1.6" fill="none" stroke-linecap="round"/></svg>';
+export const ICON_MUTE = '<svg viewBox="0 0 24 24"><path d="M3 10v4h4l5 5V5L7 10H3z"/><path d="M16.2 10.2l3.6 3.6m0-3.6l-3.6 3.6" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/></svg>';
+export const ICON_FULLSCREEN = '<svg viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+export const ICON_FULLSCREEN_EXIT = '<svg viewBox="0 0 24 24"><path d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+export const ICON_CINEMA = '<svg viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="12" rx="1.5" stroke="currentColor" stroke-width="2" fill="none"/><rect x="7" y="9" width="10" height="6" rx="1" stroke="currentColor" stroke-width="1.6" fill="none"/></svg>';

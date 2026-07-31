@@ -1,0 +1,173 @@
+import { ctx } from "./context.ts";
+import {
+    helpBodyEl,
+    helpBtnEl,
+    helpEl,
+    helpFootEl,
+    msgsEl,
+    settingsBtnEl,
+    settingsEl,
+    timestampToggleEl,
+    userlistBodyEl,
+    userlistEl,
+    usersBtnEl,
+} from "./dom.ts";
+import { send } from "./connection.ts";
+import { buildBadges, makeBadge, type BadgeName } from "./badges.ts";
+import { memberDisplay, memberRankBucket, nickColor, USERLIST_GROUPS } from "./members.ts";
+
+export const TIMESTAMPS_KEY = "live-chat-timestamps";
+
+export function renderUserlist(): void {
+    const byBucket = new Map<number, string[]>();
+    for (const [key, display] of memberDisplay) {
+        const b = memberRankBucket(key);
+        (byBucket.get(b) ?? byBucket.set(b, []).get(b)!).push(display);
+    }
+    userlistBodyEl.replaceChildren();
+    let total = 0;
+    for (const g of USERLIST_GROUPS) {
+        const names = byBucket.get(g.bucket);
+        if (!names || !names.length) continue;
+        names.sort((a, b) => a.localeCompare(b));
+        const header = document.createElement("div");
+        header.className = "live-chat-userlist-group";
+        header.textContent = `${g.label} (${names.length})`;
+        userlistBodyEl.appendChild(header);
+        for (const name of names) {
+            total++;
+            const item = document.createElement("div");
+            item.className = "live-chat-userlist-item";
+            for (const badge of buildBadges(name)) item.appendChild(badge);
+            const n = document.createElement("span");
+            n.className = "n";
+            n.textContent = name;
+            n.style.color = nickColor(name);
+            item.appendChild(n);
+            userlistBodyEl.appendChild(item);
+        }
+    }
+    const title = document.getElementById("live-chat-userlist-title");
+    if (title) title.textContent = `Viewers (${total})`;
+    if (!total) {
+        const empty = document.createElement("div");
+        empty.className = "live-chat-userlist-group";
+        empty.textContent = "No one here yet";
+        userlistBodyEl.appendChild(empty);
+    }
+}
+
+export function setUserlist(open: boolean): void {
+    ctx.userlistOpen = open;
+    usersBtnEl.classList.toggle("active", open);
+    userlistEl.hidden = !open;
+    if (open) {
+        setHelp(false);
+        setSettings(false);
+        renderUserlist();
+        send(`NAMES ${ctx.channel}`);
+    }
+}
+
+export function toggleUserlist(): void {
+    setUserlist(!ctx.userlistOpen);
+}
+
+const HELP_COMMANDS: { group: string; badge?: BadgeName; items: [string, string][] }[] = [
+    {
+        group: "Everyone",
+        items: [
+            ["@name", "Mention someone - Tab to autocomplete, keep pressing Tab to cycle."],
+            [":emote", "Insert a 7TV emote - Tab to autocomplete, keep pressing Tab to cycle."],
+            [".whisper <user> <msg>", "Send a private message (alias .w)."],
+            ["Reply", "Hover a message and click ↩ to reply to it."],
+        ],
+    },
+    {
+        group: "Moderators & above",
+        badge: "mod",
+        items: [
+            [".ban <user>", "Ban a user from the channel."],
+            [".timeout <user> <min>", "Temporarily ban (1–10080 minutes)."],
+            [".unban <user>", "Lift a ban."],
+            [".pin <id> / .unpin", "Pin/unpin a message (use the 📌 hover action)."],
+            [".delete <id>", "Delete a message (use the ✕ hover action)."],
+        ],
+    },
+    {
+        group: "Channel owner",
+        badge: "op",
+        items: [
+            [".mod / .unmod <user>", "Grant or remove a moderator."],
+            [".vip / .unvip <user>", "Grant or remove VIP."],
+        ],
+    },
+];
+
+export function buildHelp(): void {
+    helpBodyEl.replaceChildren();
+    for (const section of HELP_COMMANDS) {
+        const card = document.createElement("div");
+        card.className = "live-chat-help-card";
+
+        const head = document.createElement("div");
+        head.className = "live-chat-help-card-head";
+        if (section.badge) head.appendChild(makeBadge(section.badge));
+        const h4 = document.createElement("h4");
+        h4.textContent = section.group;
+        head.appendChild(h4);
+        card.appendChild(head);
+
+        const rows = document.createElement("div");
+        rows.className = "live-chat-help-cmds";
+        for (const [cmd, desc] of section.items) {
+            const row = document.createElement("div");
+            row.className = "live-chat-help-cmd-row";
+            const code = document.createElement("code");
+            code.textContent = cmd;
+            const d = document.createElement("span");
+            d.className = "live-chat-help-cmd-desc";
+            d.textContent = desc;
+            row.append(code, d);
+            rows.appendChild(row);
+        }
+        card.appendChild(rows);
+        helpBodyEl.appendChild(card);
+    }
+    helpFootEl.textContent = "Commands are typed straight into chat. You only see the actions your role allows.";
+    ctx.helpBuilt = true;
+}
+
+export function setHelp(open: boolean): void {
+    ctx.helpOpen = open;
+    helpBtnEl.classList.toggle("active", open);
+    helpEl.hidden = !open;
+    if (open) {
+        setUserlist(false);
+        setSettings(false);
+        if (!ctx.helpBuilt) buildHelp();
+    }
+}
+
+export function toggleHelp(): void {
+    setHelp(!ctx.helpOpen);
+}
+
+export function setSettings(open: boolean): void {
+    ctx.settingsOpen = open;
+    settingsBtnEl.classList.toggle("active", open);
+    settingsEl.hidden = !open;
+    if (open) {
+        setUserlist(false);
+        setHelp(false);
+    }
+}
+
+export function toggleSettings(): void {
+    setSettings(!ctx.settingsOpen);
+}
+
+export function applyTimestampPref(on: boolean): void {
+    msgsEl.classList.toggle("show-timestamps", on);
+    timestampToggleEl.checked = on;
+}

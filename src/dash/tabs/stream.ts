@@ -1,5 +1,8 @@
 import type { LiveInfo, RegionOption } from "../../api.ts";
-import { esc, authFetch, maskSecret, openModal, loadRegions } from "../core.ts";
+import { esc, maskSecret } from "../format.ts";
+import { openModal } from "../modal.ts";
+import { loadRegions } from "../regions.ts";
+import { authFetch } from "../session.ts";
 
 let liveCache: LiveInfo | null = null;
 let regions: RegionOption[] = [];

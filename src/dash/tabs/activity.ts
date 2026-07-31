@@ -1,6 +1,7 @@
 import type { LiveInfo, LiveCategory } from "../../api.ts";
 import { STREAM_LANGUAGE_OPTIONS, type StreamLanguageCode } from "../../stream-languages.ts";
-import { authFetch, esc, fmtDate, fmtTime, getMe, token } from "../core.ts";
+import { esc, fmtDate, fmtTime } from "../format.ts";
+import { authFetch, getMe, token } from "../session.ts";
 
 interface FollowEvent {
     type: string;

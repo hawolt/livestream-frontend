@@ -1,8 +1,10 @@
 import { initSiteNav, setBurgerExtra } from "./nav.ts";
+import { $, $$ } from "./dash/dom.ts";
+import "./dash/modal.ts";
 import {
-    setMe, token, loginRedirect, signOutAndRedirect, loadDashboardSession, startSessionRenewal, $, $$,
+    setMe, token, loginRedirect, signOutAndRedirect, loadDashboardSession, startSessionRenewal,
     type TabInfo, type TabModule,
-} from "./dash/core.ts";
+} from "./dash/session.ts";
 
 const TAB_LOADERS: Record<string, () => Promise<TabModule>> = {
     stream:           () => import("./dash/tabs/stream.ts"),
@@ -287,12 +289,6 @@ function showSessionProblem(state: "forbidden" | "unavailable"): void {
         return;
     }
     if (session.state !== "ready") {
-        // loadDashboardSession() already knows the session state, so the
-        // success path passes it in as knownSession to avoid a second
-        // /auth/session round trip. Here we genuinely don't have a usable
-        // session yet, so let initSiteNav fetch it itself - without this the
-        // page renders with no top nav at all and the user can't get out
-        // except via the buttons showSessionProblem() happens to provide.
         void initSiteNav("dashboard");
         showSessionProblem(session.state);
         return;

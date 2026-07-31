@@ -36,7 +36,7 @@ Build outputs (`public/*.js`, `public/dash/`) are gitignored; a fresh checkout h
 | Path | Purpose |
 |---|---|
 | `src/` | TypeScript sources, one entry point per page |
-| `src/dash/` | Dashboard shared runtime (`core.ts`) and per-tab modules (`tabs/`) |
+| `src/dash/` | Dashboard shared runtime (`session.ts`, `modal.ts`, `format.ts`, `regions.ts`, `dom.ts`) and per-tab modules (`tabs/`) |
 | `public/` | Page HTML at the root; build output lands here |
 | `public/panes/` | Dashboard tab HTML fragments, fetched on first tab activation |
 | `public/static/css/` | Stylesheets (`shared.css`, `site.css`, `explore.css`) |
@@ -47,7 +47,7 @@ Build outputs (`public/*.js`, `public/dash/`) are gitignored; a fresh checkout h
 
 | Page | Entry | HTML | What it does |
 |---|---|---|---|
-| Explorer | `src/explore.ts` | `explore.html` | Live stream and category grid at `/`, 10 s polling, hover live previews |
+| Explorer | `src/explore.ts` | `explore.html` | Live stream and category grid at `/`, hover live previews |
 | Channel viewer | `src/live.ts` | `live.html` | `/<username>`: WS+MSE playback with native HLS fallback, DVR rewind, cinema mode, browse picture-in-picture, chat |
 | Chat client | `src/live-chat.ts` | (part of `live.html`) | IRC over WebSocket: badges, 7TV emotes, replies, mentions, whispers, pins, moderation actions |
 | Embed player | `src/embed.ts` | `embed.html` | `/embed/<username>`: minimal muted-autoplay player, click to unmute, preview mode for the explorer |

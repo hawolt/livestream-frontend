@@ -1,4 +1,4 @@
-import { apiFetch, API_BASE, type RegionOption } from "../api.ts";
+import { apiFetch, API_BASE } from "../api.ts";
 import { sessionResponseIdentity, sessionTokenMetadata } from "../session-token.ts";
 
 export interface TabInfo { id: string; label: string; pane: string; group?: string; }
@@ -130,11 +130,6 @@ async function renewSessionWhenVisible(): Promise<void> {
         return;
     }
     if (bootstrap !== "unauthenticated") return;
-    // The renewal cookie lapsed, but the bearer token we're still holding may
-    // well be valid (it has its own lifetime and authFetch() keeps working off
-    // it independently of this cookie). Only force a logout once the bearer
-    // token itself is confirmed dead too - otherwise this background timer
-    // would cause the very "unexpected session loss" issue #37 fixed.
     if (!TOKEN) {
         loginRedirect();
         return;
@@ -229,137 +224,4 @@ export async function authFetch<T>(path: string, init?: RequestInit): Promise<T>
             throw retryError;
         }
     }
-}
-
-let regionsCache: RegionOption[] | null = null;
-
-export async function loadRegions(): Promise<RegionOption[]> {
-    if (regionsCache) return regionsCache;
-    try {
-        const res = await authFetch<{ regions: RegionOption[] }>("/api/regions");
-        regionsCache = Array.isArray(res.regions) ? res.regions : [];
-    } catch {
-        return [];
-    }
-    return regionsCache;
-}
-
-export const $  = (id: string) => document.getElementById(id) as HTMLElement;
-export const $$ = (sel: string) => document.querySelectorAll<HTMLElement>(sel);
-
-export const fmtDate = (s: string | null | undefined): string => {
-    if (!s) return "-";
-    const raw = s.slice(0, 10);
-    const [y, m, d] = raw.split('-');
-    return `${d}.${m}.${y}`;
-};
-export const fmtTime = (s: string | null | undefined): string => {
-    if (!s) return "-";
-    return s.slice(11, 16);
-};
-export const esc = (s: string | null | undefined) =>
-    String(s ?? "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;").replace(/`/g,"&#96;");
-
-export function fmtUptime(s: number): string {
-    const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), sec = s % 60;
-    return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(sec).padStart(2, "0")}`;
-}
-
-let modalReturnFocus: HTMLElement | null = null;
-
-function modalFocusables(): HTMLElement[] {
-    return Array.from($("modal").querySelectorAll<HTMLElement>(
-        "a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex='-1'])",
-    )).filter(el => el.offsetParent !== null);
-}
-
-function onModalKeyDown(e: KeyboardEvent): void {
-    if (e.defaultPrevented) return;
-    if (e.key === "Escape") {
-        e.preventDefault();
-        closeModal();
-        return;
-    }
-    if (e.key !== "Tab") return;
-    const focusables = modalFocusables();
-    if (!focusables.length) {
-        e.preventDefault();
-        $("modal-box").focus();
-        return;
-    }
-    const first = focusables[0]!;
-    const last = focusables[focusables.length - 1]!;
-    if (!$("modal").contains(document.activeElement)) {
-        e.preventDefault();
-        (e.shiftKey ? last : first).focus();
-    } else if (e.shiftKey && document.activeElement === first) {
-        e.preventDefault();
-        last.focus();
-    } else if (!e.shiftKey && document.activeElement === last) {
-        e.preventDefault();
-        first.focus();
-    }
-}
-
-export function openModal(title: string, body: string, footer = ""): void {
-    const modal = $("modal");
-    if (!modal.classList.contains("open")) {
-        modalReturnFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-    }
-    $("modal-title").textContent = title;
-    $("modal-body").innerHTML    = body;
-    $("modal-foot").innerHTML    = footer;
-    modal.classList.add("open");
-    modal.setAttribute("aria-hidden", "false");
-    document.removeEventListener("keydown", onModalKeyDown);
-    document.addEventListener("keydown", onModalKeyDown);
-    requestAnimationFrame(() => {
-        if (!modal.classList.contains("open")) return;
-        const initial = $("modal-body").querySelector<HTMLElement>(
-            "input:not([disabled]), select:not([disabled]), textarea:not([disabled]), button:not([disabled]), a[href]",
-        );
-        (initial ?? modalFocusables()[0] ?? $("modal-box")).focus();
-    });
-}
-export function closeModal(): void {
-    const modal = $("modal");
-    if (!modal.classList.contains("open")) return;
-    modal.classList.remove("open");
-    modal.setAttribute("aria-hidden", "true");
-    document.removeEventListener("keydown", onModalKeyDown);
-    const returnFocus = modalReturnFocus;
-    modalReturnFocus = null;
-    if (returnFocus?.isConnected) requestAnimationFrame(() => returnFocus.focus());
-}
-$("modal-close").addEventListener("click", closeModal);
-$("modal").addEventListener("click", e => { if (e.target === $("modal")) closeModal(); });
-(window as unknown as Record<string,unknown>)["closeModal"] = closeModal;
-
-export function maskSecret(value: string): string {
-    return value ? "•".repeat(16) : "";
-}
-
-export function wireCopyButtons(values: string[]): void {
-    document.querySelectorAll<HTMLButtonElement>("#modal-body [data-copy]").forEach(btn => {
-        btn.addEventListener("click", () => {
-            const value = values[Number(btn.dataset["copy"] ?? "-1")] ?? "";
-            navigator.clipboard.writeText(value).then(() => {
-                btn.textContent = "Copied";
-                setTimeout(() => { btn.textContent = "Copy"; }, 1200);
-            }).catch(() => { btn.textContent = "Failed"; });
-        });
-    });
-}
-
-export function wireRevealButtons(values: string[]): void {
-    document.querySelectorAll<HTMLButtonElement>("#modal-body [data-reveal]").forEach(btn => {
-        btn.addEventListener("click", () => {
-            const idx = Number(btn.dataset["reveal"] ?? "-1");
-            const code = document.querySelector<HTMLElement>(`#modal-body [data-secret="${idx}"]`);
-            if (!code) return;
-            const hidden = btn.textContent === "Reveal";
-            code.textContent = hidden ? (values[idx] ?? "") : maskSecret(values[idx] ?? "");
-            btn.textContent = hidden ? "Hide" : "Reveal";
-        });
-    });
 }
