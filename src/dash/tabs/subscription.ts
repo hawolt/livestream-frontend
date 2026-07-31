@@ -11,6 +11,8 @@ let cache: BillingTiers | null = null;
 let pollTimer: number | null = null;
 let pollStartedAt = 0;
 
+const FEATURED_TIER_KEY: string | null = null;
+
 const FALLBACK_ORDER = [
     "badge", "chat_color", "ads_off", "large_uploads", "animated_avatar",
     "transcode", "irl", "remoteobs", "restream", "restream_plus",
@@ -111,7 +113,7 @@ async function loadTiers(): Promise<void> {
 function tierCard(tier: BillingTier, index: number, tiers: BillingTier[], tokenLists: string[][]): string {
     const current = cache?.current;
     const isCurrent = current?.tier === tier.key;
-    const isFeatured = !isCurrent && tiers.length >= 2 && index === tiers.length - 1;
+    const isFeatured = !isCurrent && FEATURED_TIER_KEY !== null && tier.key === FEATURED_TIER_KEY;
     const tokens = tokenLists[index]!;
     let inherit = "";
     let shown = tokens;
