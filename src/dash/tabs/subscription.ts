@@ -113,6 +113,7 @@ async function loadTiers(): Promise<void> {
 function tierCard(tier: BillingTier, index: number, tiers: BillingTier[], tokenLists: string[][]): string {
     const current = cache?.current;
     const isCurrent = current?.tier === tier.key;
+    const currentRank = current ? tiers.find(t => t.key === current.tier)?.rank ?? null : null;
     const isFeatured = !isCurrent && FEATURED_TIER_KEY !== null && tier.key === FEATURED_TIER_KEY;
     const tokens = tokenLists[index]!;
     let inherit = "";
@@ -132,9 +133,16 @@ function tierCard(tier: BillingTier, index: number, tiers: BillingTier[], tokenL
     const flag = isCurrent
         ? `<span class="sub-flag">YOUR PLAN</span>`
         : isFeatured ? `<span class="sub-flag">BEST VALUE</span>` : "";
-    const action = isCurrent
-        ? `<div class="sub-current-label">Active</div>`
-        : `<div class="sub-cta"><button class="btn btn-primary" data-sub-tier="${esc(tier.key)}">Subscribe</button></div>`;
+    let action: string;
+    if (isCurrent) {
+        action = `<div class="sub-current-label">Active</div>`;
+    } else if (currentRank === null) {
+        action = `<div class="sub-cta"><button class="btn btn-primary" data-sub-tier="${esc(tier.key)}">Subscribe</button></div>`;
+    } else if (tier.rank > currentRank) {
+        action = `<div class="sub-cta"><button class="btn btn-primary" data-sub-upgrade="${esc(tier.key)}">Upgrade</button></div>`;
+    } else {
+        action = `<div class="sub-current-label" style="color:var(--muted)">Included in your plan</div>`;
+    }
     const cls = ["sub-card", isCurrent ? "current" : "", isFeatured ? "featured" : ""].filter(Boolean).join(" ");
     return `<div class="${cls}">
         ${flag}
@@ -168,6 +176,7 @@ function render(): void {
             <span>${esc(current!.status)}</span>
             <span>Renews ${renewalDate}</span>
             <button class="btn" id="btn-sub-portal">Manage subscription</button>
+            <span>Downgrades and cancellation are handled there.</span>
         </div>`
         : "";
     const tiers = [...cache.tiers].sort((a, b) => a.rank - b.rank);
@@ -181,6 +190,29 @@ function render(): void {
     el.querySelectorAll<HTMLButtonElement>("[data-sub-tier]").forEach(btn => {
         btn.addEventListener("click", () => void checkout(btn));
     });
+    el.querySelectorAll<HTMLButtonElement>("[data-sub-upgrade]").forEach(btn => {
+        btn.addEventListener("click", () => void upgrade(btn));
+    });
+}
+
+async function upgrade(btn: HTMLButtonElement): Promise<void> {
+    const tier = btn.dataset["subUpgrade"];
+    if (!tier) return;
+    const label = cache?.tiers.find(t => t.key === tier)?.label ?? tier;
+    if (!confirm(`Upgrade to ${label}? The prorated price difference for the current period is charged immediately.`)) return;
+    btn.disabled = true;
+    try {
+        await authFetch<{ ok: boolean }>("/api/billing/upgrade", {
+            method: "POST",
+            body: JSON.stringify({ tier }),
+        });
+        void loadTiers();
+        window.setTimeout(() => void loadTiers(), 3000);
+        window.setTimeout(() => void loadTiers(), 8000);
+    } catch (e) {
+        alert("Could not upgrade: " + (e instanceof Error ? e.message : String(e)));
+        btn.disabled = false;
+    }
 }
 
 async function checkout(btn: HTMLButtonElement): Promise<void> {
