@@ -29,7 +29,6 @@ export const LAYOUT_KEY = "live-layout";
 export const LAYOUT_VERTICAL_QUERY = `(max-width: ${COMPACT_MAX_WIDTH_PX}px) and (orientation: portrait)`;
 export const HLS_BEACON_INTERVAL_MS = 10000;
 export const VIEWCOUNT_RETRY_MS = 5000;
-export const HLS_HOST_ID_KEY = "live_hid";
 export const VOLUME_KEY = "live-volume";
 export const QUALITY_STORAGE_KEY = "live-quality";
 export const ABR_SAMPLE_INTERVAL_MS = 2000;

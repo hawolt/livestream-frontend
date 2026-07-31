@@ -1,27 +1,11 @@
 import { video } from "../dom.ts";
 import { ctx, isCurrent, track } from "./context.ts";
-import { HLS_BEACON_INTERVAL_MS, HLS_HOST_ID_KEY } from "../constants.ts";
-import { readLocalStorage, writeLocalStorage } from "../../storage.ts";
+import { HLS_BEACON_INTERVAL_MS } from "../constants.ts";
+import { getViewerId } from "../../player-shared/viewer-id.ts";
 import { captchaQuery, getCaptchaToken } from "../../captcha.ts";
 import { beginTransport, enterTerminal, goOffline, resetRetryBackoff, setState } from "./lifecycle.ts";
 import { withCaptchaHint } from "./ws.ts";
 import { attachVideoFailureListeners } from "./health.ts";
-
-let viewerId = "";
-
-export function getViewerId(): string {
-    if (viewerId) return viewerId;
-    const stored = readLocalStorage(HLS_HOST_ID_KEY);
-    if (stored && /^[0-9a-f]{16}$/.test(stored)) {
-        viewerId = stored;
-        return viewerId;
-    }
-    const bytes = new Uint8Array(8);
-    crypto.getRandomValues(bytes);
-    viewerId = Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
-    writeLocalStorage(HLS_HOST_ID_KEY, viewerId);
-    return viewerId;
-}
 
 function sendHLSBeat(): void {
     void captchaQuery().then((tq) => {
@@ -51,6 +35,8 @@ export function startHLSBeacon(g: number): void {
     beat();
     hlsBeaconTimer = window.setInterval(beat, HLS_BEACON_INTERVAL_MS);
 }
+
+export { getViewerId };
 
 export function canUseNativeHLS(): boolean {
     return video.canPlayType("application/vnd.apple.mpegurl") !== "";

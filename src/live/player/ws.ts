@@ -14,11 +14,11 @@ import { attachMediaSource, pump } from "./mse.ts";
 import { attachVideoFailureListeners } from "./health.ts";
 import { fullTeardown, goOffline, nextRetryDelay, scheduleRestart, setPoster, setState } from "./lifecycle.ts";
 import { resetAbr } from "./abr.ts";
+import { mediaWsUrl as sharedMediaWsUrl } from "../../player-shared/ws-url.ts";
 
 export function mediaWsUrl(path: string): string {
-    if (ctx.mediaBase) return ctx.mediaBase.replace(/^http/, "ws") + path;
     const proto = location.protocol === "https:" ? "wss" : "ws";
-    return `${proto}://${location.host}${path}`;
+    return sharedMediaWsUrl(ctx.mediaBase, path, `${proto}://${location.host}`);
 }
 
 export function withCaptchaHint<T>(g: number, p: Promise<T>): Promise<T> {
