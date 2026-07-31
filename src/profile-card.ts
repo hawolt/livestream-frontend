@@ -63,7 +63,8 @@ function avatarUrl(profile: Profile): string {
     return `/api/live/profile/${encodeURIComponent(profile.username)}/avatar?v=${profile.avatarVersion}`;
 }
 
-function bannerUrl(profile: Profile): string {
+export function offlineArtUrl(profile: Profile): string | null {
+    if (!profile.hasBanner) return null;
     return `/api/live/profile/${encodeURIComponent(profile.username)}/banner?v=${profile.bannerVersion}`;
 }
 
@@ -93,17 +94,6 @@ export function renderProfileCard(container: HTMLElement, profile: Profile | nul
 
     const card = document.createElement("div");
     card.className = "profile-card";
-
-    if (profile.hasBanner) {
-        const banner = document.createElement("div");
-        banner.className = "profile-card-banner";
-        const img = document.createElement("img");
-        img.src = bannerUrl(profile);
-        img.alt = "";
-        img.loading = "lazy";
-        banner.appendChild(img);
-        card.appendChild(banner);
-    }
 
     const head = document.createElement("div");
     head.className = "profile-card-head";

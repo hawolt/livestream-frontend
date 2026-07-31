@@ -63,13 +63,35 @@ export function setBadge(on: boolean): void {
     badgeEl.hidden = on;
 }
 
-export function setPoster(label: string | null, isError = false, isLoading = false): void {
+let offlineArtUrl: string | null = null;
+let offlineArtWanted = false;
+
+export function setOfflineArt(url: string | null): void {
+    offlineArtUrl = url;
+    applyOfflineArt(offlineArtWanted);
+}
+
+function applyOfflineArt(on: boolean): void {
+    if (on && offlineArtUrl) {
+        const safe = offlineArtUrl.replace(/"/g, "%22");
+        posterEl.style.backgroundImage =
+            `linear-gradient(rgba(0,0,0,.35), rgba(0,0,0,.35)), url("${safe}")`;
+        posterEl.classList.add("has-art");
+        return;
+    }
+    posterEl.style.removeProperty("background-image");
+    posterEl.classList.remove("has-art");
+}
+
+export function setPoster(label: string | null, isError = false, isLoading = false, withArt = false): void {
     if (label === null) {
         posterEl.classList.add("hidden");
         posterEl.classList.remove("loading");
         posterEl.textContent = "";
         posterEl.setAttribute("aria-busy", "false");
         stageEl.classList.remove("terminal");
+        offlineArtWanted = false;
+        applyOfflineArt(false);
         return;
     }
     posterEl.textContent = label;
@@ -77,6 +99,8 @@ export function setPoster(label: string | null, isError = false, isLoading = fal
     posterEl.classList.toggle("loading", isLoading);
     posterEl.setAttribute("aria-busy", String(isLoading));
     posterEl.classList.remove("hidden");
+    offlineArtWanted = withArt;
+    applyOfflineArt(withArt);
 }
 
 export function setTerminal(label: string, isError = true): void {
@@ -106,7 +130,7 @@ export function renderPlayerUI(): void {
     switch (ctx.state) {
         case "offline":
             setBadge(false);
-            setPoster("Offline", false);
+            setPoster("Offline", false, false, true);
             applyDefaultProfileVisibility(true);
             break;
         case "connecting":

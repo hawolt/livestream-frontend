@@ -125,7 +125,7 @@ function applyProfile(profile: MyProfile): void {
     renderLinks(profile.links);
     const hint = formatHint(profile);
     $("pf-avatar-hint").textContent = hint;
-    $("pf-banner-hint").textContent = hint;
+    $("pf-banner-hint").textContent = `${hint}. 16:9 recommended`;
     renderPreview($("pf-avatar-preview"), profile.hasAvatar, `/api/live/profile/${encodeURIComponent(profile.username)}/avatar?v=${profile.avatarVersion}`);
     renderPreview($("pf-banner-preview"), profile.hasBanner, `/api/live/profile/${encodeURIComponent(profile.username)}/banner?v=${profile.bannerVersion}`);
 }

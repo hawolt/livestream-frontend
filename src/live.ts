@@ -24,7 +24,8 @@ import {
 import { ctx } from "./live/player/context.ts";
 import { wireControls } from "./live/controls.ts";
 import { syncLayout } from "./live/layout.ts";
-import { beginTransport, enterTerminal } from "./live/player/lifecycle.ts";
+import { beginTransport, enterTerminal, setOfflineArt } from "./live/player/lifecycle.ts";
+import { loadProfile, offlineArtUrl } from "./profile-card.ts";
 import { canUseNativeHLS } from "./live/player/hls.ts";
 import { openLoginModal, wireLoginModal } from "./live/login-modal.ts";
 import { initFollow } from "./live/follow.ts";
@@ -111,6 +112,9 @@ async function boot(): Promise<void> {
     nameEl.textContent = ctx.displayUsername;
     document.title = ctx.displayUsername;
     browseMiniUsername.textContent = ctx.displayUsername;
+    void loadProfile(ctx.username).then(profile => {
+        if (profile) setOfflineArt(offlineArtUrl(profile));
+    });
     titleEl.textContent = title;
     const hasCategory = !!category;
     const languageLabel = streamLanguageLabel(language);

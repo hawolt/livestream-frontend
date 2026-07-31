@@ -31,9 +31,10 @@
             </div>
         </div>
 
-        <div class="section-title" style="margin-top:28px">Offline banner</div>
+        <div class="section-title" style="margin-top:28px">Offline channel art</div>
+        <p style="color:var(--muted);font-size:13px;margin:0 0 12px;max-width:520px">Shown on your channel page behind the Offline notice while you are not streaming. Use a 16:9 image, 1920x1080 works well.</p>
         <div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap">
-            <div id="pf-banner-preview" style="width:240px;height:80px;border-radius:6px;overflow:hidden;background:rgba(255,255,255,.05);display:flex;align-items:center;justify-content:center;flex-shrink:0"></div>
+            <div id="pf-banner-preview" style="width:240px;aspect-ratio:16/9;border-radius:6px;overflow:hidden;background:rgba(255,255,255,.05);display:flex;align-items:center;justify-content:center;flex-shrink:0"></div>
             <div>
                 <input type="file" id="pf-banner-file" accept="image/png,image/jpeg,image/gif" hidden />
                 <button type="button" class="btn btn-sm" id="pf-banner-upload">Upload</button>
