@@ -33,6 +33,7 @@ export interface BillingPerks {
     remoteobs?: boolean;
     restream?: boolean;
     restreamPlus?: boolean;
+    order?: string[];
 }
 
 export interface BillingCurrent {
@@ -47,6 +48,7 @@ export interface BillingTiers {
     tiers: BillingTier[];
     current: BillingCurrent | null;
     feeNote?: string;
+    restreamDestinationCap?: number;
 }
 
 export interface RegionOption {
