@@ -68,6 +68,17 @@ async function boot(): Promise<void> {
     try {
         const res = await fetch(`/api/live/channel/${encodeURIComponent(ctx.username)}`);
         if (res.status === 404) {
+            let banned = false;
+            try {
+                const body = await res.json() as { banned?: boolean };
+                banned = body.banned === true;
+            } catch {}
+            if (banned) {
+                nameEl.textContent = ctx.displayUsername;
+                document.title = ctx.displayUsername;
+                enterTerminal("Banned");
+                return;
+            }
             nameEl.textContent = "No channel";
             enterTerminal("No channel");
             return;
