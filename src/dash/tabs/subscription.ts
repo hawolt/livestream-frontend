@@ -22,6 +22,7 @@ function perkLabels(perks: BillingPerks | undefined): string[] {
     if (perks.transcode) out.push("Quality options for your viewers");
     if (perks.irl) out.push("IRL ingests (SRT, SRTLA and RTMP)");
     if (perks.remoteobs) out.push("Remote OBS studio");
+    if (perks.restream) out.push("Restream to other platforms");
     return out;
 }
 
@@ -117,7 +118,10 @@ function render(): void {
             ${action}
         </div>`;
     }).join("");
-    el.innerHTML = pendingBanner + statusBlock + (rows || `<p style="color:var(--muted);font-size:13px;margin:0">No plans configured.</p>`);
+    const feeNote = cache.feeNote
+        ? `<p style="color:var(--muted);font-size:12px;margin:14px 0 0">${esc(cache.feeNote)}</p>`
+        : "";
+    el.innerHTML = pendingBanner + statusBlock + (rows || `<p style="color:var(--muted);font-size:13px;margin:0">No plans configured.</p>`) + feeNote;
     document.getElementById("btn-sub-portal")?.addEventListener("click", () => void openPortal());
     el.querySelectorAll<HTMLButtonElement>("[data-sub-tier]").forEach(btn => {
         btn.addEventListener("click", () => void checkout(btn));
