@@ -46,6 +46,7 @@ export interface BillingTiers {
     restreamDestinationCap?: number;
     currency?: string;
     priceInterval?: string;
+    featuredTier?: string;
 }
 
 export interface RegionOption {

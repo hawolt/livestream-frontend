@@ -11,7 +11,12 @@ let cache: BillingTiers | null = null;
 let pollTimer: number | null = null;
 let pollStartedAt = 0;
 
-const FEATURED_TIER_KEY: string | null = null;
+function featuredTierKey(tiers: BillingTier[]): string | null {
+    const configured = (cache?.featuredTier ?? "").trim();
+    if (!configured) return null;
+    if (configured.toLowerCase() === "first") return tiers[0]?.key ?? null;
+    return tiers.some(t => t.key === configured) ? configured : null;
+}
 
 const FALLBACK_ORDER = [
     "badge", "chat_color", "ads_off", "large_uploads", "animated_avatar",
@@ -117,7 +122,7 @@ function tierCard(tier: BillingTier, index: number, tiers: BillingTier[], tokenL
     const current = cache?.current;
     const isCurrent = current?.tier === tier.key;
     const currentRank = current ? tiers.find(t => t.key === current.tier)?.rank ?? null : null;
-    const isFeatured = !isCurrent && FEATURED_TIER_KEY !== null && tier.key === FEATURED_TIER_KEY;
+    const isFeatured = !isCurrent && tier.key === featuredTierKey(tiers);
     const tokens = tokenLists[index]!;
     let inherit = "";
     let shown = tokens;
@@ -135,7 +140,7 @@ function tierCard(tier: BillingTier, index: number, tiers: BillingTier[], tokenL
         : "";
     const flag = isCurrent
         ? `<span class="sub-flag">YOUR PLAN</span>`
-        : isFeatured ? `<span class="sub-flag">BEST VALUE</span>` : "";
+        : isFeatured ? `<span class="sub-flag">BEST DEAL</span>` : "";
     let action: string;
     if (isCurrent) {
         action = `<div class="sub-current-label">Active</div>`;
