@@ -9,7 +9,7 @@ interface StreamPreview {
 }
 
 const PREVIEW_DELAY_MS = 300;
-const PREVIEW_MESSAGE_TYPE = "hawolt:stream-preview";
+const PREVIEW_MESSAGE_TYPE = "itzon:stream-preview";
 
 const hoverPreviewMedia = window.matchMedia("(any-hover: hover) and (any-pointer: fine) and (prefers-reduced-motion: no-preference)");
 

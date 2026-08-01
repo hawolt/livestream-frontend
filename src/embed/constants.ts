@@ -5,4 +5,4 @@ export const RETRY_MIN_MS = 1000;
 export const RETRY_MAX_MS = 15000;
 export const RETRY_MULT = 2;
 export const HLS_BEACON_INTERVAL_MS = 10000;
-export const PREVIEW_MESSAGE_TYPE = "hawolt:stream-preview";
+export const PREVIEW_MESSAGE_TYPE = "itzon:stream-preview";
