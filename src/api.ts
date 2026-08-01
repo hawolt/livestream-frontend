@@ -31,7 +31,6 @@ export interface BillingPerks {
     transcode?: boolean;
     irl?: boolean;
     remoteobs?: boolean;
-    restream?: boolean;
     restreamPlus?: boolean;
     order?: string[];
 }

@@ -15,7 +15,7 @@ const FEATURED_TIER_KEY: string | null = null;
 
 const FALLBACK_ORDER = [
     "badge", "chat_color", "ads_off", "large_uploads", "animated_avatar",
-    "transcode", "irl", "remoteobs", "restream", "restream_plus",
+    "transcode", "irl", "remoteobs", "restream_plus",
 ];
 
 const PERK_FIELD: Record<string, keyof BillingPerks> = {
@@ -27,7 +27,6 @@ const PERK_FIELD: Record<string, keyof BillingPerks> = {
     transcode: "transcode",
     irl: "irl",
     remoteobs: "remoteobs",
-    restream: "restream",
     restream_plus: "restreamPlus",
 };
 
@@ -41,10 +40,6 @@ function perkLabel(token: string): string {
         case "transcode": return "Quality options for your viewers";
         case "irl": return "IRL ingests (SRT, SRTLA and RTMP)";
         case "remoteobs": return "Remote OBS studio";
-        case "restream": {
-            const cap = cache?.restreamDestinationCap ?? 0;
-            return cap > 0 ? `Restream to up to ${cap} other platforms` : "Restream to other platforms";
-        }
         case "restream_plus": return "Restream without broadcasting to this site";
         default: return token;
     }
