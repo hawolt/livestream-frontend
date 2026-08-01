@@ -1,6 +1,7 @@
 import {
     btnChatCollapse,
     btnChatFullscreen,
+    btnChatMore,
     btnChatPopout,
     btnChatSide,
     btnChatToggle,
@@ -9,6 +10,7 @@ import {
     btnLayoutToggle,
     btnMute,
     btnPlay,
+    chatOverflow,
     stageEl,
     video,
     volInput,
@@ -48,6 +50,12 @@ import { wirePageLifecycle } from "./player/lifecycle.ts";
 import { renderQualityMenu, wireQualityMenu } from "./quality-menu.ts";
 import { startFpsMeter, updateQuality } from "./stream-info.ts";
 import { wireSeekBar } from "./seekbar.ts";
+
+function setChatOverflow(open: boolean): void {
+    chatOverflow.hidden = !open;
+    btnChatMore.classList.toggle("active", open);
+    btnChatMore.setAttribute("aria-expanded", String(open));
+}
 
 function updatePlayIcon(): void {
     btnPlay.innerHTML = video.paused ? ICON_PLAY : ICON_PAUSE;
@@ -219,7 +227,11 @@ export function wireControls(): void {
         );
         if (ev.defaultPrevented || ev.repeat) return;
         if (ev.key === "Escape") {
-            if (isChatFullscreen() && !isChatFsNative()) {
+            if (!chatOverflow.hidden) {
+                ev.preventDefault();
+                setChatOverflow(false);
+                btnChatMore.focus();
+            } else if (isChatFullscreen() && !isChatFsNative()) {
                 ev.preventDefault();
                 exitChatFullscreen();
             } else if (isCinemaMode() && !isChatFullscreen() && !isVideoFullscreen()) {
@@ -242,6 +254,12 @@ export function wireControls(): void {
     btnLayoutToggle.addEventListener("click", cycleLayout);
     btnChatToggle.addEventListener("click", toggleChat);
     btnChatCollapse.addEventListener("click", toggleChat);
+    btnChatMore.addEventListener("click", () => setChatOverflow(chatOverflow.hidden));
+    chatOverflow.addEventListener("click", () => setChatOverflow(false));
+    document.addEventListener("click", (ev) => {
+        const target = ev.target as Node;
+        if (!chatOverflow.hidden && !chatOverflow.contains(target) && !btnChatMore.contains(target)) setChatOverflow(false);
+    });
     btnChatFullscreen.addEventListener("click", toggleChatFullscreen);
     btnChatSide.addEventListener("click", () => {
         const left = !document.body.classList.contains("chat-left");

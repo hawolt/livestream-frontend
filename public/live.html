@@ -583,6 +583,7 @@
         }
         .live-chat-head span { font-size: 13px; font-weight: 700; color: var(--text); }
         .live-chat-head-actions {
+            position: relative;
             display: flex;
             align-items: center;
             gap: 2px;
@@ -596,7 +597,42 @@
             padding: 4px 6px;
         }
         .live-chat-head button:hover { color: var(--text); }
-        #btn-chat-users.active, #btn-chat-help.active, #btn-chat-settings.active, #btn-chat-profile.active { color: var(--accent); }
+        #btn-chat-more.active,
+        .live-chat-head-actions:has(.live-chat-overflow button.active) #btn-chat-more { color: var(--accent); }
+        .live-chat-overflow {
+            position: absolute;
+            z-index: 3;
+            top: calc(100% + 7px);
+            right: 0;
+            width: 210px;
+            padding: 6px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            background: var(--surface);
+            box-shadow: 0 10px 26px rgba(0,0,0,.26);
+        }
+        .live-chat-overflow[hidden] { display: none; }
+        .live-chat-overflow-label {
+            display: block;
+            padding: 7px 8px 3px;
+            color: var(--muted);
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: .08em;
+            text-transform: uppercase;
+        }
+        .live-chat-overflow button {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            min-height: 32px;
+            padding: 5px 8px;
+            color: var(--text);
+            font-size: 13px;
+            text-align: left;
+        }
+        .live-chat-overflow button:hover { background: rgba(255,255,255,.06); }
+        .live-chat-overflow-divider { height: 1px; margin: 5px 2px; background: var(--border); }
         .live-chat-setting { display: flex; align-items: center; gap: 10px; padding: 8px 4px; font-size: 13px; color: var(--text); cursor: pointer; }
         .live-chat-setting input { width: 16px; height: 16px; cursor: pointer; }
         .live-chat-setting span {
@@ -1205,6 +1241,7 @@
         .live-app.is-vertical #live-chat { width: 100%; border-left: none; border-top: 1px solid var(--border); flex: 1 1 0; height: auto; min-height: 220px; }
         .live-app.is-vertical .live-chat-head { justify-content: flex-end; }
         .live-app.is-vertical .live-chat-head span { display: none; }
+        .live-app.is-vertical .live-chat-overflow-label { display: block; }
 
         #live-viewers-count, #live-viewers-header-count {
             display: inline-flex;
@@ -1249,6 +1286,7 @@
         .is-vertical #btn-cinema { display: none; }
 
         #btn-chat-fullscreen { display: inline-flex; align-items: center; justify-content: center; }
+        #live-chat-overflow #btn-chat-fullscreen { display: flex; justify-content: flex-start; }
 
         #live-chat.chat-fullscreen {
             border-left: none;
@@ -1446,25 +1484,19 @@
             <div class="live-chat-head">
                 <span>Chat</span>
                 <div class="live-chat-head-actions">
-                    <button id="btn-chat-profile" type="button" title="Channel profile" aria-label="Channel profile">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><circle cx="8.5" cy="12" r="2"/><path d="M13 10h6M13 14h4"/></svg>
-                    </button>
-                    <button id="btn-chat-settings" type="button" title="Settings" aria-label="Settings">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 8 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H2a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 8a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V2a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H22a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-                    </button>
-                    <button id="btn-chat-help" type="button" title="Chat commands" aria-label="Chat commands">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9.2 9.2a2.8 2.8 0 015.4 1c0 1.9-2.8 2.5-2.8 2.5"/><line x1="12" y1="17" x2="12" y2="17"/></svg>
-                    </button>
-                    <button id="btn-chat-users" type="button" title="Viewers in chat" aria-label="Viewers in chat">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-                    </button>
-                    <button id="btn-chat-side" type="button" title="Move chat to the other side" aria-label="Move chat side">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><line x1="15" y1="4" x2="15" y2="20"/></svg>
-                    </button>
-                    <button id="btn-chat-popout" type="button" title="Pop out chat" aria-label="Pop out chat">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6"/><path d="M10 14L21 3"/><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/></svg>
-                    </button>
-                    <button id="btn-chat-fullscreen" type="button" title="Fullscreen chat" aria-label="Fullscreen chat"></button>
+                    <button id="btn-chat-more" type="button" title="More chat options" aria-label="More chat options" aria-haspopup="true" aria-expanded="false" aria-controls="live-chat-overflow">&middot;&middot;&middot;</button>
+                    <div class="live-chat-overflow" id="live-chat-overflow" hidden>
+                        <span class="live-chat-overflow-label">Chat</span>
+                        <button id="btn-chat-profile" type="button">Channel profile</button>
+                        <button id="btn-chat-users" type="button">View chatters</button>
+                        <button id="btn-chat-help" type="button">Chat commands</button>
+                        <button id="btn-chat-settings" type="button">Chat settings</button>
+                        <div class="live-chat-overflow-divider"></div>
+                        <span class="live-chat-overflow-label">Window</span>
+                        <button id="btn-chat-side" type="button">Move chat to other side</button>
+                        <button id="btn-chat-popout" type="button">Pop out chat</button>
+                        <button id="btn-chat-fullscreen" type="button">Fullscreen chat</button>
+                    </div>
                     <button id="btn-chat-collapse" type="button" title="Collapse chat" aria-label="Collapse chat">&times;</button>
                 </div>
             </div>

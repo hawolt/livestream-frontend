@@ -89,8 +89,8 @@ export function isChatFullscreen(): boolean {
 
 export function updateChatFullscreenButton(): void {
     const full = isChatFullscreen();
-    btnChatFullscreen.innerHTML = full ? ICON_FULLSCREEN_EXIT : ICON_FULLSCREEN;
     const label = full ? "Exit fullscreen chat" : "Fullscreen chat";
+    btnChatFullscreen.textContent = label;
     btnChatFullscreen.setAttribute("aria-label", label);
     btnChatFullscreen.title = label;
 }
