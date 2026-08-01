@@ -3,6 +3,7 @@ import { ctx, nextGen } from "./player/context.ts";
 import { EXPLORE_TITLE } from "./constants.ts";
 import { markActive } from "../nav.ts";
 import { isPopoutMode, scheduleFullscreenSettle } from "./layout.ts";
+import { syncChannelRailVisibility } from "./channel-rail.ts";
 import { exitCinemaMode, isCinemaMode } from "./cinema.ts";
 import { clearRetryTimer, fullTeardown, goOffline, resetRetryBackoff, setState } from "./player/lifecycle.ts";
 import { stopHealthTimer } from "./player/health.ts";
@@ -63,6 +64,7 @@ export function applyBrowseMode(on: boolean, opts: { push?: boolean } = {}): voi
             goOffline(ctx.gen);
         }
     }
+    syncChannelRailVisibility();
     scheduleFullscreenSettle();
 }
 

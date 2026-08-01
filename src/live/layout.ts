@@ -1,4 +1,5 @@
-import { btnCinema, btnLayoutToggle, chatEl, page, stageEl, video } from "./dom.ts";
+import { btnCinema, btnLayoutToggle, channelRailEl, chatEl, mainEl, page, stageEl, video } from "./dom.ts";
+import { syncChannelRailVisibility } from "./channel-rail.ts";
 import { readLocalStorage, writeLocalStorage } from "../storage.ts";
 import {
     CHAT_COLLAPSE_KEY,
@@ -52,6 +53,7 @@ export function syncLayout(): void {
     btnLayoutToggle.setAttribute("aria-label", label);
     fitChat();
     updateCinemaButtonVisibility();
+    syncChannelRailVisibility();
 }
 
 let settleRaf1: number | null = null;
@@ -127,7 +129,8 @@ export function fitChat(): void {
         return;
     }
     const aspect = video.videoWidth > 0 && video.videoHeight > 0 ? video.videoWidth / video.videoHeight : DEFAULT_ASPECT;
-    const ideal = window.innerWidth - stageH * aspect;
+    const railWidth = channelRailEl.offsetParent === null ? 0 : channelRailEl.getBoundingClientRect().width;
+    const ideal = mainEl.clientWidth - railWidth - stageH * aspect;
     const want = Math.round(Math.min(CHAT_MAX_PX, Math.max(CHAT_MIN_PX, ideal)));
     const current = parseFloat(chatEl.style.width) || 0;
     if (Math.abs(current - want) < CHAT_FIT_HYSTERESIS_PX) return;

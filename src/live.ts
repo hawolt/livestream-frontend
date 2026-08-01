@@ -23,6 +23,7 @@ import {
 } from "./live/dom.ts";
 import { ctx } from "./live/player/context.ts";
 import { wireControls } from "./live/controls.ts";
+import { startChannelRail } from "./live/channel-rail.ts";
 import { syncLayout } from "./live/layout.ts";
 import { beginTransport, enterTerminal, setOfflineArt } from "./live/player/lifecycle.ts";
 import { loadProfile, offlineArtUrl } from "./profile-card.ts";
@@ -53,6 +54,7 @@ async function boot(): Promise<void> {
     document.title = ctx.displayUsername;
     browseMiniUsername.textContent = ctx.displayUsername;
     if (!chatPopout) {
+        startChannelRail();
         setCaptchaAnchor(chatEl);
         warmCaptcha();
         void loadAds("chat").then(ads => {

@@ -1,6 +1,7 @@
 import { btnChatFullscreen, btnFullscreen, chatEl, chatInputEl, chatMessagesEl, stageEl, video } from "./dom.ts";
 import { ICON_FULLSCREEN, ICON_FULLSCREEN_EXIT } from "./icons.ts";
 import { currentEffectiveLayout, scheduleFullscreenSettle } from "./layout.ts";
+import { syncChannelRailVisibility } from "./channel-rail.ts";
 
 export type FullscreenEl = HTMLElement & { webkitRequestFullscreen?: () => void };
 export type FullscreenDoc = Document & { webkitFullscreenElement?: Element | null; webkitExitFullscreen?: () => void };
@@ -98,6 +99,7 @@ export function updateChatFullscreenButton(): void {
 function applyChatFullscreenLayout(on: boolean): void {
     chatEl.classList.toggle("chat-fullscreen", on);
     document.body.classList.toggle("chat-fullscreen-lock", on);
+    syncChannelRailVisibility();
 }
 
 function restoreChatScrollAndFocus(): void {
@@ -174,4 +176,5 @@ export function onFullscreenChange(): void {
     }
     syncChatFullscreenFromDocument();
     updateChatFullscreenButton();
+    syncChannelRailVisibility();
 }
