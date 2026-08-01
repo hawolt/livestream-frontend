@@ -101,7 +101,7 @@ describe("renderAdSlot", () => {
         expect(img).not.toBeNull();
         expect(img!.alt).toBe("Great deal");
         expect(img!.src).toBe("/static/img/ad.png");
-        const label = container.findClass("ad-label");
+        const label = container.findClass("promo-flag");
         expect(label).not.toBeNull();
         expect(label!.textContent).toBe("Anzeige");
     });

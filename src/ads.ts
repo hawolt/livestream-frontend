@@ -38,7 +38,7 @@ export function renderAdSlot(container: HTMLElement, ads: AdSpot[]): void {
     img.loading = "lazy";
     a.appendChild(img);
     const label = document.createElement("span");
-    label.className = "ad-label";
+    label.className = "promo-flag";
     label.textContent = "Anzeige";
     a.appendChild(label);
     container.appendChild(a);
