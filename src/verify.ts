@@ -4,7 +4,9 @@ import { initSiteNav } from "./nav.ts";
 
 void initSiteNav(null);
 
-document.documentElement.classList.toggle("live-host", location.hostname.startsWith("live."));
+const rootBaseDomain = location.hostname.replace(/^(live|admin|staff)\./, "");
+const isRootLiveHost = location.hostname === rootBaseDomain || location.hostname.startsWith("live.");
+document.documentElement.classList.toggle("live-host", isRootLiveHost);
 
 const msgEl    = document.getElementById("verify-msg")!;
 const actionEl = document.getElementById("verify-action")!;
@@ -13,8 +15,8 @@ function dashboardUrl(kind?: string): string {
     const baseDomain = location.hostname.replace(/^(live|admin|staff)\./, "");
     const port = location.port ? `:${location.port}` : "";
     if (kind === "user") {
-        return location.hostname.startsWith("live.")
-            ? "/dashboard" : `${location.protocol}//live.${baseDomain}${port}/dashboard`;
+        return location.hostname === baseDomain
+            ? "/dashboard" : `${location.protocol}//${baseDomain}${port}/dashboard`;
     }
     if (kind === "admin") {
         return location.hostname.startsWith("staff.")

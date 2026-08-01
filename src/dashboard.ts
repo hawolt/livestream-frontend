@@ -353,15 +353,16 @@ function showSessionProblem(state: "forbidden" | "unavailable"): void {
     }
     const me = session.me;
 
-    const isLiveHost = location.hostname.startsWith("live.");
     const baseDomain = location.hostname.replace(/^(live|admin|staff)\./, "");
+    const isOnBareDomain = location.hostname === baseDomain;
+    const isLiveHost = isOnBareDomain || location.hostname.startsWith("live.");
     const requestedTab = tabFromLocation();
     const tabPath = requestedTab ? `/${requestedTab}` : "";
     const port = location.port ? `:${location.port}` : "";
-    if (me.kind === "user" && !isLiveHost) {
+    if (me.kind === "user" && !isOnBareDomain) {
         sessionStorage.removeItem("dash_token");
         sessionStorage.removeItem("dash_kind");
-        location.replace(`https://live.${baseDomain}${port}/dashboard${tabPath}`);
+        location.replace(`https://${baseDomain}${port}/dashboard${tabPath}`);
         return;
     }
     if (me.kind === "admin" && isLiveHost) {

@@ -4,7 +4,9 @@ import { initSiteNav } from "./nav.ts";
 
 void initSiteNav(null);
 
-document.documentElement.classList.toggle("live-host", location.hostname.startsWith("live."));
+const resetBaseDomain = location.hostname.replace(/^(live|admin|staff)\./, "");
+const isResetLiveHost = location.hostname === resetBaseDomain || location.hostname.startsWith("live.");
+document.documentElement.classList.toggle("live-host", isResetLiveHost);
 
 const errorEl = document.getElementById("error")!;
 const token   = new URLSearchParams(location.search).get("token") ?? "";
