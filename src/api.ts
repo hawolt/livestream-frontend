@@ -28,10 +28,6 @@ export interface BillingPerks {
     adsOff: boolean;
     largeUploads: boolean;
     animatedAvatar: boolean;
-    transcode?: boolean;
-    irl?: boolean;
-    remoteobs?: boolean;
-    restreamPlus?: boolean;
     order?: string[];
 }
 

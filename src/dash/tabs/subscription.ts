@@ -15,7 +15,6 @@ const FEATURED_TIER_KEY: string | null = null;
 
 const FALLBACK_ORDER = [
     "badge", "chat_color", "ads_off", "large_uploads", "animated_avatar",
-    "transcode", "irl", "remoteobs", "restream_plus",
 ];
 
 const PERK_FIELD: Record<string, keyof BillingPerks> = {
@@ -24,10 +23,6 @@ const PERK_FIELD: Record<string, keyof BillingPerks> = {
     ads_off: "adsOff",
     large_uploads: "largeUploads",
     animated_avatar: "animatedAvatar",
-    transcode: "transcode",
-    irl: "irl",
-    remoteobs: "remoteobs",
-    restream_plus: "restreamPlus",
 };
 
 function perkLabel(token: string): string {
@@ -37,10 +32,6 @@ function perkLabel(token: string): string {
         case "ads_off": return "No ads";
         case "large_uploads": return "Profile images up to 1 MiB";
         case "animated_avatar": return "Animated GIF profile images";
-        case "transcode": return "Quality options for your viewers";
-        case "irl": return "IRL ingests (SRT, SRTLA and RTMP)";
-        case "remoteobs": return "Remote OBS studio";
-        case "restream_plus": return "Restream without broadcasting to this site";
         default: return token;
     }
 }
