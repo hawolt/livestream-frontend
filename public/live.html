@@ -113,11 +113,11 @@
             color: var(--dim);
             cursor: pointer;
             font-family: var(--font-ui);
-            font-size: 21px;
             line-height: 1;
         }
         .live-channel-rail-toggle:hover { background: rgba(255,255,255,.06); color: var(--text); }
         .live-channel-rail-toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+        .live-channel-rail-toggle svg { width: 18px; height: 18px; display: block; }
         .live-channel-rail-body { position: relative; flex: 1; min-height: 0; }
         .live-channel-list {
             height: 100%;
@@ -820,6 +820,26 @@
         }
         .live-chat-time { display: none; margin-right: 6px; color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
         #live-chat-messages.show-timestamps .live-chat-time { display: inline; }
+        .live-chat-avatar, .live-chat-avatar-fallback {
+            display: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            vertical-align: middle;
+            margin-right: 6px;
+            flex-shrink: 0;
+        }
+        .live-chat-avatar { object-fit: cover; }
+        .live-chat-avatar-fallback {
+            background: var(--border);
+            color: var(--text);
+            font-size: 10px;
+            text-transform: uppercase;
+            text-align: center;
+            line-height: 20px;
+        }
+        #live-chat-messages.show-avatars .live-chat-avatar,
+        #live-chat-messages.show-avatars .live-chat-avatar-fallback { display: inline-block; }
         .live-chat-head button svg { width: 17px; height: 17px; display: block; }
 
         #live-chat-messages {
@@ -1623,7 +1643,7 @@
             <div class="live-channel-rail-head">
                 <span class="live-channel-rail-title">Live channels</span>
                 <span class="live-channel-count" id="live-channel-count" aria-live="polite">0</span>
-                <button class="live-channel-rail-toggle" id="live-channel-rail-toggle" type="button" title="Collapse live channels" aria-label="Collapse live channels" aria-expanded="true"><span id="live-channel-rail-toggle-glyph" aria-hidden="true">&lsaquo;</span></button>
+                <button class="live-channel-rail-toggle" id="live-channel-rail-toggle" type="button" title="Collapse live channels" aria-label="Collapse live channels" aria-expanded="true"><span id="live-channel-rail-toggle-glyph" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></span></button>
             </div>
             <div class="live-channel-rail-body">
                 <div class="live-channel-list" id="live-channel-list" role="navigation" aria-label="Streaming now"></div>
@@ -1724,6 +1744,10 @@
                     <label class="live-chat-setting">
                         <input type="checkbox" id="live-chat-ts-toggle" />
                         <span>Show timestamps</span>
+                    </label>
+                    <label class="live-chat-setting">
+                        <input type="checkbox" id="live-chat-avatar-toggle" />
+                        <span>Show profile pictures</span>
                     </label>
                 </div>
             </div>

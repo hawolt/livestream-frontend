@@ -21,6 +21,7 @@ export const profileEl = document.getElementById("live-chat-profile") as HTMLEle
 export const profileBodyEl = document.getElementById("live-chat-profile-body") as HTMLElement;
 export const profileCloseEl = document.getElementById("live-chat-profile-close") as HTMLButtonElement;
 export const timestampToggleEl = document.getElementById("live-chat-ts-toggle") as HTMLInputElement;
+export const avatarToggleEl = document.getElementById("live-chat-avatar-toggle") as HTMLInputElement;
 export const sendEl = document.getElementById("live-chat-send-btn") as HTMLButtonElement;
 export const emoteBtnEl = document.getElementById("live-chat-emote-btn") as HTMLButtonElement;
 export const pickerEl = document.getElementById("live-chat-picker") as HTMLElement;

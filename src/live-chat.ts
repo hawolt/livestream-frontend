@@ -1,6 +1,7 @@
 import { readLocalStorage, writeLocalStorage } from "./storage.ts";
 import { ctx } from "./chat/context.ts";
 import {
+    avatarToggleEl,
     emoteBtnEl,
     guestLoginEl,
     helpBtnEl,
@@ -30,7 +31,9 @@ import {
 import { autoGrowInput, closePicker, MAX_TEXT, renderPickerGrid, submit, togglePicker } from "./chat/composer.ts";
 import { clearReply } from "./chat/messages.ts";
 import {
+    applyAvatarPref,
     applyTimestampPref,
+    AVATARS_KEY,
     closeProfile,
     setHelp,
     setSettings,
@@ -75,6 +78,11 @@ export function startChat(user: string, emoteTwitchId?: string, onLoginRequested
     timestampToggleEl.addEventListener("change", () => {
         applyTimestampPref(timestampToggleEl.checked);
         writeLocalStorage(TIMESTAMPS_KEY, timestampToggleEl.checked ? "1" : "0");
+    });
+    applyAvatarPref(readLocalStorage(AVATARS_KEY) !== "0");
+    avatarToggleEl.addEventListener("change", () => {
+        applyAvatarPref(avatarToggleEl.checked);
+        writeLocalStorage(AVATARS_KEY, avatarToggleEl.checked ? "1" : "0");
     });
     pickerFilterEl.addEventListener("input", () => renderPickerGrid(pickerFilterEl.value));
     inputEl.addEventListener("input", () => {

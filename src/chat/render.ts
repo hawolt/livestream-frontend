@@ -21,6 +21,31 @@ export function buildTimeSpan(sentAt?: string): HTMLSpanElement {
     return span;
 }
 
+const AVATAR_USER_ID_RE = /^[0-9]+$/;
+const AVATAR_EXT_RE = /^(jpg|png|gif)$/;
+
+function buildAvatarFallback(from: string): HTMLSpanElement {
+    const span = document.createElement("span");
+    span.className = "live-chat-avatar-fallback";
+    span.textContent = from.slice(0, 1).toUpperCase();
+    return span;
+}
+
+export function buildAvatar(from: string, userId?: string, avatar?: string): HTMLElement {
+    if (userId && avatar && AVATAR_USER_ID_RE.test(userId) && AVATAR_EXT_RE.test(avatar)) {
+        const img = document.createElement("img");
+        img.className = "live-chat-avatar";
+        img.src = `/api/live/avatar/${userId}.${avatar}`;
+        img.alt = "";
+        img.loading = "lazy";
+        img.onerror = () => {
+            img.replaceWith(buildAvatarFallback(from));
+        };
+        return img;
+    }
+    return buildAvatarFallback(from);
+}
+
 export function buildEmoteImg(name: string, url: string): HTMLImageElement {
     const img = document.createElement("img");
     img.className = "live-chat-emote";

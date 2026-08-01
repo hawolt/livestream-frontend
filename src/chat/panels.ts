@@ -1,5 +1,6 @@
 import { ctx } from "./context.ts";
 import {
+    avatarToggleEl,
     helpBodyEl,
     helpBtnEl,
     helpEl,
@@ -21,6 +22,7 @@ import { memberDisplay, memberRankBucket, nickColor, USERLIST_GROUPS } from "./m
 import { loadProfile, renderProfileCard, type Profile } from "../profile-card.ts";
 
 export const TIMESTAMPS_KEY = "live-chat-timestamps";
+export const AVATARS_KEY = "live-chat-avatars";
 
 export function renderUserlist(): void {
     const byBucket = new Map<number, string[]>();
@@ -245,4 +247,9 @@ export function applyDefaultProfileVisibility(offline: boolean): void {
 export function applyTimestampPref(on: boolean): void {
     msgsEl.classList.toggle("show-timestamps", on);
     timestampToggleEl.checked = on;
+}
+
+export function applyAvatarPref(on: boolean): void {
+    msgsEl.classList.toggle("show-avatars", on);
+    avatarToggleEl.checked = on;
 }

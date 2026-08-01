@@ -252,12 +252,14 @@ function handle(line: IrcLine): void {
             }
             if (target.toLowerCase() === ctx.channel) {
                 if (line.automod) {
-                    if (!document.body.classList.contains("chat-popout")) addHiddenMessage(line.nick, body);
+                    if (!document.body.classList.contains("chat-popout")) {
+                        addHiddenMessage(line.nick, body, line.userId, line.avatar);
+                    }
                 } else {
-                    addMessage(line.nick, body, line.msgid, line.reply, line.time);
+                    addMessage(line.nick, body, line.msgid, line.reply, line.time, line.userId, line.avatar);
                 }
             } else {
-                addWhisper(line.nick, target, body);
+                addWhisper(line.nick, target, body, line.userId, line.avatar);
             }
             return;
         }

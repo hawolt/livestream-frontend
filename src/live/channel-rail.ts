@@ -10,6 +10,7 @@ import { readLocalStorage, writeLocalStorage } from "../storage.ts";
 import { API_BASE } from "../api.ts";
 import { CHANNEL_RAIL_COLLAPSED_KEY, CHANNEL_RAIL_POLL_MS } from "./constants.ts";
 import { type FullscreenDoc } from "./fullscreen.ts";
+import { ICON_CHEVRON_LEFT, ICON_CHEVRON_RIGHT } from "./icons.ts";
 import { fitChat } from "./layout.ts";
 import { ctx } from "./player/context.ts";
 
@@ -192,7 +193,7 @@ function setRailCollapsed(collapsed: boolean): void {
     const label = collapsed ? "Expand live channels" : "Collapse live channels";
     channelRailToggleEl.title = label;
     channelRailToggleEl.setAttribute("aria-label", label);
-    channelRailToggleGlyphEl.textContent = collapsed ? ">" : "<";
+    channelRailToggleGlyphEl.innerHTML = collapsed ? ICON_CHEVRON_RIGHT : ICON_CHEVRON_LEFT;
     writeLocalStorage(CHANNEL_RAIL_COLLAPSED_KEY, collapsed ? "1" : "0");
     fitChat();
 }

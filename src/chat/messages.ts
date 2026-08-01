@@ -3,7 +3,7 @@ import { inputEl, msgsEl, pickerFilterEl, replyBarEl, replyLabelEl, suggestEl } 
 import { buildBadges } from "./badges.ts";
 import { hasModRole, nickColor } from "./members.ts";
 import { cssEsc, mentionsMe, truncate } from "./text.ts";
-import { buildRenderedBody, buildTimeSpan, RENDERED_BODY_CLASS, renderBody } from "./render.ts";
+import { buildAvatar, buildRenderedBody, buildTimeSpan, RENDERED_BODY_CLASS, renderBody } from "./render.ts";
 import { send } from "./connection.ts";
 import { renderPickerGrid } from "./composer.ts";
 import { updateSuggest } from "./suggest.ts";
@@ -125,7 +125,15 @@ function buildActions(from: string, text: string, msgid: string): HTMLElement {
     return actions;
 }
 
-export function addMessage(from: string, text: string, msgid?: string, replyId?: string, sentAt?: string): void {
+export function addMessage(
+    from: string,
+    text: string,
+    msgid?: string,
+    replyId?: string,
+    sentAt?: string,
+    userId?: string,
+    avatar?: string,
+): void {
     const line = document.createElement("div");
     line.className = "live-chat-msg";
     line.dataset["from"] = from;
@@ -139,6 +147,7 @@ export function addMessage(from: string, text: string, msgid?: string, replyId?:
     }
 
     line.appendChild(buildTimeSpan(sentAt));
+    line.appendChild(buildAvatar(from, userId, avatar));
     const who = document.createElement("span");
     who.className = "live-chat-nick";
     who.textContent = from;
@@ -173,7 +182,7 @@ export function redactMessageEl(el: HTMLElement): void {
     el.dataset["text"] = "<deleted message>";
 }
 
-export function addHiddenMessage(from: string, text: string): void {
+export function addHiddenMessage(from: string, text: string, userId?: string, avatar?: string): void {
     const line = document.createElement("div");
     line.className = "live-chat-msg live-chat-automod";
     line.dataset["from"] = from;
@@ -182,20 +191,21 @@ export function addHiddenMessage(from: string, text: string): void {
     tag.className = "live-chat-automod-tag";
     tag.textContent = "blocked";
     tag.title = "Removed by automod. Only moderators see this message.";
+    line.append(tag, buildAvatar(from, userId, avatar));
     const who = document.createElement("span");
     who.className = "live-chat-nick";
     who.textContent = from;
     who.style.color = nickColor(from);
     const badges = buildBadges(from);
-    line.append(tag);
     if (badges.length) line.append(...badges);
     line.append(who, document.createTextNode(": "), buildRenderedBody(text));
     append(line);
 }
 
-export function addWhisper(from: string, target: string, text: string): void {
+export function addWhisper(from: string, target: string, text: string, userId?: string, avatar?: string): void {
     const line = document.createElement("div");
     line.className = "live-chat-msg live-chat-whisper";
+    line.appendChild(buildAvatar(from, userId, avatar));
     const tag = document.createElement("span");
     tag.className = "live-chat-whisper-tag";
     const outgoing = from.toLowerCase() === myNickLower();
