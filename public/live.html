@@ -647,11 +647,6 @@
         .live-chat-time { display: none; margin-right: 6px; color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
         #live-chat-messages.show-timestamps .live-chat-time { display: inline; }
         .live-chat-head button svg { width: 17px; height: 17px; display: block; }
-        #btn-chat-fullscreen svg {
-            width: 16px;
-            height: 16px;
-            display: block;
-        }
 
         #live-chat-messages {
             flex: 1;
@@ -962,7 +957,9 @@
         body.chat-popout #btn-chat-side,
         body.chat-popout #btn-chat-profile,
         body.chat-popout #live-chat-profile,
-        body.chat-popout #live-chat-feature { display: none; }
+        body.chat-popout #live-chat-feature,
+        body.chat-popout .live-chat-overflow-window-label,
+        body.chat-popout .live-chat-overflow-divider { display: none; }
         body.chat-popout .live-app { height: 100%; }
         body.chat-popout .live-main { height: 100%; }
         body.chat-popout #live-chat {
@@ -1241,7 +1238,6 @@
         .live-app.is-vertical #live-chat { width: 100%; border-left: none; border-top: 1px solid var(--border); flex: 1 1 0; height: auto; min-height: 220px; }
         .live-app.is-vertical .live-chat-head { justify-content: flex-end; }
         .live-app.is-vertical .live-chat-head span { display: none; }
-        .live-app.is-vertical .live-chat-overflow-label { display: block; }
 
         #live-viewers-count, #live-viewers-header-count {
             display: inline-flex;
@@ -1284,9 +1280,6 @@
             .live-app:not(.is-vertical) #live-chat { width: 40%; max-width: 340px; }
         }
         .is-vertical #btn-cinema { display: none; }
-
-        #btn-chat-fullscreen { display: inline-flex; align-items: center; justify-content: center; }
-        #live-chat-overflow #btn-chat-fullscreen { display: flex; justify-content: flex-start; }
 
         #live-chat.chat-fullscreen {
             border-left: none;
@@ -1492,7 +1485,7 @@
                         <button id="btn-chat-help" type="button">Chat commands</button>
                         <button id="btn-chat-settings" type="button">Chat settings</button>
                         <div class="live-chat-overflow-divider"></div>
-                        <span class="live-chat-overflow-label">Window</span>
+                        <span class="live-chat-overflow-label live-chat-overflow-window-label">Window</span>
                         <button id="btn-chat-side" type="button">Move chat to other side</button>
                         <button id="btn-chat-popout" type="button">Pop out chat</button>
                         <button id="btn-chat-fullscreen" type="button">Fullscreen chat</button>
