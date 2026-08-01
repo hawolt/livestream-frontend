@@ -3,6 +3,7 @@ const TURNSTILE_SRC = "https://challenges.cloudflare.com/turnstile/v0/api.js?ren
 let configLoaded = false;
 let configPromise: Promise<void> | null = null;
 let enabled = false;
+let challenge = false;
 let sitekey = "";
 let scriptLoaded = false;
 let cached: { token: string; exp: number } | null = null;
@@ -13,11 +14,17 @@ export function setCaptchaAnchor(el: HTMLElement | null): void {
     anchorEl = el;
 }
 
+/** Best-effort: true only once config is loaded and a Turnstile solve is actually in play. */
+export function captchaChallengeActive(): boolean {
+    return configLoaded && enabled && challenge;
+}
+
 async function fetchConfig(): Promise<void> {
     const r = await fetch("/api/live/captcha/config");
     if (!r.ok) throw new Error(`captcha config: ${r.status}`);
     const c = await r.json();
     enabled = !!c?.enabled;
+    challenge = !!c?.challenge;
     sitekey = typeof c?.sitekey === "string" ? c.sitekey : "";
     configLoaded = true;
 }
@@ -112,12 +119,18 @@ function solve(): Promise<string> {
 
 async function mint(): Promise<string> {
     try {
-        await loadScript();
-        const provToken = await solve();
+        let body: string;
+        if (challenge) {
+            await loadScript();
+            const provToken = await solve();
+            body = JSON.stringify({ token: provToken });
+        } else {
+            body = "{}";
+        }
         const r = await fetch("/api/live/captcha/token", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ token: provToken }),
+            body,
         });
         if (!r.ok) return "";
         const j = await r.json();
@@ -131,7 +144,8 @@ async function mint(): Promise<string> {
 
 export async function getCaptchaToken(): Promise<string> {
     await loadConfig();
-    if (!enabled || !sitekey) return "";
+    if (!enabled) return "";
+    if (challenge && !sitekey) return "";
     if (cached && cached.exp - 60 > Date.now() / 1000) return cached.token;
     if (!inflight) inflight = mint().finally(() => { inflight = null; });
     return inflight;

@@ -1,5 +1,5 @@
 import { ctx, isCurrent } from "./context.ts";
-import { captchaQuery } from "../../captcha.ts";
+import { captchaChallengeActive, captchaQuery } from "../../captcha.ts";
 import {
     QUALITY_SOURCE,
     isQualityOnlyFrame,
@@ -22,8 +22,9 @@ export function mediaWsUrl(path: string): string {
 }
 
 export function withCaptchaHint<T>(g: number, p: Promise<T>): Promise<T> {
+    const hint = captchaChallengeActive() ? "Cloudflare is checking your browser" : "Checking access";
     const t = window.setTimeout(() => {
-        if (isCurrent(g) && !ctx.terminal) setPoster("Cloudflare is checking your browser", false, true);
+        if (isCurrent(g) && !ctx.terminal) setPoster(hint, false, true);
     }, 300);
     return p.finally(() => window.clearTimeout(t));
 }
