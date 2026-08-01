@@ -96,6 +96,23 @@ async function loadTiers(): Promise<void> {
     if (pendingCheckout()) schedulePoll();
 }
 
+const CURRENCY_SYMBOLS: Record<string, string> = {
+    EUR: "€",
+    USD: "$",
+    GBP: "£",
+};
+
+function priceHtml(rawPrice: string): string {
+    const price = (rawPrice ?? "").trim();
+    if (!price) return "";
+    const configured = (cache?.currency ?? "").trim();
+    const symbol = configured ? CURRENCY_SYMBOLS[configured.toUpperCase()] ?? configured : "";
+    const amount = symbol && /^[\d.,\s]+$/.test(price) ? `${price} ${symbol}` : price;
+    const interval = (cache?.priceInterval ?? "").trim();
+    const suffix = interval ? ` <span class="sub-interval">/ ${esc(interval)}</span>` : "";
+    return `${esc(amount)}${suffix}`;
+}
+
 function tierCard(tier: BillingTier, index: number, tiers: BillingTier[], tokenLists: string[][]): string {
     const current = cache?.current;
     const isCurrent = current?.tier === tier.key;
@@ -133,7 +150,7 @@ function tierCard(tier: BillingTier, index: number, tiers: BillingTier[], tokenL
     return `<div class="${cls}">
         ${flag}
         <div class="sub-tier-name">${esc(tier.label)}</div>
-        <div class="sub-price">${esc(tier.price)}</div>
+        <div class="sub-price">${priceHtml(tier.price)}</div>
         ${inherit}
         ${perksHtml}
         ${action}

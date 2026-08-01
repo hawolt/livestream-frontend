@@ -44,6 +44,8 @@ export interface BillingTiers {
     current: BillingCurrent | null;
     feeNote?: string;
     restreamDestinationCap?: number;
+    currency?: string;
+    priceInterval?: string;
 }
 
 export interface RegionOption {
