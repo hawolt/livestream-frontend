@@ -70,7 +70,7 @@
             border-right: 1px solid var(--border);
             transition: width .16s ease;
         }
-        .live-channel-rail.collapsed { width: 120px; }
+        .live-channel-rail.collapsed { width: 57px; }
         .live-channel-rail-head {
             display: flex;
             align-items: center;
@@ -208,17 +208,29 @@
             text-align: center;
         }
         .live-channel-status[hidden] { display: none; }
+        .live-channel-section-label {
+            display: block;
+            padding: 8px 12px 3px;
+            color: var(--dim);
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: .08em;
+            text-transform: uppercase;
+        }
+        .live-channel-section-divider { height: 1px; margin: 6px 10px; background: var(--border); }
         .live-channel-rail.collapsed .live-channel-rail-title,
         .live-channel-rail.collapsed .live-channel-count,
+        .live-channel-rail.collapsed .live-channel-copy,
         .live-channel-rail.collapsed .live-channel-viewers,
-        .live-channel-rail.collapsed .live-channel-category,
+        .live-channel-rail.collapsed .live-channel-section-label,
         .live-channel-rail.collapsed .live-channel-status { display: none; }
         .live-channel-rail.collapsed .live-channel-rail-head { justify-content: center; padding: 0 8px; }
         .live-channel-rail.collapsed .live-channel-item {
-            grid-template-columns: 38px minmax(0, 1fr);
-            gap: 8px;
+            grid-template-columns: 38px;
+            gap: 0;
             padding: 7px 8px;
         }
+        .live-channel-rail.collapsed .live-channel-section-divider { margin: 5px 8px; }
 
         .live-left {
             flex: 1;
@@ -1445,16 +1457,18 @@
             .live-app:not(.is-vertical) #live-chat { width: 40%; max-width: 340px; }
         }
         @media (max-width: 1180px) {
-            .live-channel-rail { width: 120px; }
+            .live-channel-rail { width: 57px; }
             .live-channel-rail-head { display: none; }
-            .live-channel-category,
+            .live-channel-copy,
             .live-channel-viewers,
+            .live-channel-section-label,
             .live-channel-status { display: none; }
             .live-channel-item {
-                grid-template-columns: 38px minmax(0, 1fr);
-                gap: 8px;
+                grid-template-columns: 38px;
+                gap: 0;
                 padding: 7px 8px;
             }
+            .live-channel-section-divider { margin: 5px 8px; }
         }
         .is-vertical #btn-cinema { display: none; }
 
@@ -1612,7 +1626,7 @@
                 <button class="live-channel-rail-toggle" id="live-channel-rail-toggle" type="button" title="Collapse live channels" aria-label="Collapse live channels" aria-expanded="true"><span id="live-channel-rail-toggle-glyph" aria-hidden="true">&lsaquo;</span></button>
             </div>
             <div class="live-channel-rail-body">
-                <nav class="live-channel-list" id="live-channel-list" aria-label="Streaming now"></nav>
+                <div class="live-channel-list" id="live-channel-list" role="navigation" aria-label="Streaming now"></div>
                 <div class="live-channel-status" id="live-channel-status" role="status" aria-live="polite">Loading live channels...</div>
             </div>
         </aside>

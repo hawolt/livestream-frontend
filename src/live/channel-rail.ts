@@ -7,6 +7,7 @@ import {
     channelStatusEl,
 } from "./dom.ts";
 import { readLocalStorage, writeLocalStorage } from "../storage.ts";
+import { API_BASE } from "../api.ts";
 import { CHANNEL_RAIL_COLLAPSED_KEY, CHANNEL_RAIL_POLL_MS } from "./constants.ts";
 import { type FullscreenDoc } from "./fullscreen.ts";
 import { fitChat } from "./layout.ts";
@@ -22,6 +23,7 @@ interface LiveChannelRailStream {
 let railLoading = false;
 let railStarted = false;
 let railWasVisible = false;
+let followedUsernames = new Set<string>();
 
 const compactViewerFormatter = new Intl.NumberFormat(undefined, {
     notation: "compact",
@@ -94,11 +96,52 @@ function setRailStatus(label: string | null): void {
     channelStatusEl.hidden = label === null;
 }
 
+function byViewersThenName(a: LiveChannelRailStream, b: LiveChannelRailStream): number {
+    return b.viewers - a.viewers || a.username.toLowerCase().localeCompare(b.username.toLowerCase());
+}
+
+function sectionLabel(text: string): HTMLSpanElement {
+    const label = document.createElement("span");
+    label.className = "live-channel-section-label";
+    label.textContent = text;
+    return label;
+}
+
+function sectionDivider(): HTMLDivElement {
+    const divider = document.createElement("div");
+    divider.className = "live-channel-section-divider";
+    return divider;
+}
+
 function renderRail(streams: LiveChannelRailStream[]): void {
-    streams.sort((a, b) => b.viewers - a.viewers || a.username.localeCompare(b.username));
+    const followed = streams.filter((stream) => followedUsernames.has(stream.username.toLowerCase()));
+    const others = streams.filter((stream) => !followedUsernames.has(stream.username.toLowerCase()));
+    followed.sort(byViewersThenName);
+    others.sort(byViewersThenName);
     channelCountEl.textContent = streams.length.toLocaleString();
-    channelListEl.replaceChildren(...streams.map(railItem));
+    const nodes: Node[] = [];
+    if (followed.length > 0) {
+        nodes.push(sectionLabel("Following"), ...followed.map(railItem));
+        if (others.length > 0) nodes.push(sectionDivider(), sectionLabel("Live channels"));
+    }
+    nodes.push(...others.map(railItem));
+    channelListEl.replaceChildren(...nodes);
     setRailStatus(streams.length === 0 ? "No one is live right now" : null);
+}
+
+async function loadFollowedUsernames(): Promise<void> {
+    try {
+        const res = await fetch(`${API_BASE}/follows/mine`, { credentials: "include" });
+        if (!res.ok) {
+            if (res.status === 401) followedUsernames = new Set();
+            return;
+        }
+        const data = await res.json() as { following?: unknown };
+        const values = Array.isArray(data.following) ? data.following : [];
+        followedUsernames = new Set(values
+            .filter((value): value is string => typeof value === "string")
+            .map((value) => value.toLowerCase()));
+    } catch {}
 }
 
 function isRailVisible(): boolean {
@@ -117,7 +160,7 @@ async function loadRail(): Promise<void> {
     if (railLoading || !isRailVisible()) return;
     railLoading = true;
     try {
-        const res = await fetch("/api/live/explore");
+        const [res] = await Promise.all([fetch("/api/live/explore"), loadFollowedUsernames()]);
         if (!res.ok) throw new Error("live channels unavailable");
         const data = await res.json() as { streams?: unknown };
         const values = Array.isArray(data.streams) ? data.streams : [];
