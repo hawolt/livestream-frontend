@@ -125,33 +125,8 @@
             #live-poster.loading::before { animation: none; }
         }
 
-        #live-chat-ad { flex: 0 0 auto; max-width: 100%; overflow: hidden; }
-        #live-chat-ad.ad-slot-filled { padding: 8px 8px 0; }
-        .ad-slot-link {
-            display: block;
-            position: relative;
-            border: 1px solid var(--border);
-            border-radius: var(--radius);
-            overflow: hidden;
-        }
-        .ad-slot-img {
-            display: block;
-            width: 100%;
-            max-height: 90px;
-            object-fit: contain;
-            background: rgba(255,255,255,.03);
-        }
-        .promo-flag {
-            position: absolute;
-            top: 8px;
-            right: 8px;
-            background: rgba(0,0,0,.65);
-            color: #fff;
-            font-size: 11px;
-            font-weight: 700;
-            padding: 2px 8px;
-            border-radius: 999px;
-        }
+        #live-chat-feature { flex: 0 0 auto; max-width: 100%; overflow: hidden; }
+        #live-chat-feature.feature-filled { padding: 8px 8px 0; }
 
         .live-stage.terminal .live-controls { display: none; }
 
@@ -951,7 +926,7 @@
         body.chat-popout #btn-chat-side,
         body.chat-popout #btn-chat-profile,
         body.chat-popout #live-chat-profile,
-        body.chat-popout #live-chat-ad { display: none; }
+        body.chat-popout #live-chat-feature { display: none; }
         body.chat-popout .live-app { height: 100%; }
         body.chat-popout .live-main { height: 100%; }
         body.chat-popout #live-chat {
@@ -1467,7 +1442,7 @@
             </div>
         </div>
         <div id="live-chat">
-            <div class="ad-slot" id="live-chat-ad"></div>
+            <div id="live-chat-feature"></div>
             <div class="live-chat-head">
                 <span>Chat</span>
                 <div class="live-chat-head-actions">

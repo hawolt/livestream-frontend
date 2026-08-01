@@ -12,6 +12,7 @@ class StubElement {
     alt = "";
     loading = "";
     textContent = "";
+    style = { cssText: "" };
     children: StubElement[] = [];
 
     constructor(tagName: string) {
@@ -38,10 +39,6 @@ class StubElement {
 
     findTag(tagName: string): StubElement | null {
         return this.descendants().find(el => el.tagName === tagName) ?? null;
-    }
-
-    findClass(className: string): StubElement | null {
-        return this.descendants().find(el => el.className === className) ?? null;
     }
 }
 
@@ -80,13 +77,29 @@ describe("renderAdSlot", () => {
         expect(container.children.length).toBe(0);
     });
 
-    test("builds an anchor with the click endpoint, target and rel attributes", () => {
+    test("builds an anchor with the visit endpoint, target and rel attributes", () => {
         render(container, [makeAd({ id: 42 })]);
         const anchor = container.findTag("a");
         expect(anchor).not.toBeNull();
-        expect(anchor!.href).toBe("/api/live/ads/click/42");
+        expect(anchor!.href).toBe("/api/live/spots/visit/42");
         expect(anchor!.target).toBe("_blank");
         expect(anchor!.rel).toBe("noopener noreferrer nofollow sponsored");
+    });
+
+    test("carries no classes or ids, only inline styles, so per-element cosmetic filters have nothing to match", () => {
+        render(container, [makeAd()]);
+        const anchor = container.findTag("a");
+        const img = container.findTag("img");
+        const label = container.findTag("span");
+        expect(anchor).not.toBeNull();
+        expect(img).not.toBeNull();
+        expect(label).not.toBeNull();
+        expect(anchor!.className).toBe("");
+        expect(img!.className).toBe("");
+        expect(label!.className).toBe("");
+        expect(anchor!.style.cssText.length).toBeGreaterThan(0);
+        expect(img!.style.cssText.length).toBeGreaterThan(0);
+        expect(label!.style.cssText.length).toBeGreaterThan(0);
     });
 
     test("never routes the advertiser url through the document", () => {
@@ -101,7 +114,7 @@ describe("renderAdSlot", () => {
         expect(img).not.toBeNull();
         expect(img!.alt).toBe("Great deal");
         expect(img!.src).toBe("/static/img/ad.png");
-        const label = container.findClass("promo-flag");
+        const label = container.findTag("span");
         expect(label).not.toBeNull();
         expect(label!.textContent).toBe("Anzeige");
     });

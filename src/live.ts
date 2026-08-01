@@ -10,7 +10,7 @@ import {
     btnLayoutToggle,
     categoryEl,
     categorySepEl,
-    chatAdSlotEl,
+    chatFeatureSlotEl,
     chatEl,
     languageEl,
     languageSepEl,
@@ -56,8 +56,8 @@ async function boot(): Promise<void> {
         setCaptchaAnchor(chatEl);
         warmCaptcha();
         void loadAds("chat").then(ads => {
-            renderAdSlot(chatAdSlotEl, ads);
-            chatAdSlotEl.classList.toggle("ad-slot-filled", ads.length > 0);
+            renderAdSlot(chatFeatureSlotEl, ads);
+            chatFeatureSlotEl.classList.toggle("feature-filled", ads.length > 0);
         });
     }
 
