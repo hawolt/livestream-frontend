@@ -144,7 +144,9 @@ function tierCard(tier: BillingTier, index: number, tiers: BillingTier[], tokenL
     if (index > 0) {
         const prev = tokenLists[index - 1]!;
         const prevSet = new Set(prev);
-        if (prev.length && prev.every(t => tokens.includes(t))) {
+        const covers = (t: string): boolean =>
+            tokens.includes(t) || (t === "badge" && tokens.some(x => x.startsWith("badge_")));
+        if (prev.length && prev.every(covers)) {
             const delta = tokens.filter(t => !prevSet.has(t));
             inherit = `<p class="sub-inherit">Everything in ${esc(tiers[index - 1]!.label)}${delta.length ? ", plus:" : ""}</p>`;
             shown = delta;
