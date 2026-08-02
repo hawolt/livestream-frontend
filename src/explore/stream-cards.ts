@@ -2,6 +2,7 @@ import { streamLanguageLabel } from "../stream-languages.ts";
 import { ctx, isFramed, NO_CATEGORY_LABEL, type ExploreStream } from "./context.ts";
 import { drillEl, emptyEl, gridEl, modeCategoriesBtn, modeStreamsBtn } from "./dom.ts";
 import { previewCardInFlight, queueStreamPreview, stopStreamPreview } from "./preview.ts";
+import { thumbnailMinute } from "./thumbnail-minute.ts";
 import { buildThumbUrl } from "./thumb-url.ts";
 
 export interface StreamCard {
@@ -11,8 +12,6 @@ export interface StreamCard {
     image: HTMLImageElement;
 }
 
-const thumbCacheKey = Math.floor(Date.now() / 60000);
-
 export function viewersIcon(): string {
     return `<svg viewBox="0 0 24 24"><circle cx="12" cy="7.2" r="4.2"/><path d="M12 13.4c-4.8 0-8 2.6-8 6.6h16c0-4-3.2-6.6-8-6.6z"/></svg>`;
 }
@@ -21,7 +20,7 @@ const streamCards = new Map<string, StreamCard>();
 
 export function updateStreamThumbnail(card: StreamCard, s: ExploreStream): void {
     const img = card.image;
-    const src = buildThumbUrl(s.username, s.mediaBase, ctx.mediaBase, thumbCacheKey);
+    const src = buildThumbUrl(s.username, s.mediaBase, ctx.mediaBase, thumbnailMinute());
     if (img.dataset["thumbSrc"] === src) return;
     img.dataset["thumbSrc"] = src;
     img.style.removeProperty("display");

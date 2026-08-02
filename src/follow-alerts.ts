@@ -1,3 +1,5 @@
+import { scrubOverlayToken } from "./url-secrets.ts";
+
 const stageEl = document.getElementById("alert-stage") as HTMLElement;
 
 const RETRY_MS = 5000;
@@ -26,7 +28,7 @@ function parseParams(): void {
     const durationSec = Number(qs.get("duration"));
     durationMs = Number.isFinite(durationSec) && durationSec > 0 ? durationSec * 1000 : DEFAULT_DURATION_MS;
     demoMode = qs.get("demo") === "1";
-    token = qs.get("token") ?? "";
+    token = scrubOverlayToken(location.href).token;
 }
 
 function buildCard(username: string): HTMLDivElement {
@@ -86,9 +88,11 @@ function connect(): void {
     sock = s;
 
     s.onopen = () => {
+        if (sock !== s) return;
         s.send(JSON.stringify({ overlay: token }));
     };
     s.onmessage = (ev) => {
+        if (sock !== s) return;
         if (typeof ev.data !== "string") return;
         let msg: unknown;
         try {
@@ -108,7 +112,9 @@ function connect(): void {
         const delay = ev.code === 4401 ? AUTH_RETRY_MS : RETRY_MS;
         scheduleRetry(delay);
     };
-    s.onerror = () => s.close();
+    s.onerror = () => {
+        if (sock === s) s.close();
+    };
 }
 
 const DEMO_NAMES = [

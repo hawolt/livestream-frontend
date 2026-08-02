@@ -22,6 +22,41 @@ const MAX_BIO = 500;
 const MAX_LINKS = 5;
 
 let current: MyProfile | null = null;
+let activationGeneration = 0;
+let profileRevision = 0;
+let active = false;
+const pendingProfileWrites = new Set<number>();
+
+function isCurrentActivation(generation: number): boolean {
+    return active && generation === activationGeneration;
+}
+
+function isCurrentProfileOperation(generation: number, revision: number): boolean {
+    return isCurrentActivation(generation) && revision === profileRevision;
+}
+
+function refreshProfileIfActive(): void {
+    if (active) void loadMyProfile(activationGeneration);
+}
+
+const PROFILE_CONTROL_IDS = [
+    "pf-save",
+    "pf-link-add",
+    "pf-avatar-upload",
+    "pf-avatar-remove",
+    "pf-banner-upload",
+    "pf-banner-remove",
+];
+
+function setProfileControlsEnabled(enabled: boolean): void {
+    for (const id of PROFILE_CONTROL_IDS) {
+        ($(id) as HTMLButtonElement).disabled = !enabled;
+    }
+    ($("pf-bio") as HTMLTextAreaElement).disabled = !enabled;
+    $("pf-links").querySelectorAll<HTMLInputElement | HTMLButtonElement>("input, button")
+        .forEach(control => { control.disabled = !enabled; });
+    $("pane-channel-profile").setAttribute("aria-busy", String(!enabled));
+}
 
 function formatBytes(n: number): string {
     if (n >= 1024 * 1024) {
@@ -57,6 +92,8 @@ function buildLinkRow(link: ProfileLink): HTMLElement {
     label.type = "text";
     label.maxLength = 40;
     label.placeholder = "Label";
+    label.setAttribute("aria-label", "Link label");
+    label.disabled = current === null;
     label.value = link.label;
     label.style.cssText = "flex:0 0 140px";
 
@@ -64,6 +101,8 @@ function buildLinkRow(link: ProfileLink): HTMLElement {
     url.type = "text";
     url.maxLength = 512;
     url.placeholder = "https://x.com/yourname";
+    url.setAttribute("aria-label", "Link URL");
+    url.disabled = current === null;
     url.value = link.url;
     url.style.cssText = "flex:1";
 
@@ -71,6 +110,7 @@ function buildLinkRow(link: ProfileLink): HTMLElement {
     remove.type = "button";
     remove.className = "btn btn-sm";
     remove.textContent = "Remove";
+    remove.disabled = current === null;
     remove.addEventListener("click", () => {
         row.remove();
         updateAddButtonState();
@@ -104,6 +144,7 @@ function renderPreview(container: HTMLElement, has: boolean, url: string): void 
     if (has) {
         const img = document.createElement("img");
         img.src = url;
+        img.alt = "";
         img.style.cssText = "width:100%;height:100%;object-fit:cover";
         container.appendChild(img);
         return;
@@ -119,6 +160,7 @@ function formatHint(profile: MyProfile): string {
 }
 
 function applyProfile(profile: MyProfile): void {
+    if (!active) return;
     current = profile;
     ($("pf-bio") as HTMLTextAreaElement).value = profile.bio;
     updateBioCount();
@@ -128,6 +170,9 @@ function applyProfile(profile: MyProfile): void {
     $("pf-banner-hint").textContent = `${hint}. 16:9 recommended`;
     renderPreview($("pf-avatar-preview"), profile.hasAvatar, `/api/live/profile/${encodeURIComponent(profile.username)}/avatar?v=${profile.avatarVersion}`);
     renderPreview($("pf-banner-preview"), profile.hasBanner, `/api/live/profile/${encodeURIComponent(profile.username)}/banner?v=${profile.bannerVersion}`);
+    $("pf-saved").textContent = "";
+    setProfileControlsEnabled(true);
+    updateAddButtonState();
 }
 
 function checkClientSide(file: File, profile: MyProfile): string | null {
@@ -148,27 +193,56 @@ async function uploadImage(kind: "avatar" | "banner", file: File): Promise<void>
         errEl.textContent = clientError;
         return;
     }
-    const bytes = await file.arrayBuffer();
+    const generation = activationGeneration;
+    const revision = ++profileRevision;
+    pendingProfileWrites.add(revision);
+    setProfileControlsEnabled(false);
+    let refresh = false;
     try {
+        const bytes = await file.arrayBuffer();
         const updated = await authFetch<MyProfile>(`/api/profile/me/${kind}`, {
             method: "POST",
             headers: { "Content-Type": file.type },
             body: bytes,
         });
-        applyProfile(updated);
+        if (isCurrentProfileOperation(generation, revision)) applyProfile(updated);
+        else refresh = true;
     } catch (e) {
-        errEl.textContent = e instanceof Error ? e.message : String(e);
+        if (isCurrentProfileOperation(generation, revision)) {
+            errEl.textContent = e instanceof Error ? e.message : String(e);
+            setProfileControlsEnabled(true);
+        } else {
+            refresh = true;
+        }
+    } finally {
+        pendingProfileWrites.delete(revision);
+        if (refresh) refreshProfileIfActive();
     }
 }
 
 async function removeImage(kind: "avatar" | "banner"): Promise<void> {
+    if (!current) return;
     const errEl = $(`pf-${kind}-error`);
     errEl.textContent = "";
+    const generation = activationGeneration;
+    const revision = ++profileRevision;
+    pendingProfileWrites.add(revision);
+    setProfileControlsEnabled(false);
+    let refresh = false;
     try {
         const updated = await authFetch<MyProfile>(`/api/profile/me/${kind}`, { method: "DELETE" });
-        applyProfile(updated);
+        if (isCurrentProfileOperation(generation, revision)) applyProfile(updated);
+        else refresh = true;
     } catch (e) {
-        errEl.textContent = e instanceof Error ? e.message : String(e);
+        if (isCurrentProfileOperation(generation, revision)) {
+            errEl.textContent = e instanceof Error ? e.message : String(e);
+            setProfileControlsEnabled(true);
+        } else {
+            refresh = true;
+        }
+    } finally {
+        pendingProfileWrites.delete(revision);
+        if (refresh) refreshProfileIfActive();
     }
 }
 
@@ -183,12 +257,21 @@ function wireImageControls(kind: "avatar" | "banner"): void {
     $(`pf-${kind}-remove`).addEventListener("click", () => void removeImage(kind));
 }
 
-async function loadMyProfile(): Promise<void> {
+async function loadMyProfile(generation: number): Promise<void> {
+    if (pendingProfileWrites.size > 0) return;
+    current = null;
+    setProfileControlsEnabled(false);
+    $("pf-saved").textContent = "Loading...";
+    $("pf-saved").style.color = "var(--muted)";
+    const revision = ++profileRevision;
     try {
         const profile = await authFetch<MyProfile>("/api/profile/me");
+        if (!isCurrentProfileOperation(generation, revision)) return;
         applyProfile(profile);
     } catch (e) {
+        if (!isCurrentProfileOperation(generation, revision)) return;
         const saved = $("pf-saved");
+        $("pane-channel-profile").setAttribute("aria-busy", "false");
         saved.textContent = e instanceof Error ? e.message : String(e);
         saved.style.color = "var(--red)";
     }
@@ -202,22 +285,44 @@ export function init(): void {
         updateAddButtonState();
     });
     $("pf-save").addEventListener("click", async () => {
+        if (!current) return;
         const saved = $("pf-saved");
         saved.textContent = "";
         const bio = ($("pf-bio") as HTMLTextAreaElement).value;
         const links = readLinkRows();
+        const generation = activationGeneration;
+        const revision = ++profileRevision;
+        pendingProfileWrites.add(revision);
+        setProfileControlsEnabled(false);
+        let refresh = false;
         try {
             const updated = await authFetch<MyProfile>("/api/profile/me", {
                 method: "PUT",
                 body: JSON.stringify({ bio, links }),
             });
+            if (!isCurrentProfileOperation(generation, revision)) {
+                refresh = true;
+                return;
+            }
             applyProfile(updated);
             saved.textContent = "Saved";
             saved.style.color = "var(--success)";
-            setTimeout(() => { saved.textContent = ""; }, 2500);
+            window.setTimeout(() => {
+                if (isCurrentProfileOperation(generation, revision) && saved.textContent === "Saved") {
+                    saved.textContent = "";
+                }
+            }, 2500);
         } catch (e) {
-            saved.textContent = e instanceof Error ? e.message : String(e);
-            saved.style.color = "var(--red)";
+            if (isCurrentProfileOperation(generation, revision)) {
+                saved.textContent = e instanceof Error ? e.message : String(e);
+                saved.style.color = "var(--red)";
+                setProfileControlsEnabled(true);
+            } else {
+                refresh = true;
+            }
+        } finally {
+            pendingProfileWrites.delete(revision);
+            if (refresh) refreshProfileIfActive();
         }
     });
     wireImageControls("avatar");
@@ -225,5 +330,13 @@ export function init(): void {
 }
 
 export function activate(): void {
-    void loadMyProfile();
+    active = true;
+    const generation = ++activationGeneration;
+    void loadMyProfile(generation);
+}
+
+export function deactivate(): void {
+    active = false;
+    activationGeneration += 1;
+    current = null;
 }
