@@ -73,7 +73,7 @@ function makeProfile(overrides: Partial<Profile> = {}): Profile {
     return {
         username: "streamer",
         bio: "Hello there",
-        links: [{ label: "Twitter", url: "https://example.com/streamer" }],
+        links: [{ label: "Twitter", url: "https://example.com/streamer", platform: "" }],
         followers: 42,
         hasAvatar: true,
         hasBanner: true,
@@ -130,7 +130,7 @@ describe("renderProfileCard", () => {
     });
 
     test("a non https link is dropped rather than rendered", () => {
-        render(container, makeProfile({ links: [{ label: "sketchy", url: "javascript:alert(1)" }] }));
+        render(container, makeProfile({ links: [{ label: "sketchy", url: "javascript:alert(1)", platform: "" }] }));
         expect(container.findClass("profile-card-link")).toBeNull();
     });
 

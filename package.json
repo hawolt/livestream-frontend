@@ -3,12 +3,16 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "build": "bun run build:pages && bun run build:dash",
-    "build:pages": "rm -f public/*.js && bun build src/explore.ts src/live.ts src/embed.ts src/chat-overlay.ts src/follow-alerts.ts src/user-login.ts src/register.ts src/verify.ts src/reset-password.ts src/legal.ts src/wiki.ts --outdir public --entry-naming \"[name].[ext]\"",
-    "build:dash": "rm -rf public/dash && bun build src/dashboard.ts --outdir public/dash --splitting"
+    "clean": "bun scripts/clean-build.ts",
+    "build": "bun run clean && bun run build:pages && bun run build:dash",
+    "build:pages": "bun build src/explore.ts src/live.ts src/embed.ts src/chat-overlay.ts src/follow-alerts.ts src/user-login.ts src/register.ts src/verify.ts src/reset-password.ts src/legal.ts src/wiki.ts --outdir public --entry-naming \"[name].[ext]\"",
+    "build:dash": "bun build src/dashboard.ts --outdir public/dash --splitting",
+    "test": "bun test",
+    "typecheck": "tsc --noEmit",
+    "typecheck:tests": "tsc -p tsconfig.tests.json"
   },
   "devDependencies": {
-    "@types/bun": "latest",
+    "@types/bun": "1.3.14",
     "typescript": "^5.9.3"
   }
 }
