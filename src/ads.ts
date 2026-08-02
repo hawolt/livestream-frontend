@@ -38,7 +38,7 @@ export function renderAdSlot(container: HTMLElement, ads: AdSpot[]): void {
     img.loading = "lazy";
     a.appendChild(img);
     const label = document.createElement("span");
-    label.style.cssText = "position:absolute;top:8px;right:8px;background:rgba(0,0,0,.65);color:#fff;font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px";
+    label.style.cssText = "position:absolute;top:8px;left:8px;background:rgba(0,0,0,.65);color:#fff;font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px";
     label.textContent = "Anzeige";
     a.appendChild(label);
     container.appendChild(a);

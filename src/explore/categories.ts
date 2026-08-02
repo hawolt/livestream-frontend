@@ -22,6 +22,9 @@ function categoryCardEl(data: CategoryCardData): HTMLAnchorElement {
     const nameEl = document.createElement("div");
     nameEl.className = "explore-category-name";
     nameEl.textContent = data.name;
+    const chip = document.createElement("span");
+    chip.className = "explore-tag";
+    chip.textContent = data.name;
     const noArt = data.id === "none" || data.name.trim().toLowerCase() === "other";
     if (!noArt && data.imageUrl) {
         const img = document.createElement("img");
@@ -29,18 +32,14 @@ function categoryCardEl(data: CategoryCardData): HTMLAnchorElement {
         img.src = data.imageUrl;
         img.alt = data.name;
         img.loading = "lazy";
-        const chip = document.createElement("span");
-        chip.className = "explore-tag";
-        chip.textContent = data.name;
         img.onerror = () => {
             img.remove();
-            chip.remove();
             nameEl.hidden = false;
         };
         nameEl.hidden = true;
         thumb.append(img, chip, nameEl);
     } else {
-        thumb.appendChild(nameEl);
+        thumb.append(chip, nameEl);
     }
 
     const body = document.createElement("div");
