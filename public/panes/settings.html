@@ -19,8 +19,9 @@
         <form id="settings-account-form">
             <div class="form-grid">
                 <label class="span2"><span>Account Email</span><input id="st-email" type="email" placeholder="used for system notifications" /></label>
+                <label class="span2"><span>Current Password</span><input id="st-email-password" type="password" autocomplete="current-password" /></label>
             </div>
-            <div style="color:var(--muted);font-size:13px;margin-top:8px">Changing this address marks it unverified and automatically sends a fresh verification link to the new address.</div>
+            <div style="color:var(--muted);font-size:13px;margin-top:8px">Changing this address marks it unverified and automatically sends a fresh verification link to the new address. Your current password is required, and the old address is notified of the change.</div>
             <div style="margin-top:16px;display:flex;align-items:center;gap:12px">
                 <button type="submit" class="btn btn-primary">Save</button>
                 <span id="st-saved" style="font-size:13px;color:var(--success)"></span>

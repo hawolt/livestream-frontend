@@ -263,7 +263,15 @@ export function init(): void {
         if (btn?.disabled) return;
         const operation = beginOperation("account");
         const email = ($("st-email") as HTMLInputElement).value.trim();
-        const body: Record<string, string> = { email };
+        const passwordInput = $("st-email-password") as HTMLInputElement;
+        const currentPassword = passwordInput.value;
+        const saved = $("st-saved");
+        if (!currentPassword) {
+            saved.textContent = "Enter your current password to change your email address.";
+            saved.style.color = "var(--red)";
+            return;
+        }
+        const body: Record<string, string> = { email, currentPassword };
         if (btn) btn.disabled = true;
         try {
             const res = await authFetch<{ ok: boolean; emailVerified?: boolean; message?: string }>(
@@ -271,7 +279,8 @@ export function init(): void {
             if (isCurrentOperation(operation) && btn) btn.disabled = false;
             invalidateSettingsLoads();
             if (!isCurrentOperation(operation)) return;
-            const saved = $("st-saved");
+            passwordInput.value = "";
+            saved.style.color = "var(--success)";
 
             if (res.emailVerified === false) {
                 const banner = document.getElementById("settings-verify-banner");
@@ -284,10 +293,10 @@ export function init(): void {
                 if (isCurrentOperation(operation)) saved.textContent = "";
             }, 4000);
         } catch (err) {
-            if (isCurrentOperation(operation)) {
-                if (btn) btn.disabled = false;
-                alert(`Save failed: ${err}`);
-            }
+            if (!isCurrentOperation(operation)) return;
+            if (btn) btn.disabled = false;
+            saved.textContent = err instanceof Error ? err.message : String(err);
+            saved.style.color = "var(--red)";
         }
     });
 
