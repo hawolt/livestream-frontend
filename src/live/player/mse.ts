@@ -5,7 +5,6 @@ import { quotaTrimOnCleanAppend, quotaTrimOnFailure } from "./quota.ts";
 import { fallbackFromMSE } from "./hls.ts";
 import { restartAfterFailure, setState } from "./lifecycle.ts";
 import { startChase } from "./chase.ts";
-import { startAbrMonitor } from "./abr.ts";
 
 export function bufferedEnd(): number {
     const b = video.buffered;
@@ -102,7 +101,6 @@ export function attachMediaSource(g: number, codecs: string): void {
         setState("buffering");
         pump(g);
         startChase(g);
-        startAbrMonitor(g);
     };
     ms.addEventListener("sourceopen", onSourceOpen, { once: true });
     track(() => ms.removeEventListener("sourceopen", onSourceOpen));

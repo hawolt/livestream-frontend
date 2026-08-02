@@ -1,21 +1,18 @@
 import { qualityBtn, qualityPopupEl, qualitySelectEl } from "./dom.ts";
 import { ctx } from "./player/context.ts";
-import { QUALITY_AUTO, qualityLabel, resolveNextQuality } from "../quality.ts";
+import { qualityLabel, resolveNextQuality } from "../quality.ts";
 import { QUALITY_STORAGE_KEY } from "./constants.ts";
 import { writeLocalStorage } from "../storage.ts";
 import { resetAbr } from "./player/abr.ts";
 import { beginTransport } from "./player/lifecycle.ts";
 
 export function qualityButtonLabel(): string {
-    if (ctx.qualityPreference === QUALITY_AUTO) {
-        return ctx.qualityLadder.length ? `Auto · ${qualityLabel(ctx.activeQuality)}` : "Auto";
-    }
     return qualityLabel(ctx.qualityPreference);
 }
 
 export function renderQualityPopupItems(): void {
     qualityPopupEl.replaceChildren();
-    const entries: Array<[string, string]> = [[QUALITY_AUTO, "Auto"]];
+    const entries: Array<[string, string]> = [];
     for (const name of ctx.qualityLadder) entries.push([name, qualityLabel(name)]);
     for (const [value, label] of entries) {
         const item = document.createElement("button");

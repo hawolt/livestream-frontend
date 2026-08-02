@@ -4,6 +4,11 @@ import { PRUNE_KEEP_S, QUALITY_STORAGE_KEY } from "../constants.ts";
 
 export type PlayerState = "offline" | "connecting" | "buffering" | "playing" | "reconnecting";
 
+const storedQualityPreference = readLocalStorage(QUALITY_STORAGE_KEY);
+const initialQualityPreference = !storedQualityPreference || storedQualityPreference === QUALITY_AUTO
+    ? QUALITY_SOURCE
+    : storedQualityPreference;
+
 export const ctx = {
     gen: 0,
     state: "offline" as PlayerState,
@@ -25,7 +30,7 @@ export const ctx = {
 
     qualityLadder: [] as string[],
     qualityLadderKnown: false,
-    qualityPreference: (readLocalStorage(QUALITY_STORAGE_KEY) || QUALITY_AUTO) as string,
+    qualityPreference: initialQualityPreference as string,
     activeQuality: QUALITY_SOURCE as string,
     requestedQuality: QUALITY_SOURCE as string,
 
