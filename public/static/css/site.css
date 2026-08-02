@@ -620,11 +620,22 @@
 .live-channel-category { margin-top: 0; color: var(--rail-category); font-size: 12px; }
 .live-channel-viewers {
     flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
     color: var(--text);
     font-size: 13px;
     font-weight: 700;
     font-variant-numeric: tabular-nums;
     white-space: nowrap;
+}
+.live-channel-viewers::before {
+    content: "";
+    width: 7px;
+    height: 7px;
+    flex: 0 0 7px;
+    border-radius: 50%;
+    background: var(--red);
 }
 .live-channel-status {
     position: absolute;
