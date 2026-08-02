@@ -96,23 +96,27 @@ export function createChannelRail(options: ChannelRailOptions): ChannelRailHandl
         avatar.className = "live-channel-avatar";
         avatar.textContent = stream.username.slice(0, 1);
 
-        const copy = document.createElement("span");
-        copy.className = "live-channel-copy";
-
         const name = document.createElement("span");
         name.className = "live-channel-name";
         name.textContent = stream.username;
-
-        const categoryEl = document.createElement("span");
-        categoryEl.className = "live-channel-category";
-        categoryEl.textContent = category;
-        copy.append(name, categoryEl);
 
         const viewerCount = document.createElement("span");
         viewerCount.className = "live-channel-viewers";
         viewerCount.textContent = compactViewerFormatter.format(stream.viewers);
 
-        link.append(avatar, copy, viewerCount);
+        const nameRow = document.createElement("span");
+        nameRow.className = "live-channel-name-row";
+        nameRow.append(name, viewerCount);
+
+        const categoryEl = document.createElement("span");
+        categoryEl.className = "live-channel-category";
+        categoryEl.textContent = category;
+
+        const copy = document.createElement("span");
+        copy.className = "live-channel-copy";
+        copy.append(nameRow, categoryEl);
+
+        link.append(avatar, copy);
         return link;
     }
 

@@ -31,12 +31,6 @@
     </nav>
     <div class="site-nav-right" id="site-nav-right"></div>
 </header>
-<div class="sub-nav">
-    <div class="explore-modes">
-        <button class="explore-mode-btn active" id="mode-streams" type="button">Streams</button>
-        <button class="explore-mode-btn" id="mode-categories" type="button">Categories</button>
-    </div>
-</div>
 <div class="explore-shell">
     <aside class="live-channel-rail" id="live-channel-rail" aria-label="Live channels">
         <div class="live-channel-rail-head">
@@ -49,14 +43,20 @@
             <div class="live-channel-status" id="live-channel-status" role="status" aria-live="polite">Loading live channels...</div>
         </div>
     </aside>
-    <main class="explore-main" id="explore-page" hidden>
-        <div class="explore-drill hidden" id="explore-drill">
-            <button class="explore-back" id="explore-back" type="button">&larr; Back to categories</button>
-            <div class="explore-drill-title" id="explore-drill-title"></div>
+    <div class="explore-content">
+        <div class="explore-modes">
+            <button class="explore-mode-btn active" id="mode-streams" type="button">Streams</button>
+            <button class="explore-mode-btn" id="mode-categories" type="button">Categories</button>
         </div>
-        <div class="explore-empty hidden" id="explore-empty">No one is live right now</div>
-        <div class="explore-grid" id="explore-grid"></div>
-    </main>
+        <main class="explore-main" id="explore-page" hidden>
+            <div class="explore-drill hidden" id="explore-drill">
+                <button class="explore-back" id="explore-back" type="button">&larr; Back to categories</button>
+                <div class="explore-drill-title" id="explore-drill-title"></div>
+            </div>
+            <div class="explore-empty hidden" id="explore-empty">No one is live right now</div>
+            <div class="explore-grid" id="explore-grid"></div>
+        </main>
+    </div>
 </div>
 <script src="/explore.js" type="module"></script>
 </body>
