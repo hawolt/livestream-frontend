@@ -19,6 +19,7 @@ export interface ChannelRailOptions {
     getActiveUsername: () => string;
     onCollapsedChange?: () => void;
     isVisible?: () => boolean;
+    linkTarget?: string;
 }
 
 export interface ChannelRailHandle {
@@ -65,7 +66,7 @@ function sectionDivider(): HTMLDivElement {
 }
 
 export function createChannelRail(options: ChannelRailOptions): ChannelRailHandle {
-    const { elements, getActiveUsername, onCollapsedChange, isVisible } = options;
+    const { elements, getActiveUsername, onCollapsedChange, isVisible, linkTarget } = options;
 
     let railLoading = false;
     let railStarted = false;
@@ -85,6 +86,7 @@ export function createChannelRail(options: ChannelRailOptions): ChannelRailHandl
         const link = document.createElement("a");
         link.className = "live-channel-item";
         link.href = `/${encodeURIComponent(normalizedUsername)}`;
+        if (linkTarget) link.target = linkTarget;
         link.title = `${stream.username} | ${title} | ${category}`;
         link.setAttribute("aria-label", `${stream.username}, ${title}, ${category}, ${stream.viewers.toLocaleString()} viewers`);
         if (normalizedUsername === getActiveUsername()) {

@@ -35,7 +35,10 @@
     height: calc(100dvh - 52px);
 }
 
-body.explore-framed .live-channel-rail { display: none; }
+body.explore-framed .explore-shell .live-channel-rail {
+    top: 0;
+    height: 100dvh;
+}
 
 @media (max-width: 900px) {
     .live-channel-rail { display: none; }

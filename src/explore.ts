@@ -54,19 +54,18 @@ async function boot(): Promise<void> {
     if (isFramed) document.body.classList.add("explore-framed");
     page.hidden = false;
     if (!isFramed) void initSiteNav("browse");
-    if (!isFramed) {
-        createChannelRail({
-            elements: {
-                rail: railEl,
-                toggle: railToggleEl,
-                glyph: railToggleGlyphEl,
-                list: railListEl,
-                count: railCountEl,
-                status: railStatusEl,
-            },
-            getActiveUsername: () => "",
-        }).start();
-    }
+    createChannelRail({
+        elements: {
+            rail: railEl,
+            toggle: railToggleEl,
+            glyph: railToggleGlyphEl,
+            list: railListEl,
+            count: railCountEl,
+            status: railStatusEl,
+        },
+        getActiveUsername: () => "",
+        linkTarget: isFramed ? "_top" : undefined,
+    }).start();
     const initial = stateFromLocation();
     ctx.mode = initial.mode;
     ctx.drillCategoryId = initial.categoryId;
