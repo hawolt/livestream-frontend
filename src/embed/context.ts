@@ -1,3 +1,5 @@
+export type EmbedPlaybackState = "offline" | "connecting" | "playing" | "retrying";
+
 export const previewMode = new URLSearchParams(location.search).get("preview") === "1";
 
 export const ctx = {
@@ -8,6 +10,7 @@ export const ctx = {
     gen: 0,
     terminal: false,
     offline: true,
+    state: "offline" as EmbedPlaybackState,
 
     ws: null as WebSocket | null,
     mediaSource: null as MediaSource | null,
@@ -15,7 +18,12 @@ export const ctx = {
     appendQueue: [] as ArrayBuffer[],
     objectUrl: null as string | null,
     startedPlayback: false,
-    hlsVideoCleanup: null as (() => void) | null,
+    genCleanup: [] as Array<() => void>,
+
+    lastMediaArrivalAt: 0,
+    lastProgressAt: 0,
+    lastObservedTime: -1,
+    lastStateChangeAt: 0,
 };
 
 export function nextGen(): number {
@@ -25,4 +33,18 @@ export function nextGen(): number {
 
 export function isCurrent(g: number): boolean {
     return g === ctx.gen && !ctx.terminal;
+}
+
+export function track(cleanup: () => void): void {
+    ctx.genCleanup.push(cleanup);
+}
+
+export function runGenCleanup(): void {
+    const fns = ctx.genCleanup;
+    ctx.genCleanup = [];
+    for (const fn of fns) {
+        try {
+            fn();
+        } catch {}
+    }
 }
