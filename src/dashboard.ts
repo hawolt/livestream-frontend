@@ -5,6 +5,8 @@ import {
     authFetch, setMe, token, loginRedirect, signOutAndRedirect, loadDashboardSession, startSessionRenewal,
     type MeInfo, type TabInfo, type TabModule,
 } from "./dash/session.ts";
+import { closeDismissibleSurface, openDismissibleSurface } from "./dismissible-surface.ts";
+import { motionScrollBehavior } from "./motion.ts";
 
 const TAB_LOADERS: Record<string, () => Promise<TabModule>> = {
     stream:           () => import("./dash/tabs/stream.ts"),
@@ -25,15 +27,55 @@ const loadedModules = new Map<string, TabModule>();
 let allTabs: TabInfo[] = [];
 let currentTab: string | null = null;
 let activationSeq = 0;
+let refreshRevision = 0;
 let sidebarToggleLabel: HTMLElement | null = null;
-let closeSidebarMenu: (() => void) | null = null;
+let closeSidebarMenu: ((restoreFocus?: boolean) => void) | null = null;
 let studioUrl: string | null = null;
+let burgerGroupId = 0;
+
+const DASH_SIDE_LIST_ID = "dash-side-list";
 
 function tabFromLocation(): string | null {
     const m = location.pathname.match(/^\/dashboard(?:\.html)?\/([A-Za-z0-9_-]+)\/?$/);
     if (m) return m[1]!;
     const hash = location.hash.slice(1);
     return hash || null;
+}
+
+function studioDashboardUrl(tabs: TabInfo[]): string | null {
+    if (!tabs.some(tab => !TAB_LOADERS[tab.id])) return null;
+    const baseDomain = location.hostname.replace(/^(live|admin|staff)\./, "");
+    const port = location.port ? `:${location.port}` : "";
+    return `https://studio.${baseDomain}${port}/dashboard`;
+}
+
+function navigationSnapshot(tabs: TabInfo[], studio: string | null): string {
+    return JSON.stringify({
+        tabs: tabs.map(tab => ({ id: tab.id, label: tab.label, pane: tab.pane, group: tab.group ?? null })),
+        studio,
+    });
+}
+
+function setNoTabsVisible(visible: boolean): void {
+    let panel = document.getElementById("dash-no-tabs");
+    if (visible && !panel) {
+        panel = document.createElement("section");
+        panel.id = "dash-no-tabs";
+        panel.className = "card empty";
+        panel.setAttribute("role", "status");
+        panel.textContent = "No dashboard sections are available for this account.";
+        $("panes").appendChild(panel);
+    }
+    if (panel) panel.hidden = !visible;
+}
+
+function syncDashboardNavigation(tab: string): void {
+    $$(".dash-side-link[data-tab]").forEach(link => {
+        const current = link.dataset["tab"] === tab;
+        link.classList.toggle("active", current);
+        if (current) link.setAttribute("aria-current", "page");
+        else link.removeAttribute("aria-current");
+    });
 }
 
 async function activateTab(tab: string, pushState = true): Promise<void> {
@@ -78,12 +120,13 @@ async function activateTab(tab: string, pushState = true): Promise<void> {
         loadedModules.get(currentTab)?.deactivate?.();
     }
     currentTab = tab;
+    setNoTabsVisible(false);
 
-    $$(".dash-side-link[data-tab]").forEach(b => b.classList.toggle("active", b.dataset["tab"] === tab));
+    syncDashboardNavigation(tab);
     const btn = document.querySelector<HTMLElement>(`.dash-side-link[data-tab="${tab}"]`);
-    btn?.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
+    btn?.scrollIntoView({ behavior: motionScrollBehavior(), block: "nearest", inline: "center" });
     if (sidebarToggleLabel) sidebarToggleLabel.textContent = info.label;
-    closeSidebarMenu?.();
+    closeSidebarMenu?.(true);
     if (pushState) history.pushState(null, "", `/dashboard/${tab}`);
     $$(".tab-pane").forEach(p => p.classList.toggle("active", p.id === `pane-${tab}`));
     mod.activate();
@@ -106,7 +149,7 @@ function buildSidebarToggle(side: HTMLElement): HTMLElement {
     const toggle = document.createElement("button");
     toggle.type = "button";
     toggle.className = "dash-side-toggle";
-    toggle.setAttribute("aria-haspopup", "true");
+    toggle.setAttribute("aria-controls", DASH_SIDE_LIST_ID);
     toggle.setAttribute("aria-expanded", "false");
 
     const label = document.createElement("span");
@@ -120,29 +163,38 @@ function buildSidebarToggle(side: HTMLElement): HTMLElement {
 
     function onOutsideMouseDown(e: MouseEvent): void {
         if (side.contains(e.target as Node)) return;
-        closeMenu();
+        closeMenu(false);
     }
 
-    function closeMenu(): void {
+    function closeMenu(restoreFocus: boolean): void {
+        if (!side.classList.contains("open")) return;
         side.classList.remove("open");
         toggle.setAttribute("aria-expanded", "false");
+        closeDismissibleSurface(side);
         document.removeEventListener("mousedown", onOutsideMouseDown, true);
+        if (restoreFocus && toggle.offsetParent !== null) toggle.focus();
     }
 
     toggle.addEventListener("click", () => {
-        const open = side.classList.toggle("open");
-        toggle.setAttribute("aria-expanded", String(open));
-        if (open) document.addEventListener("mousedown", onOutsideMouseDown, true);
-        else document.removeEventListener("mousedown", onOutsideMouseDown, true);
+        if (side.classList.contains("open")) {
+            closeMenu(false);
+            return;
+        }
+        side.classList.add("open");
+        toggle.setAttribute("aria-expanded", "true");
+        openDismissibleSurface(side, () => closeMenu(true));
+        document.addEventListener("mousedown", onOutsideMouseDown, true);
     });
 
-    closeSidebarMenu = closeMenu;
+    closeSidebarMenu = (restoreFocus = false) => closeMenu(restoreFocus);
     side.appendChild(toggle);
     return label;
 }
 
 const EVENTS_RECONNECT_MS = 5000;
+const TAB_REFRESH_RETRY_MS = 5000;
 let eventsSocket: WebSocket | null = null;
+let refreshRetryTimer: number | null = null;
 
 function connectDashboardEvents(): void {
     const proto = location.protocol === "https:" ? "wss" : "ws";
@@ -169,31 +221,60 @@ function connectDashboardEvents(): void {
 }
 
 async function refreshTabs(): Promise<void> {
+    if (refreshRetryTimer !== null) {
+        window.clearTimeout(refreshRetryTimer);
+        refreshRetryTimer = null;
+    }
+    const revision = ++refreshRevision;
     let refreshed: MeInfo;
     try {
         refreshed = await authFetch<MeInfo>("/api/auth/me");
     } catch {
+        if (revision === refreshRevision) {
+            refreshRetryTimer = window.setTimeout(() => {
+                refreshRetryTimer = null;
+                void refreshTabs();
+            }, TAB_REFRESH_RETRY_MS);
+        }
         return;
     }
+    if (revision !== refreshRevision) return;
     setMe(refreshed);
     const tabs = (refreshed.tabs ?? []).filter(t => TAB_LOADERS[t.id]);
-    if (tabs.map(t => t.id).join(",") === allTabs.map(t => t.id).join(",")) return;
-    const studioTabs = (refreshed.tabs ?? []).filter(t => !TAB_LOADERS[t.id]);
-    const baseDomain = location.hostname.replace(/^(live|admin|staff)\./, "");
-    const port = location.port ? `:${location.port}` : "";
-    studioUrl = studioTabs.length ? `https://studio.${baseDomain}${port}/dashboard` : null;
+    const nextStudioUrl = studioDashboardUrl(refreshed.tabs ?? []);
+    if (navigationSnapshot(tabs, nextStudioUrl) === navigationSnapshot(allTabs, studioUrl)) return;
+    const previousCurrentInfo = currentTab ? tabById.get(currentTab) : undefined;
+    const currentPaneChanged = !!currentTab && tabs.some(tab => tab.id === currentTab && tab.pane !== previousCurrentInfo?.pane);
+    const reloadTab = currentPaneChanged ? currentTab : null;
+    activationSeq += 1;
+    studioUrl = nextStudioUrl;
     allTabs = tabs;
     tabById.clear();
     for (const t of tabs) tabById.set(t.id, t);
-    closeSidebarMenu?.();
+    closeSidebarMenu?.(false);
     $("dash-side").replaceChildren();
     buildSidebar(tabs);
+    if (currentTab && (!tabById.has(currentTab) || currentPaneChanged)) {
+        const previous = currentTab;
+        currentTab = null;
+        loadedModules.get(previous)?.deactivate?.();
+        if (currentPaneChanged) {
+            loadedModules.delete(previous);
+            document.getElementById(`pane-${previous}`)?.remove();
+        }
+        $$(".tab-pane").forEach(pane => pane.classList.remove("active"));
+    }
     if (currentTab && tabById.has(currentTab)) {
         const active = currentTab;
-        $$(".dash-side-link[data-tab]").forEach(b => b.classList.toggle("active", b.dataset["tab"] === active));
+        syncDashboardNavigation(active);
         if (sidebarToggleLabel) sidebarToggleLabel.textContent = tabById.get(active)!.label;
+    } else if (reloadTab) {
+        void activateTab(reloadTab, false);
     } else if (tabs[0]) {
         void activateTab(tabs[0].id);
+    } else {
+        if (sidebarToggleLabel) sidebarToggleLabel.textContent = "Dashboard";
+        setNoTabsVisible(true);
     }
 }
 
@@ -203,6 +284,7 @@ function buildSidebar(tabs: TabInfo[]): void {
 
     const list = document.createElement("div");
     list.className = "dash-side-list";
+    list.id = DASH_SIDE_LIST_ID;
     side.appendChild(list);
 
     const distinctGroups = new Set(tabs.map(t => t.group ?? "__none__"));
@@ -247,7 +329,9 @@ function makeStudioLink(className: string): HTMLAnchorElement {
 function makeBurgerTab(t: TabInfo, close: () => void): HTMLButtonElement {
     const b = document.createElement("button");
     b.type = "button";
-    b.className = "site-account-item" + (t.id === currentTab ? " active" : "");
+    const current = t.id === currentTab;
+    b.className = "site-account-item" + (current ? " active" : "");
+    if (current) b.setAttribute("aria-current", "page");
     b.textContent = t.label;
     b.addEventListener("click", () => { close(); void activateTab(t.id); });
     return b;
@@ -280,6 +364,8 @@ function buildBurgerTabItems(close: () => void): HTMLElement[] {
         const header = document.createElement("button");
         header.type = "button";
         header.className = "site-burger-group";
+        burgerGroupId += 1;
+        header.id = `site-burger-group-${burgerGroupId}`;
         const label = document.createElement("span");
         label.textContent = g;
         const chevron = document.createElement("span");
@@ -289,14 +375,26 @@ function buildBurgerTabItems(close: () => void): HTMLElement[] {
 
         const list = document.createElement("div");
         list.className = "site-burger-group-list";
+        list.id = `${header.id}-list`;
+        list.setAttribute("role", "group");
+        list.setAttribute("aria-labelledby", header.id);
+        header.setAttribute("aria-controls", list.id);
         for (const t of tabs) list.appendChild(makeBurgerTab(t, close));
 
-        if (tabs.some(t => t.id === currentTab)) section.classList.add("open");
+        const startsOpen = tabs.some(t => t.id === currentTab);
+        section.classList.toggle("open", startsOpen);
+        header.setAttribute("aria-expanded", String(startsOpen));
         header.addEventListener("click", () => {
             const wasOpen = section.classList.contains("open");
             section.parentElement?.querySelectorAll(".site-burger-section.open")
-                .forEach(s => s.classList.remove("open"));
-            if (!wasOpen) section.classList.add("open");
+                .forEach(s => {
+                    s.classList.remove("open");
+                    s.querySelector<HTMLElement>(".site-burger-group")?.setAttribute("aria-expanded", "false");
+                });
+            if (!wasOpen) {
+                section.classList.add("open");
+                header.setAttribute("aria-expanded", "true");
+            }
         });
 
         section.append(header, list);
@@ -380,8 +478,7 @@ function showSessionProblem(state: "forbidden" | "unavailable"): void {
     });
 
     const tabs = (me.tabs ?? []).filter(t => TAB_LOADERS[t.id]);
-    const studioTabs = (me.tabs ?? []).filter(t => !TAB_LOADERS[t.id]);
-    studioUrl = studioTabs.length ? `https://studio.${baseDomain}${port}/dashboard` : null;
+    studioUrl = studioDashboardUrl(me.tabs ?? []);
     allTabs = tabs;
     for (const t of tabs) tabById.set(t.id, t);
     buildSidebar(tabs);
@@ -405,5 +502,7 @@ function showSessionProblem(state: "forbidden" | "unavailable"): void {
     if (landing) {
         history.replaceState(null, "", `/dashboard/${landing}`);
         void activateTab(landing, false);
+    } else {
+        setNoTabsVisible(true);
     }
 })();

@@ -45,6 +45,7 @@ function wireFollow(): void {
                 const j = await r.json();
                 following = !!j.following;
                 if (following) followNotify = j.notify !== false;
+                window.dispatchEvent(new CustomEvent("follow-changed"));
             }
         } catch {}
         followBtnEl.disabled = false;

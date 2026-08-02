@@ -90,6 +90,8 @@ export function setViewers(n: number | null): void {
 
 let viewcountSock: WebSocket | null = null;
 let viewcountRetryTimer: number | null = null;
+let viewcountSuspended = false;
+let viewcountStarted = false;
 
 function clearViewcountRetryTimer(): void {
     if (viewcountRetryTimer !== null) {
@@ -99,6 +101,7 @@ function clearViewcountRetryTimer(): void {
 }
 
 function scheduleViewcountRetry(): void {
+    if (viewcountSuspended) return;
     clearViewcountRetryTimer();
     viewcountRetryTimer = window.setTimeout(() => {
         viewcountRetryTimer = null;
@@ -107,6 +110,8 @@ function scheduleViewcountRetry(): void {
 }
 
 export function connectViewcount(): void {
+    viewcountStarted = true;
+    if (viewcountSuspended) return;
     if (viewcountSock && (viewcountSock.readyState === WebSocket.CONNECTING || viewcountSock.readyState === WebSocket.OPEN)) return;
     clearViewcountRetryTimer();
     const proto = location.protocol === "https:" ? "wss" : "ws";
@@ -137,7 +142,24 @@ export function connectViewcount(): void {
         scheduleViewcountRetry();
     };
 
-    s.onerror = () => s.close();
+    s.onerror = () => {
+        if (viewcountSock === s) s.close();
+    };
+}
+
+export function suspendViewcount(): void {
+    if (!viewcountStarted) return;
+    viewcountSuspended = true;
+    clearViewcountRetryTimer();
+    const previous = viewcountSock;
+    viewcountSock = null;
+    previous?.close();
+}
+
+export function resumeViewcount(): void {
+    if (!viewcountStarted || !viewcountSuspended) return;
+    viewcountSuspended = false;
+    connectViewcount();
 }
 
 let streamStartMs = 0;

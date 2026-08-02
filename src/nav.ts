@@ -70,7 +70,10 @@ function rightMount(): HTMLElement {
 
 export function markActive(active: NavActive): void {
     document.querySelectorAll<HTMLElement>("[data-nav]").forEach((el) => {
-        el.classList.toggle("active", !!active && el.dataset["nav"] === active);
+        const current = !!active && el.dataset["nav"] === active;
+        el.classList.toggle("active", current);
+        if (current) el.setAttribute("aria-current", "page");
+        else el.removeAttribute("aria-current");
     });
 }
 

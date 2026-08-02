@@ -1,4 +1,5 @@
 import { getMe } from "./session.ts";
+import { copyText } from "../clipboard.ts";
 
 export const PREVIEW_DEBOUNCE_MS = 300;
 
@@ -21,9 +22,9 @@ export function setBackdrop(frameId: string, checkerId: string, darkId: string, 
 export function wireCopy(buttonId: string, getValue: () => string): void {
     el<HTMLButtonElement>(buttonId).addEventListener("click", () => {
         const btn = el<HTMLButtonElement>(buttonId);
-        navigator.clipboard.writeText(getValue()).then(() => {
-            btn.textContent = "Copied";
+        void copyText(getValue()).then(copied => {
+            btn.textContent = copied ? "Copied" : "Failed";
             setTimeout(() => { btn.textContent = "Copy"; }, 1200);
-        }).catch(() => { btn.textContent = "Failed"; });
+        });
     });
 }

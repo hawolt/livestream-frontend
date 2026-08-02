@@ -1,3 +1,5 @@
+import { copyText } from "../clipboard.ts";
+
 export const fmtDate = (s: string | null | undefined): string => {
     if (!s) return "-";
     const raw = s.slice(0, 10);
@@ -24,10 +26,10 @@ export function wireCopyButtons(values: string[]): void {
     document.querySelectorAll<HTMLButtonElement>("#modal-body [data-copy]").forEach(btn => {
         btn.addEventListener("click", () => {
             const value = values[Number(btn.dataset["copy"] ?? "-1")] ?? "";
-            navigator.clipboard.writeText(value).then(() => {
-                btn.textContent = "Copied";
+            void copyText(value).then(copied => {
+                btn.textContent = copied ? "Copied" : "Failed";
                 setTimeout(() => { btn.textContent = "Copy"; }, 1200);
-            }).catch(() => { btn.textContent = "Failed"; });
+            });
         });
     });
 }

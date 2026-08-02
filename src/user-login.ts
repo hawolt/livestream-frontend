@@ -111,9 +111,6 @@ async function boot(): Promise<void> {
         return;
     }
 
-    // Note: cookie === "unavailable" deliberately falls through instead of
-    // bailing out here - a transient failure to reach /auth/session must not
-    // strand a user who still holds a perfectly valid bearer token.
     const existing = sessionStorage.getItem("dash_token");
     const existingKind = sessionStorage.getItem("dash_kind");
     if (existing && (existingKind === "user" || !existingKind)) {

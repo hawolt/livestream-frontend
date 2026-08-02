@@ -58,8 +58,8 @@ export function buildBurger(info: SessionInfo | null, pageControls: HTMLElement[
             item.className = "site-account-item";
             item.textContent = ctrl.title || ctrl.textContent || "";
             item.addEventListener("click", () => {
+                burgerClose();
                 ctrl.click();
-                rebuild();
             });
             panel.appendChild(item);
             hasControls = true;

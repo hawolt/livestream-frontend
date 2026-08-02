@@ -1,4 +1,5 @@
 import type { LiveInfo, RegionOption } from "../../api.ts";
+import { copyText } from "../../clipboard.ts";
 import { esc, maskSecret } from "../format.ts";
 import { openModal } from "../modal.ts";
 import { loadRegions } from "../regions.ts";
@@ -44,10 +45,10 @@ function fieldRow(label: string, value: string, id: string, secret: boolean): st
 function wireField(id: string, value: string, secret: boolean): void {
     document.getElementById(`${id}-copy`)?.addEventListener("click", () => {
         const btn = document.getElementById(`${id}-copy`)!;
-        navigator.clipboard.writeText(value).then(() => {
-            btn.textContent = "Copied";
+        void copyText(value).then(copied => {
+            btn.textContent = copied ? "Copied" : "Failed";
             setTimeout(() => { btn.textContent = "Copy"; }, 1200);
-        }).catch(() => { btn.textContent = "Failed"; });
+        });
     });
     if (!secret) return;
     document.getElementById(`${id}-reveal`)?.addEventListener("click", () => {

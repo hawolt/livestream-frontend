@@ -222,7 +222,7 @@ export function restartAfterFailure(g: number): void {
 }
 
 export function beginTransport(): void {
-    if (ctx.terminal) return;
+    if (ctx.terminal || ctx.transportKind === "none") return;
     startHealthTimer();
     clearRetryTimer();
     const g = nextGen();

@@ -50,6 +50,7 @@ export function buildEmoteImg(name: string, url: string): HTMLImageElement {
     const img = document.createElement("img");
     img.className = "live-chat-emote";
     img.src = url;
+    img.referrerPolicy = "no-referrer";
     img.alt = name;
     img.title = name;
     img.loading = "lazy";
