@@ -9,6 +9,7 @@ let following = false;
 let followNotify = false;
 let followWired = false;
 let followRefreshRevision = 0;
+let followError: string | null = null;
 
 export function canAutoFollow(): boolean {
     return followLoggedIn && !followOwn && !following;
@@ -22,11 +23,12 @@ export function renderFollow(): void {
         return;
     }
     followBtnEl.hidden = false;
-    followBtnEl.textContent = following ? "Following" : "Follow";
+    followBtnEl.textContent = followError ? "Try again" : following ? "Following" : "Follow";
+    followBtnEl.title = followError ?? "";
     followBtnEl.classList.toggle("following", following);
     followBellEl.hidden = !following;
     followBellEl.classList.toggle("on", followNotify);
-    followBellEl.title = followNotify ? "Email notifications on" : "Email me when this channel goes live";
+    followBellEl.title = followError ?? (followNotify ? "Email notifications on" : "Email me when this channel goes live");
 }
 
 function wireFollow(): void {
@@ -38,6 +40,7 @@ function wireFollow(): void {
             return;
         }
         followBtnEl.disabled = true;
+        followError = null;
         try {
             const method = following ? "DELETE" : "POST";
             const r = await fetch(`${API_BASE}/follows/${encodeURIComponent(ctx.username)}`, { method, credentials: "include" });
@@ -46,8 +49,15 @@ function wireFollow(): void {
                 following = !!j.following;
                 if (following) followNotify = j.notify !== false;
                 window.dispatchEvent(new CustomEvent("follow-changed"));
+            } else if (r.status === 401) {
+                followLoggedIn = false;
+                openLoginModal("follow");
+            } else {
+                followError = "Could not update follow. Try again.";
             }
-        } catch {}
+        } catch {
+            followError = "Could not reach the server. Try again.";
+        }
         followBtnEl.disabled = false;
         renderFollow();
     });
@@ -55,6 +65,7 @@ function wireFollow(): void {
         if (!following) return;
         const next = !followNotify;
         followBellEl.disabled = true;
+        followError = null;
         try {
             const r = await fetch(`${API_BASE}/follows/${encodeURIComponent(ctx.username)}/notify`, {
                 method: "PUT",
@@ -65,8 +76,15 @@ function wireFollow(): void {
             if (r.ok) {
                 const j = await r.json();
                 followNotify = !!j.notify;
+            } else if (r.status === 401) {
+                followLoggedIn = false;
+                openLoginModal("follow");
+            } else {
+                followError = "Could not update notifications. Try again.";
             }
-        } catch {}
+        } catch {
+            followError = "Could not reach the server. Try again.";
+        }
         followBellEl.disabled = false;
         renderFollow();
     });
@@ -101,6 +119,7 @@ export async function initFollow(): Promise<void> {
     followOwn = nextOwn;
     following = nextFollowing;
     followNotify = nextNotify;
+    followError = null;
     wireFollow();
     renderFollow();
 }

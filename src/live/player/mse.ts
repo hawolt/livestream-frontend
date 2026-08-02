@@ -42,6 +42,7 @@ export function pump(g: number): void {
         if (e instanceof DOMException && e.name === "QuotaExceededError") {
             ctx.appendQueue.unshift(chunk);
             const b = video.buffered;
+            let recoveryStarted = false;
             if (b.length && ctx.sourceBuffer && !ctx.sourceBuffer.updating) {
                 const trimmed = quotaTrimOnFailure({ keepS: ctx.quotaKeepS, failStreak: ctx.quotaFailStreak }, QUOTA_TRIM_FLOOR_S);
                 ctx.quotaFailStreak = trimmed.failStreak;
@@ -50,8 +51,10 @@ export function pump(g: number): void {
                 const target = Math.max(b.start(0) + 1, ref - ctx.quotaKeepS);
                 try {
                     ctx.sourceBuffer.remove(0, target);
+                    recoveryStarted = true;
                 } catch {}
             }
+            if (!recoveryStarted) restartAfterFailure(g);
         } else {
             console.warn("live: source buffer append failed, restarting player", e);
             restartAfterFailure(g);
@@ -60,6 +63,7 @@ export function pump(g: number): void {
 }
 
 export function attachMediaSource(g: number, codecs: string): void {
+    if (ctx.mediaSource) return;
     const mime = `video/mp4; codecs="${codecs}"`;
     if (!MediaSource.isTypeSupported(mime)) {
         console.warn("live: unsupported codecs", codecs);

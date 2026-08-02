@@ -3,7 +3,6 @@ import { ctx } from "./player/context.ts";
 import { qualityLabel, resolveNextQuality } from "../quality.ts";
 import { QUALITY_STORAGE_KEY } from "./constants.ts";
 import { writeLocalStorage } from "../storage.ts";
-import { resetAbr } from "./player/abr.ts";
 import { beginTransport } from "./player/lifecycle.ts";
 import { closeDismissibleSurface, openDismissibleSurface } from "../dismissible-surface.ts";
 
@@ -86,7 +85,6 @@ export function selectQuality(pref: string): void {
     if (pref === ctx.qualityPreference) return;
     ctx.qualityPreference = pref;
     writeLocalStorage(QUALITY_STORAGE_KEY, ctx.qualityPreference);
-    resetAbr();
     renderQualityMenu();
     if (ctx.transportKind !== "ws" || ctx.terminal || ctx.state === "offline") return;
     const next = resolveNextQuality(ctx.qualityPreference, ctx.qualityLadder, ctx.qualityLadderKnown, ctx.activeQuality);

@@ -3,13 +3,14 @@ import { ctx, isCurrent, track } from "./context.ts";
 import { HLS_BEACON_INTERVAL_MS } from "../constants.ts";
 import { getViewerId } from "../../player-shared/viewer-id.ts";
 import { captchaQuery, getCaptchaToken } from "../../captcha.ts";
-import { beginTransport, enterTerminal, goOffline, resetRetryBackoff, setState } from "./lifecycle.ts";
+import { beginTransport, enterTerminal, fullTeardown, goOffline, resetRetryBackoff, setState } from "./lifecycle.ts";
 import { withCaptchaHint } from "./ws.ts";
 import { attachVideoFailureListeners } from "./health.ts";
 import { renderQualityMenu } from "../quality-menu.ts";
 
-function sendHLSBeat(): void {
+function sendHLSBeat(g: number): void {
     void captchaQuery().then((tq) => {
+        if (!isCurrent(g)) return;
         const url = `${ctx.mediaBase}/hls/${encodeURIComponent(ctx.username)}/beat?id=${encodeURIComponent(getViewerId())}${tq}`;
         fetch(url, { method: "POST" }).catch(() => {});
     });
@@ -31,7 +32,7 @@ export function startHLSBeacon(g: number): void {
             stopHLSBeacon();
             return;
         }
-        sendHLSBeat();
+        sendHLSBeat(g);
     };
     beat();
     hlsBeaconTimer = window.setInterval(beat, HLS_BEACON_INTERVAL_MS);
@@ -69,6 +70,7 @@ export function startHLSTransport(g: number): void {
     const onEnded = () => {
         if (!isCurrent(g)) return;
         console.log("live: stream ended, waiting for next");
+        fullTeardown();
         goOffline(g);
     };
 

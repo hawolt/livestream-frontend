@@ -3,6 +3,9 @@ public/*.js
 public/dash/
 public/details.html
 public/static/css/details.css
+.env
+.env.*
+*.env
 .DS_Store
 .idea/
 .vscode/

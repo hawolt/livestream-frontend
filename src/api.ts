@@ -114,11 +114,15 @@ export interface LiveMod {
 
 export const API_BASE = "/api/main/v1";
 
+export function buildRequestHeaders(headers?: HeadersInit): HeadersInit {
+    return { "Content-Type": "application/json", ...headers };
+}
+
 export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
     const url = path.replace(/^\/api\//, `${API_BASE}/`);
     const res = await fetch(url, {
-        headers: { "Content-Type": "application/json", ...init?.headers },
         ...init,
+        headers: buildRequestHeaders(init?.headers),
     });
     if (!res.ok) {
         const err = await res.json().catch(() => ({ error: res.statusText })) as { error?: string };

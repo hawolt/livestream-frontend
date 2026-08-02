@@ -12,13 +12,12 @@ import { applyQualityList, renderQualityMenu } from "../quality-menu.ts";
 import { setStreamDimensions, setStreamFps, setStreamStart, updateQuality } from "../stream-info.ts";
 import { attachMediaSource, pump } from "./mse.ts";
 import { attachVideoFailureListeners } from "./health.ts";
-import { fullTeardown, goOffline, nextRetryDelay, scheduleRestart, setPoster, setState } from "./lifecycle.ts";
-import { resetAbr } from "./abr.ts";
+import { fullTeardown, goOffline, nextRetryDelay, restartAfterFailure, scheduleRestart, setPoster, setState } from "./lifecycle.ts";
 import { mediaWsUrl as sharedMediaWsUrl } from "../../player-shared/ws-url.ts";
 
 export function mediaWsUrl(path: string): string {
     const proto = location.protocol === "https:" ? "wss" : "ws";
-    return sharedMediaWsUrl(ctx.mediaBase, path, `${proto}://${location.host}`);
+    return sharedMediaWsUrl(ctx.mediaBase, path, `${proto}://${location.host}`, location.protocol);
 }
 
 export function withCaptchaHint<T>(g: number, p: Promise<T>): Promise<T> {
@@ -39,7 +38,6 @@ export function handleWSClose(g: number, ev: CloseEvent): void {
             ctx.qualityLadder = ctx.qualityLadder.filter((q) => q !== attemptedQuality);
             ctx.activeQuality = QUALITY_SOURCE;
             ctx.requestedQuality = QUALITY_SOURCE;
-            resetAbr();
             renderQualityMenu();
             setState("reconnecting");
             scheduleRestart(100, g);
@@ -69,7 +67,14 @@ export function startWSTransport(g: number): void {
         ctx.requestedQuality = resolveNextQuality(ctx.qualityPreference, ctx.qualityLadder, ctx.qualityLadderKnown, ctx.activeQuality);
         const qParam = qualityWsParam(ctx.requestedQuality);
         const path = `/ws/live?u=${encodeURIComponent(ctx.username)}&viewer_id=${encodeURIComponent(getViewerId())}${tq}${qParam}`;
-        const sock = new WebSocket(mediaWsUrl(path));
+        let sock: WebSocket;
+        try {
+            sock = new WebSocket(mediaWsUrl(path));
+        } catch (e) {
+            console.warn("live: websocket construction failed, restarting player", e);
+            restartAfterFailure(g);
+            return;
+        }
         ctx.ws = sock;
         sock.binaryType = "arraybuffer";
 
@@ -81,7 +86,8 @@ export function startWSTransport(g: number): void {
                     msg = JSON.parse(ev.data);
                 } catch {}
                 if (isQualityOnlyFrame(msg)) {
-                    applyQualityList(parseQualitiesFrame(msg) ?? []);
+                    const list = parseQualitiesFrame(msg);
+                    if (list && list.length) applyQualityList(list);
                     return;
                 }
                 const codecs = typeof msg.codecs === "string" ? msg.codecs : "";

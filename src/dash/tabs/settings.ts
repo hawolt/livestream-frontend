@@ -258,12 +258,17 @@ export function init(): void {
 
     document.getElementById("settings-account-form")?.addEventListener("submit", async (e) => {
         e.preventDefault();
+        const form = e.currentTarget as HTMLFormElement;
+        const btn = form.querySelector<HTMLButtonElement>('button[type="submit"]');
+        if (btn?.disabled) return;
         const operation = beginOperation("account");
         const email = ($("st-email") as HTMLInputElement).value.trim();
         const body: Record<string, string> = { email };
+        if (btn) btn.disabled = true;
         try {
             const res = await authFetch<{ ok: boolean; emailVerified?: boolean; message?: string }>(
                 "/api/settings", { method: "PUT", body: JSON.stringify(body) });
+            if (isCurrentOperation(operation) && btn) btn.disabled = false;
             invalidateSettingsLoads();
             if (!isCurrentOperation(operation)) return;
             const saved = $("st-saved");
@@ -279,7 +284,10 @@ export function init(): void {
                 if (isCurrentOperation(operation)) saved.textContent = "";
             }, 4000);
         } catch (err) {
-            if (isCurrentOperation(operation)) alert(`Save failed: ${err}`);
+            if (isCurrentOperation(operation)) {
+                if (btn) btn.disabled = false;
+                alert(`Save failed: ${err}`);
+            }
         }
     });
 
@@ -339,6 +347,8 @@ export function init(): void {
 
     document.getElementById("settings-username-form")?.addEventListener("submit", async (e) => {
         e.preventDefault();
+        const btn = document.getElementById("btn-username-save") as HTMLButtonElement | null;
+        if (btn?.disabled) return;
         const operation = beginOperation("username");
         const username = ($("st-username-new") as HTMLInputElement).value.trim();
         const password = ($("st-username-password") as HTMLInputElement).value;
@@ -348,18 +358,21 @@ export function init(): void {
             status.style.color = "var(--red)";
             return;
         }
+        if (btn) btn.disabled = true;
         try {
             const res = await authFetch<{ token: string; username: string }>(
                 "/api/settings/username", { method: "PUT", body: JSON.stringify({ username, password }) });
             setToken(res.token);
             const me = getMe();
             if (me) me.username = res.username;
+            if (isCurrentOperation(operation)) {
+                ($("st-username-current") as HTMLInputElement).value = res.username;
+                ($("st-username-new") as HTMLInputElement).value = "";
+                ($("st-username-password") as HTMLInputElement).value = "";
+                updateUsernameSaveState();
+            }
             invalidateSettingsLoads();
             if (!isCurrentOperation(operation)) return;
-            ($("st-username-current") as HTMLInputElement).value = res.username;
-            ($("st-username-new") as HTMLInputElement).value = "";
-            ($("st-username-password") as HTMLInputElement).value = "";
-            updateUsernameSaveState();
             status.textContent = "Saved";
             status.style.color = "var(--success)";
             window.setTimeout(() => {
@@ -371,17 +384,22 @@ export function init(): void {
             const status_ = (err as { status?: number }).status;
             status.textContent = msg;
             status.style.color = status_ === 429 ? "var(--muted)" : "var(--red)";
+            updateUsernameSaveState();
         }
     });
 
     document.getElementById("settings-password-form")?.addEventListener("submit", async (e) => {
         e.preventDefault();
+        const form = e.currentTarget as HTMLFormElement;
+        const btn = form.querySelector<HTMLButtonElement>('button[type="submit"]');
+        if (btn?.disabled) return;
         const operation = beginOperation("password");
         const current = ($("st-pw-current") as HTMLInputElement).value;
         const next    = ($("st-pw-new") as HTMLInputElement).value;
         const confirmPw = ($("st-pw-confirm") as HTMLInputElement).value;
         if (next !== confirmPw) { alert("New passwords do not match."); return; }
         if (next.length < 8)  { alert("Password must be at least 8 characters."); return; }
+        if (btn) btn.disabled = true;
         try {
             const res = await authFetch<{ token?: string }>("/api/settings/password", { method: "PUT", body: JSON.stringify({ currentPassword: current, newPassword: next }) });
             if (res.token) {
@@ -398,6 +416,8 @@ export function init(): void {
             }, 2500);
         } catch (err) {
             if (isCurrentOperation(operation)) alert(`Failed: ${err}`);
+        } finally {
+            if (isCurrentOperation(operation) && btn) btn.disabled = false;
         }
     });
 }

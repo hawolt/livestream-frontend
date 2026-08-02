@@ -13,7 +13,7 @@ const MAX_EVENTS = 50;
 const CONCEAL_KEY = "activity_viewer_concealed";
 const RECONNECT_MS = 5000;
 
-const isoOf = (t: number): string => new Date(t * 1000).toISOString();
+const dateOf = (t: number): Date => new Date(t * 1000);
 
 let concealed = sessionStorage.getItem(CONCEAL_KEY) === "1";
 let events: FollowEvent[] = [];
@@ -57,10 +57,10 @@ function renderFollowerCount(): void {
 }
 
 function eventRowHtml(e: FollowEvent): string {
-    const iso = isoOf(e.at);
+    const at = dateOf(e.at);
     return `<div style="display:flex;justify-content:space-between;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border)">
         <span><b>${esc(e.username)}</b> followed</span>
-        <span style="font-size:11px;color:var(--muted);white-space:nowrap">${fmtTime(iso)} ${fmtDate(iso)}</span>
+        <span style="font-size:11px;color:var(--muted);white-space:nowrap">${fmtTime(at)} ${fmtDate(at)}</span>
     </div>`;
 }
 

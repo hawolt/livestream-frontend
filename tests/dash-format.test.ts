@@ -2,20 +2,27 @@ import { describe, expect, test } from "bun:test";
 import { esc, fmtDate, fmtTime, fmtUptime, maskSecret } from "../src/dash/format.ts";
 
 describe("fmtDate", () => {
-    test("reformats an ISO date to d.m.y", () => {
-        expect(fmtDate("2024-03-05T10:20:30Z")).toBe("05.03.2024");
+    test("formats a local date as d.m.y", () => {
+        expect(fmtDate(new Date(2024, 2, 5, 10, 20, 30))).toBe("05.03.2024");
+    });
+
+    test("pads single-digit day and month", () => {
+        expect(fmtDate(new Date(2026, 0, 5, 0, 0))).toBe("05.01.2026");
     });
 
     test("returns a dash for missing input", () => {
         expect(fmtDate(null)).toBe("-");
         expect(fmtDate(undefined)).toBe("-");
-        expect(fmtDate("")).toBe("-");
     });
 });
 
 describe("fmtTime", () => {
-    test("extracts hours and minutes from an ISO timestamp", () => {
-        expect(fmtTime("2024-03-05T10:20:30Z")).toBe("10:20");
+    test("formats local hours and minutes", () => {
+        expect(fmtTime(new Date(2024, 2, 5, 10, 20, 30))).toBe("10:20");
+    });
+
+    test("pads single-digit hours and minutes", () => {
+        expect(fmtTime(new Date(2026, 0, 15, 4, 5))).toBe("04:05");
     });
 
     test("returns a dash for missing input", () => {

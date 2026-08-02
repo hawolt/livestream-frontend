@@ -64,8 +64,10 @@ test("keeps the full prefix as nick when there is no bang", () => {
     expect(line?.params).toEqual(["#chan", "+v", "alice"]);
 });
 
-test("treats an empty tag value and a valueless tag as empty string", () => {
+test("preserves an explicitly empty tag value as an empty string, distinct from an absent tag", () => {
     const line = parse("@color=;automod :alice!u@h PRIVMSG #chan :hi");
-    expect(line?.color).toBeUndefined();
+    expect(line?.color).toBe("");
     expect(line?.automod).toBe(true);
+    const absent = parse(":alice!u@h PRIVMSG #chan :hi");
+    expect(absent?.color).toBeUndefined();
 });

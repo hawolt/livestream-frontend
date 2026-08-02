@@ -40,7 +40,7 @@ export function applyBrowseMode(on: boolean, opts: { push?: boolean } = {}): voi
         if (isCinemaMode()) exitCinemaMode();
         browseMode = true;
         browseMiniClosed = false;
-        if (!browseIframeEl.src) browseIframeEl.src = "/?framed=1";
+        browseIframeEl.src = `/?framed=1&t=${Date.now()}`;
         browseIframeEl.hidden = false;
         Object.assign(browseIframeEl.style, {
             display: "block",

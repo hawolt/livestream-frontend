@@ -40,6 +40,14 @@ export function hideSuggest(): void {
     ctx.tabCycleRange = null;
 }
 
+const HEX_COLOR_RE = /^#[0-9a-fA-F]{3}$|^#[0-9a-fA-F]{4}$|^#[0-9a-fA-F]{6}$|^#[0-9a-fA-F]{8}$/;
+const FUNC_COLOR_RE = /^(rgb|rgba|hsl|hsla)\([0-9.,%\s]+\)$/;
+const NAMED_COLOR_RE = /^[a-zA-Z]+$/;
+
+function isSafeCssColor(value: string): boolean {
+    return HEX_COLOR_RE.test(value) || FUNC_COLOR_RE.test(value) || NAMED_COLOR_RE.test(value);
+}
+
 function suggestItems(): HTMLElement[] {
     return Array.from(suggestEl.querySelectorAll<HTMLElement>(".live-chat-suggest-item"));
 }
@@ -109,10 +117,10 @@ function renderSuggestItems(items: SuggestItem[]): void {
             img.alt = it.label;
             img.loading = "lazy";
             item.appendChild(img);
-        } else if (it.color) {
+        } else if (it.color && isSafeCssColor(it.color)) {
             const dot = document.createElement("span");
             dot.className = "live-chat-suggest-dot";
-            dot.style.background = it.color;
+            dot.style.backgroundColor = it.color;
             item.appendChild(dot);
         }
         const label = document.createElement("span");

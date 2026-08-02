@@ -33,7 +33,7 @@ export function renderAdSlot(container: HTMLElement, ads: AdSpot[]): void {
     a.rel = "noopener noreferrer nofollow sponsored";
     const img = document.createElement("img");
     img.style.cssText = "display:block;width:100%;max-height:90px;object-fit:contain;background:rgba(255,255,255,.03)";
-    img.src = ad.imageUrl;
+    img.src = `/api/live/spots/image/${ad.id}`;
     img.referrerPolicy = "no-referrer";
     img.alt = ad.altText;
     img.loading = "lazy";

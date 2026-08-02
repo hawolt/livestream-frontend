@@ -31,16 +31,5 @@ export const HLS_BEACON_INTERVAL_MS = 10000;
 export const VIEWCOUNT_RETRY_MS = 5000;
 export const VOLUME_KEY = "live-volume";
 export const QUALITY_STORAGE_KEY = "live-quality";
-export const ABR_SAMPLE_INTERVAL_MS = 2000;
-export const ABR_STALL_WINDOW_MS = 20000;
-export const ABR_STALL_THRESHOLD = 2;
-export const ABR_MIN_BUFFER_S = 1;
-export const ABR_COMFORTABLE_BUFFER_S = 3;
-export const ABR_LAG_THRESHOLD_S = 3.5;
-export const ABR_DROPPED_RATIO_THRESHOLD = 0.08;
-export const ABR_DOWNGRADE_STREAK = 3;
-export const ABR_UPGRADE_STREAK = 15;
-export const ABR_COOLDOWN_MS = 20000;
-export const ABR_THRESHOLDS = { cooldownMs: ABR_COOLDOWN_MS, downgradeStreak: ABR_DOWNGRADE_STREAK, upgradeStreak: ABR_UPGRADE_STREAK };
 
 export const EXPLORE_TITLE = "Explore";

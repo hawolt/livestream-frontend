@@ -199,6 +199,8 @@ export function wireUnmute(): void {
     });
 }
 
+let pageHideTornDown = false;
+
 export function wirePageLifecycle(): void {
     document.addEventListener("visibilitychange", () => {
         if (document.visibilityState === "visible") healthCheck();
@@ -206,6 +208,7 @@ export function wirePageLifecycle(): void {
     window.addEventListener("online", healthCheck);
     window.addEventListener("pagehide", () => {
         if (ctx.terminal) return;
+        pageHideTornDown = true;
         clearRetryTimer();
         stopHealthTimer();
         nextGen();
@@ -213,6 +216,12 @@ export function wirePageLifecycle(): void {
     });
     window.addEventListener("pageshow", (ev) => {
         if (ctx.terminal) return;
-        if ((ev as PageTransitionEvent).persisted) beginTransport();
+        const persisted = (ev as PageTransitionEvent).persisted;
+        if (persisted || pageHideTornDown) {
+            pageHideTornDown = false;
+            beginTransport();
+        } else {
+            healthCheck();
+        }
     });
 }

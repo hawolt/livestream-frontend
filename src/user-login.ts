@@ -51,16 +51,19 @@ function showLoginPage(): void {
     document.getElementById("login-page")?.removeAttribute("hidden");
 }
 
+export function resolveReturnUrl(rawReturn: string, currentOrigin: string): string | null {
+    if (!rawReturn) return null;
+    try {
+        const url = new URL(rawReturn, currentOrigin);
+        const isHttp = url.protocol === "http:" || url.protocol === "https:";
+        if (isHttp && url.origin === currentOrigin && !url.username && !url.password) return url.toString();
+    } catch {}
+    return null;
+}
+
 function resolveRedirect(): string {
-    const ret = new URLSearchParams(location.search).get("return");
-    if (ret) {
-        try {
-            const url = new URL(ret, location.origin);
-            const isHttp = url.protocol === "http:" || url.protocol === "https:";
-            if (isHttp && url.origin === location.origin && !url.username && !url.password) return url.toString();
-        } catch {}
-    }
-    return "/dashboard";
+    const ret = new URLSearchParams(location.search).get("return") ?? "";
+    return resolveReturnUrl(ret, location.origin) ?? "/dashboard";
 }
 
 async function verifyToken(token: string): Promise<"valid" | "invalid" | "unavailable"> {

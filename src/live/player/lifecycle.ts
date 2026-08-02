@@ -3,7 +3,6 @@ import { ctx, isCurrent, nextGen, runGenCleanup, type PlayerState } from "./cont
 import { PRUNE_KEEP_S, RETRY_MAX_MS, RETRY_MIN_MS, RETRY_MULT } from "../constants.ts";
 import { QUALITY_SOURCE } from "../../quality.ts";
 import { stopChase } from "./chase.ts";
-import { resetAbr, stopAbrMonitor } from "./abr.ts";
 import { stopHLSBeacon, startHLSTransport } from "./hls.ts";
 import { clearWaitingTimer, healthCheck, startHealthTimer, stopHealthTimer } from "./health.ts";
 import { resetStreamInfo, setViewers } from "../stream-info.ts";
@@ -155,7 +154,6 @@ export function renderPlayerUI(): void {
 
 export function fullTeardown(): void {
     stopChase();
-    stopAbrMonitor();
     stopHLSBeacon();
     clearWaitingTimer();
     if (ctx.ws) {
@@ -208,7 +206,6 @@ export function goOffline(g: number): void {
     ctx.qualityLadderKnown = false;
     ctx.activeQuality = QUALITY_SOURCE;
     ctx.requestedQuality = QUALITY_SOURCE;
-    resetAbr();
     renderQualityMenu();
     setState("offline");
     scheduleRestart(nextRetryDelay(), g);

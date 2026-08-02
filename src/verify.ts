@@ -38,7 +38,11 @@ function dashboardUrl(kind?: string): string {
     }
 
     try {
-        const res  = await fetch(`${API_BASE}/auth/verify?token=${encodeURIComponent(token)}`);
+        const res  = await fetch(`${API_BASE}/auth/verify`, {
+            method:  "POST",
+            headers: { "Content-Type": "application/json" },
+            body:    JSON.stringify({ token }),
+        });
         const data = await res.json() as { ok?: boolean; error?: string; kind?: string };
 
         if (res.ok && data.ok) {

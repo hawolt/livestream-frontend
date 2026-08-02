@@ -77,7 +77,26 @@ export function signOutAndRedirect(): void {
     location.replace("/login");
 }
 
-type SessionBootstrap = "authenticated" | "unauthenticated" | "unavailable" | "mismatch";
+export type SessionBootstrap = "authenticated" | "unauthenticated" | "unavailable" | "mismatch";
+
+export type AuthRecoveryAction = "redirect" | "retry" | "give-up";
+
+export function decideAuthRecovery(bootstrap: SessionBootstrap): AuthRecoveryAction {
+    if (bootstrap === "unauthenticated" || bootstrap === "mismatch") return "redirect";
+    if (bootstrap === "unavailable") return "give-up";
+    return "retry";
+}
+
+export type DashboardStatusOutcome = "unavailable" | "signed-out" | "forbidden" | "continue";
+
+export function decideDashboardStatus(res: { status: number; ok: boolean } | null): DashboardStatusOutcome {
+    if (!res) return "unavailable";
+    if (res.status === 401) return "signed-out";
+    if (res.status === 403) return "forbidden";
+    if (!res.ok) return "unavailable";
+    return "continue";
+}
+
 let sessionBootstrap: Promise<SessionBootstrap> | null = null;
 const SESSION_RENEWAL_CHECK_MS = 4 * 60 * 1000;
 let sessionRenewalStarted = false;
@@ -174,12 +193,10 @@ async function fetchMe(): Promise<Response | null> {
 }
 
 async function dashboardResult(res: Response | null): Promise<DashboardSession> {
-    if (!res) return { state: "unavailable" };
-    if (res.status === 401) return { state: "signed-out" };
-    if (res.status === 403) return { state: "forbidden" };
-    if (!res.ok) return { state: "unavailable" };
+    const outcome = decideDashboardStatus(res);
+    if (outcome !== "continue") return { state: outcome };
     try {
-        const data = await res.json() as MeInfo & { token?: string };
+        const data = await res!.json() as MeInfo & { token?: string };
         if (data.token) setToken(data.token);
         return { state: "ready", me: data };
     } catch {
@@ -212,11 +229,12 @@ export async function authFetch<T>(path: string, init?: RequestInit): Promise<T>
         const status = (e as { status?: number }).status;
         if (status !== 401) throw e;
         const bootstrap = await bootstrapSessionFromCookie();
-        if (bootstrap === "unauthenticated" || bootstrap === "mismatch") {
+        const action = decideAuthRecovery(bootstrap);
+        if (action === "redirect") {
             loginRedirect();
             throw e;
         }
-        if (bootstrap === "unavailable") throw e;
+        if (action === "give-up") throw e;
         try {
             return await request();
         } catch (retryError) {

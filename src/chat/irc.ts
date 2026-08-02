@@ -68,8 +68,8 @@ export function parse(line: string): IrcLine | null {
     const out: IrcLine = { nick: from, command: command.toUpperCase(), params };
     if (msgid) out.msgid = msgid;
     if (reply) out.reply = reply;
-    if (color) out.color = color;
-    if (subBadge) out.subBadge = subBadge;
+    if (color !== undefined) out.color = color;
+    if (subBadge !== undefined) out.subBadge = subBadge;
     if (time) out.time = time;
     if (automod) out.automod = true;
     if (userId) out.userId = userId;

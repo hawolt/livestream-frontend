@@ -1,14 +1,17 @@
 import { copyText } from "../clipboard.ts";
 
-export const fmtDate = (s: string | null | undefined): string => {
-    if (!s) return "-";
-    const raw = s.slice(0, 10);
-    const [y, m, d] = raw.split('-');
-    return `${d}.${m}.${y}`;
+export const fmtDate = (d: Date | null | undefined): string => {
+    if (!d) return "-";
+    const day = String(d.getDate()).padStart(2, "0");
+    const month = String(d.getMonth() + 1).padStart(2, "0");
+    const year = d.getFullYear();
+    return `${day}.${month}.${year}`;
 };
-export const fmtTime = (s: string | null | undefined): string => {
-    if (!s) return "-";
-    return s.slice(11, 16);
+export const fmtTime = (d: Date | null | undefined): string => {
+    if (!d) return "-";
+    const hours = String(d.getHours()).padStart(2, "0");
+    const minutes = String(d.getMinutes()).padStart(2, "0");
+    return `${hours}:${minutes}`;
 };
 export const esc = (s: string | null | undefined) =>
     String(s ?? "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;").replace(/`/g,"&#96;");

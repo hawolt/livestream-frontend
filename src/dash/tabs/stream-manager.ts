@@ -3,7 +3,7 @@ import { esc, fmtDate } from "../format.ts";
 import { authFetch } from "../session.ts";
 
 const fmtUnix = (t: number | null | undefined): string =>
-    t ? fmtDate(new Date(t * 1000).toISOString()) : "-";
+    t ? fmtDate(new Date(t * 1000)) : "-";
 
 let modsCache: LiveMod[] = [];
 let bansCache: LiveBan[] = [];

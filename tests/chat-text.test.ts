@@ -7,10 +7,14 @@ test("truncate leaves short strings untouched and ellipsizes long ones", () => {
     expect(truncate("hello world", 5)).toBe("hell…");
 });
 
-test("cssEsc falls back to stripping unsafe characters without the CSS global", () => {
+test("cssEsc falls back to escaping unsafe characters without the CSS global", () => {
     expect(typeof CSS).toBe("undefined");
-    expect(cssEsc("msg id:123 !")).toBe("msgid123");
+    expect(cssEsc("msg id:123 !")).toBe("msg\\20 id\\3a 123\\20 \\21 ");
     expect(cssEsc("abc-DEF_123")).toBe("abc-DEF_123");
+});
+
+test("cssEsc fallback keeps distinct inputs distinct instead of collapsing them", () => {
+    expect(cssEsc("ab.c")).not.toBe(cssEsc("abc"));
 });
 
 test("countChar counts only exact character matches", () => {

@@ -6,7 +6,7 @@ export function truncate(s: string, n: number): string {
 
 export function cssEsc(s: string): string {
     if (typeof CSS !== "undefined" && typeof CSS.escape === "function") return CSS.escape(s);
-    return s.replace(/[^A-Za-z0-9_-]/g, "");
+    return s.replace(/[^A-Za-z0-9_-]/g, (ch) => "\\" + ch.charCodeAt(0).toString(16) + " ");
 }
 
 export function countChar(text: string, ch: string): number {

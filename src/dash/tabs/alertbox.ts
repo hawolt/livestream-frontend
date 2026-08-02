@@ -32,7 +32,8 @@ function followUrl(): string {
 
 function maskedFollowUrl(): string {
     if (!followToken) return "";
-    return buildFollowUrl(maskSecret(followToken));
+    const query = buildFollowParams().toString();
+    return `${location.origin}/alerts/${username()}${query ? `?${query}` : ""}#token=${maskSecret(followToken)}`;
 }
 
 function buildFollowUrl(overlayToken: string): string {

@@ -15,8 +15,11 @@ describe("urlFor", () => {
         expect(urlFor("categories", "none")).toBe("/?category=none");
     });
 
-    test("categories mode with null or invalid id points at the root", () => {
-        expect(urlFor("categories", null)).toBe("/");
+    test("categories mode with null id builds the categories-root url", () => {
+        expect(urlFor("categories", null)).toBe("/?view=categories");
+    });
+
+    test("categories mode with invalid id points at the root", () => {
         expect(urlFor("categories", "invalid")).toBe("/");
     });
 });
@@ -36,5 +39,18 @@ describe("parseViewState", () => {
 
     test("non-numeric category id parses as invalid", () => {
         expect(parseViewState("?category=abc")).toEqual({ mode: "categories", categoryId: "invalid" });
+    });
+
+    test("view=categories means the categories root", () => {
+        expect(parseViewState("?view=categories")).toEqual({ mode: "categories", categoryId: null });
+    });
+});
+
+describe("categories-root round trip", () => {
+    test("urlFor and parseViewState agree on the categories root", () => {
+        const url = urlFor("categories", null);
+        expect(url).toBe("/?view=categories");
+        const query = url.slice(url.indexOf("?"));
+        expect(parseViewState(query)).toEqual({ mode: "categories", categoryId: null });
     });
 });

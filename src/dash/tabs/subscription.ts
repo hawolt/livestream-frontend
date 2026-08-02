@@ -175,7 +175,7 @@ function tierCard(tier: BillingTier, index: number, tiers: BillingTier[], tokenL
     let action: string;
     if (isPassHeld) {
         const until = current?.currentPeriodEnd
-            ? fmtDate(new Date(current.currentPeriodEnd * 1000).toISOString())
+            ? fmtDate(new Date(current.currentPeriodEnd * 1000))
             : "-";
         action = `<div class="sub-current-label">Pass active until ${esc(until)}</div>
             <div class="sub-cta"><button class="btn btn-primary" data-sub-pass-tier="${esc(tier.key)}">${esc(passButtonLabel("Extend"))}</button></div>`;
@@ -199,13 +199,15 @@ function tierCard(tier: BillingTier, index: number, tiers: BillingTier[], tokenL
     </div>`;
 }
 
+function portalButtonLabel(provider: string): string {
+    return provider === "polar" ? "Manage legacy subscription" : "Manage subscription";
+}
+
 function portalButtonsHtml(): string {
     const providers = cache?.portalProviders ?? [];
-    if (providers.length > 1) {
-        return `<button class="btn" data-portal-provider="stripe">Manage subscription</button>
-            <button class="btn" data-portal-provider="polar">Manage legacy subscription</button>`;
-    }
-    return `<button class="btn" data-portal-provider="">Manage subscription</button>`;
+    return providers
+        .map(provider => `<button class="btn" data-portal-provider="${esc(provider)}">${esc(portalButtonLabel(provider))}</button>`)
+        .join("");
 }
 
 function render(): void {
@@ -220,7 +222,7 @@ function render(): void {
     const activePlan = current && current.tier;
     const isPassHeld = current?.source === "pass";
     const renewalDate = current?.currentPeriodEnd
-        ? fmtDate(new Date(current.currentPeriodEnd * 1000).toISOString())
+        ? fmtDate(new Date(current.currentPeriodEnd * 1000))
         : "-";
     const head = `<p class="sub-head">Support the site and unlock extra features for chat, your profile and your stream. Cancel anytime, perks stay until the end of the paid period.</p>`;
     const pendingBanner = !activePlan && pendingCheckout()

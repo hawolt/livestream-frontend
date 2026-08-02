@@ -48,8 +48,10 @@ import {
 import { acceptSelectedSuggestion, advanceTabCycle, hideSuggest, moveSuggest, updateSuggest } from "./chat/suggest.ts";
 
 let chatStarted = false;
+let teardownListeners: (() => void) | null = null;
 
 export function startChat(user: string, emoteTwitchId?: string, onLoginRequested?: () => void): void {
+    if (chatStarted) stopChat();
     chatStarted = true;
     ctx.destroyed = false;
     ctx.channel = `#${user}`;
@@ -86,45 +88,55 @@ export function startChat(user: string, emoteTwitchId?: string, onLoginRequested
         ctx.accountStatusTimer = window.setInterval(checkAccountWhenVisible, SESSION_RENEWAL_CHECK_MS);
     }
     document.addEventListener("visibilitychange", checkAccountWhenVisible);
-    guestLoginEl.addEventListener("click", (event) => {
+    const onGuestLoginClick = (event: MouseEvent): void => {
         if (!ctx.requestLogin) return;
         event.preventDefault();
         ctx.requestLogin();
-    });
+    };
+    guestLoginEl.addEventListener("click", onGuestLoginClick);
     sendEl.addEventListener("click", submit);
-    replyCancelEl.addEventListener("click", () => {
+    const onReplyCancelClick = (): void => {
         clearReply();
         if (!inputEl.disabled) inputEl.focus();
-    });
+    };
+    replyCancelEl.addEventListener("click", onReplyCancelClick);
     emoteBtnEl.addEventListener("click", togglePicker);
     usersBtnEl.addEventListener("click", toggleUserlist);
-    userlistCloseEl.addEventListener("click", () => setUserlist(false));
+    const onUserlistCloseClick = (): void => setUserlist(false);
+    userlistCloseEl.addEventListener("click", onUserlistCloseClick);
     helpBtnEl.addEventListener("click", toggleHelp);
-    helpCloseEl.addEventListener("click", () => setHelp(false));
+    const onHelpCloseClick = (): void => setHelp(false);
+    helpCloseEl.addEventListener("click", onHelpCloseClick);
     settingsBtnEl.addEventListener("click", toggleSettings);
-    settingsCloseEl.addEventListener("click", () => setSettings(false));
+    const onSettingsCloseClick = (): void => setSettings(false);
+    settingsCloseEl.addEventListener("click", onSettingsCloseClick);
     profileBtnEl.addEventListener("click", toggleProfile);
     profileCloseEl.addEventListener("click", closeProfile);
     applyTimestampPref(readLocalStorage(TIMESTAMPS_KEY) === "1");
-    timestampToggleEl.addEventListener("change", () => {
+    const onTimestampToggleChange = (): void => {
         applyTimestampPref(timestampToggleEl.checked);
         writeLocalStorage(TIMESTAMPS_KEY, timestampToggleEl.checked ? "1" : "0");
-    });
+    };
+    timestampToggleEl.addEventListener("change", onTimestampToggleChange);
     applyAvatarPref(readLocalStorage(AVATARS_KEY) !== "0");
-    avatarToggleEl.addEventListener("change", () => {
+    const onAvatarToggleChange = (): void => {
         applyAvatarPref(avatarToggleEl.checked);
         writeLocalStorage(AVATARS_KEY, avatarToggleEl.checked ? "1" : "0");
-    });
-    pickerFilterEl.addEventListener("input", () => renderPickerGrid(pickerFilterEl.value));
-    inputEl.addEventListener("input", () => {
+    };
+    avatarToggleEl.addEventListener("change", onAvatarToggleChange);
+    const onPickerFilterInput = (): void => renderPickerGrid(pickerFilterEl.value);
+    pickerFilterEl.addEventListener("input", onPickerFilterInput);
+    const onInputInput = (): void => {
         autoGrowInput();
         updateSuggest();
-    });
+    };
+    inputEl.addEventListener("input", onInputInput);
     inputEl.addEventListener("click", updateSuggest);
-    inputEl.addEventListener("keyup", (e) => {
+    const onInputKeyup = (e: KeyboardEvent): void => {
         if (e.key === "ArrowLeft" || e.key === "ArrowRight" || e.key === "Home" || e.key === "End") updateSuggest();
-    });
-    inputEl.addEventListener("keydown", (e) => {
+    };
+    inputEl.addEventListener("keyup", onInputKeyup);
+    const onInputKeydown = (e: KeyboardEvent): void => {
         const suggestOpen = !suggestEl.hidden;
         if (suggestOpen && e.key === "Tab") {
             e.preventDefault();
@@ -146,8 +158,9 @@ export function startChat(user: string, emoteTwitchId?: string, onLoginRequested
             ctx.tabCycleRange = null;
             submit();
         }
-    });
-    document.addEventListener("keydown", (e) => {
+    };
+    inputEl.addEventListener("keydown", onInputKeydown);
+    const onDocumentKeydown = (e: KeyboardEvent): void => {
         if (e.key !== "Escape" || e.defaultPrevented || e.isComposing) return;
         if (!suggestEl.hidden) {
             hideSuggest();
@@ -167,8 +180,33 @@ export function startChat(user: string, emoteTwitchId?: string, onLoginRequested
         }
         e.preventDefault();
         e.stopImmediatePropagation();
-    }, true);
+    };
+    document.addEventListener("keydown", onDocumentKeydown, true);
     connect();
+
+    teardownListeners = (): void => {
+        document.removeEventListener("visibilitychange", checkAccountWhenVisible);
+        guestLoginEl.removeEventListener("click", onGuestLoginClick);
+        sendEl.removeEventListener("click", submit);
+        replyCancelEl.removeEventListener("click", onReplyCancelClick);
+        emoteBtnEl.removeEventListener("click", togglePicker);
+        usersBtnEl.removeEventListener("click", toggleUserlist);
+        userlistCloseEl.removeEventListener("click", onUserlistCloseClick);
+        helpBtnEl.removeEventListener("click", toggleHelp);
+        helpCloseEl.removeEventListener("click", onHelpCloseClick);
+        settingsBtnEl.removeEventListener("click", toggleSettings);
+        settingsCloseEl.removeEventListener("click", onSettingsCloseClick);
+        profileBtnEl.removeEventListener("click", toggleProfile);
+        profileCloseEl.removeEventListener("click", closeProfile);
+        timestampToggleEl.removeEventListener("change", onTimestampToggleChange);
+        avatarToggleEl.removeEventListener("change", onAvatarToggleChange);
+        pickerFilterEl.removeEventListener("input", onPickerFilterInput);
+        inputEl.removeEventListener("input", onInputInput);
+        inputEl.removeEventListener("click", updateSuggest);
+        inputEl.removeEventListener("keyup", onInputKeyup);
+        inputEl.removeEventListener("keydown", onInputKeydown);
+        document.removeEventListener("keydown", onDocumentKeydown, true);
+    };
 }
 
 export function reconnectChatAfterLogin(): void {
@@ -201,10 +239,13 @@ export function resumeChat(): void {
 }
 
 export function stopChat(): void {
+    if (!chatStarted) return;
     suspendChat();
     if (ctx.accountStatusTimer !== null) {
         window.clearInterval(ctx.accountStatusTimer);
         ctx.accountStatusTimer = null;
     }
-    document.removeEventListener("visibilitychange", checkAccountWhenVisible);
+    teardownListeners?.();
+    teardownListeners = null;
+    chatStarted = false;
 }

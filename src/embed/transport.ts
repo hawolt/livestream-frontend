@@ -10,7 +10,7 @@ import { attachVideoFailureListeners } from "./health.ts";
 
 function mediaWsUrl(path: string): string {
     const proto = location.protocol === "https:" ? "wss" : "ws";
-    return sharedMediaWsUrl(ctx.mediaBase, path, `${proto}://${location.host}`);
+    return sharedMediaWsUrl(ctx.mediaBase, path, `${proto}://${location.host}`, location.protocol);
 }
 
 function sendHLSBeat(g: number): void {
@@ -70,7 +70,13 @@ export function startWSTransport(g: number): void {
     void captchaQuery().then((tq) => {
         if (!isCurrent(g)) return;
         const path = `/ws/live?u=${encodeURIComponent(ctx.username)}&viewer_id=${encodeURIComponent(getViewerId())}${tq}`;
-        const sock = new WebSocket(mediaWsUrl(path));
+        let sock: WebSocket;
+        try {
+            sock = new WebSocket(mediaWsUrl(path));
+        } catch {
+            restartAfterFailure(g);
+            return;
+        }
         ctx.ws = sock;
         sock.binaryType = "arraybuffer";
 

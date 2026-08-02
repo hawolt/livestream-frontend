@@ -1,6 +1,6 @@
 # livestream-frontend
 
-Frontend for the hawolt livestreaming site. It provides every public surface of the site:
+Frontend for the itzon.tv livestreaming site. It provides every public surface of the site:
 
 - a stream **explorer** with category browsing and hover previews
 - a **channel viewer** with low-latency playback, DVR rewind, and live chat
@@ -26,7 +26,7 @@ bunx tsc --noEmit
 
 `bun run build` runs two steps:
 
-- `build:pages` bundles each page entry (`explore`, `live`, `embed`, `chat-overlay`, `user-login`, `register`, `verify`, `reset-password`, `legal`, `wiki`) to `public/<name>.js`
+- `build:pages` bundles each page entry (`explore`, `live`, `embed`, `chat-overlay`, `follow-alerts`, `user-login`, `register`, `verify`, `reset-password`, `legal`, `wiki`) to `public/<name>.js`
 - `build:dash` bundles `src/dashboard.ts` to `public/dash/` with code splitting, so tab modules load on demand
 
 Build outputs (`public/*.js`, `public/dash/`) are gitignored; a fresh checkout has no servable bundles until the build runs. Both build steps delete their previous output first, so stale bundles never accumulate.
@@ -36,7 +36,7 @@ Build outputs (`public/*.js`, `public/dash/`) are gitignored; a fresh checkout h
 | Path | Purpose |
 |---|---|
 | `src/` | TypeScript sources, one entry point per page |
-| `src/dash/` | Dashboard shared runtime (`session.ts`, `modal.ts`, `format.ts`, `regions.ts`, `dom.ts`) and per-tab modules (`tabs/`) |
+| `src/dash/` | Dashboard shared runtime (`session.ts`, `modal.ts`, `format.ts`, `regions.ts`, `dom.ts`, `activity-events.ts`, `overlay-shared.ts`) and per-tab modules (`tabs/`) |
 | `public/` | Page HTML at the root; build output lands here |
 | `public/panes/` | Dashboard tab HTML fragments, fetched on first tab activation |
 | `public/static/css/` | Stylesheets (`shared.css`, `site.css`, `explore.css`) |
@@ -52,6 +52,7 @@ Build outputs (`public/*.js`, `public/dash/`) are gitignored; a fresh checkout h
 | Chat client | `src/live-chat.ts` | (part of `live.html`) | IRC over WebSocket: badges, 7TV emotes, replies, mentions, whispers, pins, moderation actions |
 | Embed player | `src/embed.ts` | `embed.html` | `/embed/<username>`: minimal muted-autoplay player, click to unmute, preview mode for the explorer |
 | Chat overlay | `src/chat-overlay.ts` | `chat.html` | `/chat/<username>`: transparent read-only chat for OBS browser sources, styled via URL params |
+| Follow alerts | `src/follow-alerts.ts` | `alerts.html` | `/alerts/<username>`: transparent OBS overlay popping up an animated card on new follows |
 | Login | `src/user-login.ts` | `user-login.html` | Sign in, forgot-password flow, lockout countdown, `?return=` redirect |
 | Register | `src/register.ts` | `register.html` | Account creation behind an invisible hCaptcha |
 | Verify | `src/verify.ts` | `verify.html` | Consumes the emailed verification token |

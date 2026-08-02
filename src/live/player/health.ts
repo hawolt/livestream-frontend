@@ -2,7 +2,6 @@ import { video } from "../dom.ts";
 import { ctx, isCurrent, track } from "./context.ts";
 import { HEALTH_CHECK_INTERVAL_MS, HEALTH_STALE_MS, HEALTH_STUCK_MS, WAITING_STALL_MS } from "../constants.ts";
 import { beginTransport, clearRetryTimer, restartAfterFailure } from "./lifecycle.ts";
-import { recordStall } from "./abr.ts";
 
 let waitingTimer: number | null = null;
 
@@ -58,14 +57,8 @@ export function attachVideoFailureListeners(g: number): void {
         console.warn("live: video error, restarting");
         restartAfterFailure(g);
     };
-    const onStalled = () => {
-        if (!isCurrent(g)) return;
-        console.warn("live: video stalled, restarting");
-        restartAfterFailure(g);
-    };
     const onWaiting = () => {
         if (!isCurrent(g)) return;
-        recordStall();
         clearWaitingTimer();
         waitingTimer = window.setTimeout(() => {
             waitingTimer = null;
@@ -76,13 +69,13 @@ export function attachVideoFailureListeners(g: number): void {
     const onRecovered = () => clearWaitingTimer();
 
     video.addEventListener("error", onError);
-    video.addEventListener("stalled", onStalled);
+    video.addEventListener("stalled", onWaiting);
     video.addEventListener("waiting", onWaiting);
     video.addEventListener("playing", onRecovered);
     video.addEventListener("canplay", onRecovered);
 
     track(() => video.removeEventListener("error", onError));
-    track(() => video.removeEventListener("stalled", onStalled));
+    track(() => video.removeEventListener("stalled", onWaiting));
     track(() => video.removeEventListener("waiting", onWaiting));
     track(() => video.removeEventListener("playing", onRecovered));
     track(() => video.removeEventListener("canplay", onRecovered));

@@ -109,11 +109,11 @@ describe("renderAdSlot", () => {
     });
 
     test("builds an img carrying the alt text and a legally required Anzeige label", () => {
-        render(container, [makeAd({ altText: "Great deal" })]);
+        render(container, [makeAd({ id: 7, altText: "Great deal" })]);
         const img = container.findTag("img");
         expect(img).not.toBeNull();
         expect(img!.alt).toBe("Great deal");
-        expect(img!.src).toBe("/static/img/ad.png");
+        expect(img!.src).toBe("/api/live/spots/image/7");
         const label = container.findTag("span");
         expect(label).not.toBeNull();
         expect(label!.textContent).toBe("Anzeige");

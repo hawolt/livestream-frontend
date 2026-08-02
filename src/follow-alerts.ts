@@ -7,6 +7,7 @@ const AUTH_RETRY_MS = 30000;
 const DEFAULT_DURATION_MS = 5000;
 const EXIT_ANIMATION_NAME = "alert-out";
 const ENTER_ANIMATION_NAME = "alert-in";
+const ALERT_WATCHDOG_MARGIN_MS = 1000;
 
 interface FollowEvent {
     username: string;
@@ -28,7 +29,9 @@ function parseParams(): void {
     const durationSec = Number(qs.get("duration"));
     durationMs = Number.isFinite(durationSec) && durationSec > 0 ? durationSec * 1000 : DEFAULT_DURATION_MS;
     demoMode = qs.get("demo") === "1";
-    token = scrubOverlayToken(location.href).token;
+    const scrubbed = scrubOverlayToken(location.href);
+    token = scrubbed.token;
+    if (scrubbed.replacement) history.replaceState(history.state, "", scrubbed.replacement);
 }
 
 function buildCard(username: string): HTMLDivElement {
@@ -53,6 +56,11 @@ function showNext(): void {
     showing = true;
     const card = buildCard(next.username);
     stageEl.replaceChildren(card);
+    let watchdog: number | null = window.setTimeout(() => {
+        watchdog = null;
+        card.remove();
+        showNext();
+    }, durationMs + ALERT_WATCHDOG_MARGIN_MS);
     card.addEventListener("animationend", (ev) => {
         if (ev.animationName === ENTER_ANIMATION_NAME) {
             window.setTimeout(() => {
@@ -62,6 +70,10 @@ function showNext(): void {
             return;
         }
         if (ev.animationName === EXIT_ANIMATION_NAME) {
+            if (watchdog !== null) {
+                window.clearTimeout(watchdog);
+                watchdog = null;
+            }
             card.remove();
             showNext();
         }
