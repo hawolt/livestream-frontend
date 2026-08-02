@@ -10,6 +10,14 @@ const POLL_MAX_MS = 120000;
 let cache: BillingTiers | null = null;
 let pollTimer: number | null = null;
 let pollStartedAt = 0;
+let activationGeneration = 0;
+let loadRevision = 0;
+let upgradeRevision = 0;
+let active = false;
+
+function isCurrentActivation(generation: number): boolean {
+    return active && generation === activationGeneration;
+}
 
 function featuredTierKey(tiers: BillingTier[]): string | null {
     const configured = (cache?.featuredTier ?? "").trim();
@@ -73,8 +81,8 @@ function stopPolling(): void {
     }
 }
 
-function schedulePoll(): void {
-    if (pollTimer !== null) return;
+function schedulePoll(generation: number): void {
+    if (!isCurrentActivation(generation) || pollTimer !== null) return;
     if (!pollStartedAt) pollStartedAt = Date.now();
     if (Date.now() - pollStartedAt > POLL_MAX_MS) {
         clearPending();
@@ -83,22 +91,28 @@ function schedulePoll(): void {
     }
     pollTimer = window.setTimeout(() => {
         pollTimer = null;
-        void loadTiers();
+        void loadTiers(generation);
     }, POLL_INTERVAL_MS);
 }
 
-async function loadTiers(): Promise<void> {
+async function loadTiers(generation: number): Promise<void> {
+    if (!isCurrentActivation(generation)) return;
+    const revision = ++loadRevision;
     const el = document.getElementById("sub-body");
     if (el && !cache) el.textContent = "Loading...";
     try {
-        cache = await authFetch<BillingTiers>("/api/billing/tiers");
+        const loaded = await authFetch<BillingTiers>("/api/billing/tiers");
+        if (!isCurrentActivation(generation) || revision !== loadRevision) return;
+        cache = loaded;
     } catch (e) {
-        if (el) el.textContent = e instanceof Error ? e.message : String(e);
+        if (!isCurrentActivation(generation) || revision !== loadRevision) return;
+        if (el && !cache) el.textContent = e instanceof Error ? e.message : String(e);
+        if (pendingCheckout()) schedulePoll(generation);
         return;
     }
     if (cache.current && cache.current.tier) clearPending();
     render();
-    if (pendingCheckout()) schedulePoll();
+    if (pendingCheckout()) schedulePoll(generation);
 }
 
 const CURRENCY_SYMBOLS: Record<string, string> = {
@@ -195,6 +209,7 @@ function portalButtonsHtml(): string {
 }
 
 function render(): void {
+    if (!active) return;
     const el = document.getElementById("sub-body");
     if (!el || !cache) return;
     if (!cache.enabled) {
@@ -202,17 +217,17 @@ function render(): void {
         return;
     }
     const current = cache.current;
-    const active = current && current.tier;
+    const activePlan = current && current.tier;
     const isPassHeld = current?.source === "pass";
     const renewalDate = current?.currentPeriodEnd
         ? fmtDate(new Date(current.currentPeriodEnd * 1000).toISOString())
         : "-";
     const head = `<p class="sub-head">Support the site and unlock extra features for chat, your profile and your stream. Cancel anytime, perks stay until the end of the paid period.</p>`;
-    const pendingBanner = !active && pendingCheckout()
+    const pendingBanner = !activePlan && pendingCheckout()
         ? `<div class="sub-pending">Waiting for the payment provider to confirm your subscription. This usually takes a few seconds. If you cancelled the checkout, ignore this message.</div>`
         : "";
     const showPortal = !isPassHeld || (cache.portalProviders?.length ?? 0) > 0;
-    const statusBlock = active
+    const statusBlock = activePlan
         ? `<div class="sub-status">
             <b>${esc(current!.tier)}</b>
             <span>${esc(isPassHeld ? "Pass" : current!.status)}</span>
@@ -247,24 +262,35 @@ async function upgrade(btn: HTMLButtonElement): Promise<void> {
     if (!tier) return;
     const label = cache?.tiers.find(t => t.key === tier)?.label ?? tier;
     if (!confirm(`Upgrade to ${label}? The prorated price difference for the current period is charged immediately.`)) return;
+    const generation = activationGeneration;
+    const revision = ++upgradeRevision;
     btn.disabled = true;
     try {
         await authFetch<{ ok: boolean }>("/api/billing/upgrade", {
             method: "POST",
             body: JSON.stringify({ tier }),
         });
-        void loadTiers();
-        window.setTimeout(() => void loadTiers(), 3000);
-        window.setTimeout(() => void loadTiers(), 8000);
+        const refresh = () => {
+            if (!active) return;
+            void loadTiers(activationGeneration);
+        };
+        refresh();
+        window.setTimeout(refresh, 3000);
+        window.setTimeout(refresh, 8000);
     } catch (e) {
-        alert("Could not upgrade: " + (e instanceof Error ? e.message : String(e)));
-        btn.disabled = false;
+        if (revision === upgradeRevision) {
+            if (isCurrentActivation(generation)) {
+                alert("Could not upgrade: " + (e instanceof Error ? e.message : String(e)));
+            }
+            if (btn.isConnected) btn.disabled = false;
+        }
     }
 }
 
 async function checkout(btn: HTMLButtonElement): Promise<void> {
     const tier = btn.dataset["subTier"];
     if (!tier) return;
+    const generation = activationGeneration;
     btn.disabled = true;
     try {
         const res = await authFetch<{ url: string }>("/api/billing/checkout", {
@@ -274,13 +300,16 @@ async function checkout(btn: HTMLButtonElement): Promise<void> {
         sessionStorage.setItem(PENDING_KEY, String(Date.now()));
         location.href = res.url;
     } catch (e) {
-        alert("Could not start checkout: " + (e instanceof Error ? e.message : String(e)));
-        btn.disabled = false;
+        if (isCurrentActivation(generation)) {
+            alert("Could not start checkout: " + (e instanceof Error ? e.message : String(e)));
+        }
+        if (btn.isConnected && isCurrentActivation(generation)) btn.disabled = false;
     }
 }
 
 async function checkoutPass(btn: HTMLButtonElement, tier: string | undefined): Promise<void> {
     if (!tier) return;
+    const generation = activationGeneration;
     btn.disabled = true;
     try {
         const res = await authFetch<{ url: string }>("/api/billing/checkout", {
@@ -290,8 +319,10 @@ async function checkoutPass(btn: HTMLButtonElement, tier: string | undefined): P
         sessionStorage.setItem(PENDING_KEY, String(Date.now()));
         location.href = res.url;
     } catch (e) {
-        alert("Could not start checkout: " + (e instanceof Error ? e.message : String(e)));
-        btn.disabled = false;
+        if (isCurrentActivation(generation)) {
+            alert("Could not start checkout: " + (e instanceof Error ? e.message : String(e)));
+        }
+        if (btn.isConnected && isCurrentActivation(generation)) btn.disabled = false;
     }
 }
 
@@ -311,13 +342,19 @@ async function openPortal(btn: HTMLButtonElement): Promise<void> {
 }
 
 export function init(): void {
-    window.addEventListener("subscription-changed", () => void loadTiers());
+    window.addEventListener("subscription-changed", () => void loadTiers(activationGeneration));
 }
 
 export function activate(): void {
-    void loadTiers();
+    active = true;
+    const generation = ++activationGeneration;
+    void loadTiers(generation);
 }
 
 export function deactivate(): void {
+    active = false;
+    activationGeneration += 1;
+    loadRevision += 1;
     stopPolling();
+    pollStartedAt = 0;
 }

@@ -4,6 +4,7 @@ import { readLocalStorage, writeLocalStorage } from "./storage.ts";
 
 const RAIL_COLLAPSED_KEY = "live-channel-rail-collapsed";
 const RAIL_POLL_MS = 10000;
+const FOLLOW_REFRESH_MS = 60000;
 
 export interface ChannelRailElements {
     rail: HTMLElement;
@@ -32,6 +33,13 @@ interface ChannelRailStream {
     title: string;
     category: string | null;
     viewers: number;
+}
+
+interface RailItem {
+    root: HTMLAnchorElement;
+    name: HTMLElement;
+    category: HTMLElement;
+    viewers: HTMLElement;
 }
 
 function normalizeStream(value: unknown): ChannelRailStream | null {
@@ -69,30 +77,49 @@ export function createChannelRail(options: ChannelRailOptions): ChannelRailHandl
     const { elements, getActiveUsername, onCollapsedChange, isVisible, linkTarget } = options;
 
     let railLoading = false;
+    let railReloadRequested = false;
     let railStarted = false;
     let railWasVisible = false;
     let followedUsernames = new Set<string>();
+    let followedLoadedAt = 0;
+    const railItems = new Map<string, RailItem>();
 
     const compactViewerFormatter = new Intl.NumberFormat(undefined, {
         notation: "compact",
         maximumFractionDigits: 1,
     });
 
-    function railItem(stream: ChannelRailStream): HTMLAnchorElement {
+    const followedLabel = sectionLabel("Following");
+    const liveLabel = sectionLabel("Live channels");
+    const railDivider = sectionDivider();
+
+    function updateRailItem(item: RailItem, stream: ChannelRailStream): void {
         const normalizedUsername = stream.username.toLowerCase();
         const category = stream.category?.trim() || "No category";
         const title = stream.title.trim() || "Untitled stream";
+        item.root.href = `/${encodeURIComponent(normalizedUsername)}`;
+        item.root.title = `${stream.username} | ${title} | ${category}`;
+        item.root.setAttribute("aria-label", `${stream.username}, ${title}, ${category}, ${stream.viewers.toLocaleString()} viewers`);
+        const active = normalizedUsername === getActiveUsername();
+        item.root.classList.toggle("active", active);
+        if (active) item.root.setAttribute("aria-current", "page");
+        else item.root.removeAttribute("aria-current");
+        item.name.textContent = stream.username;
+        item.category.textContent = category;
+        item.viewers.textContent = compactViewerFormatter.format(stream.viewers);
+    }
+
+    function railItem(stream: ChannelRailStream): HTMLAnchorElement {
+        const normalizedUsername = stream.username.toLowerCase();
+        const existing = railItems.get(normalizedUsername);
+        if (existing) {
+            updateRailItem(existing, stream);
+            return existing.root;
+        }
 
         const link = document.createElement("a");
         link.className = "live-channel-item";
-        link.href = `/${encodeURIComponent(normalizedUsername)}`;
         if (linkTarget) link.target = linkTarget;
-        link.title = `${stream.username} | ${title} | ${category}`;
-        link.setAttribute("aria-label", `${stream.username}, ${title}, ${category}, ${stream.viewers.toLocaleString()} viewers`);
-        if (normalizedUsername === getActiveUsername()) {
-            link.classList.add("active");
-            link.setAttribute("aria-current", "page");
-        }
 
         const avatar = document.createElement("span");
         avatar.className = "live-channel-avatar";
@@ -107,11 +134,9 @@ export function createChannelRail(options: ChannelRailOptions): ChannelRailHandl
 
         const name = document.createElement("span");
         name.className = "live-channel-name";
-        name.textContent = stream.username;
 
         const viewerCount = document.createElement("span");
         viewerCount.className = "live-channel-viewers";
-        viewerCount.textContent = compactViewerFormatter.format(stream.viewers);
 
         const nameRow = document.createElement("span");
         nameRow.className = "live-channel-name-row";
@@ -119,13 +144,16 @@ export function createChannelRail(options: ChannelRailOptions): ChannelRailHandl
 
         const categoryEl = document.createElement("span");
         categoryEl.className = "live-channel-category";
-        categoryEl.textContent = category;
 
         const copy = document.createElement("span");
         copy.className = "live-channel-copy";
         copy.append(nameRow, categoryEl);
 
         link.append(avatar, copy);
+
+        const item: RailItem = { root: link, name, category: categoryEl, viewers: viewerCount };
+        railItems.set(normalizedUsername, item);
+        updateRailItem(item, stream);
         return link;
     }
 
@@ -134,23 +162,47 @@ export function createChannelRail(options: ChannelRailOptions): ChannelRailHandl
         elements.status.hidden = label === null;
     }
 
+    function reconcileRailChildren(nodes: Node[]): void {
+        const activeElement = document.activeElement;
+        const focused = activeElement instanceof HTMLElement && elements.list.contains(activeElement)
+            ? activeElement
+            : null;
+        const retained = new Set(nodes);
+        for (const child of Array.from(elements.list.childNodes)) {
+            if (!retained.has(child)) child.remove();
+        }
+        nodes.forEach((node, index) => {
+            const current = elements.list.childNodes[index] ?? null;
+            if (current !== node) elements.list.insertBefore(node, current);
+        });
+        if (focused?.isConnected && document.activeElement !== focused) focused.focus({ preventScroll: true });
+    }
+
     function renderRail(streams: ChannelRailStream[]): void {
         const followed = streams.filter((stream) => followedUsernames.has(stream.username.toLowerCase()));
         const others = streams.filter((stream) => !followedUsernames.has(stream.username.toLowerCase()));
         followed.sort(byViewersThenName);
         others.sort(byViewersThenName);
-        elements.count.textContent = streams.length.toLocaleString();
+        const count = streams.length.toLocaleString();
+        if (elements.count.textContent !== count) elements.count.textContent = count;
         const nodes: Node[] = [];
         if (followed.length > 0) {
-            nodes.push(sectionLabel("Following"), ...followed.map(railItem));
-            if (others.length > 0) nodes.push(sectionDivider(), sectionLabel("Live channels"));
+            nodes.push(followedLabel, ...followed.map(railItem));
+            if (others.length > 0) nodes.push(railDivider, liveLabel);
         }
         nodes.push(...others.map(railItem));
-        elements.list.replaceChildren(...nodes);
+        const liveUsernames = new Set(streams.map((stream) => stream.username.toLowerCase()));
+        for (const username of railItems.keys()) {
+            if (!liveUsernames.has(username)) railItems.delete(username);
+        }
+        reconcileRailChildren(nodes);
         setRailStatus(streams.length === 0 ? "No one is live right now" : null);
     }
 
     async function loadFollowedUsernames(): Promise<void> {
+        const now = Date.now();
+        if (now - followedLoadedAt < FOLLOW_REFRESH_MS) return;
+        followedLoadedAt = now;
         try {
             const res = await fetch(`${API_BASE}/follows/mine`, { credentials: "include" });
             if (!res.ok) {
@@ -172,7 +224,11 @@ export function createChannelRail(options: ChannelRailOptions): ChannelRailHandl
     }
 
     async function loadRail(): Promise<void> {
-        if (railLoading || !railVisible()) return;
+        if (railLoading) {
+            railReloadRequested = true;
+            return;
+        }
+        if (!railVisible()) return;
         railLoading = true;
         try {
             const [res] = await Promise.all([fetch("/api/live/explore"), loadFollowedUsernames()]);
@@ -190,6 +246,10 @@ export function createChannelRail(options: ChannelRailOptions): ChannelRailHandl
             }
         } finally {
             railLoading = false;
+            if (railReloadRequested) {
+                railReloadRequested = false;
+                void loadRail();
+            }
         }
     }
 
@@ -223,6 +283,10 @@ export function createChannelRail(options: ChannelRailOptions): ChannelRailHandl
             if (ev.target === elements.rail && ev.propertyName === "width") onCollapsedChange?.();
         });
         document.addEventListener("visibilitychange", syncVisibility);
+        window.addEventListener("follow-changed", () => {
+            followedLoadedAt = 0;
+            void loadRail();
+        });
         window.setInterval(() => void loadRail(), RAIL_POLL_MS);
         syncVisibility();
     }
