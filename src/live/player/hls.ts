@@ -1,7 +1,7 @@
 import { video } from "../dom.ts";
 import { ctx, isCurrent, track } from "./context.ts";
 import { HLS_BEACON_INTERVAL_MS } from "../constants.ts";
-import { getViewerId } from "../../player-shared/viewer-id.ts";
+import { ensureViewerId } from "../../player-shared/viewer-id.ts";
 import { captchaQuery, getCaptchaToken } from "../../captcha.ts";
 import { beginTransport, enterTerminal, fullTeardown, goOffline, resetRetryBackoff, setState } from "./lifecycle.ts";
 import { withCaptchaHint } from "./ws.ts";
@@ -9,9 +9,9 @@ import { attachVideoFailureListeners } from "./health.ts";
 import { renderQualityMenu } from "../quality-menu.ts";
 
 function sendHLSBeat(g: number): void {
-    void captchaQuery().then((tq) => {
+    void Promise.all([captchaQuery(), ensureViewerId(ctx.mediaBase, ctx.username)]).then(([tq, vid]) => {
         if (!isCurrent(g)) return;
-        const url = `${ctx.mediaBase}/hls/${encodeURIComponent(ctx.username)}/beat?id=${encodeURIComponent(getViewerId())}${tq}`;
+        const url = `${ctx.mediaBase}/hls/${encodeURIComponent(ctx.username)}/beat?id=${encodeURIComponent(vid)}${tq}`;
         fetch(url, { method: "POST" }).catch(() => {});
     });
 }
@@ -37,8 +37,6 @@ export function startHLSBeacon(g: number): void {
     beat();
     hlsBeaconTimer = window.setInterval(beat, HLS_BEACON_INTERVAL_MS);
 }
-
-export { getViewerId };
 
 export function canUseNativeHLS(): boolean {
     return video.canPlayType("application/vnd.apple.mpegurl") !== "";

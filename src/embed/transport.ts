@@ -2,7 +2,7 @@ import { video } from "./dom.ts";
 import { ctx, isCurrent, track } from "./context.ts";
 import { HLS_BEACON_INTERVAL_MS } from "./constants.ts";
 import { captchaQuery, getCaptchaToken } from "../captcha.ts";
-import { getViewerId } from "../player-shared/viewer-id.ts";
+import { ensureViewerId } from "../player-shared/viewer-id.ts";
 import { mediaWsUrl as sharedMediaWsUrl } from "../player-shared/ws-url.ts";
 import { beginTransport, enterTerminal, goOffline, resetRetryBackoff, restartAfterFailure, setPlaying } from "./lifecycle.ts";
 import { attachMediaSource, pump } from "./mse.ts";
@@ -14,9 +14,9 @@ function mediaWsUrl(path: string): string {
 }
 
 function sendHLSBeat(g: number): void {
-    void captchaQuery().then((tq) => {
+    void Promise.all([captchaQuery(), ensureViewerId(ctx.mediaBase, ctx.username)]).then(([tq, vid]) => {
         if (!isCurrent(g)) return;
-        const url = `${ctx.mediaBase}/hls/${encodeURIComponent(ctx.username)}/beat?id=${encodeURIComponent(getViewerId())}${tq}`;
+        const url = `${ctx.mediaBase}/hls/${encodeURIComponent(ctx.username)}/beat?id=${encodeURIComponent(vid)}${tq}`;
         fetch(url, { method: "POST" }).catch(() => {});
     });
 }
@@ -67,9 +67,9 @@ function handleWSClose(g: number, ev: CloseEvent): void {
 
 export function startWSTransport(g: number): void {
     attachVideoFailureListeners(g);
-    void captchaQuery().then((tq) => {
+    void Promise.all([captchaQuery(), ensureViewerId(ctx.mediaBase, ctx.username)]).then(([tq, vid]) => {
         if (!isCurrent(g)) return;
-        const path = `/ws/live?u=${encodeURIComponent(ctx.username)}&viewer_id=${encodeURIComponent(getViewerId())}${tq}`;
+        const path = `/ws/live?u=${encodeURIComponent(ctx.username)}&viewer_id=${encodeURIComponent(vid)}${tq}`;
         let sock: WebSocket;
         try {
             sock = new WebSocket(mediaWsUrl(path));

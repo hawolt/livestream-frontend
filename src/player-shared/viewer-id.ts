@@ -17,3 +17,26 @@ export function getViewerId(): string {
     writeLocalStorage(VIEWER_ID_KEY, viewerId);
     return viewerId;
 }
+
+const SIGNED_VIEWER_ID = /^[0-9a-f]{16}\.[0-9a-f]{64}$/;
+
+let signedViewerId = "";
+let signedViewerIdPending: Promise<string> | null = null;
+
+export function ensureViewerId(mediaBase: string, username: string): Promise<string> {
+    if (signedViewerId) return Promise.resolve(signedViewerId);
+    if (signedViewerIdPending) return signedViewerIdPending;
+    const url = `${mediaBase}/hls/${encodeURIComponent(username)}/vid`;
+    signedViewerIdPending = fetch(url)
+        .then((res) => (res.ok ? res.json() : null))
+        .then((body: { id?: string } | null) => {
+            const minted = body?.id ?? "";
+            if (SIGNED_VIEWER_ID.test(minted)) signedViewerId = minted;
+            return signedViewerId || getViewerId();
+        })
+        .catch(() => getViewerId())
+        .finally(() => {
+            signedViewerIdPending = null;
+        });
+    return signedViewerIdPending;
+}

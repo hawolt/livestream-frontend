@@ -7,7 +7,7 @@ import {
     qualityWsParam,
     resolveNextQuality,
 } from "../../quality.ts";
-import { getViewerId } from "./hls.ts";
+import { ensureViewerId } from "../../player-shared/viewer-id.ts";
 import { applyQualityList, renderQualityMenu } from "../quality-menu.ts";
 import { setStreamDimensions, setStreamFps, setStreamStart, updateQuality } from "../stream-info.ts";
 import { attachMediaSource, pump } from "./mse.ts";
@@ -62,11 +62,11 @@ export function handleWSClose(g: number, ev: CloseEvent): void {
 
 export function startWSTransport(g: number): void {
     attachVideoFailureListeners(g);
-    void withCaptchaHint(g, captchaQuery()).then((tq) => {
+    void Promise.all([withCaptchaHint(g, captchaQuery()), ensureViewerId(ctx.mediaBase, ctx.username)]).then(([tq, vid]) => {
         if (!isCurrent(g)) return;
         ctx.requestedQuality = resolveNextQuality(ctx.qualityPreference, ctx.qualityLadder, ctx.qualityLadderKnown, ctx.activeQuality);
         const qParam = qualityWsParam(ctx.requestedQuality);
-        const path = `/ws/live?u=${encodeURIComponent(ctx.username)}&viewer_id=${encodeURIComponent(getViewerId())}${tq}${qParam}`;
+        const path = `/ws/live?u=${encodeURIComponent(ctx.username)}&viewer_id=${encodeURIComponent(vid)}${tq}${qParam}`;
         let sock: WebSocket;
         try {
             sock = new WebSocket(mediaWsUrl(path));
