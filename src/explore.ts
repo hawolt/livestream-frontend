@@ -1,6 +1,19 @@
+import { createChannelRail } from "./channel-rail.ts";
 import { initSiteNav } from "./nav.ts";
 import { ctx, isFramed, type CategorySelector, type ViewState } from "./explore/context.ts";
-import { backBtn, gridEl, modeCategoriesBtn, modeStreamsBtn, page } from "./explore/dom.ts";
+import {
+    backBtn,
+    gridEl,
+    modeCategoriesBtn,
+    modeStreamsBtn,
+    page,
+    railCountEl,
+    railEl,
+    railListEl,
+    railStatusEl,
+    railToggleEl,
+    railToggleGlyphEl,
+} from "./explore/dom.ts";
 import { loadExplore } from "./explore/poll.ts";
 import { applyState, navigate } from "./explore/render.ts";
 import { updateModeButtons } from "./explore/stream-cards.ts";
@@ -41,6 +54,19 @@ async function boot(): Promise<void> {
     if (isFramed) document.body.classList.add("explore-framed");
     page.hidden = false;
     if (!isFramed) void initSiteNav("browse");
+    if (!isFramed) {
+        createChannelRail({
+            elements: {
+                rail: railEl,
+                toggle: railToggleEl,
+                glyph: railToggleGlyphEl,
+                list: railListEl,
+                count: railCountEl,
+                status: railStatusEl,
+            },
+            getActiveUsername: () => "",
+        }).start();
+    }
     const initial = stateFromLocation();
     ctx.mode = initial.mode;
     ctx.drillCategoryId = initial.categoryId;

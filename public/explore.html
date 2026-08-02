@@ -37,14 +37,27 @@
         <button class="explore-mode-btn" id="mode-categories" type="button">Categories</button>
     </div>
 </div>
-<main class="explore-main" id="explore-page" hidden>
-    <div class="explore-drill hidden" id="explore-drill">
-        <button class="explore-back" id="explore-back" type="button">&larr; Back to categories</button>
-        <div class="explore-drill-title" id="explore-drill-title"></div>
-    </div>
-    <div class="explore-empty hidden" id="explore-empty">No one is live right now</div>
-    <div class="explore-grid" id="explore-grid"></div>
-</main>
+<div class="explore-shell">
+    <aside class="live-channel-rail" id="live-channel-rail" aria-label="Live channels">
+        <div class="live-channel-rail-head">
+            <span class="live-channel-rail-title">Live channels</span>
+            <span class="live-channel-count" id="live-channel-count" aria-live="polite">0</span>
+            <button class="live-channel-rail-toggle" id="live-channel-rail-toggle" type="button" title="Collapse live channels" aria-label="Collapse live channels" aria-expanded="true"><span id="live-channel-rail-toggle-glyph" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></span></button>
+        </div>
+        <div class="live-channel-rail-body">
+            <div class="live-channel-list" id="live-channel-list" role="navigation" aria-label="Streaming now"></div>
+            <div class="live-channel-status" id="live-channel-status" role="status" aria-live="polite">Loading live channels...</div>
+        </div>
+    </aside>
+    <main class="explore-main" id="explore-page" hidden>
+        <div class="explore-drill hidden" id="explore-drill">
+            <button class="explore-back" id="explore-back" type="button">&larr; Back to categories</button>
+            <div class="explore-drill-title" id="explore-drill-title"></div>
+        </div>
+        <div class="explore-empty hidden" id="explore-empty">No one is live right now</div>
+        <div class="explore-grid" id="explore-grid"></div>
+    </main>
+</div>
 <script src="/explore.js" type="module"></script>
 </body>
 </html>

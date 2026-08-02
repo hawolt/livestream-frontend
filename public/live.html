@@ -58,180 +58,6 @@
             min-height: 0;
         }
 
-        .live-channel-rail {
-            width: 232px;
-            flex: 0 0 auto;
-            order: 0;
-            display: flex;
-            flex-direction: column;
-            min-height: 0;
-            overflow: hidden;
-            background: var(--surface);
-            border-right: 1px solid var(--border);
-            transition: width .16s ease;
-        }
-        .live-channel-rail.collapsed { width: 57px; }
-        .live-channel-rail-head {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            height: 48px;
-            flex: 0 0 48px;
-            padding: 0 8px 0 14px;
-            border-bottom: 1px solid var(--border);
-        }
-        .live-channel-rail-title {
-            flex: 1;
-            min-width: 0;
-            overflow: hidden;
-            color: var(--text);
-            font-size: 12px;
-            font-weight: 700;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-        }
-        .live-channel-count {
-            min-width: 22px;
-            padding: 1px 6px;
-            border-radius: 999px;
-            background: var(--border);
-            color: var(--text);
-            font-size: 10px;
-            font-variant-numeric: tabular-nums;
-            text-align: center;
-        }
-        .live-channel-rail-toggle {
-            width: 30px;
-            height: 30px;
-            flex: 0 0 30px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border: none;
-            border-radius: var(--radius);
-            background: none;
-            color: var(--dim);
-            cursor: pointer;
-            font-family: var(--font-ui);
-            line-height: 1;
-        }
-        .live-channel-rail-toggle:hover { background: rgba(255,255,255,.06); color: var(--text); }
-        .live-channel-rail-toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
-        .live-channel-rail-toggle svg { width: 18px; height: 18px; display: block; }
-        .live-channel-rail-body { position: relative; flex: 1; min-height: 0; }
-        .live-channel-list {
-            height: 100%;
-            overflow-y: auto;
-            overscroll-behavior: contain;
-            padding: 5px 0;
-        }
-        .live-channel-item {
-            display: grid;
-            grid-template-columns: 38px minmax(0, 1fr) auto;
-            align-items: center;
-            gap: 9px;
-            min-height: 56px;
-            padding: 7px 10px 7px 11px;
-            border-left: 3px solid transparent;
-            color: var(--text);
-            text-decoration: none;
-        }
-        .live-channel-item:hover,
-        .live-channel-item:focus-visible {
-            background: rgba(255,255,255,.05);
-            color: var(--text);
-            text-decoration: none;
-        }
-        .live-channel-item:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
-        .live-channel-item.active { border-left-color: var(--accent); background: var(--accent-pale); }
-        .live-channel-avatar-wrap { position: relative; width: 38px; height: 38px; }
-        .live-channel-avatar {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            width: 38px;
-            height: 38px;
-            border: 1px solid var(--border);
-            border-radius: 50%;
-            background: var(--bg);
-            color: var(--text);
-            font-size: 13px;
-            font-weight: 700;
-            text-transform: uppercase;
-        }
-        .live-channel-online {
-            position: absolute;
-            right: -1px;
-            bottom: 0;
-            width: 10px;
-            height: 10px;
-            border: 2px solid var(--surface);
-            border-radius: 50%;
-            background: var(--red);
-        }
-        .live-channel-copy { min-width: 0; }
-        .live-channel-name,
-        .live-channel-category {
-            display: block;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-        }
-        .live-channel-name { color: var(--text); font-size: 12.5px; font-weight: 700; }
-        .live-channel-category { margin-top: 1px; color: var(--dim); font-size: 10.5px; }
-        .live-channel-viewers {
-            display: flex;
-            align-items: center;
-            gap: 5px;
-            color: var(--dim);
-            font-size: 10.5px;
-            font-variant-numeric: tabular-nums;
-            white-space: nowrap;
-        }
-        .live-channel-viewers::before {
-            content: "";
-            width: 6px;
-            height: 6px;
-            flex: 0 0 6px;
-            border-radius: 50%;
-            background: var(--red);
-        }
-        .live-channel-status {
-            position: absolute;
-            inset: 0;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 16px;
-            color: var(--dim);
-            font-size: 11.5px;
-            text-align: center;
-        }
-        .live-channel-status[hidden] { display: none; }
-        .live-channel-section-label {
-            display: block;
-            padding: 8px 12px 3px;
-            color: var(--dim);
-            font-size: 10px;
-            font-weight: 700;
-            letter-spacing: .08em;
-            text-transform: uppercase;
-        }
-        .live-channel-section-divider { height: 1px; margin: 6px 10px; background: var(--border); }
-        .live-channel-rail.collapsed .live-channel-rail-title,
-        .live-channel-rail.collapsed .live-channel-count,
-        .live-channel-rail.collapsed .live-channel-copy,
-        .live-channel-rail.collapsed .live-channel-viewers,
-        .live-channel-rail.collapsed .live-channel-section-label,
-        .live-channel-rail.collapsed .live-channel-status { display: none; }
-        .live-channel-rail.collapsed .live-channel-rail-head { justify-content: center; padding: 0 8px; }
-        .live-channel-rail.collapsed .live-channel-item {
-            grid-template-columns: 38px;
-            gap: 0;
-            padding: 7px 8px;
-        }
-        .live-channel-rail.collapsed .live-channel-section-divider { margin: 5px 8px; }
-
         .live-left {
             flex: 1;
             min-width: 0;
@@ -1476,20 +1302,6 @@
             #btn-cinema { display: none; }
             .live-app:not(.is-vertical) #live-chat { width: 40%; max-width: 340px; }
         }
-        @media (max-width: 1180px) {
-            .live-channel-rail { width: 57px; }
-            .live-channel-rail-head { display: none; }
-            .live-channel-copy,
-            .live-channel-viewers,
-            .live-channel-section-label,
-            .live-channel-status { display: none; }
-            .live-channel-item {
-                grid-template-columns: 38px;
-                gap: 0;
-                padding: 7px 8px;
-            }
-            .live-channel-section-divider { margin: 5px 8px; }
-        }
         .is-vertical #btn-cinema { display: none; }
 
         #live-chat.chat-fullscreen {
@@ -1703,7 +1515,7 @@
             <div class="live-chat-head">
                 <span>Chat</span>
                 <div class="live-chat-head-actions">
-                    <button id="btn-chat-more" type="button" title="More chat options" aria-label="More chat options" aria-haspopup="true" aria-expanded="false" aria-controls="live-chat-overflow">&middot;&middot;&middot;</button>
+                    <button id="btn-chat-more" type="button" title="More chat options" aria-label="More chat options" aria-haspopup="true" aria-expanded="false" aria-controls="live-chat-overflow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg></button>
                     <div class="live-chat-overflow" id="live-chat-overflow" hidden>
                         <span class="live-chat-overflow-label">Chat</span>
                         <button id="btn-chat-profile" type="button">Channel profile</button>
