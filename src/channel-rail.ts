@@ -97,6 +97,13 @@ export function createChannelRail(options: ChannelRailOptions): ChannelRailHandl
         const avatar = document.createElement("span");
         avatar.className = "live-channel-avatar";
         avatar.textContent = stream.username.slice(0, 1);
+        const avatarImg = document.createElement("img");
+        avatarImg.className = "live-channel-avatar-img";
+        avatarImg.src = `/api/live/profile/${encodeURIComponent(normalizedUsername)}/avatar`;
+        avatarImg.alt = "";
+        avatarImg.loading = "lazy";
+        avatarImg.onerror = () => avatarImg.remove();
+        avatar.appendChild(avatarImg);
 
         const name = document.createElement("span");
         name.className = "live-channel-name";

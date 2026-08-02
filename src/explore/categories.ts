@@ -1,6 +1,6 @@
 import { ctx, NO_CATEGORY_LABEL, type CategorySelector, type ExploreStream } from "./context.ts";
 import { drillEl, drillTitleEl } from "./dom.ts";
-import { hideEmpty, renderStreamList, setGridChildren, showEmpty, viewersIcon } from "./stream-cards.ts";
+import { hideEmpty, renderStreamList, setGridChildren, setGridPortrait, showEmpty, viewersIcon } from "./stream-cards.ts";
 import { urlFor } from "./url-state.ts";
 
 interface CategoryCardData {
@@ -22,18 +22,23 @@ function categoryCardEl(data: CategoryCardData): HTMLAnchorElement {
     const nameEl = document.createElement("div");
     nameEl.className = "explore-category-name";
     nameEl.textContent = data.name;
-    if (data.imageUrl) {
+    const noArt = data.id === "none" || data.name.trim().toLowerCase() === "other";
+    if (!noArt && data.imageUrl) {
         const img = document.createElement("img");
         img.className = "explore-category-art";
         img.src = data.imageUrl;
         img.alt = data.name;
         img.loading = "lazy";
+        const chip = document.createElement("span");
+        chip.className = "explore-tag";
+        chip.textContent = data.name;
         img.onerror = () => {
             img.remove();
+            chip.remove();
             nameEl.hidden = false;
         };
         nameEl.hidden = true;
-        thumb.append(img, nameEl);
+        thumb.append(img, chip, nameEl);
     } else {
         thumb.appendChild(nameEl);
     }
@@ -62,6 +67,7 @@ function categoryCardEl(data: CategoryCardData): HTMLAnchorElement {
 
 function renderCategoryGrid(): void {
     drillEl.classList.add("hidden");
+    setGridPortrait(true);
     const noCategory = ctx.streams.filter(s => s.categoryId === null);
     const cards: CategoryCardData[] = ctx.categories.map(c => ({ id: c.id, name: c.name, viewers: c.viewerCount, count: c.liveStreamCount, imageUrl: c.imageUrl }));
     if (noCategory.length) {

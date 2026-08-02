@@ -132,7 +132,12 @@ export function updateModeButtons(): void {
     modeCategoriesBtn.classList.toggle("active", ctx.mode === "categories");
 }
 
+export function setGridPortrait(on: boolean): void {
+    gridEl.classList.toggle("explore-grid-portrait", on);
+}
+
 export function renderStreamList(list: ExploreStream[]): void {
+    setGridPortrait(false);
     const live = new Set(ctx.streams.map((s) => s.username));
     for (const key of Array.from(streamCards.keys())) {
         if (!live.has(key)) streamCards.delete(key);
