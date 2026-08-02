@@ -13,6 +13,18 @@ let browseMode = false;
 let browseMiniClosed = false;
 let miniParked = false;
 
+const RAIL_WIDTH_MESSAGE_TYPE = "itzon:rail-width";
+
+window.addEventListener("message", (e) => {
+    if (e.origin !== location.origin) return;
+    const data = e.data as { type?: unknown; width?: unknown } | null;
+    if (!data || data.type !== RAIL_WIDTH_MESSAGE_TYPE) return;
+    const width = typeof data.width === "number" && Number.isFinite(data.width)
+        ? Math.max(0, Math.min(600, Math.round(data.width)))
+        : 0;
+    document.documentElement.style.setProperty("--browse-rail-width", `${width}px`);
+});
+
 export function isBrowseMode(): boolean {
     return browseMode;
 }

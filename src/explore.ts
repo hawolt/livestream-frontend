@@ -54,6 +54,9 @@ async function boot(): Promise<void> {
     if (isFramed) document.body.classList.add("explore-framed");
     page.hidden = false;
     if (!isFramed) void initSiteNav("browse");
+    const reportRailWidth = (): void => {
+        window.parent.postMessage({ type: "itzon:rail-width", width: railEl.getBoundingClientRect().width }, location.origin);
+    };
     createChannelRail({
         elements: {
             rail: railEl,
@@ -64,8 +67,13 @@ async function boot(): Promise<void> {
             status: railStatusEl,
         },
         getActiveUsername: () => "",
+        onCollapsedChange: isFramed ? reportRailWidth : undefined,
         linkTarget: isFramed ? "_top" : undefined,
     }).start();
+    if (isFramed) {
+        requestAnimationFrame(reportRailWidth);
+        window.addEventListener("resize", reportRailWidth);
+    }
     const initial = stateFromLocation();
     ctx.mode = initial.mode;
     ctx.drillCategoryId = initial.categoryId;
