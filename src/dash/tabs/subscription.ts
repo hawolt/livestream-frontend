@@ -268,10 +268,15 @@ async function upgrade(btn: HTMLButtonElement): Promise<void> {
     const revision = ++upgradeRevision;
     btn.disabled = true;
     try {
-        await authFetch<{ ok: boolean }>("/api/billing/upgrade", {
+        const res = await authFetch<{ ok?: boolean; url?: string }>("/api/billing/upgrade", {
             method: "POST",
             body: JSON.stringify({ tier }),
         });
+        if (res.url) {
+            sessionStorage.setItem(PENDING_KEY, String(Date.now()));
+            location.href = res.url;
+            return;
+        }
         const refresh = () => {
             if (!active) return;
             void loadTiers(activationGeneration);
