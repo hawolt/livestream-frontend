@@ -162,6 +162,15 @@ function tierCard(tier: BillingTier, index: number, tiers: BillingTier[], tokenL
     </div>`;
 }
 
+function portalButtonsHtml(): string {
+    const providers = cache?.portalProviders ?? [];
+    if (providers.length > 1) {
+        return `<button class="btn" data-portal-provider="stripe">Manage subscription</button>
+            <button class="btn" data-portal-provider="polar">Manage legacy subscription</button>`;
+    }
+    return `<button class="btn" data-portal-provider="">Manage subscription</button>`;
+}
+
 function render(): void {
     const el = document.getElementById("sub-body");
     if (!el || !cache) return;
@@ -183,7 +192,7 @@ function render(): void {
             <b>${esc(current!.tier)}</b>
             <span>${esc(current!.status)}</span>
             <span>Renews ${renewalDate}</span>
-            <button class="btn" id="btn-sub-portal">Manage subscription</button>
+            ${portalButtonsHtml()}
             <span>Downgrades and cancellation are handled there.</span>
         </div>`
         : "";
@@ -194,7 +203,9 @@ function render(): void {
         : `<p style="color:var(--muted);font-size:13px;margin:0">No plans configured.</p>`;
     const feeNote = cache.feeNote ? `<p class="sub-fee">${esc(cache.feeNote)}</p>` : "";
     el.innerHTML = head + pendingBanner + statusBlock + grid + feeNote;
-    document.getElementById("btn-sub-portal")?.addEventListener("click", () => void openPortal());
+    el.querySelectorAll<HTMLButtonElement>("[data-portal-provider]").forEach(btn => {
+        btn.addEventListener("click", () => void openPortal(btn));
+    });
     el.querySelectorAll<HTMLButtonElement>("[data-sub-tier]").forEach(btn => {
         btn.addEventListener("click", () => void checkout(btn));
     });
@@ -240,15 +251,18 @@ async function checkout(btn: HTMLButtonElement): Promise<void> {
     }
 }
 
-async function openPortal(): Promise<void> {
-    const btn = document.getElementById("btn-sub-portal") as HTMLButtonElement | null;
-    if (btn) btn.disabled = true;
+async function openPortal(btn: HTMLButtonElement): Promise<void> {
+    const provider = btn.dataset["portalProvider"] ?? "";
+    btn.disabled = true;
     try {
-        const res = await authFetch<{ url: string }>("/api/billing/portal", { method: "POST" });
+        const res = await authFetch<{ url: string }>("/api/billing/portal", {
+            method: "POST",
+            body: provider ? JSON.stringify({ provider }) : undefined,
+        });
         location.href = res.url;
     } catch (e) {
         alert("Could not open the billing portal: " + (e instanceof Error ? e.message : String(e)));
-        if (btn) btn.disabled = false;
+        btn.disabled = false;
     }
 }
 

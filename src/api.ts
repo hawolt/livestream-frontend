@@ -34,6 +34,7 @@ export interface BillingPerks {
 export interface BillingCurrent {
     tier: string;
     status: string;
+    provider?: string;
     currentPeriodEnd: number | null;
     perks: BillingPerks;
 }
@@ -42,6 +43,7 @@ export interface BillingTiers {
     enabled: boolean;
     tiers: BillingTier[];
     current: BillingCurrent | null;
+    portalProviders?: string[];
     feeNote?: string;
     restreamDestinationCap?: number;
     currency?: string;
