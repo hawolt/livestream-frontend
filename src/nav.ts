@@ -90,7 +90,6 @@ const MORE_LINKS: Array<[string, string]> = [
     ["Terms of Service", "/terms"],
     ["Privacy Policy", "/privacy"],
     ["Impressum", "/impressum"],
-    ["Datenschutz", "/datenschutz"],
 ];
 
 function buildMoreMenu(): HTMLElement {
