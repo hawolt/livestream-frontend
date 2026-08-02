@@ -16,6 +16,7 @@ export interface ExploreCategory {
     name: string;
     liveStreamCount: number;
     viewerCount: number;
+    imageUrl?: string | null;
 }
 
 export interface ViewState {

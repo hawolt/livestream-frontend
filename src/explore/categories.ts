@@ -8,6 +8,7 @@ interface CategoryCardData {
     name: string;
     viewers: number;
     count: number;
+    imageUrl?: string | null;
 }
 
 function categoryCardEl(data: CategoryCardData): HTMLAnchorElement {
@@ -21,7 +22,21 @@ function categoryCardEl(data: CategoryCardData): HTMLAnchorElement {
     const nameEl = document.createElement("div");
     nameEl.className = "explore-category-name";
     nameEl.textContent = data.name;
-    thumb.appendChild(nameEl);
+    if (data.imageUrl) {
+        const img = document.createElement("img");
+        img.className = "explore-category-art";
+        img.src = data.imageUrl;
+        img.alt = data.name;
+        img.loading = "lazy";
+        img.onerror = () => {
+            img.remove();
+            nameEl.hidden = false;
+        };
+        nameEl.hidden = true;
+        thumb.append(img, nameEl);
+    } else {
+        thumb.appendChild(nameEl);
+    }
 
     const body = document.createElement("div");
     body.className = "explore-card-body";
@@ -48,7 +63,7 @@ function categoryCardEl(data: CategoryCardData): HTMLAnchorElement {
 function renderCategoryGrid(): void {
     drillEl.classList.add("hidden");
     const noCategory = ctx.streams.filter(s => s.categoryId === null);
-    const cards: CategoryCardData[] = ctx.categories.map(c => ({ id: c.id, name: c.name, viewers: c.viewerCount, count: c.liveStreamCount }));
+    const cards: CategoryCardData[] = ctx.categories.map(c => ({ id: c.id, name: c.name, viewers: c.viewerCount, count: c.liveStreamCount, imageUrl: c.imageUrl }));
     if (noCategory.length) {
         cards.push({ id: "none", name: NO_CATEGORY_LABEL, viewers: noCategory.reduce((sum, s) => sum + s.viewers, 0), count: noCategory.length });
     }
