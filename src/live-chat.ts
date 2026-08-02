@@ -7,6 +7,7 @@ import {
     helpBtnEl,
     helpCloseEl,
     inputEl,
+    msgsEl,
     pickerFilterEl,
     profileBtnEl,
     profileCloseEl,
@@ -28,7 +29,7 @@ import {
     restartChatConnection,
     SESSION_RENEWAL_CHECK_MS,
 } from "./chat/connection.ts";
-import { autoGrowInput, closePicker, MAX_TEXT, renderPickerGrid, submit, togglePicker } from "./chat/composer.ts";
+import { autoGrowInput, MAX_TEXT, renderPickerGrid, submit, togglePicker } from "./chat/composer.ts";
 import { clearReply } from "./chat/messages.ts";
 import {
     applyAvatarPref,
@@ -46,11 +47,38 @@ import {
 } from "./chat/panels.ts";
 import { acceptSelectedSuggestion, advanceTabCycle, hideSuggest, moveSuggest, updateSuggest } from "./chat/suggest.ts";
 
+let chatStarted = false;
+
 export function startChat(user: string, emoteTwitchId?: string, onLoginRequested?: () => void): void {
+    chatStarted = true;
+    ctx.destroyed = false;
     ctx.channel = `#${user}`;
     ctx.channelEmoteTwitchId = emoteTwitchId ?? "";
     ctx.requestLogin = onLoginRequested ?? null;
     inputEl.maxLength = MAX_TEXT;
+    inputEl.setAttribute("aria-label", "Chat message");
+    pickerFilterEl.setAttribute("aria-label", "Filter emotes");
+    msgsEl.setAttribute("role", "log");
+    msgsEl.setAttribute("aria-label", "Live chat messages");
+    msgsEl.setAttribute("aria-live", "polite");
+    msgsEl.setAttribute("aria-relevant", "additions text");
+    const panelAttributes: Array<[HTMLButtonElement, HTMLElement, string]> = [
+        [profileBtnEl, document.getElementById("live-chat-profile") as HTMLElement, "Channel profile"],
+        [usersBtnEl, document.getElementById("live-chat-userlist") as HTMLElement, "Viewers"],
+        [helpBtnEl, document.getElementById("live-chat-help") as HTMLElement, "Chat commands"],
+        [settingsBtnEl, document.getElementById("live-chat-settings") as HTMLElement, "Chat settings"],
+    ];
+    for (const [trigger, panel, label] of panelAttributes) {
+        trigger.setAttribute("aria-expanded", "false");
+        trigger.setAttribute("aria-controls", panel.id);
+        panel.setAttribute("role", "region");
+        panel.setAttribute("aria-label", label);
+    }
+    emoteBtnEl.setAttribute("aria-haspopup", "dialog");
+    emoteBtnEl.setAttribute("aria-expanded", "false");
+    emoteBtnEl.setAttribute("aria-controls", document.getElementById("live-chat-picker")!.id);
+    document.getElementById("live-chat-picker")!.setAttribute("role", "dialog");
+    document.getElementById("live-chat-picker")!.setAttribute("aria-label", "Emotes");
     migrateGuestNick();
     void loadEmotes();
     void checkAccountStatus();
@@ -64,7 +92,10 @@ export function startChat(user: string, emoteTwitchId?: string, onLoginRequested
         ctx.requestLogin();
     });
     sendEl.addEventListener("click", submit);
-    replyCancelEl.addEventListener("click", clearReply);
+    replyCancelEl.addEventListener("click", () => {
+        clearReply();
+        if (!inputEl.disabled) inputEl.focus();
+    });
     emoteBtnEl.addEventListener("click", togglePicker);
     usersBtnEl.addEventListener("click", toggleUserlist);
     userlistCloseEl.addEventListener("click", () => setUserlist(false));
@@ -109,6 +140,7 @@ export function startChat(user: string, emoteTwitchId?: string, onLoginRequested
             ctx.tabCycleRange = null;
         }
         if (e.key === "Enter" && !e.shiftKey) {
+            if (e.isComposing || e.keyCode === 229) return;
             e.preventDefault();
             if (suggestOpen && !ctx.tabCycleRange && acceptSelectedSuggestion()) return;
             ctx.tabCycleRange = null;
@@ -116,15 +148,26 @@ export function startChat(user: string, emoteTwitchId?: string, onLoginRequested
         }
     });
     document.addEventListener("keydown", (e) => {
-        if (e.key !== "Escape") return;
-        closePicker();
-        hideSuggest();
-        clearReply();
-        if (ctx.userlistOpen) setUserlist(false);
-        if (ctx.helpOpen) setHelp(false);
-        if (ctx.settingsOpen) setSettings(false);
-        if (ctx.profileOpen) closeProfile();
-    });
+        if (e.key !== "Escape" || e.defaultPrevented || e.isComposing) return;
+        if (!suggestEl.hidden) {
+            hideSuggest();
+        } else if (ctx.replyTo) {
+            clearReply();
+            if (!inputEl.disabled) inputEl.focus();
+        } else if (ctx.userlistOpen) {
+            setUserlist(false);
+        } else if (ctx.helpOpen) {
+            setHelp(false);
+        } else if (ctx.settingsOpen) {
+            setSettings(false);
+        } else if (ctx.profileOpen) {
+            closeProfile();
+        } else {
+            return;
+        }
+        e.preventDefault();
+        e.stopImmediatePropagation();
+    }, true);
     connect();
 }
 
@@ -138,15 +181,30 @@ export function reconnectChatAfterLogin(): void {
     restartChatConnection();
 }
 
-export function stopChat(): void {
+export function suspendChat(): void {
+    if (!chatStarted) return;
     ctx.destroyed = true;
     ctx.accountStatusRevision++;
     ctx.accountStatusRequest = null;
+    if (ctx.retryTimer !== null) {
+        window.clearTimeout(ctx.retryTimer);
+        ctx.retryTimer = null;
+    }
+    ctx.sock?.close();
+}
+
+export function resumeChat(): void {
+    if (!chatStarted || !ctx.destroyed) return;
+    ctx.destroyed = false;
+    void checkAccountStatus();
+    connect();
+}
+
+export function stopChat(): void {
+    suspendChat();
     if (ctx.accountStatusTimer !== null) {
         window.clearInterval(ctx.accountStatusTimer);
         ctx.accountStatusTimer = null;
     }
     document.removeEventListener("visibilitychange", checkAccountWhenVisible);
-    if (ctx.retryTimer !== null) window.clearTimeout(ctx.retryTimer);
-    ctx.sock?.close();
 }

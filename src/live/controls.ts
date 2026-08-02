@@ -50,11 +50,37 @@ import { wirePageLifecycle } from "./player/lifecycle.ts";
 import { renderQualityMenu, wireQualityMenu } from "./quality-menu.ts";
 import { startFpsMeter, updateQuality } from "./stream-info.ts";
 import { wireSeekBar } from "./seekbar.ts";
+import { closeDismissibleSurface, openDismissibleSurface } from "../dismissible-surface.ts";
 
-function setChatOverflow(open: boolean): void {
+function setChatOverflow(open: boolean, restoreFocus = false): void {
     chatOverflow.hidden = !open;
     btnChatMore.classList.toggle("active", open);
     btnChatMore.setAttribute("aria-expanded", String(open));
+    if (open) {
+        openDismissibleSurface(chatOverflow, () => setChatOverflow(false, true));
+    } else {
+        closeDismissibleSurface(chatOverflow);
+        if (restoreFocus && btnChatMore.isConnected) btnChatMore.focus();
+    }
+}
+
+let chatOverflowWired = false;
+
+export function wireChatOverflow(): void {
+    if (chatOverflowWired) return;
+    chatOverflowWired = true;
+    btnChatMore.removeAttribute("aria-haspopup");
+    btnChatMore.setAttribute("aria-expanded", "false");
+    btnChatMore.setAttribute("aria-controls", chatOverflow.id);
+    btnChatMore.addEventListener("click", () => setChatOverflow(chatOverflow.hidden));
+    chatOverflow.addEventListener("click", () => {
+        const restoreFocus = document.activeElement instanceof Node && chatOverflow.contains(document.activeElement);
+        setChatOverflow(false, restoreFocus);
+    });
+    document.addEventListener("click", (ev) => {
+        const target = ev.target as Node;
+        if (!chatOverflow.hidden && !chatOverflow.contains(target) && !btnChatMore.contains(target)) setChatOverflow(false);
+    });
 }
 
 function updatePlayIcon(): void {
@@ -109,6 +135,7 @@ function wireVideoClickToPause(): void {
 let controlsHideTimer: number | null = null;
 
 export function wireControls(): void {
+    wireChatOverflow();
     if (isIOS() || !volumeIsSettable()) {
         volInput.hidden = true;
         volpctEl.hidden = true;
@@ -227,11 +254,7 @@ export function wireControls(): void {
         );
         if (ev.defaultPrevented || ev.repeat) return;
         if (ev.key === "Escape") {
-            if (!chatOverflow.hidden) {
-                ev.preventDefault();
-                setChatOverflow(false);
-                btnChatMore.focus();
-            } else if (isChatFullscreen() && !isChatFsNative()) {
+            if (isChatFullscreen() && !isChatFsNative()) {
                 ev.preventDefault();
                 exitChatFullscreen();
             } else if (isCinemaMode() && !isChatFullscreen() && !isVideoFullscreen()) {
@@ -254,12 +277,6 @@ export function wireControls(): void {
     btnLayoutToggle.addEventListener("click", cycleLayout);
     btnChatToggle.addEventListener("click", toggleChat);
     btnChatCollapse.addEventListener("click", toggleChat);
-    btnChatMore.addEventListener("click", () => setChatOverflow(chatOverflow.hidden));
-    chatOverflow.addEventListener("click", () => setChatOverflow(false));
-    document.addEventListener("click", (ev) => {
-        const target = ev.target as Node;
-        if (!chatOverflow.hidden && !chatOverflow.contains(target) && !btnChatMore.contains(target)) setChatOverflow(false);
-    });
     btnChatFullscreen.addEventListener("click", toggleChatFullscreen);
     btnChatSide.addEventListener("click", () => {
         const left = !document.body.classList.contains("chat-left");

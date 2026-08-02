@@ -15,8 +15,11 @@ import { guests, hasModRole, unverified } from "./members.ts";
 import { send } from "./connection.ts";
 import { addMessage, clearReply, updateReplyBar } from "./messages.ts";
 import { hideSuggest } from "./suggest.ts";
+import { closeDismissibleSurface, openDismissibleSurface } from "../dismissible-surface.ts";
 
 export const MAX_TEXT = 400;
+
+let pickerReturnFocus: HTMLElement | null = null;
 
 function isGuestNow(): boolean {
     return !ctx.isAccount || guests.has(ctx.nick.toLowerCase());
@@ -88,6 +91,7 @@ function buildEmoteCell(name: string): HTMLButtonElement {
     cell.className = "live-chat-picker-cell";
     const img = document.createElement("img");
     img.src = emotes.get(name)?.url ?? "";
+    img.referrerPolicy = "no-referrer";
     img.alt = name;
     img.title = name;
     img.loading = "lazy";
@@ -129,21 +133,31 @@ function onPickerOutsideMouseDown(e: MouseEvent): void {
 export function openPicker(): void {
     if (ctx.pickerOpen) return;
     ctx.pickerOpen = true;
+    pickerReturnFocus = document.activeElement instanceof HTMLElement ? document.activeElement : emoteBtnEl;
     emoteBtnEl.classList.add("active");
+    emoteBtnEl.setAttribute("aria-expanded", "true");
     pickerFilterEl.value = "";
     renderPickerGrid("");
     pickerEl.hidden = false;
     hideSuggest();
+    openDismissibleSurface(pickerEl, () => closePicker(true));
     document.addEventListener("mousedown", onPickerOutsideMouseDown, true);
     pickerFilterEl.focus();
 }
 
-export function closePicker(): void {
+export function closePicker(restoreFocus = false): void {
     if (!ctx.pickerOpen) return;
     ctx.pickerOpen = false;
     emoteBtnEl.classList.remove("active");
+    emoteBtnEl.setAttribute("aria-expanded", "false");
     pickerEl.hidden = true;
+    closeDismissibleSurface(pickerEl);
     document.removeEventListener("mousedown", onPickerOutsideMouseDown, true);
+    const returnFocus = pickerReturnFocus;
+    pickerReturnFocus = null;
+    if (restoreFocus && returnFocus?.isConnected && returnFocus.offsetParent !== null && !returnFocus.closest("[inert]")) {
+        returnFocus.focus();
+    }
 }
 
 export function togglePicker(): void {
