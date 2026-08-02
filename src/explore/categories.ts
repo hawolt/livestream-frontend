@@ -10,17 +10,41 @@ interface CategoryCardData {
     count: number;
 }
 
+interface CategoryCard {
+    root: HTMLAnchorElement;
+    name: HTMLElement;
+    viewers: HTMLElement;
+    tag: HTMLElement;
+}
+
+const categoryCards = new Map<string, CategoryCard>();
+
+function categoryKey(id: CategorySelector): string {
+    return id === null ? "null" : String(id);
+}
+
+function updateCategoryCard(card: CategoryCard, data: CategoryCardData): void {
+    card.root.href = urlFor("categories", data.id);
+    card.root.dataset["categoryId"] = String(data.id);
+    card.name.textContent = data.name;
+    card.viewers.textContent = data.viewers.toLocaleString();
+    card.tag.textContent = `${data.count} stream${data.count === 1 ? "" : "s"}`;
+}
+
 function categoryCardEl(data: CategoryCardData): HTMLAnchorElement {
+    const key = categoryKey(data.id);
+    const existing = categoryCards.get(key);
+    if (existing) {
+        updateCategoryCard(existing, data);
+        return existing.root;
+    }
     const a = document.createElement("a");
     a.className = "explore-card explore-category-card";
-    a.href = urlFor("categories", data.id);
-    a.dataset["categoryId"] = String(data.id);
 
     const thumb = document.createElement("div");
     thumb.className = "explore-thumb explore-category-thumb";
     const nameEl = document.createElement("div");
     nameEl.className = "explore-category-name";
-    nameEl.textContent = data.name;
     thumb.appendChild(nameEl);
 
     const body = document.createElement("div");
@@ -32,16 +56,17 @@ function categoryCardEl(data: CategoryCardData): HTMLAnchorElement {
     viewers.className = "explore-viewers";
     viewers.innerHTML = viewersIcon();
     const viewersCount = document.createElement("span");
-    viewersCount.textContent = data.viewers.toLocaleString();
     viewers.appendChild(viewersCount);
 
     const tag = document.createElement("span");
     tag.className = "explore-tag";
-    tag.textContent = `${data.count} stream${data.count === 1 ? "" : "s"}`;
 
     meta.append(viewers, tag);
     body.appendChild(meta);
     a.append(thumb, body);
+    const card = { root: a, name: nameEl, viewers: viewersCount, tag };
+    categoryCards.set(key, card);
+    updateCategoryCard(card, data);
     return a;
 }
 
@@ -59,6 +84,10 @@ function renderCategoryGrid(): void {
     }
     hideEmpty();
     cards.sort((a, b) => b.viewers - a.viewers);
+    const activeKeys = new Set(cards.map(card => categoryKey(card.id)));
+    for (const key of categoryCards.keys()) {
+        if (!activeKeys.has(key)) categoryCards.delete(key);
+    }
     setGridChildren(cards.map(categoryCardEl));
 }
 

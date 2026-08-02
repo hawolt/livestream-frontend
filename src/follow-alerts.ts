@@ -1,8 +1,12 @@
+import { scrubOverlayToken } from "./url-secrets.ts";
+
 const stageEl = document.getElementById("alert-stage") as HTMLElement;
 
 const RETRY_MS = 5000;
 const AUTH_RETRY_MS = 30000;
 const DEFAULT_DURATION_MS = 5000;
+const MAX_QUEUE = 20;
+const MAX_EVENT_AGE_S = 120;
 const EXIT_ANIMATION_NAME = "alert-out";
 const ENTER_ANIMATION_NAME = "alert-in";
 
@@ -26,7 +30,9 @@ function parseParams(): void {
     const durationSec = Number(qs.get("duration"));
     durationMs = Number.isFinite(durationSec) && durationSec > 0 ? durationSec * 1000 : DEFAULT_DURATION_MS;
     demoMode = qs.get("demo") === "1";
-    token = qs.get("token") ?? "";
+    const tokenState = scrubOverlayToken(location.href);
+    token = tokenState.token;
+    if (tokenState.replacement) history.replaceState(history.state, "", tokenState.replacement);
 }
 
 function buildCard(username: string): HTMLDivElement {
@@ -43,7 +49,9 @@ function buildCard(username: string): HTMLDivElement {
 }
 
 function showNext(): void {
-    const next = queue.shift();
+    const cutoff = Math.floor(Date.now() / 1000) - MAX_EVENT_AGE_S;
+    let next = queue.shift();
+    while (next && next.at < cutoff) next = queue.shift();
     if (!next) {
         showing = false;
         return;
@@ -66,8 +74,9 @@ function showNext(): void {
     });
 }
 
-function enqueueFollow(username: string): void {
-    queue.push({ username, at: Math.floor(Date.now() / 1000) });
+function enqueueFollow(username: string, at = Math.floor(Date.now() / 1000)): void {
+    queue.push({ username, at });
+    if (queue.length > MAX_QUEUE) queue.splice(0, queue.length - MAX_QUEUE);
     if (!showing) showNext();
 }
 
@@ -86,9 +95,11 @@ function connect(): void {
     sock = s;
 
     s.onopen = () => {
+        if (sock !== s) return;
         s.send(JSON.stringify({ overlay: token }));
     };
     s.onmessage = (ev) => {
+        if (sock !== s) return;
         if (typeof ev.data !== "string") return;
         let msg: unknown;
         try {
@@ -99,7 +110,7 @@ function connect(): void {
         if (!msg || typeof msg !== "object") return;
         const data = msg as Record<string, unknown>;
         if (data.type === "follow" && typeof data.username === "string") {
-            enqueueFollow(data.username);
+            enqueueFollow(data.username, typeof data.at === "number" ? data.at : undefined);
         }
     };
     s.onclose = (ev) => {
@@ -108,7 +119,9 @@ function connect(): void {
         const delay = ev.code === 4401 ? AUTH_RETRY_MS : RETRY_MS;
         scheduleRetry(delay);
     };
-    s.onerror = () => s.close();
+    s.onerror = () => {
+        if (sock === s) s.close();
+    };
 }
 
 const DEMO_NAMES = [

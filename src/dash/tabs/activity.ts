@@ -2,12 +2,7 @@ import type { LiveInfo, LiveCategory } from "../../api.ts";
 import { STREAM_LANGUAGE_OPTIONS, type StreamLanguageCode } from "../../stream-languages.ts";
 import { esc, fmtDate, fmtTime } from "../format.ts";
 import { authFetch, getMe, token } from "../session.ts";
-
-interface FollowEvent {
-    type: string;
-    username: string;
-    at: number;
-}
+import { countNewLiveEvents, followEventKey, mergeFollowEvents, type FollowEvent } from "../activity-events.ts";
 
 interface RecentFollowsResponse {
     events: FollowEvent[];
@@ -32,6 +27,9 @@ let categoriesCache: LiveCategory[] = [];
 let eventsWs: WebSocket | null = null;
 let eventsReconnectTimer: number | null = null;
 let eventsDead = true;
+let activationGeneration = 0;
+let liveEvents = new Map<string, FollowEvent>();
+let recentSnapshotPending = false;
 
 function renderViewerChip(): void {
     const countEl = document.getElementById("act-viewer-count");
@@ -76,43 +74,66 @@ function renderEvents(): void {
     body.innerHTML = events.map(eventRowHtml).join("");
 }
 
-function addEvent(e: FollowEvent): void {
+function addEvent(e: FollowEvent): boolean {
+    const key = followEventKey(e);
+    if (events.some(event => followEventKey(event) === key)) return false;
     events.unshift(e);
+    events.sort((a, b) => b.at - a.at);
     if (events.length > MAX_EVENTS) events.length = MAX_EVENTS;
     renderEvents();
+    return true;
 }
 
-async function loadRecentFollows(): Promise<void> {
+async function loadRecentFollows(generation: number): Promise<void> {
     try {
         const res = await authFetch<RecentFollowsResponse>("/api/follows/recent?limit=20");
-        events = res.events.slice(0, MAX_EVENTS);
-        followerCount = res.count;
+        if (eventsDead || generation !== activationGeneration) return;
+        const currentLiveEvents = Array.from(liveEvents.values());
+        events = mergeFollowEvents(res.events, currentLiveEvents, MAX_EVENTS);
+        followerCount = res.count + countNewLiveEvents(res.events, currentLiveEvents);
+        recentSnapshotPending = false;
+        liveEvents.clear();
         renderEvents();
         renderFollowerCount();
     } catch {
+        if (eventsDead || generation !== activationGeneration) return;
+        recentSnapshotPending = false;
+        liveEvents.clear();
+        if (events.length) return;
         const body = document.getElementById("act-events-body");
         if (body) body.innerHTML = `<div style="color:var(--muted);padding:10px 0">Could not load recent activity.</div>`;
     }
 }
 
-function connectEvents(): void {
-    if (eventsDead) return;
+function connectEvents(generation: number): void {
+    if (eventsDead || generation !== activationGeneration) return;
     const proto = location.protocol === "https:" ? "wss" : "ws";
     const ws = new WebSocket(`${proto}://${location.host}/ws/events`);
     eventsWs = ws;
-    ws.onopen = () => ws.send(JSON.stringify({ token: token() }));
+    ws.onopen = () => {
+        if (eventsWs === ws && !eventsDead && generation === activationGeneration) {
+            ws.send(JSON.stringify({ token: token() }));
+        }
+    };
     ws.onmessage = (e: MessageEvent) => {
-        const msg = JSON.parse(e.data as string) as {
+        if (eventsWs !== ws || eventsDead || generation !== activationGeneration) return;
+        let msg: {
             type: string;
             username?: string;
             at?: number;
             viewers?: number;
             test?: boolean;
         };
+        try {
+            msg = JSON.parse(e.data as string) as typeof msg;
+        } catch {
+            return;
+        }
         if (msg.test) return;
         if (msg.type === "follow" && msg.username && typeof msg.at === "number") {
-            addEvent({ type: "follow", username: msg.username, at: msg.at });
-            if (followerCount !== null) {
+            const event = { type: "follow", username: msg.username, at: msg.at };
+            if (recentSnapshotPending) liveEvents.set(followEventKey(event), event);
+            if (addEvent(event) && followerCount !== null) {
                 followerCount += 1;
                 renderFollowerCount();
             }
@@ -124,9 +145,9 @@ function connectEvents(): void {
         }
     };
     ws.onclose = () => {
-        if (eventsWs !== ws) return;
+        if (eventsWs !== ws || generation !== activationGeneration) return;
         eventsWs = null;
-        if (!eventsDead) eventsReconnectTimer = window.setTimeout(connectEvents, RECONNECT_MS);
+        if (!eventsDead) eventsReconnectTimer = window.setTimeout(() => connectEvents(generation), RECONNECT_MS);
     };
 }
 
@@ -140,7 +161,7 @@ function loadChat(): void {
     chatLoaded = true;
 }
 
-async function loadLive(): Promise<void> {
+async function loadLive(generation: number): Promise<void> {
     const el = document.getElementById("live-info-body");
     if (el) el.textContent = "Loading...";
     try {
@@ -148,10 +169,12 @@ async function loadLive(): Promise<void> {
             authFetch<LiveInfo>("/api/live"),
             authFetch<{ categories: LiveCategory[] }>("/api/live/categories"),
         ]);
+        if (eventsDead || generation !== activationGeneration) return;
         liveCache = info;
         categoriesCache = cats.categories;
         renderInfo();
     } catch (e) {
+        if (eventsDead || generation !== activationGeneration) return;
         if (el) el.textContent = String(e);
     }
 }
@@ -221,20 +244,28 @@ export function init(): void {
 }
 
 export function activate(): void {
+    const generation = ++activationGeneration;
+    liveEvents = new Map();
+    recentSnapshotPending = true;
     loadChat();
-    void loadRecentFollows();
-    void loadLive();
-
     eventsDead = false;
-    connectEvents();
+    void loadRecentFollows(generation);
+    void loadLive(generation);
+    connectEvents(generation);
 }
 
 export function deactivate(): void {
     eventsDead = true;
+    activationGeneration += 1;
+    recentSnapshotPending = false;
+    liveEvents.clear();
     if (eventsReconnectTimer !== null) {
         window.clearTimeout(eventsReconnectTimer);
         eventsReconnectTimer = null;
     }
     eventsWs?.close();
     eventsWs = null;
+    const iframe = document.getElementById("act-chat-iframe") as HTMLIFrameElement | null;
+    if (iframe) iframe.src = "about:blank";
+    chatLoaded = false;
 }

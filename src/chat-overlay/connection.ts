@@ -4,6 +4,23 @@ import type { IrcLine } from "./irc.ts";
 import { parse } from "./irc.ts";
 import { addMessage } from "./render.ts";
 
+const NAMES_REFRESH_DELAY_MS = 750;
+let namesRefreshTimer: number | null = null;
+
+function cancelNamesRefresh(): void {
+    if (namesRefreshTimer === null) return;
+    window.clearTimeout(namesRefreshTimer);
+    namesRefreshTimer = null;
+}
+
+function scheduleNamesRefresh(): void {
+    if (namesRefreshTimer !== null) return;
+    namesRefreshTimer = window.setTimeout(() => {
+        namesRefreshTimer = null;
+        send(`NAMES ${ctx.channel}`);
+    }, NAMES_REFRESH_DELAY_MS);
+}
+
 function guestNick(): string {
     const buf = new Uint8Array(4);
     crypto.getRandomValues(buf);
@@ -82,12 +99,13 @@ function handle(line: IrcLine): void {
             return;
         case "JOIN": {
             const joiner = line.nick;
-            if (joiner === ctx.nick && !ctx.joined) ctx.joined = true;
+            const firstOwnJoin = joiner.toLowerCase() === ctx.nick.toLowerCase() && !ctx.joined;
+            if (firstOwnJoin) ctx.joined = true;
             const key = joiner.toLowerCase();
-            if (!knownMembers.has(key)) {
-                knownMembers.add(key);
-                send(`NAMES ${ctx.channel}`);
-            }
+            const isNewMember = !knownMembers.has(key);
+            knownMembers.add(key);
+            if (firstOwnJoin) send(`NAMES ${ctx.channel}`);
+            else if (isNewMember) scheduleNamesRefresh();
             return;
         }
         case "353": {
@@ -139,6 +157,7 @@ function scheduleRetry(delayMs: number): void {
 export function connect(): void {
     if (ctx.sock && (ctx.sock.readyState === WebSocket.CONNECTING || ctx.sock.readyState === WebSocket.OPEN)) return;
     ctx.joined = false;
+    cancelNamesRefresh();
     roles.clear();
     vips.clear();
     subscribers.clear();
@@ -151,11 +170,13 @@ export function connect(): void {
     ctx.sock = s;
 
     s.onopen = () => {
-        send("CAP REQ :message-tags draft/message-redaction");
-        send(`NICK ${ctx.nick}`);
-        send(`USER ${ctx.nick} 0 * :${ctx.nick}`);
+        if (ctx.sock !== s) return;
+        s.send("CAP REQ :message-tags draft/message-redaction");
+        s.send(`NICK ${ctx.nick}`);
+        s.send(`USER ${ctx.nick} 0 * :${ctx.nick}`);
     };
     s.onmessage = (ev) => {
+        if (ctx.sock !== s) return;
         if (typeof ev.data !== "string") return;
         for (const raw of ev.data.split("\n")) {
             const line = parse(raw.replace(/\r$/, ""));
@@ -164,11 +185,14 @@ export function connect(): void {
     };
     s.onclose = () => {
         if (ctx.sock !== s) return;
+        cancelNamesRefresh();
         ctx.sock = null;
         ctx.joined = false;
         const delay = ctx.banRetry ? BAN_RETRY_MS : RETRY_MS;
         ctx.banRetry = false;
         scheduleRetry(delay);
     };
-    s.onerror = () => s.close();
+    s.onerror = () => {
+        if (ctx.sock === s) s.close();
+    };
 }

@@ -1,11 +1,12 @@
 # livestream-frontend
 
-Frontend for the hawolt livestreaming site. It provides every public surface of the site:
+Frontend for the itzon livestreaming site. It provides every public surface of the site:
 
 - a stream **explorer** with category browsing and hover previews
 - a **channel viewer** with low-latency playback, DVR rewind, and live chat
 - an **embeddable player** for any channel
 - a transparent **OBS chat overlay**
+- a transparent **OBS follow-alert overlay**
 - user **auth pages** (login, register, email verify, password reset)
 - a user **dashboard** (stream keys, channel settings, chat overlay builder, health telemetry, account settings)
 - static **legal pages** and an **API documentation** page
@@ -21,15 +22,18 @@ Requires [Bun](https://bun.sh).
 ```bash
 bun install
 bun run build
-bunx tsc --noEmit
+bun run typecheck
+bun run typecheck:tests
+bun test
 ```
 
-`bun run build` runs two steps:
+`bun run build` runs three steps:
 
-- `build:pages` bundles each page entry (`explore`, `live`, `embed`, `chat-overlay`, `user-login`, `register`, `verify`, `reset-password`, `legal`, `wiki`) to `public/<name>.js`
+- `clean` removes previous page and dashboard bundles with a cross-platform Bun script
+- `build:pages` bundles each page entry (`explore`, `live`, `embed`, `chat-overlay`, `follow-alerts`, `user-login`, `register`, `verify`, `reset-password`, `legal`, `wiki`) to `public/<name>.js`
 - `build:dash` bundles `src/dashboard.ts` to `public/dash/` with code splitting, so tab modules load on demand
 
-Build outputs (`public/*.js`, `public/dash/`) are gitignored; a fresh checkout has no servable bundles until the build runs. Both build steps delete their previous output first, so stale bundles never accumulate.
+Build outputs (`public/*.js`, `public/dash/`) are gitignored; a fresh checkout has no servable bundles until the build runs. The clean step removes previous output first, so stale bundles never accumulate.
 
 ## Layout
 
@@ -52,6 +56,7 @@ Build outputs (`public/*.js`, `public/dash/`) are gitignored; a fresh checkout h
 | Chat client | `src/live-chat.ts` | (part of `live.html`) | IRC over WebSocket: badges, 7TV emotes, replies, mentions, whispers, pins, moderation actions |
 | Embed player | `src/embed.ts` | `embed.html` | `/embed/<username>`: minimal muted-autoplay player, click to unmute, preview mode for the explorer |
 | Chat overlay | `src/chat-overlay.ts` | `chat.html` | `/chat/<username>`: transparent read-only chat for OBS browser sources, styled via URL params |
+| Follow alerts | `src/follow-alerts.ts` | `alerts.html` | `/alerts/<username>`: transparent follow-event overlay for OBS browser sources |
 | Login | `src/user-login.ts` | `user-login.html` | Sign in, forgot-password flow, lockout countdown, `?return=` redirect |
 | Register | `src/register.ts` | `register.html` | Account creation behind an invisible hCaptcha |
 | Verify | `src/verify.ts` | `verify.html` | Consumes the emailed verification token |
@@ -72,6 +77,6 @@ See `CONVENTIONS.md`, which applies to every file including markdown: no code co
 
 1. Fork and branch.
 2. Make your change in `src/` (and `public/` for HTML/CSS/panes).
-3. Build and type-check: `bun run build` and `bunx tsc --noEmit`. Both must pass; the project compiles under `strict`.
+3. Build, type-check, and test: `bun run build`, `bun run typecheck`, `bun run typecheck:tests`, and `bun test`. All must pass; source and tests compile under `strict`.
 4. Follow `CONVENTIONS.md`. Do not add comments, even in changed code you did not write; delete comments you encounter in files you edit.
 5. Open a pull request against this repository with a short description of the behavior change.

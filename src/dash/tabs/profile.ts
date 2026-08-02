@@ -23,6 +23,25 @@ const MAX_LINKS = 5;
 
 let current: MyProfile | null = null;
 
+const PROFILE_CONTROL_IDS = [
+    "pf-save",
+    "pf-link-add",
+    "pf-avatar-upload",
+    "pf-avatar-remove",
+    "pf-banner-upload",
+    "pf-banner-remove",
+];
+
+function setProfileControlsEnabled(enabled: boolean): void {
+    for (const id of PROFILE_CONTROL_IDS) {
+        ($(id) as HTMLButtonElement).disabled = !enabled;
+    }
+    ($("pf-bio") as HTMLTextAreaElement).disabled = !enabled;
+    $("pf-links").querySelectorAll<HTMLInputElement | HTMLButtonElement>("input, button")
+        .forEach(control => { control.disabled = !enabled; });
+    $("pane-channel-profile").setAttribute("aria-busy", String(!enabled));
+}
+
 function formatBytes(n: number): string {
     if (n >= 1024 * 1024) {
         const mib = n / (1024 * 1024);
@@ -57,6 +76,8 @@ function buildLinkRow(link: ProfileLink): HTMLElement {
     label.type = "text";
     label.maxLength = 40;
     label.placeholder = "Label";
+    label.setAttribute("aria-label", "Link label");
+    label.disabled = current === null;
     label.value = link.label;
     label.style.cssText = "flex:0 0 140px";
 
@@ -64,6 +85,8 @@ function buildLinkRow(link: ProfileLink): HTMLElement {
     url.type = "text";
     url.maxLength = 512;
     url.placeholder = "https://x.com/yourname";
+    url.setAttribute("aria-label", "Link URL");
+    url.disabled = current === null;
     url.value = link.url;
     url.style.cssText = "flex:1";
 
@@ -71,6 +94,7 @@ function buildLinkRow(link: ProfileLink): HTMLElement {
     remove.type = "button";
     remove.className = "btn btn-sm";
     remove.textContent = "Remove";
+    remove.disabled = current === null;
     remove.addEventListener("click", () => {
         row.remove();
         updateAddButtonState();
@@ -104,6 +128,7 @@ function renderPreview(container: HTMLElement, has: boolean, url: string): void 
     if (has) {
         const img = document.createElement("img");
         img.src = url;
+        img.alt = "";
         img.style.cssText = "width:100%;height:100%;object-fit:cover";
         container.appendChild(img);
         return;
@@ -128,6 +153,9 @@ function applyProfile(profile: MyProfile): void {
     $("pf-banner-hint").textContent = `${hint}. 16:9 recommended`;
     renderPreview($("pf-avatar-preview"), profile.hasAvatar, `/api/live/profile/${encodeURIComponent(profile.username)}/avatar?v=${profile.avatarVersion}`);
     renderPreview($("pf-banner-preview"), profile.hasBanner, `/api/live/profile/${encodeURIComponent(profile.username)}/banner?v=${profile.bannerVersion}`);
+    $("pf-saved").textContent = "";
+    setProfileControlsEnabled(true);
+    updateAddButtonState();
 }
 
 function checkClientSide(file: File, profile: MyProfile): string | null {
@@ -162,6 +190,7 @@ async function uploadImage(kind: "avatar" | "banner", file: File): Promise<void>
 }
 
 async function removeImage(kind: "avatar" | "banner"): Promise<void> {
+    if (!current) return;
     const errEl = $(`pf-${kind}-error`);
     errEl.textContent = "";
     try {
@@ -184,11 +213,16 @@ function wireImageControls(kind: "avatar" | "banner"): void {
 }
 
 async function loadMyProfile(): Promise<void> {
+    current = null;
+    setProfileControlsEnabled(false);
+    $("pf-saved").textContent = "Loading...";
+    $("pf-saved").style.color = "var(--muted)";
     try {
         const profile = await authFetch<MyProfile>("/api/profile/me");
         applyProfile(profile);
     } catch (e) {
         const saved = $("pf-saved");
+        $("pane-channel-profile").setAttribute("aria-busy", "false");
         saved.textContent = e instanceof Error ? e.message : String(e);
         saved.style.color = "var(--red)";
     }
@@ -202,6 +236,7 @@ export function init(): void {
         updateAddButtonState();
     });
     $("pf-save").addEventListener("click", async () => {
+        if (!current) return;
         const saved = $("pf-saved");
         saved.textContent = "";
         const bio = ($("pf-bio") as HTMLTextAreaElement).value;

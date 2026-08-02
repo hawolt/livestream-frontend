@@ -1,7 +1,7 @@
 import { initSiteNav } from "./nav.ts";
 import { ctx, isFramed, type CategorySelector, type ViewState } from "./explore/context.ts";
 import { backBtn, gridEl, modeCategoriesBtn, modeStreamsBtn, page } from "./explore/dom.ts";
-import { loadExplore } from "./explore/poll.ts";
+import { startExplorePolling, stopExplorePolling } from "./explore/poll.ts";
 import { applyState, navigate } from "./explore/render.ts";
 import { updateModeButtons } from "./explore/stream-cards.ts";
 import { stateFromLocation, urlFor } from "./explore/url-state.ts";
@@ -37,7 +37,19 @@ window.addEventListener("popstate", (e) => {
     applyState(state);
 });
 
-async function boot(): Promise<void> {
+function resumePolling(): void {
+    if (document.visibilityState === "visible") startExplorePolling();
+}
+
+document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible") startExplorePolling();
+    else stopExplorePolling();
+});
+
+window.addEventListener("pagehide", stopExplorePolling);
+window.addEventListener("pageshow", resumePolling);
+
+function boot(): void {
     if (isFramed) document.body.classList.add("explore-framed");
     page.hidden = false;
     if (!isFramed) void initSiteNav("browse");
@@ -46,9 +58,9 @@ async function boot(): Promise<void> {
     ctx.drillCategoryId = initial.categoryId;
     history.replaceState(initial, "", urlFor(initial.mode, initial.categoryId));
     updateModeButtons();
-    await loadExplore();
+    resumePolling();
 }
 
-void boot();
+boot();
 
 export {};

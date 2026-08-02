@@ -18,16 +18,18 @@ function buildFollowParams(): URLSearchParams {
 
 function followUrl(): string {
     if (!followToken) return "";
-    const params = buildFollowParams();
-    params.set("token", followToken);
-    return `${location.origin}/alerts/${username()}?${params.toString()}`;
+    return buildFollowUrl(followToken);
 }
 
 function maskedFollowUrl(): string {
     if (!followToken) return "";
-    const qs = buildFollowParams().toString();
-    const prefix = qs ? `${qs}&` : "";
-    return `${location.origin}/alerts/${username()}?${prefix}token=${maskSecret(followToken)}`;
+    return buildFollowUrl(maskSecret(followToken));
+}
+
+function buildFollowUrl(overlayToken: string): string {
+    const query = buildFollowParams().toString();
+    const fragment = new URLSearchParams({ token: overlayToken }).toString();
+    return `${location.origin}/alerts/${username()}${query ? `?${query}` : ""}#${fragment}`;
 }
 
 function updateFollowUrl(): void {

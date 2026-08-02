@@ -1,6 +1,11 @@
 export {};
 import { API_BASE } from "./api.ts";
 import { initSiteNav } from "./nav.ts";
+import { scrubQueryToken } from "./url-secrets.ts";
+
+const tokenState = scrubQueryToken(location.href);
+const token = tokenState.token;
+if (tokenState.replacement) history.replaceState(history.state, "", tokenState.replacement);
 
 void initSiteNav(null);
 
@@ -26,7 +31,6 @@ function dashboardUrl(kind?: string): string {
 }
 
 (async () => {
-    const token = new URLSearchParams(location.search).get("token");
     if (!token) {
         msgEl.textContent = "No verification token found in the URL.";
         msgEl.style.color = "var(--red)";

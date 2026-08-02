@@ -66,7 +66,7 @@ function toggleQualityPopup(): void {
 }
 
 export function renderQualityMenu(): void {
-    const show = ctx.qualityLadder.length >= 2;
+    const show = ctx.transportKind === "ws" && ctx.qualityLadder.length >= 2;
     qualitySelectEl.hidden = !show;
     if (!show) {
         closeQualityPopup();

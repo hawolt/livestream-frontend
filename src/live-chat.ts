@@ -6,6 +6,7 @@ import {
     helpBtnEl,
     helpCloseEl,
     inputEl,
+    msgsEl,
     pickerFilterEl,
     profileBtnEl,
     profileCloseEl,
@@ -48,6 +49,12 @@ export function startChat(user: string, emoteTwitchId?: string, onLoginRequested
     ctx.channelEmoteTwitchId = emoteTwitchId ?? "";
     ctx.requestLogin = onLoginRequested ?? null;
     inputEl.maxLength = MAX_TEXT;
+    inputEl.setAttribute("aria-label", "Chat message");
+    pickerFilterEl.setAttribute("aria-label", "Filter emotes");
+    msgsEl.setAttribute("role", "log");
+    msgsEl.setAttribute("aria-label", "Live chat messages");
+    msgsEl.setAttribute("aria-live", "polite");
+    msgsEl.setAttribute("aria-relevant", "additions text");
     migrateGuestNick();
     void loadEmotes();
     void checkAccountStatus();
@@ -101,6 +108,7 @@ export function startChat(user: string, emoteTwitchId?: string, onLoginRequested
             ctx.tabCycleRange = null;
         }
         if (e.key === "Enter" && !e.shiftKey) {
+            if (e.isComposing || e.keyCode === 229) return;
             e.preventDefault();
             if (suggestOpen && !ctx.tabCycleRange && acceptSelectedSuggestion()) return;
             ctx.tabCycleRange = null;

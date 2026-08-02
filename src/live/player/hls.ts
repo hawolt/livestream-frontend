@@ -6,6 +6,7 @@ import { captchaQuery, getCaptchaToken } from "../../captcha.ts";
 import { beginTransport, enterTerminal, goOffline, resetRetryBackoff, setState } from "./lifecycle.ts";
 import { withCaptchaHint } from "./ws.ts";
 import { attachVideoFailureListeners } from "./health.ts";
+import { renderQualityMenu } from "../quality-menu.ts";
 
 function sendHLSBeat(): void {
     void captchaQuery().then((tq) => {
@@ -46,6 +47,9 @@ export function fallbackFromMSE(g: number): void {
     if (!isCurrent(g)) return;
     if (canUseNativeHLS()) {
         ctx.transportKind = "hls";
+        ctx.qualityLadder = [];
+        ctx.qualityLadderKnown = false;
+        renderQualityMenu();
         beginTransport();
         return;
     }

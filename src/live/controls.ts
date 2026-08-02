@@ -57,6 +57,25 @@ function setChatOverflow(open: boolean): void {
     btnChatMore.setAttribute("aria-expanded", String(open));
 }
 
+let chatOverflowWired = false;
+
+export function wireChatOverflow(): void {
+    if (chatOverflowWired) return;
+    chatOverflowWired = true;
+    btnChatMore.addEventListener("click", () => setChatOverflow(chatOverflow.hidden !== false));
+    chatOverflow.addEventListener("click", () => setChatOverflow(false));
+    document.addEventListener("click", (ev) => {
+        const target = ev.target as Node;
+        if (!chatOverflow.hidden && !chatOverflow.contains(target) && !btnChatMore.contains(target)) setChatOverflow(false);
+    });
+    document.addEventListener("keydown", (ev) => {
+        if (ev.key !== "Escape" || chatOverflow.hidden) return;
+        ev.preventDefault();
+        setChatOverflow(false);
+        btnChatMore.focus();
+    });
+}
+
 function updatePlayIcon(): void {
     btnPlay.innerHTML = video.paused ? ICON_PLAY : ICON_PAUSE;
     const label = video.paused ? "Play" : "Pause";
@@ -109,6 +128,7 @@ function wireVideoClickToPause(): void {
 let controlsHideTimer: number | null = null;
 
 export function wireControls(): void {
+    wireChatOverflow();
     if (isIOS() || !volumeIsSettable()) {
         volInput.hidden = true;
         volpctEl.hidden = true;
@@ -227,11 +247,7 @@ export function wireControls(): void {
         );
         if (ev.defaultPrevented || ev.repeat) return;
         if (ev.key === "Escape") {
-            if (!chatOverflow.hidden) {
-                ev.preventDefault();
-                setChatOverflow(false);
-                btnChatMore.focus();
-            } else if (isChatFullscreen() && !isChatFsNative()) {
+            if (isChatFullscreen() && !isChatFsNative()) {
                 ev.preventDefault();
                 exitChatFullscreen();
             } else if (isCinemaMode() && !isChatFullscreen() && !isVideoFullscreen()) {
@@ -254,12 +270,6 @@ export function wireControls(): void {
     btnLayoutToggle.addEventListener("click", cycleLayout);
     btnChatToggle.addEventListener("click", toggleChat);
     btnChatCollapse.addEventListener("click", toggleChat);
-    btnChatMore.addEventListener("click", () => setChatOverflow(chatOverflow.hidden));
-    chatOverflow.addEventListener("click", () => setChatOverflow(false));
-    document.addEventListener("click", (ev) => {
-        const target = ev.target as Node;
-        if (!chatOverflow.hidden && !chatOverflow.contains(target) && !btnChatMore.contains(target)) setChatOverflow(false);
-    });
     btnChatFullscreen.addEventListener("click", toggleChatFullscreen);
     btnChatSide.addEventListener("click", () => {
         const left = !document.body.classList.contains("chat-left");

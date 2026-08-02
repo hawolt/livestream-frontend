@@ -25,6 +25,7 @@ const loadedModules = new Map<string, TabModule>();
 let allTabs: TabInfo[] = [];
 let currentTab: string | null = null;
 let activationSeq = 0;
+let refreshRevision = 0;
 let sidebarToggleLabel: HTMLElement | null = null;
 let closeSidebarMenu: (() => void) | null = null;
 let studioUrl: string | null = null;
@@ -34,6 +35,33 @@ function tabFromLocation(): string | null {
     if (m) return m[1]!;
     const hash = location.hash.slice(1);
     return hash || null;
+}
+
+function studioDashboardUrl(tabs: TabInfo[]): string | null {
+    if (!tabs.some(tab => !TAB_LOADERS[tab.id])) return null;
+    const baseDomain = location.hostname.replace(/^(live|admin|staff)\./, "");
+    const port = location.port ? `:${location.port}` : "";
+    return `https://studio.${baseDomain}${port}/dashboard`;
+}
+
+function navigationSnapshot(tabs: TabInfo[], studio: string | null): string {
+    return JSON.stringify({
+        tabs: tabs.map(tab => ({ id: tab.id, label: tab.label, pane: tab.pane, group: tab.group ?? null })),
+        studio,
+    });
+}
+
+function setNoTabsVisible(visible: boolean): void {
+    let panel = document.getElementById("dash-no-tabs");
+    if (visible && !panel) {
+        panel = document.createElement("section");
+        panel.id = "dash-no-tabs";
+        panel.className = "card empty";
+        panel.setAttribute("role", "status");
+        panel.textContent = "No dashboard sections are available for this account.";
+        $("panes").appendChild(panel);
+    }
+    if (panel) panel.hidden = !visible;
 }
 
 async function activateTab(tab: string, pushState = true): Promise<void> {
@@ -78,6 +106,7 @@ async function activateTab(tab: string, pushState = true): Promise<void> {
         loadedModules.get(currentTab)?.deactivate?.();
     }
     currentTab = tab;
+    setNoTabsVisible(false);
 
     $$(".dash-side-link[data-tab]").forEach(b => b.classList.toggle("active", b.dataset["tab"] === tab));
     const btn = document.querySelector<HTMLElement>(`.dash-side-link[data-tab="${tab}"]`);
@@ -142,7 +171,9 @@ function buildSidebarToggle(side: HTMLElement): HTMLElement {
 }
 
 const EVENTS_RECONNECT_MS = 5000;
+const TAB_REFRESH_RETRY_MS = 5000;
 let eventsSocket: WebSocket | null = null;
+let refreshRetryTimer: number | null = null;
 
 function connectDashboardEvents(): void {
     const proto = location.protocol === "https:" ? "wss" : "ws";
@@ -169,31 +200,60 @@ function connectDashboardEvents(): void {
 }
 
 async function refreshTabs(): Promise<void> {
+    if (refreshRetryTimer !== null) {
+        window.clearTimeout(refreshRetryTimer);
+        refreshRetryTimer = null;
+    }
+    const revision = ++refreshRevision;
     let refreshed: MeInfo;
     try {
         refreshed = await authFetch<MeInfo>("/api/auth/me");
     } catch {
+        if (revision === refreshRevision) {
+            refreshRetryTimer = window.setTimeout(() => {
+                refreshRetryTimer = null;
+                void refreshTabs();
+            }, TAB_REFRESH_RETRY_MS);
+        }
         return;
     }
+    if (revision !== refreshRevision) return;
     setMe(refreshed);
     const tabs = (refreshed.tabs ?? []).filter(t => TAB_LOADERS[t.id]);
-    if (tabs.map(t => t.id).join(",") === allTabs.map(t => t.id).join(",")) return;
-    const studioTabs = (refreshed.tabs ?? []).filter(t => !TAB_LOADERS[t.id]);
-    const baseDomain = location.hostname.replace(/^(live|admin|staff)\./, "");
-    const port = location.port ? `:${location.port}` : "";
-    studioUrl = studioTabs.length ? `https://studio.${baseDomain}${port}/dashboard` : null;
+    const nextStudioUrl = studioDashboardUrl(refreshed.tabs ?? []);
+    if (navigationSnapshot(tabs, nextStudioUrl) === navigationSnapshot(allTabs, studioUrl)) return;
+    const previousCurrentInfo = currentTab ? tabById.get(currentTab) : undefined;
+    const currentPaneChanged = !!currentTab && tabs.some(tab => tab.id === currentTab && tab.pane !== previousCurrentInfo?.pane);
+    const reloadTab = currentPaneChanged ? currentTab : null;
+    activationSeq += 1;
+    studioUrl = nextStudioUrl;
     allTabs = tabs;
     tabById.clear();
     for (const t of tabs) tabById.set(t.id, t);
     closeSidebarMenu?.();
     $("dash-side").replaceChildren();
     buildSidebar(tabs);
+    if (currentTab && (!tabById.has(currentTab) || currentPaneChanged)) {
+        const previous = currentTab;
+        currentTab = null;
+        loadedModules.get(previous)?.deactivate?.();
+        if (currentPaneChanged) {
+            loadedModules.delete(previous);
+            document.getElementById(`pane-${previous}`)?.remove();
+        }
+        $$(".tab-pane").forEach(pane => pane.classList.remove("active"));
+    }
     if (currentTab && tabById.has(currentTab)) {
         const active = currentTab;
         $$(".dash-side-link[data-tab]").forEach(b => b.classList.toggle("active", b.dataset["tab"] === active));
         if (sidebarToggleLabel) sidebarToggleLabel.textContent = tabById.get(active)!.label;
+    } else if (reloadTab) {
+        void activateTab(reloadTab, false);
     } else if (tabs[0]) {
         void activateTab(tabs[0].id);
+    } else {
+        if (sidebarToggleLabel) sidebarToggleLabel.textContent = "Dashboard";
+        setNoTabsVisible(true);
     }
 }
 
@@ -380,8 +440,7 @@ function showSessionProblem(state: "forbidden" | "unavailable"): void {
     });
 
     const tabs = (me.tabs ?? []).filter(t => TAB_LOADERS[t.id]);
-    const studioTabs = (me.tabs ?? []).filter(t => !TAB_LOADERS[t.id]);
-    studioUrl = studioTabs.length ? `https://studio.${baseDomain}${port}/dashboard` : null;
+    studioUrl = studioDashboardUrl(me.tabs ?? []);
     allTabs = tabs;
     for (const t of tabs) tabById.set(t.id, t);
     buildSidebar(tabs);
@@ -405,5 +464,7 @@ function showSessionProblem(state: "forbidden" | "unavailable"): void {
     if (landing) {
         history.replaceState(null, "", `/dashboard/${landing}`);
         void activateTab(landing, false);
+    } else {
+        setNoTabsVisible(true);
     }
 })();

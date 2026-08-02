@@ -138,7 +138,7 @@ export function restartAfterFailure(g: number): void {
 }
 
 export function beginTransport(): void {
-    if (ctx.terminal) return;
+    if (ctx.terminal || ctx.transportKind === "none") return;
     clearRetryTimer();
     const g = nextGen();
     fullTeardown();

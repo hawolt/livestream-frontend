@@ -32,7 +32,7 @@
             <p style="color:var(--muted);font-size:13px;margin:0 0 12px">Pick the color your username shows in chat. Very dark colors are rejected so it stays readable.</p>
             <p id="st-color-locked" style="display:none;color:var(--muted);font-size:13px;margin:0 0 12px">A subscription is required to set a custom chat color. <a href="/dashboard/subscription" data-switch-tab="subscription">See subscription plans</a>.</p>
             <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
-                <input id="st-chat-color" type="color" value="#4ade80" style="width:48px;height:34px;padding:0;border:1px solid var(--border);border-radius:6px;background:none;cursor:pointer" />
+                <input id="st-chat-color" type="color" value="#4ade80" aria-label="Chat username color" style="width:48px;height:34px;padding:0;border:1px solid var(--border);border-radius:6px;background:none;cursor:pointer" />
                 <span id="st-color-preview" style="font-weight:700">username</span>
                 <button type="submit" class="btn btn-primary" id="btn-color-save">Save color</button>
                 <button type="button" class="btn" id="btn-color-reset">Reset to default</button>

@@ -1,6 +1,11 @@
 export {};
 import { API_BASE } from "./api.ts";
 import { initSiteNav } from "./nav.ts";
+import { scrubQueryToken } from "./url-secrets.ts";
+
+const tokenState = scrubQueryToken(location.href);
+const token = tokenState.token;
+if (tokenState.replacement) history.replaceState(history.state, "", tokenState.replacement);
 
 void initSiteNav(null);
 
@@ -9,7 +14,6 @@ const isResetLiveHost = location.hostname === resetBaseDomain || location.hostna
 document.documentElement.classList.toggle("live-host", isResetLiveHost);
 
 const errorEl = document.getElementById("error")!;
-const token   = new URLSearchParams(location.search).get("token") ?? "";
 
 if (!token) {
     errorEl.textContent = "No reset token found in the URL. Please use the link from your email.";

@@ -2,8 +2,6 @@ export {};
 import { API_BASE } from "./api.ts";
 import { initSiteNav } from "./nav.ts";
 
-void initSiteNav(null);
-
 declare const hcaptcha: {
     render(id: string, opts: {
         sitekey: string; size: "invisible";
@@ -69,33 +67,40 @@ async function bootFromCookie(): Promise<"authenticated" | "unauthenticated" | "
     }
 }
 
-async function boot(): Promise<void> {
+async function boot(): Promise<boolean> {
     const cookie = await bootFromCookie();
     if (cookie === "authenticated") {
         location.replace(resolveRedirect());
-        return;
+        return false;
     }
     if (cookie === "mismatch") {
         sessionStorage.removeItem("dash_token");
         sessionStorage.removeItem("dash_kind");
-        return;
+        location.replace("/dashboard");
+        return false;
     }
 
-    // Note: cookie === "unavailable" deliberately falls through instead of
-    // bailing out here - a transient failure to reach /auth/session must not
-    // strand a user who still holds a perfectly valid bearer token.
     const existing = sessionStorage.getItem("dash_token");
     if (existing) {
         const status = await verifyToken(existing);
-        if (status === "valid") { location.replace(resolveRedirect()); return; }
+        if (status === "valid") { location.replace(resolveRedirect()); return false; }
         if (status === "invalid") {
             sessionStorage.removeItem("dash_token");
             sessionStorage.removeItem("dash_kind");
         }
+        if (status === "unavailable") {
+            btnEl.disabled = true;
+            showError("Could not verify the current session. Reload the page and try again.");
+            return false;
+        }
     }
+    if (cookie === "unavailable") {
+        btnEl.disabled = true;
+        showError("Could not verify the current session. Reload the page and try again.");
+        return false;
+    }
+    return true;
 }
-
-void boot();
 
 let captchaWatchdog: number | null = null;
 
@@ -115,10 +120,29 @@ function onHCaptchaLoad(): void {
         "error-callback":   (err)   => { clearWatchdog(); showError(`Captcha error: ${err}`); resetBtn(); },
         "expired-callback": ()      => { clearWatchdog(); resetBtn(); if (widgetId !== null) hcaptcha.reset(widgetId); },
     });
+    btnEl.disabled = false;
 }
 
 (window as unknown as Record<string, unknown>)["onHCaptchaLoad"] = onHCaptchaLoad;
 if (typeof hcaptcha !== "undefined") onHCaptchaLoad();
+
+function loadHCaptcha(): void {
+    if (document.querySelector("script[data-hcaptcha]")) return;
+    const script = document.createElement("script");
+    script.src = "https://js.hcaptcha.com/1/api.js?onload=onHCaptchaLoad&render=explicit";
+    script.async = true;
+    script.defer = true;
+    script.dataset["hcaptcha"] = "";
+    script.addEventListener("error", () => {
+        showError("The captcha could not load. Allow js.hcaptcha.com in your content blocker and reload.");
+    });
+    document.head.appendChild(script);
+}
+
+void boot().then(continueRegistration => {
+    void initSiteNav(null, [], null);
+    if (continueRegistration) loadHCaptcha();
+});
 
 form.addEventListener("submit", (e) => {
     e.preventDefault();

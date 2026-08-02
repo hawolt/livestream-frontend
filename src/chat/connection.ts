@@ -23,6 +23,7 @@ import {
     memberDisplay,
     removeMember,
     roles,
+    subscribers,
     unverified,
     vips,
 } from "./members.ts";
@@ -37,6 +38,23 @@ export const RETRY_MS = 5000;
 export const FLOOD_RETRY_MS = 30000;
 export const BAN_RETRY_MS = 30000;
 export const SESSION_RENEWAL_CHECK_MS = 4 * 60 * 1000;
+const NAMES_REFRESH_DELAY_MS = 750;
+
+let namesRefreshTimer: number | null = null;
+
+function cancelNamesRefresh(): void {
+    if (namesRefreshTimer === null) return;
+    window.clearTimeout(namesRefreshTimer);
+    namesRefreshTimer = null;
+}
+
+function scheduleNamesRefresh(): void {
+    if (namesRefreshTimer !== null) return;
+    namesRefreshTimer = window.setTimeout(() => {
+        namesRefreshTimer = null;
+        send(`NAMES ${ctx.channel}`);
+    }, NAMES_REFRESH_DELAY_MS);
+}
 
 export function migrateGuestNick(): void {
     const legacy = readLocalStorage(LEGACY_NICK_KEY);
@@ -179,7 +197,8 @@ function handle(line: IrcLine): void {
         }
         case "JOIN": {
             const joiner = line.nick;
-            if (joiner === ctx.nick && !ctx.joined) {
+            const firstOwnJoin = joiner.toLowerCase() === ctx.nick.toLowerCase() && !ctx.joined;
+            if (firstOwnJoin) {
                 ctx.banned = false;
                 ctx.joined = true;
                 addSystem(`Connected as ${ctx.nick}`);
@@ -188,11 +207,11 @@ function handle(line: IrcLine): void {
                 updateReplyBar();
             }
             const key = joiner.toLowerCase();
+            const isNewMember = !knownMembers.has(key);
             memberDisplay.set(key, joiner);
-            if (!knownMembers.has(key)) {
-                knownMembers.add(key);
-                send(`NAMES ${ctx.channel}`);
-            }
+            knownMembers.add(key);
+            if (firstOwnJoin) send(`NAMES ${ctx.channel}`);
+            else if (isNewMember) scheduleNamesRefresh();
             return;
         }
         case "353": {
@@ -315,8 +334,10 @@ export function connect(): void {
     if (ctx.destroyed) return;
     if (ctx.sock && (ctx.sock.readyState === WebSocket.CONNECTING || ctx.sock.readyState === WebSocket.OPEN)) return;
     ctx.joined = false;
+    cancelNamesRefresh();
     roles.clear();
     vips.clear();
+    subscribers.clear();
     unverified.clear();
     guests.clear();
     knownMembers.clear();
@@ -341,13 +362,15 @@ export function connect(): void {
     ctx.sock = s;
 
     s.onopen = () => {
+        if (ctx.sock !== s) return;
         ctx.pendingCapRequests = 2;
-        send("CAP REQ :message-tags echo-message draft/message-redaction");
-        send("CAP REQ :server-time");
-        send(`NICK ${ctx.nick}`);
-        send(`USER ${ctx.nick} 0 * :${ctx.nick}`);
+        s.send("CAP REQ :message-tags echo-message draft/message-redaction");
+        s.send("CAP REQ :server-time");
+        s.send(`NICK ${ctx.nick}`);
+        s.send(`USER ${ctx.nick} 0 * :${ctx.nick}`);
     };
     s.onmessage = (ev) => {
+        if (ctx.sock !== s) return;
         if (typeof ev.data !== "string") return;
         for (const raw of ev.data.split("\n")) {
             const line = parse(raw.replace(/\r$/, ""));
@@ -356,6 +379,7 @@ export function connect(): void {
     };
     s.onclose = (ev) => {
         if (ctx.sock !== s) return;
+        cancelNamesRefresh();
         ctx.sock = null;
         ctx.joined = false;
         updateComposer();
@@ -373,7 +397,9 @@ export function connect(): void {
         ctx.banRetry = false;
         scheduleRetry(delay);
     };
-    s.onerror = () => s.close();
+    s.onerror = () => {
+        if (ctx.sock === s) s.close();
+    };
 }
 
 export function restartChatConnection(): void {
@@ -383,6 +409,7 @@ export function restartChatConnection(): void {
         ctx.retryTimer = null;
     }
     const previous = ctx.sock;
+    cancelNamesRefresh();
     ctx.sock = null;
     ctx.joined = false;
     updateComposer();
