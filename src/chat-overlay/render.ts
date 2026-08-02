@@ -1,5 +1,6 @@
 import { hashColor } from "../chat/text.ts";
-import { MAX_MESSAGES, RENDERED_BODY_CLASS, ctx, emotes, isOwner, msgsEl, roles, subscribers, unverified, vips } from "./context.ts";
+import { sanitizeSubscriberBadgeName, subscriberBadgeAssetPath, subscriberBadgeTitle } from "../chat/badges.ts";
+import { MAX_MESSAGES, RENDERED_BODY_CLASS, ctx, emotes, isOwner, msgsEl, roles, subscriberBadges, subscribers, unverified, vips } from "./context.ts";
 
 type BadgeName = "op" | "staff" | "bot" | "mod" | "vip" | "regular" | "unverified";
 
@@ -8,6 +9,22 @@ function makeBadge(name: BadgeName): HTMLImageElement {
     img.className = "badge";
     img.src = `/static/img/badge-${name}.svg`;
     img.alt = name;
+    return img;
+}
+
+function makeSubscriberBadge(key: string): HTMLImageElement {
+    const name = sanitizeSubscriberBadgeName(subscriberBadges.get(key));
+    const img = document.createElement("img");
+    img.className = "badge";
+    img.src = subscriberBadgeAssetPath(name);
+    img.alt = "regular";
+    img.title = subscriberBadgeTitle(name);
+    if (name !== "regular") {
+        img.addEventListener("error", () => {
+            img.src = "/static/img/badge-regular.svg";
+            img.alt = "regular";
+        }, { once: true });
+    }
     return img;
 }
 
@@ -21,7 +38,7 @@ function buildBadges(from: string): HTMLImageElement[] {
     if (role === "bot") badges.push(makeBadge("bot"));
     if (role === "mod") badges.push(makeBadge("mod"));
     if (vips.has(key)) badges.push(makeBadge("vip"));
-    if (subscribers.has(key)) badges.push(makeBadge("regular"));
+    if (subscribers.has(key)) badges.push(makeSubscriberBadge(key));
     if (unverified.has(key)) badges.push(makeBadge("unverified"));
     return badges;
 }

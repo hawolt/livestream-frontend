@@ -23,9 +23,11 @@ import {
     memberDisplay,
     removeMember,
     roles,
+    subscriberBadges,
     unverified,
     vips,
 } from "./members.ts";
+import { sanitizeSubscriberBadgeName } from "./badges.ts";
 import { addPin, clearPins, dismissedPins, removePin } from "./pins.ts";
 import { renderUserlist, setHelp, setSettings, setUserlist } from "./panels.ts";
 
@@ -249,6 +251,9 @@ function handle(line: IrcLine): void {
                 const key = line.nick.toLowerCase();
                 if (line.color) colors.set(key, line.color);
                 else colors.delete(key);
+            }
+            if (line.subBadge !== undefined && line.nick) {
+                subscriberBadges.set(line.nick.toLowerCase(), sanitizeSubscriberBadgeName(line.subBadge));
             }
             if (target.toLowerCase() === ctx.channel) {
                 if (line.automod) {

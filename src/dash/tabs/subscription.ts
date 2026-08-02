@@ -37,14 +37,14 @@ function perkLabel(token: string): string {
         case "ads_off": return "No ads";
         case "large_uploads": return "Profile images up to 1 MiB";
         case "animated_avatar": return "Animated GIF profile images";
-        default: return token;
+        default: return token.startsWith("badge_") ? "Exclusive badge in chat" : token;
     }
 }
 
 function perkTokens(perks: BillingPerks | undefined): string[] {
     if (!perks) return [];
     if (Array.isArray(perks.order) && perks.order.length) {
-        return perks.order.filter(t => PERK_FIELD[t] !== undefined);
+        return perks.order.filter(t => PERK_FIELD[t] !== undefined || t.startsWith("badge_"));
     }
     return FALLBACK_ORDER.filter(t => perks[PERK_FIELD[t]!] === true);
 }

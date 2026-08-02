@@ -5,6 +5,7 @@ export interface IrcLine {
     msgid?: string;
     reply?: string;
     color?: string;
+    subBadge?: string;
     time?: string;
     automod?: boolean;
     userId?: string;
@@ -17,6 +18,7 @@ export function parse(line: string): IrcLine | null {
     let msgid: string | undefined;
     let reply: string | undefined;
     let color: string | undefined;
+    let subBadge: string | undefined;
     let time: string | undefined;
     let automod = false;
     let userId: string | undefined;
@@ -31,6 +33,7 @@ export function parse(line: string): IrcLine | null {
             if (key === "msgid") msgid = val;
             else if (key === "+reply") reply = val;
             else if (key === "color") color = val;
+            else if (key === "sub-badge") subBadge = val;
             else if (key === "time") time = val;
             else if (key === "automod") automod = true;
             else if (key === "user-id") userId = val;
@@ -66,6 +69,7 @@ export function parse(line: string): IrcLine | null {
     if (msgid) out.msgid = msgid;
     if (reply) out.reply = reply;
     if (color) out.color = color;
+    if (subBadge) out.subBadge = subBadge;
     if (time) out.time = time;
     if (automod) out.automod = true;
     if (userId) out.userId = userId;

@@ -5,6 +5,7 @@ export type Role = "op" | "staff" | "bot" | "mod";
 export const roles = new Map<string, Role>();
 export const vips = new Set<string>();
 export const subscribers = new Set<string>();
+export const subscriberBadges = new Map<string, string>();
 export const unverified = new Set<string>();
 export const guests = new Set<string>();
 export const knownMembers = new Set<string>();
@@ -86,8 +87,13 @@ export function applyNamesList(names: string): void {
         else roles.delete(key);
         if (decoded.vip) vips.add(key);
         else vips.delete(key);
-        if (decoded.sub) subscribers.add(key);
-        else subscribers.delete(key);
+        if (decoded.sub) {
+            subscribers.add(key);
+            if (!subscriberBadges.has(key)) subscriberBadges.set(key, "regular");
+        } else {
+            subscribers.delete(key);
+            subscriberBadges.delete(key);
+        }
         if (decoded.unver) unverified.add(key);
         else unverified.delete(key);
         if (decoded.guest) guests.add(key);
@@ -102,6 +108,7 @@ export function removeMember(key: string): void {
     roles.delete(key);
     vips.delete(key);
     subscribers.delete(key);
+    subscriberBadges.delete(key);
     unverified.delete(key);
     guests.delete(key);
 }
