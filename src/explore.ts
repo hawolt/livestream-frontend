@@ -73,6 +73,19 @@ async function boot(): Promise<void> {
     if (isFramed) {
         requestAnimationFrame(reportRailWidth);
         window.addEventListener("resize", reportRailWidth);
+        railToggleEl.addEventListener("click", () => {
+            let last = -1;
+            let stable = 0;
+            const follow = (): void => {
+                const width = railEl.getBoundingClientRect().width;
+                reportRailWidth();
+                if (Math.abs(width - last) < 0.5) stable += 1;
+                else stable = 0;
+                last = width;
+                if (stable < 5) requestAnimationFrame(follow);
+            };
+            requestAnimationFrame(follow);
+        });
     }
     const initial = stateFromLocation();
     ctx.mode = initial.mode;
