@@ -40,6 +40,9 @@
             word-break: break-word;
             transition: opacity .4s ease;
         }
+        @media (prefers-reduced-motion: reduce) {
+            .msg { transition-duration: .01ms; }
+        }
         body[data-shadow="0"] .msg { text-shadow: none; }
         body[data-align="right"] .msg { text-align: right; }
         body[data-bg="1"] .msg {
