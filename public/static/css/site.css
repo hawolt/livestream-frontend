@@ -99,6 +99,7 @@
 .site-account-panel[hidden] { display: none; }
 
 .site-account-name {
+    display: block;
     padding: 8px 10px;
     font-size: 12px;
     color: var(--muted);
@@ -107,7 +108,9 @@
     text-overflow: ellipsis;
     border-bottom: 1px solid var(--border);
     margin-bottom: 4px;
+    text-decoration: none;
 }
+.site-account-name:hover, .site-account-name:focus-visible { color: var(--text); text-decoration: none; }
 
 .site-account-item {
     display: block;

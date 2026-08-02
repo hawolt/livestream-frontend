@@ -3,6 +3,7 @@ const TURNSTILE_SRC = "https://challenges.cloudflare.com/turnstile/v0/api.js?ren
 let configLoaded = false;
 let configPromise: Promise<void> | null = null;
 let enabled = false;
+let challenge = false;
 let sitekey = "";
 let scriptLoaded = false;
 let cached: { token: string; exp: number } | null = null;
@@ -13,11 +14,17 @@ export function setCaptchaAnchor(el: HTMLElement | null): void {
     anchorEl = el;
 }
 
+/** Best-effort: true only once config is loaded and a Turnstile solve is actually in play. */
+export function captchaChallengeActive(): boolean {
+    return configLoaded && enabled && challenge;
+}
+
 async function fetchConfig(): Promise<void> {
     const r = await fetch("/api/live/captcha/config");
     if (!r.ok) throw new Error(`captcha config: ${r.status}`);
     const c = await r.json();
     enabled = !!c?.enabled;
+    challenge = !!c?.challenge;
     sitekey = typeof c?.sitekey === "string" ? c.sitekey : "";
     configLoaded = true;
 }
@@ -53,10 +60,10 @@ function markVisibleWhenExpanded(container: HTMLElement): void {
         if (container.offsetHeight < 20) return;
         ro.disconnect();
         container.classList.add("captcha-slot-visible");
-        container.style.background = "rgba(46,204,113,.14)";
-        container.style.border = "1px solid rgba(46,204,113,.45)";
-        container.style.borderRadius = "10px";
-        container.style.boxShadow = "0 0 14px rgba(46,204,113,.25)";
+        container.style.background = "var(--surface, #141414)";
+        container.style.border = "1px solid var(--border, #2e2e2e)";
+        container.style.borderRadius = "var(--radius, 6px)";
+        container.style.boxShadow = "var(--shadow, 0 1px 4px rgba(0,0,0,.5))";
         container.style.padding = "10px";
         container.style.margin = "8px 8px 0";
     });
@@ -96,6 +103,7 @@ function solve(): Promise<string> {
         try {
             widgetId = ts.render(container, {
                 sitekey,
+                theme: "dark",
                 appearance: "interaction-only",
                 callback: (token: string) => finish(() => resolve(token)),
                 "error-callback": () => finish(() => reject(new Error("turnstile error"))),
@@ -111,12 +119,18 @@ function solve(): Promise<string> {
 
 async function mint(): Promise<string> {
     try {
-        await loadScript();
-        const provToken = await solve();
+        let body: string;
+        if (challenge) {
+            await loadScript();
+            const provToken = await solve();
+            body = JSON.stringify({ token: provToken });
+        } else {
+            body = "{}";
+        }
         const r = await fetch("/api/live/captcha/token", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ token: provToken }),
+            body,
         });
         if (!r.ok) return "";
         const j = await r.json();
@@ -130,7 +144,8 @@ async function mint(): Promise<string> {
 
 export async function getCaptchaToken(): Promise<string> {
     await loadConfig();
-    if (!enabled || !sitekey) return "";
+    if (!enabled) return "";
+    if (challenge && !sitekey) return "";
     if (cached && cached.exp - 60 > Date.now() / 1000) return cached.token;
     if (!inflight) inflight = mint().finally(() => { inflight = null; });
     return inflight;

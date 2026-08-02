@@ -4,23 +4,25 @@ import { initSiteNav } from "./nav.ts";
 
 void initSiteNav(null);
 
-document.documentElement.classList.toggle("live-host", location.hostname.startsWith("live."));
+const rootBaseDomain = location.hostname.replace(/^(live|admin|staff)\./, "");
+const isRootLiveHost = location.hostname === rootBaseDomain || location.hostname.startsWith("live.");
+document.documentElement.classList.toggle("live-host", isRootLiveHost);
 
 const msgEl    = document.getElementById("verify-msg")!;
 const actionEl = document.getElementById("verify-action")!;
 
-function signInUrl(kind?: string): string {
-    const baseDomain = location.hostname.replace(/^(live|admin)\./, "");
+function dashboardUrl(kind?: string): string {
+    const baseDomain = location.hostname.replace(/^(live|admin|staff)\./, "");
     const port = location.port ? `:${location.port}` : "";
     if (kind === "user") {
-        return location.hostname.startsWith("live.")
-            ? "/login" : `${location.protocol}//live.${baseDomain}${port}/login`;
+        return location.hostname === baseDomain
+            ? "/dashboard" : `${location.protocol}//${baseDomain}${port}/dashboard`;
     }
     if (kind === "admin") {
-        return location.hostname.startsWith("admin.")
-            ? "/login" : `${location.protocol}//admin.${baseDomain}${port}/login`;
+        return location.hostname.startsWith("staff.")
+            ? "/dashboard" : `${location.protocol}//staff.${baseDomain}${port}/dashboard`;
     }
-    return "/login";
+    return "/dashboard";
 }
 
 (async () => {
@@ -36,20 +38,12 @@ function signInUrl(kind?: string): string {
         const data = await res.json() as { ok?: boolean; error?: string; kind?: string };
 
         if (res.ok && data.ok) {
-            const token = sessionStorage.getItem("dash_token");
-            if (token) {
-                fetch(`${API_BASE}/auth/logout`, {
-                    method: "POST",
-                    headers: { "Authorization": `Bearer ${token}` },
-                }).finally(() => {});
-                sessionStorage.removeItem("dash_token");
-            }
-            const loginUrl = signInUrl(data.kind);
-            msgEl.textContent = "Your email has been verified. Please sign in to continue.";
+            const dashboard = dashboardUrl(data.kind);
+            msgEl.textContent = "Your email has been verified. Continue to your dashboard.";
             msgEl.style.color = "var(--green)";
-            actionEl.innerHTML = `<a href="${loginUrl}" class="btn-go-login">Sign In</a>`;
+            actionEl.innerHTML = `<a href="${dashboard}" class="btn-go-login">Continue</a>`;
             actionEl.style.display = "";
-            setTimeout(() => { location.href = loginUrl; }, 2500);
+            setTimeout(() => { location.href = dashboard; }, 2500);
         } else {
             msgEl.textContent = data.error ?? "Invalid or expired verification link.";
             msgEl.style.color = "var(--red)";

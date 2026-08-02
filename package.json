@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "build": "bun run build:pages && bun run build:dash",
-    "build:pages": "rm -f public/*.js && bun build src/explore.ts src/live.ts src/embed.ts src/chat-overlay.ts src/user-login.ts src/register.ts src/verify.ts src/reset-password.ts src/legal.ts src/wiki.ts --outdir public --entry-naming \"[name].[ext]\"",
+    "build:pages": "rm -f public/*.js && bun build src/explore.ts src/live.ts src/embed.ts src/chat-overlay.ts src/follow-alerts.ts src/user-login.ts src/register.ts src/verify.ts src/reset-password.ts src/legal.ts src/wiki.ts --outdir public --entry-naming \"[name].[ext]\"",
     "build:dash": "rm -rf public/dash && bun build src/dashboard.ts --outdir public/dash --splitting"
   },
   "devDependencies": {

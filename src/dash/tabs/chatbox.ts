@@ -1,16 +1,6 @@
-import { getMe } from "../core.ts";
-
-const PREVIEW_DEBOUNCE_MS = 300;
+import { PREVIEW_DEBOUNCE_MS, el, username, setBackdrop, wireCopy } from "../overlay-shared.ts";
 
 let previewTimer: number | null = null;
-
-function el<T extends HTMLElement = HTMLElement>(id: string): T {
-    return document.getElementById(id) as T;
-}
-
-function username(): string {
-    return getMe()?.username ?? "demo";
-}
 
 function buildOptionParams(): URLSearchParams {
     const params = new URLSearchParams();
@@ -48,25 +38,10 @@ function onChange(): void {
     schedulePreview();
 }
 
-function setBackdrop(mode: "checker" | "dark"): void {
-    const frame = el("ov-preview-frame");
-    frame.classList.toggle("bg-checker", mode === "checker");
-    frame.classList.toggle("bg-dark", mode === "dark");
-    el("ov-bg-checker").classList.toggle("btn-primary", mode === "checker");
-    el("ov-bg-dark").classList.toggle("btn-primary", mode === "dark");
-}
-
 export function init(): void {
-    el("ov-bg-checker").addEventListener("click", () => setBackdrop("checker"));
-    el("ov-bg-dark").addEventListener("click", () => setBackdrop("dark"));
-
-    el<HTMLButtonElement>("ov-url-copy").addEventListener("click", () => {
-        const btn = el<HTMLButtonElement>("ov-url-copy");
-        navigator.clipboard.writeText(el("ov-url").textContent ?? "").then(() => {
-            btn.textContent = "Copied";
-            setTimeout(() => { btn.textContent = "Copy"; }, 1200);
-        }).catch(() => { btn.textContent = "Failed"; });
-    });
+    el("ov-bg-checker").addEventListener("click", () => setBackdrop("ov-preview-frame", "ov-bg-checker", "ov-bg-dark", "checker"));
+    el("ov-bg-dark").addEventListener("click", () => setBackdrop("ov-preview-frame", "ov-bg-checker", "ov-bg-dark", "dark"));
+    wireCopy("ov-url-copy", () => el("ov-url").textContent ?? "");
 
     for (const id of ["ov-size", "ov-fade", "ov-badges", "ov-emotes", "ov-bg", "ov-shadow", "ov-align"]) {
         el(id).addEventListener("input", onChange);
@@ -74,7 +49,7 @@ export function init(): void {
 }
 
 export function activate(): void {
-    setBackdrop("checker");
+    setBackdrop("ov-preview-frame", "ov-bg-checker", "ov-bg-dark", "checker");
     updateUrl();
     updatePreview();
 }

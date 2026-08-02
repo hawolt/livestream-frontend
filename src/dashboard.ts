@@ -1,17 +1,23 @@
-import { API_BASE } from "./api.ts";
 import { initSiteNav, setBurgerExtra } from "./nav.ts";
+import { $, $$ } from "./dash/dom.ts";
+import "./dash/modal.ts";
 import {
-    token, setMe, logoutRedirect, bootstrapSessionFromCookie, $, $$,
+    authFetch, setMe, token, loginRedirect, signOutAndRedirect, loadDashboardSession, startSessionRenewal,
     type MeInfo, type TabInfo, type TabModule,
-} from "./dash/core.ts";
+} from "./dash/session.ts";
 
 const TAB_LOADERS: Record<string, () => Promise<TabModule>> = {
     stream:           () => import("./dash/tabs/stream.ts"),
+    discord:          () => import("./dash/tabs/discord.ts"),
     "stream-manager": () => import("./dash/tabs/stream-manager.ts"),
-    overlay:          () => import("./dash/tabs/overlay.ts"),
+    chatbox:          () => import("./dash/tabs/chatbox.ts"),
+    alertbox:         () => import("./dash/tabs/alertbox.ts"),
     "stream-health":  () => import("./dash/tabs/stream-health.ts"),
     "stream-summary": () => import("./dash/tabs/stream-summary.ts"),
+    activity:         () => import("./dash/tabs/activity.ts"),
     settings:         () => import("./dash/tabs/settings.ts"),
+    "channel-profile": () => import("./dash/tabs/profile.ts"),
+    subscription:     () => import("./dash/tabs/subscription.ts"),
 };
 
 const tabById = new Map<string, TabInfo>();
@@ -135,6 +141,62 @@ function buildSidebarToggle(side: HTMLElement): HTMLElement {
     return label;
 }
 
+const EVENTS_RECONNECT_MS = 5000;
+let eventsSocket: WebSocket | null = null;
+
+function connectDashboardEvents(): void {
+    const proto = location.protocol === "https:" ? "wss" : "ws";
+    const ws = new WebSocket(`${proto}://${location.host}/ws/events`);
+    eventsSocket = ws;
+    ws.onopen = () => ws.send(JSON.stringify({ token: token() }));
+    ws.onmessage = (e: MessageEvent) => {
+        let msg: { type?: string };
+        try {
+            msg = JSON.parse(e.data as string) as { type?: string };
+        } catch {
+            return;
+        }
+        if (msg.type === "subscription") {
+            window.dispatchEvent(new CustomEvent("subscription-changed"));
+            void refreshTabs();
+        }
+    };
+    ws.onclose = () => {
+        if (eventsSocket !== ws) return;
+        eventsSocket = null;
+        window.setTimeout(connectDashboardEvents, EVENTS_RECONNECT_MS);
+    };
+}
+
+async function refreshTabs(): Promise<void> {
+    let refreshed: MeInfo;
+    try {
+        refreshed = await authFetch<MeInfo>("/api/auth/me");
+    } catch {
+        return;
+    }
+    setMe(refreshed);
+    const tabs = (refreshed.tabs ?? []).filter(t => TAB_LOADERS[t.id]);
+    if (tabs.map(t => t.id).join(",") === allTabs.map(t => t.id).join(",")) return;
+    const studioTabs = (refreshed.tabs ?? []).filter(t => !TAB_LOADERS[t.id]);
+    const baseDomain = location.hostname.replace(/^(live|admin|staff)\./, "");
+    const port = location.port ? `:${location.port}` : "";
+    studioUrl = studioTabs.length ? `https://studio.${baseDomain}${port}/dashboard` : null;
+    allTabs = tabs;
+    tabById.clear();
+    for (const t of tabs) tabById.set(t.id, t);
+    closeSidebarMenu?.();
+    $("dash-side").replaceChildren();
+    buildSidebar(tabs);
+    if (currentTab && tabById.has(currentTab)) {
+        const active = currentTab;
+        $$(".dash-side-link[data-tab]").forEach(b => b.classList.toggle("active", b.dataset["tab"] === active));
+        if (sidebarToggleLabel) sidebarToggleLabel.textContent = tabById.get(active)!.label;
+    } else if (tabs[0]) {
+        void activateTab(tabs[0].id);
+    }
+}
+
 function buildSidebar(tabs: TabInfo[]): void {
     const side = $("dash-side");
     sidebarToggleLabel = buildSidebarToggle(side);
@@ -244,38 +306,78 @@ function buildBurgerTabItems(close: () => void): HTMLElement[] {
     return out;
 }
 
-function fetchMe(): Promise<Response | null> {
-    return fetch(`${API_BASE}/auth/me`, {
-        headers: { "Authorization": `Bearer ${token()}` },
-    }).catch(() => null);
+function showSessionProblem(state: "forbidden" | "unavailable"): void {
+    const panel = document.createElement("section");
+    panel.className = "card empty";
+    panel.setAttribute("role", "alert");
+
+    const title = document.createElement("h2");
+    title.textContent = state === "forbidden" ? "Dashboard access denied" : "Dashboard unavailable";
+
+    const message = document.createElement("p");
+    message.textContent = state === "forbidden"
+        ? "Your login is still active, but this account cannot open this dashboard."
+        : "Your login has been kept. Check your connection and try again.";
+
+    const actions = document.createElement("div");
+    actions.className = "toolbar";
+    actions.style.justifyContent = "center";
+
+    const retry = document.createElement("button");
+    retry.type = "button";
+    retry.className = "btn btn-primary";
+    retry.textContent = "Try again";
+    retry.addEventListener("click", () => location.reload());
+
+    const signOut = document.createElement("button");
+    signOut.type = "button";
+    signOut.className = "btn";
+    signOut.textContent = "Sign out";
+    signOut.addEventListener("click", signOutAndRedirect);
+
+    actions.append(retry, signOut);
+    panel.append(title, message, actions);
+    $("panes").replaceChildren(panel);
 }
 
 (async () => {
-    void initSiteNav("dashboard");
-
-    if (!token() && !(await bootstrapSessionFromCookie())) { logoutRedirect(); return; }
-    let res = await fetchMe();
-    if (!res || !res.ok) {
-        if (!(await bootstrapSessionFromCookie())) { logoutRedirect(); return; }
-        res = await fetchMe();
-        if (!res || !res.ok) { logoutRedirect(); return; }
+    const session = await loadDashboardSession();
+    if (session.state === "signed-out") {
+        loginRedirect();
+        return;
     }
-    const me = await res.json() as MeInfo;
-    setMe(me);
+    if (session.state !== "ready") {
+        void initSiteNav("dashboard");
+        showSessionProblem(session.state);
+        return;
+    }
+    const me = session.me;
 
-    const isLiveHost = location.hostname.startsWith("live.");
-    const baseDomain = location.hostname.replace(/^(live|admin)\./, "");
+    const baseDomain = location.hostname.replace(/^(live|admin|staff)\./, "");
+    const isOnBareDomain = location.hostname === baseDomain;
+    const isLiveHost = isOnBareDomain || location.hostname.startsWith("live.");
     const requestedTab = tabFromLocation();
     const tabPath = requestedTab ? `/${requestedTab}` : "";
     const port = location.port ? `:${location.port}` : "";
-    if (me.kind === "user" && !isLiveHost) {
-        location.replace(`https://live.${baseDomain}${port}/dashboard${tabPath}`);
+    if (me.kind === "user" && !isOnBareDomain) {
+        sessionStorage.removeItem("dash_token");
+        sessionStorage.removeItem("dash_kind");
+        location.replace(`https://${baseDomain}${port}/dashboard${tabPath}`);
         return;
     }
     if (me.kind === "admin" && isLiveHost) {
-        location.replace(`https://admin.${baseDomain}${port}/dashboard${tabPath}`);
+        sessionStorage.removeItem("dash_token");
+        sessionStorage.removeItem("dash_kind");
+        location.replace(`https://staff.${baseDomain}${port}/dashboard${tabPath}`);
         return;
     }
+    setMe(me);
+    startSessionRenewal();
+    void initSiteNav("dashboard", [], {
+        kind: me.kind,
+        username: me.username,
+        token: token(),
+    });
 
     const tabs = (me.tabs ?? []).filter(t => TAB_LOADERS[t.id]);
     const studioTabs = (me.tabs ?? []).filter(t => !TAB_LOADERS[t.id]);
@@ -285,6 +387,7 @@ function fetchMe(): Promise<Response | null> {
     buildSidebar(tabs);
     document.body.classList.add("dash-page");
     setBurgerExtra((close) => buildBurgerTabItems(close));
+    if (me.kind === "user") connectDashboardEvents();
 
     document.addEventListener("click", (e) => {
         const a = (e.target as HTMLElement).closest<HTMLElement>("[data-switch-tab]");

@@ -1,0 +1,31 @@
+<div id="pane-subscription" class="tab-pane">
+    <style>
+        #pane-subscription .sub-head { color: var(--muted); font-size: 14px; margin: 0 0 20px; max-width: 680px; }
+        #pane-subscription .sub-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 14px; align-items: stretch; max-width: 1060px; }
+        #pane-subscription .sub-card { position: relative; display: flex; flex-direction: column; gap: 4px; border: 1px solid var(--border); border-radius: 10px; padding: 22px 18px 18px; background: var(--surface); transition: transform .15s ease, border-color .15s ease, box-shadow .15s ease; }
+        #pane-subscription .sub-card:hover { transform: translateY(-3px); border-color: var(--accent-mid); box-shadow: 0 6px 18px rgba(0, 0, 0, .45); }
+        #pane-subscription .sub-card.featured { border-color: var(--accent-mid); background: linear-gradient(180deg, var(--accent-pale), var(--surface) 60%); }
+        #pane-subscription .sub-card.current { border-color: var(--accent); }
+        #pane-subscription .sub-flag { position: absolute; top: -10px; right: 14px; background: var(--accent-mid); color: #04150a; font-size: 11px; font-weight: 700; padding: 2px 9px; border-radius: 999px; letter-spacing: .4px; }
+        #pane-subscription .sub-card.current .sub-flag { background: var(--accent); }
+        #pane-subscription .sub-tier-name { font-size: 15px; font-weight: 700; color: var(--text); }
+        #pane-subscription .sub-price { font-size: 24px; font-weight: 700; color: var(--text); margin: 0 0 10px; }
+        #pane-subscription .sub-interval { font-size: 12px; font-weight: 500; color: var(--muted); }
+        #pane-subscription .sub-inherit { font-size: 13px; color: var(--text); margin: 0 0 4px; }
+        #pane-subscription .sub-perks { list-style: none; margin: 0 0 16px; padding: 0; display: flex; flex-direction: column; gap: 7px; }
+        #pane-subscription .sub-perks li { font-size: 13px; color: var(--muted); display: flex; gap: 8px; align-items: flex-start; }
+        #pane-subscription .sub-perks li::before { content: "\2713"; color: var(--accent); font-weight: 700; flex: 0 0 auto; }
+        #pane-subscription .sub-cta { margin-top: auto; }
+        #pane-subscription .sub-cta .btn { width: 100%; }
+        #pane-subscription .sub-current-label { margin-top: auto; text-align: center; color: var(--accent); font-size: 13px; font-weight: 600; padding: 9px 0; }
+        #pane-subscription .sub-status { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; margin: 0 0 18px; padding: 12px 14px; border: 1px solid var(--accent-mid); border-radius: 10px; background: var(--accent-pale); max-width: 1060px; }
+        #pane-subscription .sub-status b { color: var(--text); }
+        #pane-subscription .sub-status span { color: var(--muted); font-size: 13px; }
+        #pane-subscription .sub-pending { margin: 0 0 18px; padding: 12px 14px; border: 1px solid var(--border); border-radius: 10px; color: var(--muted); font-size: 13px; max-width: 1060px; }
+        #pane-subscription .sub-fee { color: var(--dim); font-size: 12px; margin: 18px 0 0; }
+    </style>
+    <div class="card" style="padding:24px;max-width:1120px">
+        <div class="section-title">Subscription</div>
+        <div id="sub-body">Loading...</div>
+    </div>
+</div>

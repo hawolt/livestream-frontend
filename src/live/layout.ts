@@ -1,0 +1,138 @@
+import { btnCinema, btnLayoutToggle, channelRailEl, chatEl, mainEl, page, stageEl, video } from "./dom.ts";
+import { syncChannelRailVisibility } from "./channel-rail.ts";
+import { readLocalStorage, writeLocalStorage } from "../storage.ts";
+import {
+    CHAT_COLLAPSE_KEY,
+    CHAT_FIT_HYSTERESIS_PX,
+    CHAT_FIT_MIN_VW,
+    CHAT_MAX_PX,
+    CHAT_MIN_PX,
+    DEFAULT_ASPECT,
+    FULLSCREEN_SETTLE_MS,
+    LAYOUT_KEY,
+    LAYOUT_VERTICAL_QUERY,
+} from "./constants.ts";
+import { healthCheck } from "./player/health.ts";
+import { exitCinemaMode, isCinemaMode } from "./cinema.ts";
+
+export type LiveLayoutMode = "auto" | "horizontal" | "vertical";
+
+const layoutQuery = window.matchMedia(LAYOUT_VERTICAL_QUERY);
+
+export function isPopoutMode(): boolean {
+    return document.body.classList.contains("chat-popout");
+}
+
+export function getLayoutMode(): LiveLayoutMode {
+    const stored = readLocalStorage(LAYOUT_KEY);
+    return stored === "horizontal" || stored === "vertical" ? stored : "auto";
+}
+
+function layoutLabel(mode: LiveLayoutMode): string {
+    return `Layout: ${mode}`;
+}
+
+export function currentEffectiveLayout(): "horizontal" | "vertical" {
+    return page.classList.contains("is-vertical") ? "vertical" : "horizontal";
+}
+
+export function wireLayoutQuery(): void {
+    layoutQuery.addEventListener("change", syncLayout);
+}
+
+export function syncLayout(): void {
+    if (isPopoutMode()) return;
+    const mode = getLayoutMode();
+    const effective = mode === "auto" ? (layoutQuery.matches ? "vertical" : "horizontal") : mode;
+    const isVertical = effective === "vertical";
+    page.classList.toggle("is-vertical", isVertical);
+    document.body.classList.toggle("is-vertical", isVertical);
+    if (isVertical) chatEl.classList.remove("collapsed");
+    const label = layoutLabel(mode);
+    btnLayoutToggle.title = label;
+    btnLayoutToggle.setAttribute("aria-label", label);
+    fitChat();
+    updateCinemaButtonVisibility();
+    syncChannelRailVisibility();
+}
+
+let settleRaf1: number | null = null;
+let settleRaf2: number | null = null;
+let settleTimer: number | null = null;
+
+export function cancelFullscreenSettle(): void {
+    if (settleRaf1 !== null) {
+        cancelAnimationFrame(settleRaf1);
+        settleRaf1 = null;
+    }
+    if (settleRaf2 !== null) {
+        cancelAnimationFrame(settleRaf2);
+        settleRaf2 = null;
+    }
+    if (settleTimer !== null) {
+        window.clearTimeout(settleTimer);
+        settleTimer = null;
+    }
+}
+
+export function scheduleFullscreenSettle(): void {
+    cancelFullscreenSettle();
+    settleRaf1 = requestAnimationFrame(() => {
+        settleRaf1 = null;
+        settleRaf2 = requestAnimationFrame(() => {
+            settleRaf2 = null;
+            settleTimer = window.setTimeout(() => {
+                settleTimer = null;
+                syncLayout();
+                healthCheck();
+            }, FULLSCREEN_SETTLE_MS);
+        });
+    });
+}
+
+export function cycleLayout(): void {
+    const order: LiveLayoutMode[] = ["auto", "horizontal", "vertical"];
+    const next = order[(order.indexOf(getLayoutMode()) + 1) % order.length];
+    writeLocalStorage(LAYOUT_KEY, next);
+    syncLayout();
+}
+
+export function updateCinemaButtonVisibility(): void {
+    const unavailable = isPopoutMode() || currentEffectiveLayout() === "vertical";
+    btnCinema.hidden = unavailable;
+    if (unavailable && isCinemaMode()) exitCinemaMode();
+}
+
+export function setChatCollapsed(collapsed: boolean): void {
+    if (isPopoutMode()) {
+        chatEl.classList.remove("collapsed");
+        fitChat();
+        return;
+    }
+    chatEl.classList.toggle("collapsed", collapsed);
+    writeLocalStorage(CHAT_COLLAPSE_KEY, collapsed ? "1" : "0");
+    fitChat();
+}
+
+export function toggleChat(): void {
+    setChatCollapsed(!chatEl.classList.contains("collapsed"));
+}
+
+export function fitChat(): void {
+    if (isPopoutMode() || page.classList.contains("is-vertical") || chatEl.classList.contains("collapsed") || window.innerWidth < CHAT_FIT_MIN_VW) {
+        chatEl.style.width = "";
+        return;
+    }
+    const stageH = stageEl.getBoundingClientRect().height;
+    if (stageH <= 0) {
+        chatEl.style.width = "";
+        return;
+    }
+    const aspect = video.videoWidth > 0 && video.videoHeight > 0 ? video.videoWidth / video.videoHeight : DEFAULT_ASPECT;
+    const railWidth = channelRailEl.offsetParent === null ? 0 : channelRailEl.getBoundingClientRect().width;
+    const ideal = mainEl.clientWidth - railWidth - stageH * aspect;
+    const want = Math.round(Math.min(CHAT_MAX_PX, Math.max(CHAT_MIN_PX, ideal)));
+    const current = parseFloat(chatEl.style.width) || 0;
+    if (Math.abs(current - want) < CHAT_FIT_HYSTERESIS_PX) return;
+    chatEl.style.width = `${want}px`;
+}

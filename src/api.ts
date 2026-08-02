@@ -1,12 +1,52 @@
+import type { StreamLanguageCode } from "./stream-languages.ts";
+
 export interface AccountSettings {
     chatBotToken?: string | null;
+    overlayToken?: string | null;
     email: string | null;
     emailVerified: boolean;
     tenantName?: string | null;
     chatColor?: string | null;
+    chatColorAllowed?: boolean;
     username?: string | null;
     usernameChangedAt?: number | null;
     usernameCooldownRemaining?: number;
+    liveNotify?: boolean;
+}
+
+export interface BillingTier {
+    key: string;
+    label: string;
+    price: string;
+    rank: number;
+    perks: BillingPerks;
+}
+
+export interface BillingPerks {
+    badge: boolean;
+    chatColor: boolean;
+    adsOff: boolean;
+    largeUploads: boolean;
+    animatedAvatar: boolean;
+    order?: string[];
+}
+
+export interface BillingCurrent {
+    tier: string;
+    status: string;
+    currentPeriodEnd: number | null;
+    perks: BillingPerks;
+}
+
+export interface BillingTiers {
+    enabled: boolean;
+    tiers: BillingTier[];
+    current: BillingCurrent | null;
+    feeNote?: string;
+    restreamDestinationCap?: number;
+    currency?: string;
+    priceInterval?: string;
+    featuredTier?: string;
 }
 
 export interface RegionOption {
@@ -28,10 +68,22 @@ export interface LiveInfo {
     title: string;
     category: string | null;
     categoryId: number | null;
+    language: StreamLanguageCode;
     webhookStartUrl: string;
     webhookEndUrl: string;
     webhookSecret: string;
+    discordWebhookUrl: string;
     emoteTwitch: string;
+}
+
+export interface LiveChannelInfo {
+    username: string;
+    title: string;
+    category: string | null;
+    categoryId: number | null;
+    language: StreamLanguageCode;
+    mediaBase: string;
+    emoteTwitchId: string | null;
 }
 
 export interface LiveCategory {

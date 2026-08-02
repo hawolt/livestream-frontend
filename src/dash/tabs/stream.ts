@@ -1,5 +1,8 @@
 import type { LiveInfo, RegionOption } from "../../api.ts";
-import { esc, authFetch, maskSecret, openModal, loadRegions } from "../core.ts";
+import { esc, maskSecret } from "../format.ts";
+import { openModal } from "../modal.ts";
+import { loadRegions } from "../regions.ts";
+import { authFetch } from "../session.ts";
 
 let liveCache: LiveInfo | null = null;
 let regions: RegionOption[] = [];
@@ -127,7 +130,7 @@ function renderPlayback(): void {
     const server = liveCache.ingestServer;
     const url = server ? `${server}/${liveCache.playbackKey}` : "";
     const hlsBase = (liveCache.mediaBase || "").replace(/\/+$/, "") || window.location.origin;
-    const hlsUrl = liveCache.usernameOk ? `${hlsBase}/hls/${liveCache.username}/live.m3u8` : "";
+    const hlsUrl = liveCache.usernameOk ? `${hlsBase}/hls/${liveCache.username.toLowerCase()}/live.m3u8` : "";
     el.innerHTML = `
         ${server ? fieldRowEm("Playback URL", url, "live-playback-url", true)
                  : `<div style="font-size:13px;color:var(--red)">Live ingest host is not configured on the server.</div>`}
@@ -169,7 +172,7 @@ function renderChannel(): void {
         el.innerHTML = `<div style="font-size:13px;color:var(--red)">The channel page base URL is not configured on the server.</div>`;
         return;
     }
-    const url = `${liveCache.channelBase}/${liveCache.username}`;
+    const url = `${liveCache.channelBase}/${liveCache.username.toLowerCase()}`;
     el.innerHTML = `
         ${fieldRow("Public channel URL", url, "live-channel-url", false)}
         <div style="margin-top:12px">

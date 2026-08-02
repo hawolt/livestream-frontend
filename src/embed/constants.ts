@@ -1,0 +1,8 @@
+export const START_BEHIND_S = 0.8;
+export const SEEK_GAP_S = 6;
+export const PRUNE_KEEP_S = 30;
+export const RETRY_MIN_MS = 1000;
+export const RETRY_MAX_MS = 15000;
+export const RETRY_MULT = 2;
+export const HLS_BEACON_INTERVAL_MS = 10000;
+export const PREVIEW_MESSAGE_TYPE = "itzon:stream-preview";
