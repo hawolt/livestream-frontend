@@ -142,7 +142,7 @@ async function boot(): Promise<void> {
 
     void initFollow();
     connectViewcount();
-    nameEl.addEventListener("click", openProfileFromUser);
+    nameEl.addEventListener("click", () => openProfileFromUser());
 
     if (typeof MediaSource === "function" && typeof MediaSource.isTypeSupported === "function") {
         titleBar.classList.remove("hidden");

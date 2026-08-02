@@ -8,6 +8,7 @@ import { send } from "./connection.ts";
 import { renderPickerGrid } from "./composer.ts";
 import { updateSuggest } from "./suggest.ts";
 import { renderPins } from "./pins.ts";
+import { openProfileFromUser } from "./panels.ts";
 
 export const MAX_MESSAGES = 200;
 const SCROLL_SLACK_PX = 40;
@@ -69,6 +70,18 @@ export function jumpToMessage(msgid: string): void {
     void el.offsetWidth;
     el.classList.add("live-chat-flash");
     window.setTimeout(() => el.classList.remove("live-chat-flash"), 1500);
+}
+
+function buildNick(from: string): HTMLSpanElement {
+    const nick = document.createElement("span");
+    nick.className = "live-chat-nick";
+    nick.textContent = from;
+    nick.style.color = nickColor(from);
+    nick.addEventListener("click", () => {
+        if (document.body.classList.contains("chat-popout")) return;
+        openProfileFromUser(from);
+    });
+    return nick;
 }
 
 function buildQuote(replyId: string): { el: HTMLElement; parentFrom: string } {
@@ -148,10 +161,7 @@ export function addMessage(
 
     line.appendChild(buildTimeSpan(sentAt));
     line.appendChild(buildAvatar(from, userId, avatar));
-    const who = document.createElement("span");
-    who.className = "live-chat-nick";
-    who.textContent = from;
-    who.style.color = nickColor(from);
+    const who = buildNick(from);
     const badges = buildBadges(from);
     if (badges.length) line.append(...badges);
     line.append(who, document.createTextNode(": "), buildRenderedBody(text));
@@ -170,10 +180,7 @@ export function redactMessageEl(el: HTMLElement): void {
     el.classList.remove("live-chat-mentioned");
     const badges = buildBadges(from);
     if (badges.length) el.append(...badges);
-    const who = document.createElement("span");
-    who.className = "live-chat-nick";
-    who.textContent = from;
-    who.style.color = nickColor(from);
+    const who = buildNick(from);
     const placeholder = document.createElement("span");
     placeholder.className = "live-chat-deleted";
     placeholder.textContent = "<deleted message>";
@@ -192,10 +199,7 @@ export function addHiddenMessage(from: string, text: string, userId?: string, av
     tag.textContent = "blocked";
     tag.title = "Removed by automod. Only moderators see this message.";
     line.append(tag, buildAvatar(from, userId, avatar));
-    const who = document.createElement("span");
-    who.className = "live-chat-nick";
-    who.textContent = from;
-    who.style.color = nickColor(from);
+    const who = buildNick(from);
     const badges = buildBadges(from);
     if (badges.length) line.append(...badges);
     line.append(who, document.createTextNode(": "), buildRenderedBody(text));

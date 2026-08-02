@@ -181,24 +181,28 @@ let profileLoadedFor = "";
 let profileLoading = false;
 let profileDefaultDecided = false;
 let profileUserControlled = false;
+let profileTargetUsername = "";
 
-function loadProfileIfNeeded(): void {
-    const username = ctx.channel.slice(1);
+function currentProfileUsername(): string {
+    return profileTargetUsername || ctx.channel.slice(1);
+}
+
+function loadProfileIfNeeded(username: string): void {
     if (!username || profileLoading || profileLoadedFor === username) return;
     profileLoading = true;
     void loadProfile(username).then(profile => {
         profileLoading = false;
         profileLoadedFor = username;
         profileData = profile;
-        if (ctx.profileOpen) showProfileBody();
+        if (ctx.profileOpen && currentProfileUsername() === username) showProfileBody();
     });
 }
 
 function showProfileBody(): void {
-    const username = ctx.channel.slice(1);
+    const username = currentProfileUsername();
     if (profileLoadedFor !== username) {
         profileBodyEl.textContent = "Loading...";
-        loadProfileIfNeeded();
+        loadProfileIfNeeded(username);
         return;
     }
     if (profileData) {
@@ -208,7 +212,9 @@ function showProfileBody(): void {
     profileBodyEl.replaceChildren();
     const empty = document.createElement("div");
     empty.className = "profile-card-empty";
-    empty.textContent = "This channel has no profile yet.";
+    empty.textContent = username.toLowerCase() === ctx.channel.slice(1).toLowerCase()
+        ? "This channel has no profile yet."
+        : "This user has no profile yet.";
     profileBodyEl.appendChild(empty);
 }
 
@@ -225,6 +231,7 @@ export function setProfile(open: boolean): void {
 
 export function toggleProfile(): void {
     profileUserControlled = true;
+    profileTargetUsername = "";
     setProfile(!ctx.profileOpen);
 }
 
@@ -233,14 +240,16 @@ export function closeProfile(): void {
     setProfile(false);
 }
 
-export function openProfileFromUser(): void {
+export function openProfileFromUser(username?: string): void {
     profileUserControlled = true;
+    profileTargetUsername = username ? username.trim() : "";
     setProfile(true);
 }
 
 export function applyDefaultProfileVisibility(offline: boolean): void {
     if (profileDefaultDecided || profileUserControlled) return;
     profileDefaultDecided = true;
+    profileTargetUsername = "";
     setProfile(offline);
 }
 
