@@ -59,7 +59,7 @@ Build outputs (`public/*.js`, `public/dash/`) are gitignored; a fresh checkout h
 | Reset password | `src/reset-password.ts` | `reset-password.html` | Consumes the emailed reset token |
 | Dashboard | `src/dashboard.ts` | `dashboard.html` | Tab shell at `/dashboard/<tab>`; tabs in `src/dash/tabs/` |
 | API docs | `src/wiki.ts` | `wiki.html` | Hash-routed topic sections with a generated sidebar |
-| Legal | `src/legal.ts` | `terms.html`, `privacy.html`, `impressum.html`, `datenschutz.html` | Static pages, navbar only |
+| Legal | `src/legal.ts` | `terms.html`, `privacy.html`, `impressum.html` | Static pages, navbar only |
 
 The dashboard health tabs embed a `/details` telemetry page in an iframe. That page is not part of this repository; production deployments provide it separately, and without it those tabs show their loading state indefinitely.
 
