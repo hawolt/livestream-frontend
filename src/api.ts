@@ -20,6 +20,8 @@ export interface BillingTier {
     price: string;
     rank: number;
     perks: BillingPerks;
+    passPrice?: string;
+    passAvailable?: boolean;
 }
 
 export interface BillingPerks {
@@ -37,6 +39,7 @@ export interface BillingCurrent {
     provider?: string;
     currentPeriodEnd: number | null;
     perks: BillingPerks;
+    source?: string;
 }
 
 export interface BillingTiers {
@@ -49,6 +52,7 @@ export interface BillingTiers {
     currency?: string;
     priceInterval?: string;
     featuredTier?: string;
+    passDays?: number;
 }
 
 export interface RegionOption {

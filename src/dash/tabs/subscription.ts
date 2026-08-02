@@ -118,9 +118,24 @@ function priceHtml(rawPrice: string): string {
     return `${esc(amount)}${suffix}`;
 }
 
+function passButtonLabel(prefix: string): string {
+    const days = cache?.passDays;
+    return days ? `${prefix} ${days} days` : `${prefix} 30 days`;
+}
+
+function passCtaHtml(tier: BillingTier): string {
+    if (!tier.passAvailable) return "";
+    const price = tier.passPrice ? `<div class="sub-pass-price">${priceHtml(tier.passPrice)}</div>` : "";
+    return `<div class="sub-pass-cta">
+        <button class="btn" data-sub-pass-tier="${esc(tier.key)}">${esc(passButtonLabel("Buy"))}</button>
+        ${price}
+    </div>`;
+}
+
 function tierCard(tier: BillingTier, index: number, tiers: BillingTier[], tokenLists: string[][]): string {
     const current = cache?.current;
     const isCurrent = current?.tier === tier.key;
+    const isPassHeld = isCurrent && current?.source === "pass";
     const currentRank = current ? tiers.find(t => t.key === current.tier)?.rank ?? null : null;
     const isFeatured = !isCurrent && tier.key === featuredTierKey(tiers);
     const tokens = tokenLists[index]!;
@@ -142,12 +157,18 @@ function tierCard(tier: BillingTier, index: number, tiers: BillingTier[], tokenL
         ? `<span class="sub-flag">YOUR PLAN</span>`
         : isFeatured ? `<span class="sub-flag">BEST DEAL</span>` : "";
     let action: string;
-    if (isCurrent) {
+    if (isPassHeld) {
+        const until = current?.currentPeriodEnd
+            ? fmtDate(new Date(current.currentPeriodEnd * 1000).toISOString())
+            : "-";
+        action = `<div class="sub-current-label">Pass active until ${esc(until)}</div>
+            <div class="sub-cta"><button class="btn btn-primary" data-sub-pass-tier="${esc(tier.key)}">${esc(passButtonLabel("Extend"))}</button></div>`;
+    } else if (isCurrent) {
         action = `<div class="sub-current-label">Active</div>`;
     } else if (currentRank === null) {
-        action = `<div class="sub-cta"><button class="btn btn-primary" data-sub-tier="${esc(tier.key)}">Subscribe</button></div>`;
+        action = `<div class="sub-cta"><button class="btn btn-primary" data-sub-tier="${esc(tier.key)}">Subscribe</button></div>${passCtaHtml(tier)}`;
     } else if (tier.rank > currentRank) {
-        action = `<div class="sub-cta"><button class="btn btn-primary" data-sub-upgrade="${esc(tier.key)}">Upgrade</button></div>`;
+        action = `<div class="sub-cta"><button class="btn btn-primary" data-sub-upgrade="${esc(tier.key)}">Upgrade</button></div>${passCtaHtml(tier)}`;
     } else {
         action = `<div class="sub-current-label" style="color:var(--muted)">Included in your plan</div>`;
     }
@@ -180,6 +201,7 @@ function render(): void {
     }
     const current = cache.current;
     const active = current && current.tier;
+    const isPassHeld = current?.source === "pass";
     const renewalDate = current?.currentPeriodEnd
         ? fmtDate(new Date(current.currentPeriodEnd * 1000).toISOString())
         : "-";
@@ -187,13 +209,14 @@ function render(): void {
     const pendingBanner = !active && pendingCheckout()
         ? `<div class="sub-pending">Waiting for the payment provider to confirm your subscription. This usually takes a few seconds. If you cancelled the checkout, ignore this message.</div>`
         : "";
+    const showPortal = !isPassHeld || (cache.portalProviders?.length ?? 0) > 0;
     const statusBlock = active
         ? `<div class="sub-status">
             <b>${esc(current!.tier)}</b>
-            <span>${esc(current!.status)}</span>
-            <span>Renews ${renewalDate}</span>
-            ${portalButtonsHtml()}
-            <span>Downgrades and cancellation are handled there.</span>
+            <span>${esc(isPassHeld ? "Pass" : current!.status)}</span>
+            <span>${isPassHeld ? "Pass active until " + esc(renewalDate) : "Renews " + esc(renewalDate)}</span>
+            ${showPortal ? portalButtonsHtml() : ""}
+            ${showPortal ? `<span>Downgrades and cancellation are handled there.</span>` : ""}
         </div>`
         : "";
     const tiers = [...cache.tiers].sort((a, b) => a.rank - b.rank);
@@ -211,6 +234,9 @@ function render(): void {
     });
     el.querySelectorAll<HTMLButtonElement>("[data-sub-upgrade]").forEach(btn => {
         btn.addEventListener("click", () => void upgrade(btn));
+    });
+    el.querySelectorAll<HTMLButtonElement>("[data-sub-pass-tier]").forEach(btn => {
+        btn.addEventListener("click", () => void checkoutPass(btn, btn.dataset["subPassTier"]));
     });
 }
 
@@ -242,6 +268,22 @@ async function checkout(btn: HTMLButtonElement): Promise<void> {
         const res = await authFetch<{ url: string }>("/api/billing/checkout", {
             method: "POST",
             body: JSON.stringify({ tier }),
+        });
+        sessionStorage.setItem(PENDING_KEY, String(Date.now()));
+        location.href = res.url;
+    } catch (e) {
+        alert("Could not start checkout: " + (e instanceof Error ? e.message : String(e)));
+        btn.disabled = false;
+    }
+}
+
+async function checkoutPass(btn: HTMLButtonElement, tier: string | undefined): Promise<void> {
+    if (!tier) return;
+    btn.disabled = true;
+    try {
+        const res = await authFetch<{ url: string }>("/api/billing/checkout", {
+            method: "POST",
+            body: JSON.stringify({ tier, pass: true }),
         });
         sessionStorage.setItem(PENDING_KEY, String(Date.now()));
         location.href = res.url;
