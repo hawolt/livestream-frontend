@@ -5,6 +5,7 @@ import { QUALITY_STORAGE_KEY } from "./constants.ts";
 import { writeLocalStorage } from "../storage.ts";
 import { resetAbr } from "./player/abr.ts";
 import { beginTransport } from "./player/lifecycle.ts";
+import { closeDismissibleSurface, openDismissibleSurface } from "../dismissible-surface.ts";
 
 export function qualityButtonLabel(): string {
     if (ctx.qualityPreference === QUALITY_AUTO) {
@@ -21,10 +22,9 @@ export function renderQualityPopupItems(): void {
         const item = document.createElement("button");
         item.type = "button";
         item.className = "live-quality-item";
-        item.setAttribute("role", "menuitemradio");
         const active = value === ctx.qualityPreference;
         item.classList.toggle("active", active);
-        item.setAttribute("aria-checked", String(active));
+        item.setAttribute("aria-pressed", String(active));
         const labelEl = document.createElement("span");
         labelEl.textContent = label;
         const checkEl = document.createElement("span");
@@ -41,16 +41,13 @@ function onOutsideQualityClick(ev: MouseEvent): void {
     closeQualityPopup();
 }
 
-function onQualityKeydown(ev: KeyboardEvent): void {
-    if (ev.key === "Escape") closeQualityPopup();
-}
-
-function closeQualityPopup(): void {
+function closeQualityPopup(restoreFocus = false): void {
     if (qualityPopupEl.hidden) return;
     qualityPopupEl.hidden = true;
     qualityBtn.setAttribute("aria-expanded", "false");
+    closeDismissibleSurface(qualityPopupEl);
     document.removeEventListener("mousedown", onOutsideQualityClick, true);
-    document.removeEventListener("keydown", onQualityKeydown, true);
+    if (restoreFocus && qualityBtn.isConnected) qualityBtn.focus();
 }
 
 function toggleQualityPopup(): void {
@@ -61,8 +58,8 @@ function toggleQualityPopup(): void {
     renderQualityPopupItems();
     qualityPopupEl.hidden = false;
     qualityBtn.setAttribute("aria-expanded", "true");
+    openDismissibleSurface(qualityPopupEl, () => closeQualityPopup(true));
     document.addEventListener("mousedown", onOutsideQualityClick, true);
-    document.addEventListener("keydown", onQualityKeydown, true);
 }
 
 export function renderQualityMenu(): void {
@@ -88,7 +85,7 @@ export function applyQualityList(list: string[]): boolean {
 }
 
 export function selectQuality(pref: string): void {
-    closeQualityPopup();
+    closeQualityPopup(true);
     if (pref === ctx.qualityPreference) return;
     ctx.qualityPreference = pref;
     writeLocalStorage(QUALITY_STORAGE_KEY, ctx.qualityPreference);
@@ -101,5 +98,10 @@ export function selectQuality(pref: string): void {
 }
 
 export function wireQualityMenu(): void {
+    qualityBtn.removeAttribute("aria-haspopup");
+    qualityBtn.setAttribute("aria-expanded", "false");
+    qualityBtn.setAttribute("aria-controls", qualityPopupEl.id);
+    qualityPopupEl.setAttribute("role", "group");
+    qualityPopupEl.setAttribute("aria-label", "Video quality");
     qualityBtn.addEventListener("click", toggleQualityPopup);
 }

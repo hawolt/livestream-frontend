@@ -568,6 +568,16 @@ html.live-host .live-seekbar-track:focus-visible .live-seekbar-progress {
     height: 6px;
 }
 
+html.live-host button.live-chat-quote {
+    width: 100%;
+    font: inherit;
+    text-align: left;
+    background: none;
+    border-top: 0;
+    border-right: 0;
+    border-bottom: 0;
+}
+
 @media (max-width: 900px) {
     body:not(.is-vertical) #btn-chat-toggle {
         display: inline-flex;

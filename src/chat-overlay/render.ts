@@ -30,6 +30,7 @@ function buildOverlayEmote(token: string, url: string): HTMLImageElement {
     const img = document.createElement("img");
     img.className = "emote";
     img.src = url;
+    img.referrerPolicy = "no-referrer";
     img.alt = token;
     img.title = token;
     return img;

@@ -1,6 +1,11 @@
 export {};
 import { API_BASE } from "./api.ts";
 import { initSiteNav } from "./nav.ts";
+import {
+    consumeRegistrationCompletion,
+    isValidRegistrationCompletion,
+    registrationCompletionUrl,
+} from "./register-completion.ts";
 
 declare const hcaptcha: {
     render(id: string, opts: {
@@ -19,6 +24,7 @@ const btnEl   = document.getElementById("btn-register")  as HTMLButtonElement;
 const errorEl = document.getElementById("error")          as HTMLElement;
 
 let widgetId: number | null = null;
+const HANDOFF_STATE_KEY = "registration_handoff_state";
 
 function resolveRedirect(): string {
     const ret = new URLSearchParams(location.search).get("return");
@@ -31,6 +37,16 @@ function resolveRedirect(): string {
     }
     return "/dashboard";
 }
+
+const registrationCompletion = consumeRegistrationCompletion(location.href);
+if (registrationCompletion) {
+    history.replaceState(history.state, "", registrationCompletion.replacement);
+}
+
+const expectedHandoffState = sessionStorage.getItem(HANDOFF_STATE_KEY) ?? "";
+sessionStorage.removeItem(HANDOFF_STATE_KEY);
+const handoffState = registrationCompletion ? "" : crypto.randomUUID();
+if (handoffState) sessionStorage.setItem(HANDOFF_STATE_KEY, handoffState);
 
 async function verifyToken(token: string): Promise<"valid" | "invalid" | "unavailable"> {
     try {
@@ -102,6 +118,25 @@ async function boot(): Promise<boolean> {
     return true;
 }
 
+async function completeRegistration(): Promise<void> {
+    if (!registrationCompletion) return;
+    if (!isValidRegistrationCompletion(registrationCompletion, expectedHandoffState)) {
+        showError("Registration could not be completed. Reload the page and try again.");
+        void initSiteNav(null, [], null);
+        return;
+    }
+    const status = await verifyToken(registrationCompletion.token);
+    if (status === "valid") {
+        location.replace(resolveRedirect());
+        return;
+    }
+    const message = status === "unavailable"
+        ? "The new session could not be verified. Sign in with the account you just created."
+        : "Registration could not be completed. Sign in with the account you just created.";
+    showError(message);
+    void initSiteNav(null, [], null);
+}
+
 let captchaWatchdog: number | null = null;
 
 function clearWatchdog(): void {
@@ -123,8 +158,10 @@ function onHCaptchaLoad(): void {
     btnEl.disabled = false;
 }
 
-(window as unknown as Record<string, unknown>)["onHCaptchaLoad"] = onHCaptchaLoad;
-if (typeof hcaptcha !== "undefined") onHCaptchaLoad();
+if (!registrationCompletion) {
+    (window as unknown as Record<string, unknown>)["onHCaptchaLoad"] = onHCaptchaLoad;
+    if (typeof hcaptcha !== "undefined") onHCaptchaLoad();
+}
 
 function loadHCaptcha(): void {
     if (document.querySelector("script[data-hcaptcha]")) return;
@@ -132,6 +169,7 @@ function loadHCaptcha(): void {
     script.src = "https://js.hcaptcha.com/1/api.js?onload=onHCaptchaLoad&render=explicit";
     script.async = true;
     script.defer = true;
+    script.referrerPolicy = "no-referrer";
     script.dataset["hcaptcha"] = "";
     script.addEventListener("error", () => {
         showError("The captcha could not load. Allow js.hcaptcha.com in your content blocker and reload.");
@@ -139,10 +177,14 @@ function loadHCaptcha(): void {
     document.head.appendChild(script);
 }
 
-void boot().then(continueRegistration => {
-    void initSiteNav(null, [], null);
-    if (continueRegistration) loadHCaptcha();
-});
+if (!registrationCompletion) {
+    void boot().then(continueRegistration => {
+        void initSiteNav(null, [], null);
+        if (continueRegistration) loadHCaptcha();
+    });
+} else {
+    void completeRegistration();
+}
 
 form.addEventListener("submit", (e) => {
     e.preventDefault();
@@ -203,9 +245,7 @@ async function doSubmit(captchaToken: string): Promise<void> {
             return;
         }
 
-        sessionStorage.setItem("dash_token", data.token);
-        if (data.kind) sessionStorage.setItem("dash_kind", data.kind);
-        location.href = resolveRedirect();
+        location.replace(registrationCompletionUrl(location.href, data.token, data.kind ?? "user", handoffState));
 
     } catch (err) {
         showError("Network error - is the server running?");

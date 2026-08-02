@@ -105,6 +105,7 @@ function renderSuggestItems(items: SuggestItem[]): void {
         if (it.img) {
             const img = document.createElement("img");
             img.src = it.img;
+            img.referrerPolicy = "no-referrer";
             img.alt = it.label;
             img.loading = "lazy";
             item.appendChild(img);

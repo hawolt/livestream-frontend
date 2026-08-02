@@ -28,7 +28,7 @@ import {
     vips,
 } from "./members.ts";
 import { addPin, clearPins, dismissedPins, removePin } from "./pins.ts";
-import { renderUserlist, setHelp, setSettings, setUserlist } from "./panels.ts";
+import { renderUserlist } from "./panels.ts";
 
 const GUEST_NICK_KEY = "live-chat-guest-nick";
 const LEGACY_NICK_KEY = "live-chat-nick";
@@ -82,7 +82,7 @@ function guestNick(): string {
 
 async function loadEmoteSet(url: string, scope: ChatEmoteScope): Promise<void> {
     try {
-        const res = await fetch(url);
+        const res = await fetch(url, { referrerPolicy: "no-referrer" });
         if (!res.ok) return;
         const payload: any = await res.json();
         const list = scope === "channel" ? payload?.emote_set?.emotes : payload?.emotes;
@@ -347,9 +347,7 @@ export function connect(): void {
     updateReplyBar();
     clearPins();
     dismissedPins.clear();
-    if (ctx.userlistOpen) setUserlist(false);
-    if (ctx.helpOpen) setHelp(false);
-    if (ctx.settingsOpen) setSettings(false);
+    if (ctx.userlistOpen) renderUserlist();
     ctx.capEcho = false;
     ctx.capRedact = false;
     ctx.pendingCapRequests = 0;

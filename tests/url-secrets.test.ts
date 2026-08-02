@@ -1,25 +1,46 @@
 import { describe, expect, test } from "bun:test";
-import { scrubOverlayToken, scrubQueryToken } from "../src/url-secrets.ts";
+import { scrubOneShotToken, scrubOverlayToken } from "../src/url-secrets.ts";
 
-describe("scrubQueryToken", () => {
+describe("scrubOneShotToken", () => {
     test("reads and removes only the token query parameter", () => {
-        expect(scrubQueryToken("https://itzon.example/reset-password?source=email&token=secret&lang=en#done")).toEqual({
+        expect(scrubOneShotToken("https://itzon.example/reset-password?source=email&token=secret&lang=en#done")).toEqual({
             token: "secret",
             replacement: "/reset-password?source=email&lang=en#done",
         });
     });
 
     test("leaves URLs without a token unchanged", () => {
-        expect(scrubQueryToken("https://itzon.example/verify?source=email#status")).toEqual({
+        expect(scrubOneShotToken("https://itzon.example/verify?source=email#status")).toEqual({
             token: "",
             replacement: null,
         });
     });
 
     test("uses the first non-empty token from duplicate query values", () => {
-        expect(scrubQueryToken("https://itzon.example/verify?token=&source=email&token=secret#status")).toEqual({
+        expect(scrubOneShotToken("https://itzon.example/verify?token=&source=email&token=secret#status")).toEqual({
             token: "secret",
             replacement: "/verify?source=email#status",
+        });
+    });
+
+    test("prefers and removes a fragment token while preserving other fragment state", () => {
+        expect(scrubOneShotToken("https://itzon.example/verify?source=email&token=legacy#status=ready&token=current")).toEqual({
+            token: "current",
+            replacement: "/verify?source=email#status=ready",
+        });
+    });
+
+    test("preserves a bare fragment while removing a query token", () => {
+        expect(scrubOneShotToken("https://itzon.example/verify?token=secret#done")).toEqual({
+            token: "secret",
+            replacement: "/verify#done",
+        });
+    });
+
+    test("preserves bare fragment fields while removing duplicate fragment tokens", () => {
+        expect(scrubOneShotToken("https://itzon.example/verify#done&token=first&view=full&token=second")).toEqual({
+            token: "first",
+            replacement: "/verify#done&view=full",
         });
     });
 });

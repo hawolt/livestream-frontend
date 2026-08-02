@@ -8,6 +8,7 @@ import { send } from "./connection.ts";
 import { renderPickerGrid } from "./composer.ts";
 import { updateSuggest } from "./suggest.ts";
 import { renderPins } from "./pins.ts";
+import { motionScrollBehavior } from "../motion.ts";
 
 export const MAX_MESSAGES = 200;
 const SCROLL_SLACK_PX = 40;
@@ -16,12 +17,85 @@ function atBottom(): boolean {
     return msgsEl.scrollHeight - msgsEl.scrollTop - msgsEl.clientHeight < SCROLL_SLACK_PX;
 }
 
+function actionableMessages(): HTMLElement[] {
+    return Array.from(msgsEl.querySelectorAll<HTMLElement>(".live-chat-msg[data-chat-actionable]"));
+}
+
+function setRovingMessage(target: HTMLElement, focus: boolean): void {
+    for (const message of actionableMessages()) message.tabIndex = message === target ? 0 : -1;
+    if (focus) target.focus();
+}
+
+function syncRovingMessage(): void {
+    const messages = actionableMessages();
+    if (!messages.length || messages.some(message => message.tabIndex === 0)) return;
+    messages[messages.length - 1]!.tabIndex = 0;
+}
+
+function messageControls(message: HTMLElement): HTMLButtonElement[] {
+    return Array.from(message.querySelectorAll<HTMLButtonElement>("button.live-chat-quote, .live-chat-actions button"))
+        .filter(button => getComputedStyle(button).display !== "none");
+}
+
+function moveRovingMessage(message: HTMLElement, key: string): boolean {
+    const messages = actionableMessages();
+    const index = messages.indexOf(message);
+    if (index < 0) return false;
+    let next = index;
+    if (key === "ArrowUp") next = Math.max(0, index - 1);
+    else if (key === "ArrowDown") next = Math.min(messages.length - 1, index + 1);
+    else if (key === "Home") next = 0;
+    else if (key === "End") next = messages.length - 1;
+    else return false;
+    setRovingMessage(messages[next]!, true);
+    return true;
+}
+
+function registerActionableMessage(message: HTMLElement): void {
+    const controls = messageControls(message);
+    if (!controls.length) return;
+    message.dataset["chatActionable"] = "";
+    const keepCurrent = msgsEl.contains(document.activeElement);
+    message.tabIndex = -1;
+    if (!keepCurrent) setRovingMessage(message, false);
+    message.addEventListener("focus", (event) => {
+        if (event.target === message) setRovingMessage(message, false);
+    });
+    message.addEventListener("keydown", (event) => {
+        if (event.target === message) {
+            if (moveRovingMessage(message, event.key)) {
+                event.preventDefault();
+                return;
+            }
+            if (event.key === "Enter" || event.key === "ArrowRight") {
+                const first = messageControls(message)[0];
+                if (!first) return;
+                event.preventDefault();
+                first.focus();
+            }
+            return;
+        }
+        const target = event.target as HTMLButtonElement;
+        const currentControls = messageControls(message);
+        const index = currentControls.indexOf(target);
+        if (event.key === "Escape") {
+            event.preventDefault();
+            message.focus();
+        } else if (index >= 0 && (event.key === "ArrowLeft" || event.key === "ArrowRight")) {
+            event.preventDefault();
+            const delta = event.key === "ArrowLeft" ? -1 : 1;
+            currentControls[(index + delta + currentControls.length) % currentControls.length]!.focus();
+        }
+    });
+}
+
 export function append(node: HTMLElement): void {
     const stick = atBottom();
     const empty = msgsEl.querySelector(".live-chat-empty");
     if (empty) empty.remove();
     msgsEl.appendChild(node);
     while (msgsEl.childElementCount > MAX_MESSAGES) msgsEl.removeChild(msgsEl.firstElementChild as Element);
+    syncRovingMessage();
     if (stick) msgsEl.scrollTop = msgsEl.scrollHeight;
 }
 
@@ -64,7 +138,7 @@ export function updateReplyBar(): void {
 export function jumpToMessage(msgid: string): void {
     const el = findMessageEl(msgid);
     if (!el) return;
-    el.scrollIntoView({ block: "center", behavior: "smooth" });
+    el.scrollIntoView({ block: "center", behavior: motionScrollBehavior() });
     el.classList.remove("live-chat-flash");
     void el.offsetWidth;
     el.classList.add("live-chat-flash");
@@ -72,13 +146,17 @@ export function jumpToMessage(msgid: string): void {
 }
 
 function buildQuote(replyId: string): { el: HTMLElement; parentFrom: string } {
-    const q = document.createElement("div");
+    const parent = findMessageEl(replyId);
+    const q = document.createElement(parent ? "button" : "div");
     q.className = "live-chat-quote";
+    if (q instanceof HTMLButtonElement) {
+        q.type = "button";
+        q.tabIndex = -1;
+    }
     const arrow = document.createElement("span");
     arrow.className = "live-chat-quote-arrow";
     arrow.textContent = "↩";
     q.appendChild(arrow);
-    const parent = findMessageEl(replyId);
     let parentFrom = "";
     if (parent) {
         parentFrom = parent.dataset["from"] ?? "";
@@ -103,6 +181,7 @@ function buildActions(from: string, text: string, msgid: string): HTMLElement {
     reply.className = "live-chat-reply-btn";
     reply.title = "Reply";
     reply.setAttribute("aria-label", `Reply to ${from}`);
+    reply.tabIndex = -1;
     reply.textContent = "↩";
     reply.addEventListener("click", () => setReply(msgid, from, text));
     actions.appendChild(reply);
@@ -111,6 +190,7 @@ function buildActions(from: string, text: string, msgid: string): HTMLElement {
     pin.className = "live-chat-pin-btn";
     pin.title = "Pin message";
     pin.setAttribute("aria-label", `Pin message from ${from}`);
+    pin.tabIndex = -1;
     pin.textContent = "📌";
     pin.addEventListener("click", () => send(`PRIVMSG ${ctx.channel} :.pin ${msgid}`));
     actions.appendChild(pin);
@@ -119,6 +199,7 @@ function buildActions(from: string, text: string, msgid: string): HTMLElement {
     del.className = "live-chat-del";
     del.title = "Delete message";
     del.setAttribute("aria-label", `Delete message from ${from}`);
+    del.tabIndex = -1;
     del.textContent = "✕";
     del.addEventListener("click", () => send(`PRIVMSG ${ctx.channel} :.delete ${msgid}`));
     actions.appendChild(del);
@@ -153,6 +234,7 @@ export function addMessage(from: string, text: string, msgid?: string, replyId?:
     }
     if (repliedToMe || mentionsMe(text)) line.classList.add("live-chat-mentioned");
     append(line);
+    registerActionableMessage(line);
 }
 
 export function redactMessageEl(el: HTMLElement): void {
@@ -170,7 +252,10 @@ export function redactMessageEl(el: HTMLElement): void {
     placeholder.textContent = "<deleted message>";
     el.append(who, document.createTextNode(": "), placeholder);
     el.removeAttribute("data-msgid");
+    el.removeAttribute("data-chat-actionable");
+    el.removeAttribute("tabindex");
     el.dataset["text"] = "<deleted message>";
+    syncRovingMessage();
 }
 
 export function addHiddenMessage(from: string, text: string): void {

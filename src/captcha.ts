@@ -14,7 +14,6 @@ export function setCaptchaAnchor(el: HTMLElement | null): void {
     anchorEl = el;
 }
 
-/** Best-effort: true only once config is loaded and a Turnstile solve is actually in play. */
 export function captchaChallengeActive(): boolean {
     return configLoaded && enabled && challenge;
 }
@@ -48,6 +47,7 @@ function loadScript(): Promise<void> {
         s.src = TURNSTILE_SRC;
         s.async = true;
         s.defer = true;
+        s.referrerPolicy = "no-referrer";
         s.onload = () => { scriptLoaded = true; resolve(); };
         s.onerror = () => reject(new Error("turnstile load failed"));
         document.head.appendChild(s);

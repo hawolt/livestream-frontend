@@ -5,6 +5,8 @@ import {
     authFetch, setMe, token, loginRedirect, signOutAndRedirect, loadDashboardSession, startSessionRenewal,
     type MeInfo, type TabInfo, type TabModule,
 } from "./dash/session.ts";
+import { closeDismissibleSurface, openDismissibleSurface } from "./dismissible-surface.ts";
+import { motionScrollBehavior } from "./motion.ts";
 
 const TAB_LOADERS: Record<string, () => Promise<TabModule>> = {
     stream:           () => import("./dash/tabs/stream.ts"),
@@ -27,8 +29,11 @@ let currentTab: string | null = null;
 let activationSeq = 0;
 let refreshRevision = 0;
 let sidebarToggleLabel: HTMLElement | null = null;
-let closeSidebarMenu: (() => void) | null = null;
+let closeSidebarMenu: ((restoreFocus?: boolean) => void) | null = null;
 let studioUrl: string | null = null;
+let burgerGroupId = 0;
+
+const DASH_SIDE_LIST_ID = "dash-side-list";
 
 function tabFromLocation(): string | null {
     const m = location.pathname.match(/^\/dashboard(?:\.html)?\/([A-Za-z0-9_-]+)\/?$/);
@@ -62,6 +67,15 @@ function setNoTabsVisible(visible: boolean): void {
         $("panes").appendChild(panel);
     }
     if (panel) panel.hidden = !visible;
+}
+
+function syncDashboardNavigation(tab: string): void {
+    $$(".dash-side-link[data-tab]").forEach(link => {
+        const current = link.dataset["tab"] === tab;
+        link.classList.toggle("active", current);
+        if (current) link.setAttribute("aria-current", "page");
+        else link.removeAttribute("aria-current");
+    });
 }
 
 async function activateTab(tab: string, pushState = true): Promise<void> {
@@ -108,11 +122,11 @@ async function activateTab(tab: string, pushState = true): Promise<void> {
     currentTab = tab;
     setNoTabsVisible(false);
 
-    $$(".dash-side-link[data-tab]").forEach(b => b.classList.toggle("active", b.dataset["tab"] === tab));
+    syncDashboardNavigation(tab);
     const btn = document.querySelector<HTMLElement>(`.dash-side-link[data-tab="${tab}"]`);
-    btn?.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
+    btn?.scrollIntoView({ behavior: motionScrollBehavior(), block: "nearest", inline: "center" });
     if (sidebarToggleLabel) sidebarToggleLabel.textContent = info.label;
-    closeSidebarMenu?.();
+    closeSidebarMenu?.(true);
     if (pushState) history.pushState(null, "", `/dashboard/${tab}`);
     $$(".tab-pane").forEach(p => p.classList.toggle("active", p.id === `pane-${tab}`));
     mod.activate();
@@ -135,7 +149,7 @@ function buildSidebarToggle(side: HTMLElement): HTMLElement {
     const toggle = document.createElement("button");
     toggle.type = "button";
     toggle.className = "dash-side-toggle";
-    toggle.setAttribute("aria-haspopup", "true");
+    toggle.setAttribute("aria-controls", DASH_SIDE_LIST_ID);
     toggle.setAttribute("aria-expanded", "false");
 
     const label = document.createElement("span");
@@ -149,23 +163,30 @@ function buildSidebarToggle(side: HTMLElement): HTMLElement {
 
     function onOutsideMouseDown(e: MouseEvent): void {
         if (side.contains(e.target as Node)) return;
-        closeMenu();
+        closeMenu(false);
     }
 
-    function closeMenu(): void {
+    function closeMenu(restoreFocus: boolean): void {
+        if (!side.classList.contains("open")) return;
         side.classList.remove("open");
         toggle.setAttribute("aria-expanded", "false");
+        closeDismissibleSurface(side);
         document.removeEventListener("mousedown", onOutsideMouseDown, true);
+        if (restoreFocus && toggle.offsetParent !== null) toggle.focus();
     }
 
     toggle.addEventListener("click", () => {
-        const open = side.classList.toggle("open");
-        toggle.setAttribute("aria-expanded", String(open));
-        if (open) document.addEventListener("mousedown", onOutsideMouseDown, true);
-        else document.removeEventListener("mousedown", onOutsideMouseDown, true);
+        if (side.classList.contains("open")) {
+            closeMenu(false);
+            return;
+        }
+        side.classList.add("open");
+        toggle.setAttribute("aria-expanded", "true");
+        openDismissibleSurface(side, () => closeMenu(true));
+        document.addEventListener("mousedown", onOutsideMouseDown, true);
     });
 
-    closeSidebarMenu = closeMenu;
+    closeSidebarMenu = (restoreFocus = false) => closeMenu(restoreFocus);
     side.appendChild(toggle);
     return label;
 }
@@ -230,7 +251,7 @@ async function refreshTabs(): Promise<void> {
     allTabs = tabs;
     tabById.clear();
     for (const t of tabs) tabById.set(t.id, t);
-    closeSidebarMenu?.();
+    closeSidebarMenu?.(false);
     $("dash-side").replaceChildren();
     buildSidebar(tabs);
     if (currentTab && (!tabById.has(currentTab) || currentPaneChanged)) {
@@ -245,7 +266,7 @@ async function refreshTabs(): Promise<void> {
     }
     if (currentTab && tabById.has(currentTab)) {
         const active = currentTab;
-        $$(".dash-side-link[data-tab]").forEach(b => b.classList.toggle("active", b.dataset["tab"] === active));
+        syncDashboardNavigation(active);
         if (sidebarToggleLabel) sidebarToggleLabel.textContent = tabById.get(active)!.label;
     } else if (reloadTab) {
         void activateTab(reloadTab, false);
@@ -263,6 +284,7 @@ function buildSidebar(tabs: TabInfo[]): void {
 
     const list = document.createElement("div");
     list.className = "dash-side-list";
+    list.id = DASH_SIDE_LIST_ID;
     side.appendChild(list);
 
     const distinctGroups = new Set(tabs.map(t => t.group ?? "__none__"));
@@ -307,7 +329,9 @@ function makeStudioLink(className: string): HTMLAnchorElement {
 function makeBurgerTab(t: TabInfo, close: () => void): HTMLButtonElement {
     const b = document.createElement("button");
     b.type = "button";
-    b.className = "site-account-item" + (t.id === currentTab ? " active" : "");
+    const current = t.id === currentTab;
+    b.className = "site-account-item" + (current ? " active" : "");
+    if (current) b.setAttribute("aria-current", "page");
     b.textContent = t.label;
     b.addEventListener("click", () => { close(); void activateTab(t.id); });
     return b;
@@ -340,6 +364,8 @@ function buildBurgerTabItems(close: () => void): HTMLElement[] {
         const header = document.createElement("button");
         header.type = "button";
         header.className = "site-burger-group";
+        burgerGroupId += 1;
+        header.id = `site-burger-group-${burgerGroupId}`;
         const label = document.createElement("span");
         label.textContent = g;
         const chevron = document.createElement("span");
@@ -349,14 +375,26 @@ function buildBurgerTabItems(close: () => void): HTMLElement[] {
 
         const list = document.createElement("div");
         list.className = "site-burger-group-list";
+        list.id = `${header.id}-list`;
+        list.setAttribute("role", "group");
+        list.setAttribute("aria-labelledby", header.id);
+        header.setAttribute("aria-controls", list.id);
         for (const t of tabs) list.appendChild(makeBurgerTab(t, close));
 
-        if (tabs.some(t => t.id === currentTab)) section.classList.add("open");
+        const startsOpen = tabs.some(t => t.id === currentTab);
+        section.classList.toggle("open", startsOpen);
+        header.setAttribute("aria-expanded", String(startsOpen));
         header.addEventListener("click", () => {
             const wasOpen = section.classList.contains("open");
             section.parentElement?.querySelectorAll(".site-burger-section.open")
-                .forEach(s => s.classList.remove("open"));
-            if (!wasOpen) section.classList.add("open");
+                .forEach(s => {
+                    s.classList.remove("open");
+                    s.querySelector<HTMLElement>(".site-burger-group")?.setAttribute("aria-expanded", "false");
+                });
+            if (!wasOpen) {
+                section.classList.add("open");
+                header.setAttribute("aria-expanded", "true");
+            }
         });
 
         section.append(header, list);

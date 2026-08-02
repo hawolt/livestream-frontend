@@ -1,8 +1,74 @@
 import type { AccountSettings } from "../../api.ts";
+import { copyText } from "../../clipboard.ts";
 import { $ } from "../dom.ts";
 import { authFetch, getMe, setToken } from "../session.ts";
 
 let usernameCooldownRemaining = 0;
+let activationGeneration = 0;
+let settingsLoadRevision = 0;
+let settingsLoaded = false;
+let active = false;
+const operationRevisions = new Map<string, number>();
+const loadingControlStates = new Map<SettingsControl, boolean>();
+
+type SettingsControl = HTMLButtonElement | HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement;
+
+interface SettingsOperation {
+    key: string;
+    generation: number;
+    revision: number;
+}
+
+function isCurrentActivation(generation: number): boolean {
+    return active && generation === activationGeneration;
+}
+
+function beginOperation(key: string): SettingsOperation {
+    const revision = (operationRevisions.get(key) ?? 0) + 1;
+    operationRevisions.set(key, revision);
+    return { key, generation: activationGeneration, revision };
+}
+
+function isCurrentOperation(operation: SettingsOperation): boolean {
+    return isCurrentActivation(operation.generation)
+        && operationRevisions.get(operation.key) === operation.revision;
+}
+
+function setSettingsLoading(loading: boolean): void {
+    const pane = $("pane-settings");
+    pane.setAttribute("aria-busy", String(loading));
+    if (loading) {
+        if (loadingControlStates.size === 0) {
+            pane.querySelectorAll<SettingsControl>("button, input, select, textarea").forEach(control => {
+                loadingControlStates.set(control, control.disabled);
+            });
+        }
+        loadingControlStates.forEach((_disabled, control) => {
+            if (control.isConnected) control.disabled = true;
+        });
+        return;
+    }
+    loadingControlStates.forEach((disabled, control) => {
+        if (control.isConnected) control.disabled = disabled;
+    });
+    loadingControlStates.clear();
+}
+
+function markSettingsLoadFailed(error: unknown): void {
+    $("pane-settings").setAttribute("aria-busy", "false");
+    const saved = $("st-saved");
+    saved.textContent = error instanceof Error ? error.message : String(error);
+    saved.style.color = "var(--red)";
+}
+
+function invalidateSettingsLoads(): void {
+    settingsLoadRevision += 1;
+    refreshSettingsIfActive();
+}
+
+function refreshSettingsIfActive(): void {
+    if (active) void loadSettings(activationGeneration);
+}
 
 function updateUsernameSaveState(): void {
     const saveBtn = document.getElementById("btn-username-save") as HTMLButtonElement | null;
@@ -28,21 +94,33 @@ function formatUsernameHint(s: AccountSettings): void {
     updateUsernameSaveState();
 }
 
-async function loadSettings(): Promise<void> {
+async function loadSettings(generation = activationGeneration): Promise<void> {
+    if (!isCurrentActivation(generation)) return;
+    const revision = ++settingsLoadRevision;
+    setSettingsLoading(true);
     try {
         const s = await authFetch<AccountSettings>("/api/settings");
+        if (!isCurrentActivation(generation) || revision !== settingsLoadRevision) return;
         ($("st-email") as HTMLInputElement).value = s.email ?? "";
         const banner = document.getElementById("settings-verify-banner");
         if (banner) banner.style.display = s.emailVerified === false ? "" : "none";
         applyChatColor(s.chatColor);
-        applyChatColorAllowed(s.chatColorAllowed !== false);
         const usernameCurrent = document.getElementById("st-username-current") as HTMLInputElement | null;
         if (usernameCurrent) usernameCurrent.value = s.username ?? getMe()?.username ?? "";
-        formatUsernameHint(s);
         renderBotCard(typeof s.chatBotToken === "string" ? s.chatBotToken : null);
         const liveNotify = document.getElementById("st-live-notify") as HTMLInputElement | null;
         if (liveNotify) liveNotify.checked = s.liveNotify !== false;
-    } catch { }
+        settingsLoaded = true;
+        setSettingsLoading(false);
+        applyChatColorAllowed(s.chatColorAllowed !== false);
+        formatUsernameHint(s);
+        const saved = $("st-saved");
+        if (saved.style.color === "var(--red)") saved.textContent = "";
+    } catch (error) {
+        if (!isCurrentActivation(generation) || revision !== settingsLoadRevision) return;
+        if (settingsLoaded) setSettingsLoading(false);
+        markSettingsLoadFailed(error);
+    }
 }
 
 function maskToken(t: string): string {
@@ -80,10 +158,10 @@ function renderBotCard(token: string | null): void {
     copyBtn.className = "btn btn-sm";
     copyBtn.textContent = "Copy";
     copyBtn.addEventListener("click", () => {
-        void navigator.clipboard.writeText(token).then(() => {
-            copyBtn.textContent = "Copied";
+        void copyText(token).then(copied => {
+            copyBtn.textContent = copied ? "Copied" : "Failed";
             setTimeout(() => { copyBtn.textContent = "Copy"; }, 1200);
-        }).catch(() => { copyBtn.textContent = "Failed"; });
+        });
     });
     const rotateBtn = document.createElement("button");
     rotateBtn.className = "btn btn-sm";
@@ -108,13 +186,16 @@ function renderBotCard(token: string | null): void {
 
 async function rotateBotToken(btn: HTMLButtonElement, confirmFirst: boolean): Promise<void> {
     if (confirmFirst && !confirm("Rotate the bot token? Connected bots are disconnected within about 90 seconds and the old token stops working.")) return;
+    const operation = beginOperation("bot-token");
     btn.disabled = true;
     try {
         const res = await authFetch<{ chatBotToken: string }>("/api/settings/chat-bot-token/rotate", { method: "POST" });
-        renderBotCard(res.chatBotToken);
+        if (isCurrentOperation(operation)) renderBotCard(res.chatBotToken);
+        invalidateSettingsLoads();
     } catch (e) {
-        alert("Failed: " + (e instanceof Error ? e.message : String(e)));
-        btn.disabled = false;
+        if (isCurrentOperation(operation)) alert("Failed: " + (e instanceof Error ? e.message : String(e)));
+    } finally {
+        if (isCurrentOperation(operation)) btn.disabled = false;
     }
 }
 
@@ -157,27 +238,35 @@ export function init(): void {
     document.getElementById("btn-resend-verify")?.addEventListener("click", async () => {
         const btn    = document.getElementById("btn-resend-verify") as HTMLButtonElement;
         const result = document.getElementById("resend-result")!;
+        const operation = beginOperation("resend-verification");
         btn.disabled = true;
         result.textContent = "Sending…";
         result.style.color = "var(--muted)";
         try {
             await authFetch("/api/auth/resend-verification", { method: "POST", body: "{}" });
+            if (!isCurrentOperation(operation)) return;
             result.textContent = "Verification email sent, check your inbox.";
             result.style.color = "var(--green)";
         } catch (e) {
+            if (!isCurrentOperation(operation)) return;
             const msg = e instanceof Error ? e.message : String(e);
             result.textContent = msg;
             result.style.color = msg.toLowerCase().includes("wait") ? "var(--muted)" : "var(--red)";
-        } finally { btn.disabled = false; }
+        } finally {
+            if (isCurrentOperation(operation)) btn.disabled = false;
+        }
     });
 
     document.getElementById("settings-account-form")?.addEventListener("submit", async (e) => {
         e.preventDefault();
+        const operation = beginOperation("account");
         const email = ($("st-email") as HTMLInputElement).value.trim();
         const body: Record<string, string> = { email };
         try {
             const res = await authFetch<{ ok: boolean; emailVerified?: boolean; message?: string }>(
                 "/api/settings", { method: "PUT", body: JSON.stringify(body) });
+            invalidateSettingsLoads();
+            if (!isCurrentOperation(operation)) return;
             const saved = $("st-saved");
 
             if (res.emailVerified === false) {
@@ -187,8 +276,12 @@ export function init(): void {
             } else {
                 saved.textContent = "Saved";
             }
-            setTimeout(() => { saved.textContent = ""; }, 4000);
-        } catch (err) { alert(`Save failed: ${err}`); }
+            window.setTimeout(() => {
+                if (isCurrentOperation(operation)) saved.textContent = "";
+            }, 4000);
+        } catch (err) {
+            if (isCurrentOperation(operation)) alert(`Save failed: ${err}`);
+        }
     });
 
     document.getElementById("st-chat-color")?.addEventListener("input", syncColorPreview);
@@ -197,30 +290,46 @@ export function init(): void {
     document.getElementById("st-live-notify")?.addEventListener("change", async (e) => {
         const cb = e.target as HTMLInputElement;
         const saved = document.getElementById("st-live-notify-saved");
+        const operation = beginOperation("live-notify");
         cb.disabled = true;
         try {
             await authFetch("/api/settings/live-notify", { method: "PUT", body: JSON.stringify({ enabled: cb.checked }) });
-            if (saved) { saved.textContent = "Saved"; saved.style.color = "var(--success)"; }
+            const current = isCurrentOperation(operation);
+            if (current) {
+                cb.disabled = false;
+                if (saved) { saved.textContent = "Saved"; saved.style.color = "var(--success)"; }
+            }
+            invalidateSettingsLoads();
+            if (!current) return;
         } catch (err) {
+            if (!isCurrentOperation(operation)) return;
             cb.checked = !cb.checked;
             const msg = err instanceof Error ? err.message : String(err);
             if (saved) { saved.textContent = msg; saved.style.color = "var(--red)"; }
         }
-        cb.disabled = false;
-        if (saved) setTimeout(() => { saved.textContent = ""; }, 3000);
+        if (!isCurrentOperation(operation)) return;
+        if (saved) window.setTimeout(() => {
+            if (isCurrentOperation(operation)) saved.textContent = "";
+        }, 3000);
     });
 
     async function saveChatColor(color: string | null): Promise<void> {
         const saved = document.getElementById("st-color-saved");
+        const operation = beginOperation("chat-color");
         try {
             await authFetch("/api/settings/chat-color", { method: "PUT", body: JSON.stringify({ color: color ?? "" }) });
+            invalidateSettingsLoads();
+            if (!isCurrentOperation(operation)) return;
             if (color === null) applyChatColor(null);
             if (saved) { saved.textContent = color ? "Saved" : "Reset to default"; saved.style.color = "var(--success)"; }
         } catch (err) {
+            if (!isCurrentOperation(operation)) return;
             const msg = err instanceof Error ? err.message : String(err);
             if (saved) { saved.textContent = msg; saved.style.color = "var(--red)"; }
         }
-        if (saved) setTimeout(() => { saved.textContent = ""; }, 3000);
+        if (saved) window.setTimeout(() => {
+            if (isCurrentOperation(operation)) saved.textContent = "";
+        }, 3000);
     }
 
     document.getElementById("settings-color-form")?.addEventListener("submit", (e) => {
@@ -231,6 +340,7 @@ export function init(): void {
 
     document.getElementById("settings-username-form")?.addEventListener("submit", async (e) => {
         e.preventDefault();
+        const operation = beginOperation("username");
         const username = ($("st-username-new") as HTMLInputElement).value.trim();
         const password = ($("st-username-password") as HTMLInputElement).value;
         const status   = $("st-username-saved");
@@ -245,15 +355,19 @@ export function init(): void {
             setToken(res.token);
             const me = getMe();
             if (me) me.username = res.username;
+            invalidateSettingsLoads();
+            if (!isCurrentOperation(operation)) return;
             ($("st-username-current") as HTMLInputElement).value = res.username;
             ($("st-username-new") as HTMLInputElement).value = "";
             ($("st-username-password") as HTMLInputElement).value = "";
             updateUsernameSaveState();
             status.textContent = "Saved";
             status.style.color = "var(--success)";
-            setTimeout(() => { status.textContent = ""; }, 2500);
-            void loadSettings();
+            window.setTimeout(() => {
+                if (isCurrentOperation(operation)) status.textContent = "";
+            }, 2500);
         } catch (err) {
+            if (!isCurrentOperation(operation)) return;
             const msg    = err instanceof Error ? err.message : String(err);
             const status_ = (err as { status?: number }).status;
             status.textContent = msg;
@@ -263,6 +377,7 @@ export function init(): void {
 
     document.getElementById("settings-password-form")?.addEventListener("submit", async (e) => {
         e.preventDefault();
+        const operation = beginOperation("password");
         const current = ($("st-pw-current") as HTMLInputElement).value;
         const next    = ($("st-pw-new") as HTMLInputElement).value;
         const confirmPw = ($("st-pw-confirm") as HTMLInputElement).value;
@@ -273,16 +388,33 @@ export function init(): void {
             if (res.token) {
                 setToken(res.token);
             }
+            if (!isCurrentOperation(operation)) return;
             ($("st-pw-current") as HTMLInputElement).value = "";
             ($("st-pw-new") as HTMLInputElement).value = "";
             ($("st-pw-confirm") as HTMLInputElement).value = "";
             const saved = $("st-pw-saved");
             saved.textContent = "Password changed";
-            setTimeout(() => { saved.textContent = ""; }, 2500);
-        } catch (err) { alert(`Failed: ${err}`); }
+            window.setTimeout(() => {
+                if (isCurrentOperation(operation)) saved.textContent = "";
+            }, 2500);
+        } catch (err) {
+            if (isCurrentOperation(operation)) alert(`Failed: ${err}`);
+        }
     });
 }
 
 export function activate(): void {
-    void loadSettings();
+    active = true;
+    const generation = ++activationGeneration;
+    const resend = document.getElementById("btn-resend-verify") as HTMLButtonElement | null;
+    const liveNotify = document.getElementById("st-live-notify") as HTMLInputElement | null;
+    if (resend) resend.disabled = false;
+    if (liveNotify) liveNotify.disabled = false;
+    document.querySelectorAll<HTMLButtonElement>("#st-bot-body button").forEach(button => { button.disabled = false; });
+    void loadSettings(generation);
+}
+
+export function deactivate(): void {
+    active = false;
+    activationGeneration += 1;
 }

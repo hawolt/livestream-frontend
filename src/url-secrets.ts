@@ -7,11 +7,24 @@ function relativeUrl(url: URL): string {
     return `${url.pathname}${url.search}${url.hash}`;
 }
 
-export function scrubQueryToken(href: string): ScrubbedUrlToken {
+function withoutFragmentToken(hash: string): string {
+    return hash.slice(1)
+        .split("&")
+        .filter(part => !new URLSearchParams(part).has("token"))
+        .join("&");
+}
+
+export function scrubOneShotToken(href: string): ScrubbedUrlToken {
     const url = new URL(href);
-    const token = url.searchParams.getAll("token").find(value => value.length > 0) ?? "";
-    if (!url.searchParams.has("token")) return { token, replacement: null };
+    const fragmentParams = new URLSearchParams(url.hash.slice(1));
+    const fragmentToken = fragmentParams.getAll("token").find(value => value.length > 0) ?? "";
+    const queryToken = url.searchParams.getAll("token").find(value => value.length > 0) ?? "";
+    const token = fragmentToken || queryToken;
+    const hasFragmentToken = fragmentParams.has("token");
+    const hasTokenParameter = hasFragmentToken || url.searchParams.has("token");
+    if (!hasTokenParameter) return { token, replacement: null };
     url.searchParams.delete("token");
+    if (hasFragmentToken) url.hash = withoutFragmentToken(url.hash);
     return { token, replacement: relativeUrl(url) };
 }
 

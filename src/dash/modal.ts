@@ -1,6 +1,9 @@
 import { $ } from "./dom.ts";
+import { closeDismissibleSurface, openDismissibleSurface } from "../dismissible-surface.ts";
+import { inertSiblings, restoreInertSiblings, type InertSiblingState } from "../inert-siblings.ts";
 
 let modalReturnFocus: HTMLElement | null = null;
+let modalBackgroundState: InertSiblingState[] = [];
 
 function modalFocusables(): HTMLElement[] {
     return Array.from($("modal").querySelectorAll<HTMLElement>(
@@ -10,11 +13,6 @@ function modalFocusables(): HTMLElement[] {
 
 function onModalKeyDown(e: KeyboardEvent): void {
     if (e.defaultPrevented) return;
-    if (e.key === "Escape") {
-        e.preventDefault();
-        closeModal();
-        return;
-    }
     if (e.key !== "Tab") return;
     const focusables = modalFocusables();
     if (!focusables.length) {
@@ -40,12 +38,14 @@ export function openModal(title: string, body: string, footer = ""): void {
     const modal = $("modal");
     if (!modal.classList.contains("open")) {
         modalReturnFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+        modalBackgroundState = inertSiblings(modal);
     }
     $("modal-title").textContent = title;
     $("modal-body").innerHTML    = body;
     $("modal-foot").innerHTML    = footer;
     modal.classList.add("open");
     modal.setAttribute("aria-hidden", "false");
+    openDismissibleSurface(modal, closeModal);
     document.removeEventListener("keydown", onModalKeyDown);
     document.addEventListener("keydown", onModalKeyDown);
     requestAnimationFrame(() => {
@@ -61,6 +61,9 @@ export function closeModal(): void {
     if (!modal.classList.contains("open")) return;
     modal.classList.remove("open");
     modal.setAttribute("aria-hidden", "true");
+    closeDismissibleSurface(modal);
+    restoreInertSiblings(modalBackgroundState);
+    modalBackgroundState = [];
     document.removeEventListener("keydown", onModalKeyDown);
     const returnFocus = modalReturnFocus;
     modalReturnFocus = null;

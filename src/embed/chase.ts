@@ -1,7 +1,7 @@
 import { video } from "./dom.ts";
 import { ctx, isCurrent } from "./context.ts";
 import { SEEK_GAP_S, START_BEHIND_S } from "./constants.ts";
-import { resetRetryBackoff, setPlaying } from "./lifecycle.ts";
+import { resetRetryBackoff, restartAfterFailure, setPlaying } from "./lifecycle.ts";
 
 let chaseTimer: number | null = null;
 
@@ -26,10 +26,14 @@ export function startChase(g: number): void {
         if (!ctx.startedPlayback) {
             if (edge - b.start(b.length - 1) < START_BEHIND_S) return;
             ctx.startedPlayback = true;
-            resetRetryBackoff();
             video.currentTime = edge - START_BEHIND_S;
-            void video.play().catch(() => {});
-            setPlaying();
+            void video.play().then(() => {
+                if (!isCurrent(g)) return;
+                resetRetryBackoff();
+                setPlaying();
+            }).catch(() => {
+                if (isCurrent(g)) restartAfterFailure(g);
+            });
             return;
         }
         const gap = edge - video.currentTime;

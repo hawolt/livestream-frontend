@@ -1,4 +1,4 @@
-import { startChat } from "./live-chat";
+import { resumeChat, startChat, suspendChat } from "./live-chat.ts";
 import { type LiveChannelInfo } from "./api.ts";
 import { initSiteNav } from "./nav.ts";
 import { setCaptchaAnchor, warmCaptcha } from "./captcha.ts";
@@ -30,7 +30,7 @@ import { loadProfile, offlineArtUrl } from "./profile-card.ts";
 import { canUseNativeHLS } from "./live/player/hls.ts";
 import { openLoginModal, wireLoginModal } from "./live/login-modal.ts";
 import { initFollow } from "./live/follow.ts";
-import { connectViewcount } from "./live/stream-info.ts";
+import { connectViewcount, resumeViewcount, suspendViewcount } from "./live/stream-info.ts";
 import { openProfileFromUser } from "./chat/panels.ts";
 
 const chatPopout = new URLSearchParams(location.search).get("chat") === "popout";
@@ -47,10 +47,15 @@ window.addEventListener("pagehide", () => {
     bootGeneration += 1;
     bootRequest?.abort();
     bootRequest = null;
+    suspendChat();
+    if (!chatPopout) suspendViewcount();
 });
 
 window.addEventListener("pageshow", (event) => {
-    if ((event as PageTransitionEvent).persisted && !bootCompleted && !ctx.terminal) void boot();
+    if (!(event as PageTransitionEvent).persisted) return;
+    resumeChat();
+    if (!chatPopout) resumeViewcount();
+    if (!bootCompleted && !ctx.terminal) void boot();
 });
 
 async function boot(): Promise<void> {

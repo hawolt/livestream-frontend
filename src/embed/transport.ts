@@ -1,19 +1,21 @@
 import { video } from "./dom.ts";
-import { ctx, isCurrent } from "./context.ts";
+import { ctx, isCurrent, track } from "./context.ts";
 import { HLS_BEACON_INTERVAL_MS } from "./constants.ts";
 import { captchaQuery, getCaptchaToken } from "../captcha.ts";
 import { getViewerId } from "../player-shared/viewer-id.ts";
 import { mediaWsUrl as sharedMediaWsUrl } from "../player-shared/ws-url.ts";
 import { beginTransport, enterTerminal, goOffline, resetRetryBackoff, restartAfterFailure, setPlaying } from "./lifecycle.ts";
 import { attachMediaSource, pump } from "./mse.ts";
+import { attachVideoFailureListeners } from "./health.ts";
 
 function mediaWsUrl(path: string): string {
     const proto = location.protocol === "https:" ? "wss" : "ws";
     return sharedMediaWsUrl(ctx.mediaBase, path, `${proto}://${location.host}`);
 }
 
-function sendHLSBeat(): void {
+function sendHLSBeat(g: number): void {
     void captchaQuery().then((tq) => {
+        if (!isCurrent(g)) return;
         const url = `${ctx.mediaBase}/hls/${encodeURIComponent(ctx.username)}/beat?id=${encodeURIComponent(getViewerId())}${tq}`;
         fetch(url, { method: "POST" }).catch(() => {});
     });
@@ -35,7 +37,7 @@ export function startHLSBeacon(g: number): void {
             stopHLSBeacon();
             return;
         }
-        sendHLSBeat();
+        sendHLSBeat(g);
     };
     beat();
     hlsBeaconTimer = window.setInterval(beat, HLS_BEACON_INTERVAL_MS);
@@ -64,6 +66,7 @@ function handleWSClose(g: number, ev: CloseEvent): void {
 }
 
 export function startWSTransport(g: number): void {
+    attachVideoFailureListeners(g);
     void captchaQuery().then((tq) => {
         if (!isCurrent(g)) return;
         const path = `/ws/live?u=${encodeURIComponent(ctx.username)}&viewer_id=${encodeURIComponent(getViewerId())}${tq}`;
@@ -82,6 +85,7 @@ export function startWSTransport(g: number): void {
                 if (codecs) attachMediaSource(g, codecs);
                 return;
             }
+            ctx.lastMediaArrivalAt = Date.now();
             ctx.appendQueue.push(ev.data as ArrayBuffer);
             pump(g);
         };
@@ -102,6 +106,7 @@ export function startWSTransport(g: number): void {
 
 export function startHLSTransport(g: number): void {
     const src = `${ctx.mediaBase}/hls/${encodeURIComponent(ctx.username)}/live.m3u8`;
+    attachVideoFailureListeners(g);
 
     const onPlaying = () => {
         if (!isCurrent(g)) return;
@@ -112,19 +117,10 @@ export function startHLSTransport(g: number): void {
         if (!isCurrent(g)) return;
         goOffline(g);
     };
-    const onError = () => {
-        if (!isCurrent(g)) return;
-        restartAfterFailure(g);
-    };
-
     video.addEventListener("playing", onPlaying);
     video.addEventListener("ended", onEnded);
-    video.addEventListener("error", onError);
-    ctx.hlsVideoCleanup = () => {
-        video.removeEventListener("playing", onPlaying);
-        video.removeEventListener("ended", onEnded);
-        video.removeEventListener("error", onError);
-    };
+    track(() => video.removeEventListener("playing", onPlaying));
+    track(() => video.removeEventListener("ended", onEnded));
 
     void getCaptchaToken().then(() => {
         if (!isCurrent(g)) return;

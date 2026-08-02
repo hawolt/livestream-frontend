@@ -1,8 +1,9 @@
 import { posterEl, stageEl, unmuteBtn, video } from "./dom.ts";
-import { ctx, isCurrent, nextGen, previewMode } from "./context.ts";
+import { ctx, isCurrent, nextGen, previewMode, runGenCleanup } from "./context.ts";
 import { PREVIEW_MESSAGE_TYPE, RETRY_MAX_MS, RETRY_MIN_MS, RETRY_MULT } from "./constants.ts";
 import { stopChase } from "./chase.ts";
 import { startHLSTransport, startWSTransport, stopHLSBeacon } from "./transport.ts";
+import { healthCheck, startHealthTimer, stopHealthTimer } from "./health.ts";
 
 function notifyPreview(state: "connecting" | "playing" | "unavailable"): void {
     if (!previewMode || window.parent === window) return;
@@ -75,8 +76,7 @@ export function showUnmute(show: boolean): void {
 }
 
 export function fullTeardown(): void {
-    ctx.hlsVideoCleanup?.();
-    ctx.hlsVideoCleanup = null;
+    runGenCleanup();
     stopChase();
     stopHLSBeacon();
     if (ctx.ws) {
@@ -115,33 +115,51 @@ export function fullTeardown(): void {
 
 export function setPlaying(): void {
     ctx.offline = false;
+    ctx.state = "playing";
+    ctx.lastStateChangeAt = Date.now();
+    ctx.lastProgressAt = Date.now();
+    ctx.lastObservedTime = video.currentTime;
     setPoster(null);
     showUnmute(video.muted || video.volume === 0);
     notifyPreview("playing");
 }
 
 export function goOffline(g: number): void {
+    if (!isCurrent(g)) return;
     if (!ctx.offline) resetRetryBackoff();
     ctx.offline = true;
+    const retryGeneration = nextGen();
     fullTeardown();
+    ctx.state = "offline";
+    ctx.lastStateChangeAt = Date.now();
     setPoster("Offline");
     notifyPreview("unavailable");
-    scheduleRestart(nextRetryDelay(), g);
+    scheduleRestart(nextRetryDelay(), retryGeneration);
 }
 
 export function restartAfterFailure(g: number): void {
     if (!isCurrent(g)) return;
+    const retryGeneration = nextGen();
     fullTeardown();
+    ctx.state = "retrying";
+    ctx.lastStateChangeAt = Date.now();
     setPoster(null);
     notifyPreview("connecting");
-    scheduleRestart(nextRetryDelay(), g);
+    scheduleRestart(nextRetryDelay(), retryGeneration);
 }
 
 export function beginTransport(): void {
     if (ctx.terminal || ctx.transportKind === "none") return;
+    startHealthTimer();
     clearRetryTimer();
     const g = nextGen();
     fullTeardown();
+    const now = Date.now();
+    ctx.state = "connecting";
+    ctx.lastStateChangeAt = now;
+    ctx.lastMediaArrivalAt = now;
+    ctx.lastProgressAt = now;
+    ctx.lastObservedTime = video.currentTime;
     notifyPreview("connecting");
     if (ctx.transportKind === "ws") startWSTransport(g);
     else if (ctx.transportKind === "hls") startHLSTransport(g);
@@ -152,6 +170,7 @@ export function enterTerminal(label: string): void {
     if (ctx.terminal) return;
     ctx.terminal = true;
     clearRetryTimer();
+    stopHealthTimer();
     nextGen();
     fullTeardown();
     setPoster(label);
@@ -181,9 +200,14 @@ export function wireUnmute(): void {
 }
 
 export function wirePageLifecycle(): void {
+    document.addEventListener("visibilitychange", () => {
+        if (document.visibilityState === "visible") healthCheck();
+    });
+    window.addEventListener("online", healthCheck);
     window.addEventListener("pagehide", () => {
         if (ctx.terminal) return;
         clearRetryTimer();
+        stopHealthTimer();
         nextGen();
         fullTeardown();
     });

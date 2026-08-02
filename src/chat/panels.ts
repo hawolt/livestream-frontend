@@ -2,16 +2,20 @@ import { ctx } from "./context.ts";
 import {
     helpBodyEl,
     helpBtnEl,
+    helpCloseEl,
     helpEl,
     helpFootEl,
     msgsEl,
     profileBodyEl,
     profileBtnEl,
+    profileCloseEl,
     profileEl,
     settingsBtnEl,
+    settingsCloseEl,
     settingsEl,
     timestampToggleEl,
     userlistBodyEl,
+    userlistCloseEl,
     userlistEl,
     usersBtnEl,
 } from "./dom.ts";
@@ -19,8 +23,109 @@ import { send } from "./connection.ts";
 import { buildBadges, makeBadge, type BadgeName } from "./badges.ts";
 import { memberDisplay, memberRankBucket, nickColor, USERLIST_GROUPS } from "./members.ts";
 import { loadProfile, renderProfileCard, type Profile } from "../profile-card.ts";
+import { closeDismissibleSurface, openDismissibleSurface } from "../dismissible-surface.ts";
+import { inertSiblings, restoreInertSiblings, type InertSiblingState } from "../inert-siblings.ts";
 
 export const TIMESTAMPS_KEY = "live-chat-timestamps";
+
+interface ChatPanel {
+    element: HTMLElement;
+    trigger: HTMLButtonElement;
+    close: HTMLButtonElement;
+    open: () => boolean;
+    setOpen: (open: boolean) => void;
+}
+
+interface PanelTransitionOptions {
+    focus?: boolean;
+    rememberFocus?: boolean;
+    restoreFocus?: boolean;
+}
+
+const chatMoreEl = document.getElementById("btn-chat-more") as HTMLButtonElement;
+const chatOverflowEl = document.getElementById("live-chat-overflow") as HTMLElement;
+const userlistPanel: ChatPanel = {
+    element: userlistEl,
+    trigger: usersBtnEl,
+    close: userlistCloseEl,
+    open: () => ctx.userlistOpen,
+    setOpen: open => { ctx.userlistOpen = open; },
+};
+const helpPanel: ChatPanel = {
+    element: helpEl,
+    trigger: helpBtnEl,
+    close: helpCloseEl,
+    open: () => ctx.helpOpen,
+    setOpen: open => { ctx.helpOpen = open; },
+};
+const settingsPanel: ChatPanel = {
+    element: settingsEl,
+    trigger: settingsBtnEl,
+    close: settingsCloseEl,
+    open: () => ctx.settingsOpen,
+    setOpen: open => { ctx.settingsOpen = open; },
+};
+const profilePanel: ChatPanel = {
+    element: profileEl,
+    trigger: profileBtnEl,
+    close: profileCloseEl,
+    open: () => ctx.profileOpen,
+    setOpen: open => { ctx.profileOpen = open; },
+};
+const chatPanels = [userlistPanel, helpPanel, settingsPanel, profilePanel];
+
+let activePanel: ChatPanel | null = null;
+let panelReturnFocus: HTMLElement | null = null;
+let panelInertState: InertSiblingState[] = [];
+
+function focusBeforePanel(): HTMLElement | null {
+    const active = document.activeElement;
+    if (!(active instanceof HTMLElement) || active === document.body) return chatMoreEl;
+    return chatOverflowEl.contains(active) ? chatMoreEl : active;
+}
+
+function updatePanelState(panel: ChatPanel, open: boolean): void {
+    panel.setOpen(open);
+    panel.trigger.classList.toggle("active", open);
+    panel.trigger.setAttribute("aria-expanded", String(open));
+    panel.element.hidden = !open;
+    if (!open) closeDismissibleSurface(panel.element);
+}
+
+function restorePanelBackground(): void {
+    restoreInertSiblings(panelInertState);
+    panelInertState = [];
+}
+
+function openPanel(panel: ChatPanel, options: PanelTransitionOptions): void {
+    if (options.rememberFocus && (!activePanel || panelReturnFocus === null)) panelReturnFocus = focusBeforePanel();
+    if (activePanel !== panel) {
+        for (const other of chatPanels) {
+            if (other !== panel) updatePanelState(other, false);
+        }
+        restorePanelBackground();
+        activePanel = panel;
+        panelInertState = inertSiblings(panel.element);
+    }
+    updatePanelState(panel, true);
+    openDismissibleSurface(panel.element, () => closePanel(panel, true));
+    const active = document.activeElement;
+    if (options.focus || (active instanceof HTMLElement && active.closest("[inert]"))) panel.close.focus();
+}
+
+function closePanel(panel: ChatPanel, restoreFocus: boolean): void {
+    updatePanelState(panel, false);
+    if (activePanel !== panel) return;
+    activePanel = null;
+    restorePanelBackground();
+    const returnFocus = panelReturnFocus;
+    panelReturnFocus = null;
+    if (!restoreFocus) return;
+    const target = returnFocus?.isConnected && returnFocus.offsetParent !== null && !returnFocus.closest("[inert]")
+        ? returnFocus
+        : chatMoreEl;
+    if (target.isConnected && target.offsetParent !== null && !target.closest("[inert]")) target.focus();
+}
 
 export function renderUserlist(): void {
     const byBucket = new Map<number, string[]>();
@@ -61,21 +166,19 @@ export function renderUserlist(): void {
     }
 }
 
-export function setUserlist(open: boolean): void {
-    ctx.userlistOpen = open;
-    usersBtnEl.classList.toggle("active", open);
-    userlistEl.hidden = !open;
-    if (open) {
-        setHelp(false);
-        setSettings(false);
-        setProfile(false);
-        renderUserlist();
-        send(`NAMES ${ctx.channel}`);
+export function setUserlist(open: boolean, options: PanelTransitionOptions = {}): void {
+    if (!open) {
+        closePanel(userlistPanel, options.restoreFocus === true);
+        return;
     }
+    openPanel(userlistPanel, options);
+    renderUserlist();
+    send(`NAMES ${ctx.channel}`);
 }
 
 export function toggleUserlist(): void {
-    setUserlist(!ctx.userlistOpen);
+    if (userlistPanel.open()) setUserlist(false, { restoreFocus: true });
+    else setUserlist(true, { focus: true, rememberFocus: true });
 }
 
 const HELP_COMMANDS: { group: string; badge?: BadgeName; items: [string, string][] }[] = [
@@ -143,35 +246,31 @@ export function buildHelp(): void {
     ctx.helpBuilt = true;
 }
 
-export function setHelp(open: boolean): void {
-    ctx.helpOpen = open;
-    helpBtnEl.classList.toggle("active", open);
-    helpEl.hidden = !open;
-    if (open) {
-        setUserlist(false);
-        setSettings(false);
-        setProfile(false);
-        if (!ctx.helpBuilt) buildHelp();
+export function setHelp(open: boolean, options: PanelTransitionOptions = {}): void {
+    if (!open) {
+        closePanel(helpPanel, options.restoreFocus === true);
+        return;
     }
+    openPanel(helpPanel, options);
+    if (!ctx.helpBuilt) buildHelp();
 }
 
 export function toggleHelp(): void {
-    setHelp(!ctx.helpOpen);
+    if (helpPanel.open()) setHelp(false, { restoreFocus: true });
+    else setHelp(true, { focus: true, rememberFocus: true });
 }
 
-export function setSettings(open: boolean): void {
-    ctx.settingsOpen = open;
-    settingsBtnEl.classList.toggle("active", open);
-    settingsEl.hidden = !open;
-    if (open) {
-        setUserlist(false);
-        setHelp(false);
-        setProfile(false);
+export function setSettings(open: boolean, options: PanelTransitionOptions = {}): void {
+    if (!open) {
+        closePanel(settingsPanel, options.restoreFocus === true);
+        return;
     }
+    openPanel(settingsPanel, options);
 }
 
 export function toggleSettings(): void {
-    setSettings(!ctx.settingsOpen);
+    if (settingsPanel.open()) setSettings(false, { restoreFocus: true });
+    else setSettings(true, { focus: true, rememberFocus: true });
 }
 
 let profileData: Profile | null = null;
@@ -210,36 +309,35 @@ function showProfileBody(): void {
     profileBodyEl.appendChild(empty);
 }
 
-export function setProfile(open: boolean): void {
-    ctx.profileOpen = open;
-    profileBtnEl.classList.toggle("active", open);
-    profileEl.hidden = !open;
-    if (!open) return;
-    setUserlist(false);
-    setHelp(false);
-    setSettings(false);
+export function setProfile(open: boolean, options: PanelTransitionOptions = {}): void {
+    if (!open) {
+        closePanel(profilePanel, options.restoreFocus === true);
+        return;
+    }
+    openPanel(profilePanel, options);
     showProfileBody();
 }
 
 export function toggleProfile(): void {
     profileUserControlled = true;
-    setProfile(!ctx.profileOpen);
+    if (profilePanel.open()) setProfile(false, { restoreFocus: true });
+    else setProfile(true, { focus: true, rememberFocus: true });
 }
 
 export function closeProfile(): void {
     profileUserControlled = true;
-    setProfile(false);
+    setProfile(false, { restoreFocus: true });
 }
 
 export function openProfileFromUser(): void {
     profileUserControlled = true;
-    setProfile(true);
+    setProfile(true, { focus: true, rememberFocus: true });
 }
 
 export function applyDefaultProfileVisibility(offline: boolean): void {
     if (profileDefaultDecided || profileUserControlled) return;
     profileDefaultDecided = true;
-    setProfile(offline);
+    setProfile(offline && !document.body.classList.contains("chat-popout"));
 }
 
 export function applyTimestampPref(on: boolean): void {

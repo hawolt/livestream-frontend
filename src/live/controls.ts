@@ -50,11 +50,18 @@ import { wirePageLifecycle } from "./player/lifecycle.ts";
 import { renderQualityMenu, wireQualityMenu } from "./quality-menu.ts";
 import { startFpsMeter, updateQuality } from "./stream-info.ts";
 import { wireSeekBar } from "./seekbar.ts";
+import { closeDismissibleSurface, openDismissibleSurface } from "../dismissible-surface.ts";
 
-function setChatOverflow(open: boolean): void {
+function setChatOverflow(open: boolean, restoreFocus = false): void {
     chatOverflow.hidden = !open;
     btnChatMore.classList.toggle("active", open);
     btnChatMore.setAttribute("aria-expanded", String(open));
+    if (open) {
+        openDismissibleSurface(chatOverflow, () => setChatOverflow(false, true));
+    } else {
+        closeDismissibleSurface(chatOverflow);
+        if (restoreFocus && btnChatMore.isConnected) btnChatMore.focus();
+    }
 }
 
 let chatOverflowWired = false;
@@ -62,17 +69,17 @@ let chatOverflowWired = false;
 export function wireChatOverflow(): void {
     if (chatOverflowWired) return;
     chatOverflowWired = true;
+    btnChatMore.removeAttribute("aria-haspopup");
+    btnChatMore.setAttribute("aria-expanded", "false");
+    btnChatMore.setAttribute("aria-controls", chatOverflow.id);
     btnChatMore.addEventListener("click", () => setChatOverflow(chatOverflow.hidden !== false));
-    chatOverflow.addEventListener("click", () => setChatOverflow(false));
+    chatOverflow.addEventListener("click", () => {
+        const restoreFocus = document.activeElement instanceof Node && chatOverflow.contains(document.activeElement);
+        setChatOverflow(false, restoreFocus);
+    });
     document.addEventListener("click", (ev) => {
         const target = ev.target as Node;
         if (!chatOverflow.hidden && !chatOverflow.contains(target) && !btnChatMore.contains(target)) setChatOverflow(false);
-    });
-    document.addEventListener("keydown", (ev) => {
-        if (ev.key !== "Escape" || chatOverflow.hidden) return;
-        ev.preventDefault();
-        setChatOverflow(false);
-        btnChatMore.focus();
     });
 }
 

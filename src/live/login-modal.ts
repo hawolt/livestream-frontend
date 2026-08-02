@@ -16,6 +16,8 @@ import { API_BASE } from "../api.ts";
 import { reconnectChatAfterLogin } from "../live-chat.ts";
 import { isPopoutMode } from "./layout.ts";
 import { canAutoFollow, initFollow } from "./follow.ts";
+import { closeDismissibleSurface, openDismissibleSurface } from "../dismissible-surface.ts";
+import { inertSiblings, restoreInertSiblings, type InertSiblingState } from "../inert-siblings.ts";
 
 export type LoginIntent = "follow" | "chat";
 
@@ -23,6 +25,7 @@ let loginIntent: LoginIntent = "follow";
 let loginModalWired = false;
 let loginRestoreFocus: HTMLElement | null = null;
 let loginAbort: AbortController | null = null;
+let loginBackgroundState: InertSiblingState[] = [];
 
 export function openLoginModal(intent: LoginIntent): void {
     loginIntent = intent;
@@ -31,8 +34,10 @@ export function openLoginModal(intent: LoginIntent): void {
     loginModalSignupEl.href = `/register?return=${encodeURIComponent(location.href)}`;
     if (loginModalEl.hidden) {
         loginRestoreFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+        loginBackgroundState = inertSiblings(loginModalEl);
     }
     loginModalEl.hidden = false;
+    openDismissibleSurface(loginModalEl, closeLoginModal);
     loginModalUserEl.focus();
 }
 
@@ -48,6 +53,9 @@ function closeLoginModal(): void {
     loginAbort = null;
     setLoginBusy(false);
     loginModalEl.hidden = true;
+    closeDismissibleSurface(loginModalEl);
+    restoreInertSiblings(loginBackgroundState);
+    loginBackgroundState = [];
     const restore = loginRestoreFocus;
     loginRestoreFocus = null;
     if (restore?.isConnected) restore.focus();
@@ -83,12 +91,7 @@ export function wireLoginModal(): void {
     });
     document.addEventListener("keydown", (e) => {
         if (loginModalEl.hidden) return;
-        if (e.key === "Escape") {
-            e.preventDefault();
-            closeLoginModal();
-        } else if (e.key === "Tab") {
-            trapLoginFocus(e);
-        }
+        if (e.key === "Tab") trapLoginFocus(e);
     });
     loginModalFormEl.addEventListener("submit", async (e) => {
         e.preventDefault();

@@ -65,6 +65,10 @@
         }
         .alert-card.enter { animation: alert-in .5s cubic-bezier(.34, 1.56, .64, 1) forwards; }
         .alert-card.exit { animation: alert-out .35s ease-in forwards; }
+        @media (prefers-reduced-motion: reduce) {
+            .alert-card.enter,
+            .alert-card.exit { animation-duration: .01ms; animation-timing-function: linear; }
+        }
     </style>
 </head>
 <body>

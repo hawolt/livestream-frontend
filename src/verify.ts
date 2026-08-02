@@ -1,9 +1,9 @@
 export {};
 import { API_BASE } from "./api.ts";
 import { initSiteNav } from "./nav.ts";
-import { scrubQueryToken } from "./url-secrets.ts";
+import { scrubOneShotToken } from "./url-secrets.ts";
 
-const tokenState = scrubQueryToken(location.href);
+const tokenState = scrubOneShotToken(location.href);
 const token = tokenState.token;
 if (tokenState.replacement) history.replaceState(history.state, "", tokenState.replacement);
 

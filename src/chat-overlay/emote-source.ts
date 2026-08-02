@@ -4,7 +4,7 @@ import { refreshEmoteRendering } from "./render.ts";
 
 async function loadEmoteSet(url: string, scope: ChatEmoteScope): Promise<void> {
     try {
-        const res = await fetch(url);
+        const res = await fetch(url, { referrerPolicy: "no-referrer" });
         if (!res.ok) return;
         const payload: any = await res.json();
         const list = scope === "channel" ? payload?.emote_set?.emotes : payload?.emotes;

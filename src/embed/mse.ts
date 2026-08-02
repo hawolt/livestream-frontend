@@ -1,5 +1,5 @@
 import { video } from "./dom.ts";
-import { ctx, isCurrent } from "./context.ts";
+import { ctx, isCurrent, track } from "./context.ts";
 import { PRUNE_KEEP_S } from "./constants.ts";
 import { restartAfterFailure } from "./lifecycle.ts";
 import { fallbackFromMSE } from "./transport.ts";
@@ -26,12 +26,19 @@ export function pump(g: number): void {
     } catch (e) {
         if (e instanceof DOMException && e.name === "QuotaExceededError") {
             ctx.appendQueue.unshift(chunk);
-            const b = video.buffered;
+            const b = ctx.sourceBuffer.buffered;
+            let recoveryStarted = false;
             if (b.length && ctx.sourceBuffer && !ctx.sourceBuffer.updating) {
+                const start = b.start(0);
+                const end = Math.min(b.end(0), Math.max(start + 1, video.currentTime - 5));
                 try {
-                    ctx.sourceBuffer.remove(0, Math.max(b.start(0) + 1, video.currentTime - 5));
+                    if (end > start) {
+                        ctx.sourceBuffer.remove(0, end);
+                        recoveryStarted = true;
+                    }
                 } catch {}
             }
+            if (!recoveryStarted) restartAfterFailure(g);
         } else {
             restartAfterFailure(g);
         }
@@ -39,6 +46,7 @@ export function pump(g: number): void {
 }
 
 export function attachMediaSource(g: number, codecs: string): void {
+    if (ctx.mediaSource) return;
     const mime = `video/mp4; codecs="${codecs}"`;
     if (!MediaSource.isTypeSupported(mime)) {
         fallbackFromMSE(g);
@@ -49,6 +57,9 @@ export function attachMediaSource(g: number, codecs: string): void {
     const url = URL.createObjectURL(ms);
     ctx.objectUrl = url;
     video.src = url;
+    const onMediaSourceFailure = () => {
+        if (isCurrent(g) && ctx.mediaSource === ms) restartAfterFailure(g);
+    };
     const onSourceOpen = () => {
         if (!isCurrent(g) || ctx.mediaSource !== ms) return;
         if (ctx.objectUrl) {
@@ -66,15 +77,34 @@ export function attachMediaSource(g: number, codecs: string): void {
             restartAfterFailure(g);
             return;
         }
-        sb.mode = "segments";
-        sb.addEventListener("updateend", () => {
+        ctx.sourceBuffer = sb;
+        try {
+            sb.mode = "segments";
+        } catch {
+            restartAfterFailure(g);
+            return;
+        }
+        const onUpdateEnd = () => {
             if (!isCurrent(g)) return;
             pruneBuffer();
             pump(g);
-        });
-        ctx.sourceBuffer = sb;
+        };
+        const onSourceBufferFailure = () => {
+            if (isCurrent(g) && ctx.sourceBuffer === sb) restartAfterFailure(g);
+        };
+        sb.addEventListener("updateend", onUpdateEnd);
+        sb.addEventListener("error", onSourceBufferFailure);
+        sb.addEventListener("abort", onSourceBufferFailure);
+        track(() => sb.removeEventListener("updateend", onUpdateEnd));
+        track(() => sb.removeEventListener("error", onSourceBufferFailure));
+        track(() => sb.removeEventListener("abort", onSourceBufferFailure));
         pump(g);
         startChase(g);
     };
     ms.addEventListener("sourceopen", onSourceOpen, { once: true });
+    ms.addEventListener("sourceclose", onMediaSourceFailure);
+    ms.addEventListener("sourceended", onMediaSourceFailure);
+    track(() => ms.removeEventListener("sourceopen", onSourceOpen));
+    track(() => ms.removeEventListener("sourceclose", onMediaSourceFailure));
+    track(() => ms.removeEventListener("sourceended", onMediaSourceFailure));
 }
