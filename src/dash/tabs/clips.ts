@@ -40,7 +40,7 @@ function clipCellHtml(clip: Clip): string {
     return `
         <div style="display:flex;align-items:center;gap:10px">
             ${thumbnailHtml(clip)}
-            <span>${title}</span>
+            <a href="${esc(clipPageUrl(clip))}" target="_blank" rel="noopener noreferrer" style="color:var(--text);font-weight:600">${title}</a>
         </div>`;
 }
 
