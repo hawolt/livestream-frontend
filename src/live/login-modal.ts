@@ -18,8 +18,9 @@ import { isPopoutMode } from "./layout.ts";
 import { canAutoFollow, initFollow } from "./follow.ts";
 import { closeDismissibleSurface, openDismissibleSurface } from "../dismissible-surface.ts";
 import { inertSiblings, restoreInertSiblings, type InertSiblingState } from "../inert-siblings.ts";
+import { openClipEditor } from "./clip/editor.ts";
 
-export type LoginIntent = "follow" | "chat";
+export type LoginIntent = "follow" | "chat" | "clip";
 
 let loginIntent: LoginIntent = "follow";
 let loginModalWired = false;
@@ -30,7 +31,11 @@ let loginBackgroundState: InertSiblingState[] = [];
 export function openLoginModal(intent: LoginIntent): void {
     loginIntent = intent;
     loginModalErrorEl.textContent = "";
-    loginModalTitleEl.textContent = intent === "follow" ? `Log in to follow ${ctx.displayUsername}` : "Log in to chat";
+    loginModalTitleEl.textContent = intent === "follow"
+        ? `Log in to follow ${ctx.displayUsername}`
+        : intent === "clip"
+        ? "Log in to create a clip"
+        : "Log in to chat";
     loginModalSignupEl.href = `/register?return=${encodeURIComponent(location.href)}`;
     if (loginModalEl.hidden) {
         loginRestoreFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
@@ -138,6 +143,7 @@ export function wireLoginModal(): void {
             reconnectChatAfterLogin();
             if (!isPopoutMode()) await initFollow();
             if (intent === "follow" && canAutoFollow()) followBtnEl.click();
+            if (intent === "clip") void openClipEditor();
         } catch (error) {
             if (!(error instanceof DOMException && error.name === "AbortError")) {
                 loginModalErrorEl.textContent = "Could not reach the login service. Check your connection and try again.";

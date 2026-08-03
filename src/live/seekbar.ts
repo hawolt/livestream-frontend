@@ -3,6 +3,7 @@ import { ctx } from "./player/context.ts";
 import { LIVE_EDGE_SNAP_S, SEEK_BAR_MIN_SPAN_S, START_BEHIND_S } from "./constants.ts";
 import { formatBehind } from "./format.ts";
 import { bufferedEnd, bufferedStart } from "./player/mse.ts";
+import { updateClipButtonVisibility } from "./clip/button.ts";
 
 let seekDragging = false;
 
@@ -11,6 +12,7 @@ export function resetSeekDrag(): void {
 }
 
 export function updateSeekBar(): void {
+    updateClipButtonVisibility();
     if (ctx.transportKind !== "ws") {
         seekBarEl.hidden = true;
         behindReadoutEl.hidden = true;

@@ -25,6 +25,7 @@ export const ctx = {
     startedOnce: false,
 
     behindLive: false,
+    frozen: false,
     quotaKeepS: PRUNE_KEEP_S,
     quotaFailStreak: 0,
 

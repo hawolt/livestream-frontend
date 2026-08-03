@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en" class="live-host">
+<head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/png" href="/static/img/favicon.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="robots" content="noindex" />
+    <title>Clip</title>
+    <link rel="stylesheet" href="/static/css/shared.css" />
+    <link rel="stylesheet" href="/static/css/site.css" />
+    <style>
+        .clip-page { max-width: 720px; margin: 0 auto; padding: 40px 24px 120px; }
+        .clip-page video {
+            width: 100%;
+            border-radius: var(--radius);
+            background: #000;
+            display: block;
+        }
+        .clip-page video[hidden] { display: none; }
+        .clip-page .clip-title { font-size: 20px; color: #fff; margin: 16px 0 4px; }
+        .clip-page .clip-meta {
+            font-size: 13px;
+            color: var(--muted);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .clip-page .clip-meta a { color: var(--green); text-decoration: none; }
+        .clip-page .clip-meta a:hover { text-decoration: underline; }
+        .clip-page .clip-state {
+            border: 1px solid var(--border);
+            background: var(--surface);
+            border-radius: var(--radius);
+            padding: 40px 20px;
+            text-align: center;
+            color: var(--muted);
+            font-size: 14px;
+        }
+        .clip-page .clip-state[hidden] { display: none; }
+        .clip-page .clip-body[hidden] { display: none; }
+    </style>
+</head>
+<body>
+<header class="site-nav">
+    <a class="site-brand" href="/">ITZon</a>
+    <nav class="site-links">
+        <a class="site-link" href="/" data-nav="browse">Browse</a>
+    </nav>
+    <div class="site-nav-right" id="site-nav-right"></div>
+</header>
+<div class="clip-page">
+    <div id="clip-state" class="clip-state" role="status" aria-live="polite">Loading clip...</div>
+    <div id="clip-body" class="clip-body" hidden>
+        <video id="clip-video" controls playsinline hidden></video>
+        <div class="clip-title" id="clip-title"></div>
+        <div class="clip-meta">
+            <a id="clip-channel-link" href="#"></a>
+            <span aria-hidden="true">&#183;</span>
+            <span id="clip-created"></span>
+        </div>
+    </div>
+</div>
+<script type="module" src="/clip.js"></script>
+</body>
+</html>

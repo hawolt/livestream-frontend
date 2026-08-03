@@ -3,7 +3,8 @@
 Frontend for the itzon.tv livestreaming site. It provides every public surface of the site:
 
 - a stream **explorer** with category browsing and hover previews
-- a **channel viewer** with low-latency playback, DVR rewind, and live chat
+- a **channel viewer** with low-latency playback, DVR rewind, live chat, and clip creation
+- a public **clip page** for playing back a created clip
 - an **embeddable player** for any channel
 - a transparent **OBS chat overlay**
 - user **auth pages** (login, register, email verify, password reset)
@@ -26,7 +27,7 @@ bunx tsc --noEmit
 
 `bun run build` runs two steps:
 
-- `build:pages` bundles each page entry (`explore`, `live`, `embed`, `chat-overlay`, `follow-alerts`, `user-login`, `register`, `verify`, `reset-password`, `legal`, `wiki`) to `public/<name>.js`
+- `build:pages` bundles each page entry (`explore`, `live`, `embed`, `chat-overlay`, `follow-alerts`, `user-login`, `register`, `verify`, `reset-password`, `legal`, `wiki`, `clip`) to `public/<name>.js`
 - `build:dash` bundles `src/dashboard.ts` to `public/dash/` with code splitting, so tab modules load on demand
 
 Build outputs (`public/*.js`, `public/dash/`) are gitignored; a fresh checkout has no servable bundles until the build runs. Both build steps delete their previous output first, so stale bundles never accumulate.
@@ -60,6 +61,7 @@ Build outputs (`public/*.js`, `public/dash/`) are gitignored; a fresh checkout h
 | Dashboard | `src/dashboard.ts` | `dashboard.html` | Tab shell at `/dashboard/<tab>`; tabs in `src/dash/tabs/` |
 | API docs | `src/wiki.ts` | `wiki.html` | Hash-routed topic sections with a generated sidebar |
 | Legal | `src/legal.ts` | `terms.html`, `privacy.html`, `impressum.html` | Static pages, navbar only |
+| Clip page | `src/clip.ts` | `clip.html` | `/clip/<id>`: public clip playback page, polls while processing |
 
 The dashboard health tabs embed a `/details` telemetry page in an iframe. That page is not part of this repository; production deployments provide it separately, and without it those tabs show their loading state indefinitely.
 

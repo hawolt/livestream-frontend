@@ -6,6 +6,7 @@ import {
     btnChatSide,
     btnChatToggle,
     btnCinema,
+    btnClip,
     btnFullscreen,
     btnLayoutToggle,
     btnMute,
@@ -27,7 +28,8 @@ import {
     START_BEHIND_S,
     VOLUME_KEY,
 } from "./constants.ts";
-import { ICON_CINEMA, ICON_FULLSCREEN, ICON_MUTE, ICON_PAUSE, ICON_PLAY, ICON_VOLUME, ICON_VOLUME_LOW } from "./icons.ts";
+import { ICON_CINEMA, ICON_CLIP, ICON_FULLSCREEN, ICON_MUTE, ICON_PAUSE, ICON_PLAY, ICON_VOLUME, ICON_VOLUME_LOW } from "./icons.ts";
+import { wireClipButton } from "./clip/button.ts";
 import { bufferedEnd } from "./player/mse.ts";
 import { healthRestart } from "./player/health.ts";
 import { cycleLayout, fitChat, setChatCollapsed, syncLayout, toggleChat, wireLayoutQuery } from "./layout.ts";
@@ -162,6 +164,10 @@ export function wireControls(): void {
     btnCinema.innerHTML = ICON_CINEMA;
     btnCinema.setAttribute("aria-label", "Cinema mode");
     btnCinema.title = "Cinema mode";
+    btnClip.innerHTML = ICON_CLIP;
+    btnClip.setAttribute("aria-label", "Clip");
+    btnClip.title = "Clip";
+    wireClipButton();
     wireSeekBar();
     wireVideoClickToPause();
     wireQualityMenu();

@@ -509,6 +509,122 @@
             cursor: pointer;
         }
         .login-modal-close:hover { color: var(--text); }
+        #btn-clip[hidden] { display: none; }
+        .clip-editor {
+            position: absolute;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            z-index: 60;
+            display: flex;
+            justify-content: center;
+            padding: 0 16px 16px;
+        }
+        .clip-editor[hidden] { display: none; }
+        .clip-editor-box {
+            position: relative;
+            width: 100%;
+            max-width: 480px;
+            max-height: 70%;
+            overflow-y: auto;
+            background: var(--bg-elev, #1a1a1a);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 24px 20px 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, .5);
+        }
+        .clip-editor-box h3 { margin: 0; font-size: 16px; color: var(--text); }
+        .clip-editor-close {
+            position: absolute;
+            top: 8px;
+            right: 10px;
+            background: none;
+            border: none;
+            color: var(--muted);
+            font-size: 22px;
+            line-height: 1;
+            cursor: pointer;
+        }
+        .clip-editor-close:hover { color: var(--text); }
+        .clip-editor-range { display: flex; flex-direction: column; gap: 6px; }
+        .clip-editor-range-track {
+            position: relative;
+            height: 14px;
+            display: flex;
+            align-items: center;
+            touch-action: none;
+        }
+        .clip-editor-range-track::before {
+            content: "";
+            position: absolute;
+            left: 0;
+            right: 0;
+            height: 4px;
+            border-radius: 2px;
+            background: rgba(255, 255, 255, .2);
+        }
+        .clip-editor-range-progress {
+            position: absolute;
+            top: 50%;
+            height: 4px;
+            margin-top: -2px;
+            border-radius: 2px;
+            background: var(--accent);
+        }
+        .clip-editor-range-handle {
+            position: absolute;
+            top: 50%;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: var(--text);
+            border: 2px solid var(--accent);
+            transform: translate(-50%, -50%);
+            cursor: pointer;
+            touch-action: none;
+        }
+        .clip-editor-duration {
+            font-size: 12px;
+            color: var(--muted);
+            font-variant-numeric: tabular-nums;
+        }
+        .clip-editor-form { display: flex; flex-direction: column; gap: 10px; }
+        .clip-editor-form input {
+            width: 100%;
+            padding: 9px 11px;
+            border-radius: 6px;
+            border: 1px solid var(--border);
+            background: var(--bg);
+            color: var(--text);
+            font-size: 14px;
+        }
+        .clip-editor-error { color: var(--red); font-size: 13px; min-height: 16px; }
+        .clip-editor-submit { width: 100%; }
+        .clip-editor-progress { display: flex; align-items: center; gap: 8px; }
+        .clip-editor-progress[hidden] { display: none; }
+        .clip-editor-progress::before {
+            content: "";
+            width: 14px;
+            height: 14px;
+            flex: 0 0 14px;
+            box-sizing: border-box;
+            border: 2px solid rgba(255, 255, 255, .25);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: live-poster-spin .8s linear infinite;
+        }
+        @media (prefers-reduced-motion: reduce) {
+            .clip-editor-progress::before { animation: none; }
+        }
+        .clip-editor-progress-label { font-size: 12px; color: var(--muted); }
+        .clip-editor-result { display: flex; flex-direction: column; gap: 10px; }
+        .clip-editor-result[hidden] { display: none; }
+        .clip-editor-result-status { font-size: 13px; color: var(--text); }
+        .clip-editor-result-row { display: flex; align-items: center; gap: 8px; }
+        .clip-editor-result-link { color: var(--accent); font-size: 13px; word-break: break-all; text-underline-offset: 3px; }
         #live-viewers {
             flex-shrink: 0;
             display: inline-flex;
@@ -1492,8 +1608,39 @@
                             <button id="btn-quality" type="button" class="live-quality-btn" aria-haspopup="true" aria-expanded="false" title="Quality" aria-label="Quality"></button>
                             <div class="live-quality-popup" id="live-quality-popup" hidden role="menu"></div>
                         </div>
+                        <button id="btn-clip" type="button" title="Clip" aria-label="Clip" hidden></button>
                         <button id="btn-cinema" type="button" title="Cinema mode" aria-label="Cinema mode"></button>
                         <button id="btn-fullscreen" type="button" title="Fullscreen" aria-label="Fullscreen"></button>
+                    </div>
+                </div>
+                <div id="clip-editor" class="clip-editor" role="dialog" aria-modal="true" aria-labelledby="clip-editor-heading" hidden>
+                    <div class="clip-editor-box" tabindex="-1">
+                        <button type="button" id="clip-editor-close" class="clip-editor-close" aria-label="Close">&times;</button>
+                        <h3 id="clip-editor-heading">Create clip</h3>
+                        <div class="clip-editor-range">
+                            <div class="clip-editor-range-track" id="clip-editor-range-track">
+                                <div class="clip-editor-range-progress" id="clip-editor-range-progress"></div>
+                                <div class="clip-editor-range-handle" id="clip-editor-range-start" role="slider" tabindex="0" aria-label="Clip start"></div>
+                                <div class="clip-editor-range-handle" id="clip-editor-range-end" role="slider" tabindex="0" aria-label="Clip end"></div>
+                            </div>
+                            <div class="clip-editor-duration" id="clip-editor-duration"></div>
+                        </div>
+                        <form id="clip-editor-form" class="clip-editor-form">
+                            <input id="clip-editor-title" type="text" maxlength="100" placeholder="Clip title" aria-label="Clip title" autocomplete="off" required />
+                            <div id="clip-editor-error" class="clip-editor-error" role="alert" aria-live="polite" aria-atomic="true"></div>
+                            <button type="submit" id="clip-editor-create" class="btn btn-primary clip-editor-submit">Create clip</button>
+                        </form>
+                        <div id="clip-editor-progress" class="clip-editor-progress" hidden role="status" aria-live="polite">
+                            <span id="clip-editor-progress-label"></span>
+                        </div>
+                        <div id="clip-editor-result" class="clip-editor-result" hidden>
+                            <div id="clip-editor-result-status" class="clip-editor-result-status" role="status" aria-live="polite"></div>
+                            <div class="clip-editor-result-row">
+                                <a id="clip-editor-result-link" class="clip-editor-result-link" href="#"></a>
+                                <button type="button" id="clip-editor-result-copy" class="btn btn-sm" hidden>Copy link</button>
+                            </div>
+                            <button type="button" id="clip-editor-retry" class="btn btn-sm" hidden>Try again</button>
+                        </div>
                     </div>
                 </div>
             </div>

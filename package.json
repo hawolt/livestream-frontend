@@ -5,7 +5,7 @@
   "scripts": {
     "clean": "bun scripts/clean-build.ts",
     "build": "bun run clean && bun run build:pages && bun run build:dash",
-    "build:pages": "bun build src/explore.ts src/live.ts src/embed.ts src/chat-overlay.ts src/follow-alerts.ts src/user-login.ts src/register.ts src/verify.ts src/reset-password.ts src/legal.ts src/wiki.ts --outdir public --entry-naming \"[name].[ext]\"",
+    "build:pages": "bun build src/explore.ts src/live.ts src/embed.ts src/chat-overlay.ts src/follow-alerts.ts src/user-login.ts src/register.ts src/verify.ts src/reset-password.ts src/legal.ts src/wiki.ts src/clip.ts --outdir public --entry-naming \"[name].[ext]\"",
     "build:dash": "bun build src/dashboard.ts --outdir public/dash --splitting",
     "test": "bun test",
     "typecheck": "tsc --noEmit",
