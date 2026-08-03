@@ -9,6 +9,7 @@ import {
     btnZoomResetEl,
     channelNameEl,
     errorEl,
+    formEl,
     loadBarFillEl,
     loadLabelEl,
     loadOverlayEl,
@@ -17,7 +18,12 @@ import {
     progressLabelEl,
     resultCopyEl,
     resultEl,
+    resultHeadingEl,
     resultLinkEl,
+    resultOpenEl,
+    resultPanelEl,
+    resultRetryEl,
+    resultRowEl,
     resultStatusEl,
     stateEl,
     stateTextEl,
@@ -25,7 +31,7 @@ import {
     titleInputEl,
     volumeEl,
 } from "./dom.ts";
-import { state } from "./context.ts";
+import { clipShareUrl, state } from "./context.ts";
 import { clipProcessingMessage } from "../clip-processing-message.ts";
 
 export function setChannelLabel(channel: string): void {
@@ -55,12 +61,18 @@ export function setLoadProgress(fraction: number, visible: boolean): void {
 export function render(): void {
     const phase = state.phase;
     const editable = phase === "ready";
+    const submitting = phase === "submitting";
     const mediaReady = phase !== "loading-media";
+    const showForm = phase !== "processing" && phase !== "done" && phase !== "create-failed";
+    const showProgress = phase === "processing";
+    const showResult = phase === "done" || phase === "create-failed";
 
+    formEl.hidden = !showForm;
     btnCreateEl.disabled = !editable;
+    btnCreateEl.textContent = submitting ? "Creating clip..." : "Create clip";
     errorEl.textContent = editable ? state.errorMessage : "";
-    progressEl.hidden = phase !== "submitting" && phase !== "processing";
-    resultEl.hidden = phase !== "done" && phase !== "create-failed";
+    progressEl.hidden = !showProgress;
+    resultEl.hidden = !showResult;
 
     timelineCardEl.classList.toggle("ce-disabled", !editable);
     btnSetInEl.disabled = !editable;
@@ -74,22 +86,31 @@ export function render(): void {
     btnMuteEl.disabled = !mediaReady;
     volumeEl.disabled = !mediaReady;
 
-    if (phase === "submitting") {
-        progressLabelEl.textContent = "Submitting clip...";
-    } else if (phase === "processing") {
+    if (showProgress) {
         progressLabelEl.textContent = clipProcessingMessage(state.jobPhase, state.jobQueuePosition, "Processing your clip...");
     }
 
     if (phase === "done") {
-        const url = state.clipCode ? `/${state.channel}/clip/${state.clipCode}` : "";
-        resultStatusEl.textContent = "Clip ready.";
-        resultLinkEl.href = url || "#";
-        resultLinkEl.textContent = url ? `${location.origin}${url}` : "";
+        const url = clipShareUrl();
+        resultPanelEl.classList.add("ce-result-panel-success");
+        resultPanelEl.classList.remove("ce-result-panel-error");
+        resultHeadingEl.textContent = "Clip ready";
+        resultStatusEl.textContent = "Anyone with the link can watch this clip.";
+        resultRowEl.hidden = false;
+        resultLinkEl.value = url;
+        resultOpenEl.href = url || "#";
+        resultOpenEl.hidden = !url;
         resultCopyEl.hidden = !url;
+        resultRetryEl.hidden = true;
     } else if (phase === "create-failed") {
+        resultPanelEl.classList.add("ce-result-panel-error");
+        resultPanelEl.classList.remove("ce-result-panel-success");
+        resultHeadingEl.textContent = "Clip failed";
         resultStatusEl.textContent = state.errorMessage || "Clip creation failed.";
-        resultLinkEl.href = "#";
-        resultLinkEl.textContent = "";
+        resultRowEl.hidden = true;
+        resultLinkEl.value = "";
+        resultOpenEl.href = "#";
         resultCopyEl.hidden = true;
+        resultRetryEl.hidden = false;
     }
 }

@@ -1,4 +1,4 @@
-import { formEl, titleInputEl } from "./dom.ts";
+import { formEl, resultRetryEl, titleInputEl } from "./dom.ts";
 import { PIN_RENEW_MS, state, TITLE_MAX_LEN } from "./context.ts";
 import { behindMsFromSelection } from "./behind.ts";
 import { createClip, releaseClipPin, renewClipPin } from "./pin-api.ts";
@@ -111,5 +111,16 @@ export function wireCreateForm(): void {
     formEl.addEventListener("submit", (ev) => {
         ev.preventDefault();
         void submitClip();
+    });
+}
+
+export function wireResultRetry(): void {
+    resultRetryEl.addEventListener("click", () => {
+        if (state.phase !== "create-failed") return;
+        state.phase = "ready";
+        state.submitted = false;
+        state.errorMessage = "";
+        if (state.pin) startPinRenewal();
+        render();
     });
 }

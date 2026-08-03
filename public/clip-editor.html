@@ -379,51 +379,117 @@
         .clip-editor-page .ce-form {
             display: flex;
             flex-direction: column;
-            gap: 10px;
-            max-width: 420px;
+            gap: 14px;
         }
-        .clip-editor-page .ce-form input {
+        .clip-editor-page .ce-form[hidden] { display: none; }
+        .clip-editor-page .ce-form-row {
+            display: flex;
+            align-items: flex-end;
+            gap: 14px;
+        }
+        .clip-editor-page .ce-title-field {
+            flex: 1;
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+        }
+        .clip-editor-page .ce-title-field input {
             width: 100%;
-            padding: 10px 12px;
+            height: 40px;
+            padding: 0 12px;
             border-radius: 6px;
             border: 1px solid var(--border);
             background: var(--bg);
             color: var(--text);
             font-size: 14px;
         }
-        .clip-editor-page .ce-error { color: var(--red); font-size: 13px; min-height: 16px; }
-        .clip-editor-page .ce-progress {
-            margin-top: 16px;
+        .clip-editor-page .ce-btn-create {
+            flex: 0 0 auto;
+            width: 168px;
+            height: 40px;
+            justify-content: center;
+        }
+        .clip-editor-page .ce-form-foot {
             display: flex;
+            align-items: baseline;
+            justify-content: space-between;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        .clip-editor-page .ce-duration-summary { font-size: 12.5px; color: var(--muted); }
+        .clip-editor-page .ce-error { color: var(--red); font-size: 13px; min-height: 16px; }
+
+        .clip-editor-page .ce-progress {
+            display: flex;
+            flex-direction: column;
             align-items: center;
-            gap: 8px;
+            justify-content: center;
+            gap: 12px;
+            padding: 30px 16px;
+            text-align: center;
         }
         .clip-editor-page .ce-progress[hidden] { display: none; }
-        .clip-editor-page .ce-progress::before {
-            content: "";
-            width: 14px;
-            height: 14px;
-            flex: 0 0 14px;
+        .clip-editor-page .ce-spinner {
+            width: 20px;
+            height: 20px;
             box-sizing: border-box;
-            border: 2px solid rgba(255, 255, 255, .25);
+            border: 2px solid rgba(255, 255, 255, .15);
             border-top-color: var(--accent);
             border-radius: 50%;
             animation: ce-spin .8s linear infinite;
         }
         @media (prefers-reduced-motion: reduce) {
-            .clip-editor-page .ce-progress::before { animation: none; }
+            .clip-editor-page .ce-spinner { animation: none; }
         }
         .clip-editor-page .ce-progress-label { font-size: 13px; color: var(--muted); }
-        .clip-editor-page .ce-result {
-            margin-top: 16px;
+
+        .clip-editor-page .ce-result[hidden] { display: none; }
+        .clip-editor-page .ce-result-panel {
             display: flex;
             flex-direction: column;
-            gap: 10px;
+            gap: 12px;
+            padding: 18px 20px;
+            border-radius: var(--radius);
         }
-        .clip-editor-page .ce-result[hidden] { display: none; }
-        .clip-editor-page .ce-result-status { font-size: 14px; color: var(--text); }
-        .clip-editor-page .ce-result-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-        .clip-editor-page .ce-result-link { color: var(--accent); font-size: 13px; word-break: break-all; text-underline-offset: 3px; }
+        .clip-editor-page .ce-result-panel-success {
+            background: rgba(74, 222, 128, .08);
+            border: 1px solid rgba(74, 222, 128, .3);
+        }
+        .clip-editor-page .ce-result-panel-error {
+            background: rgba(248, 113, 113, .08);
+            border: 1px solid rgba(248, 113, 113, .3);
+        }
+        .clip-editor-page .ce-result-heading { font-size: 15px; font-weight: 700; margin: 0; }
+        .clip-editor-page .ce-result-panel-success .ce-result-heading { color: var(--accent); }
+        .clip-editor-page .ce-result-panel-error .ce-result-heading { color: var(--red); }
+        .clip-editor-page .ce-result-status { font-size: 13px; color: var(--muted); margin: 0; }
+        .clip-editor-page .ce-result-row { display: flex; align-items: center; gap: 10px; }
+        .clip-editor-page .ce-result-row[hidden] { display: none; }
+        .clip-editor-page .ce-result-link {
+            flex: 1;
+            min-width: 0;
+            font-family: var(--font-mono);
+            font-size: 12.5px;
+            color: var(--accent);
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 9px 12px;
+            cursor: text;
+        }
+        .clip-editor-page .ce-result-link:focus { border-color: var(--accent); }
+        .clip-editor-page .ce-result-actions { display: flex; gap: 8px; flex: 0 0 auto; }
+        .clip-editor-page .ce-result-retry[hidden] { display: none; }
+        .clip-editor-page .ce-result-retry { align-self: flex-start; }
+
+        @media (max-width: 700px) {
+            .clip-editor-page .ce-form-row { flex-direction: column; align-items: stretch; }
+            .clip-editor-page .ce-btn-create { width: 100%; height: 44px; }
+            .clip-editor-page .ce-form-foot { flex-direction: column; align-items: flex-start; gap: 6px; }
+            .clip-editor-page .ce-result-row { flex-direction: column; align-items: stretch; }
+            .clip-editor-page .ce-result-actions { width: 100%; }
+            .clip-editor-page .ce-result-actions .btn { flex: 1; justify-content: center; }
+        }
 
         .clip-editor-page .ce-shortcuts {
             margin-top: 20px;
@@ -511,19 +577,35 @@
             </div>
         </div>
         <div class="ce-card ce-form-card">
-            <form id="ce-form" class="ce-form">
-                <input id="ce-title" type="text" maxlength="100" placeholder="Clip title" aria-label="Clip title" autocomplete="off" required disabled />
-                <div id="ce-error" class="ce-error" role="alert" aria-live="polite" aria-atomic="true"></div>
-                <button type="submit" id="ce-btn-create" class="btn btn-primary" disabled>Create clip</button>
+            <form id="ce-form" class="ce-form" novalidate>
+                <div class="ce-form-row">
+                    <label class="ce-title-field" for="ce-title">
+                        <span>Clip title</span>
+                        <input id="ce-title" type="text" maxlength="100" placeholder="Give this clip a title" autocomplete="off" required disabled />
+                    </label>
+                    <button type="submit" id="ce-btn-create" class="btn btn-primary ce-btn-create" disabled>Create clip</button>
+                </div>
+                <div class="ce-form-foot">
+                    <span id="ce-duration-summary" class="ce-duration-summary"></span>
+                    <span id="ce-error" class="ce-error" role="alert" aria-live="polite" aria-atomic="true"></span>
+                </div>
             </form>
             <div id="ce-progress" class="ce-progress" hidden role="status" aria-live="polite">
+                <span class="ce-spinner" aria-hidden="true"></span>
                 <span id="ce-progress-label" class="ce-progress-label"></span>
             </div>
             <div id="ce-result" class="ce-result" hidden>
-                <div id="ce-result-status" class="ce-result-status" role="status" aria-live="polite"></div>
-                <div class="ce-result-row">
-                    <a id="ce-result-link" class="ce-result-link" href="#" target="_blank" rel="noopener"></a>
-                    <button type="button" id="ce-result-copy" class="btn btn-sm" hidden>Copy link</button>
+                <div id="ce-result-panel" class="ce-result-panel">
+                    <h2 id="ce-result-heading" class="ce-result-heading"></h2>
+                    <p id="ce-result-status" class="ce-result-status" role="status" aria-live="polite"></p>
+                    <div id="ce-result-row" class="ce-result-row">
+                        <input id="ce-result-link" class="ce-result-link" type="text" readonly aria-label="Clip URL" />
+                        <div class="ce-result-actions">
+                            <button type="button" id="ce-result-copy" class="btn btn-sm">Copy</button>
+                            <a id="ce-result-open" class="btn btn-sm" href="#" target="_blank" rel="noopener">Open</a>
+                        </div>
+                    </div>
+                    <button type="button" id="ce-result-retry" class="btn btn-sm ce-result-retry" hidden>Try again</button>
                 </div>
             </div>
         </div>

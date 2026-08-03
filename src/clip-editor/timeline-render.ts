@@ -5,6 +5,7 @@ import {
     detailPlayheadEl,
     detailSelectionEl,
     durationEl,
+    durationSummaryEl,
     overviewPlayheadEl,
     overviewSelectionEl,
     overviewViewportEl,
@@ -13,7 +14,7 @@ import {
     zoomIndicatorEl,
 } from "./dom.ts";
 import { state } from "./context.ts";
-import { formatClipDuration } from "./format.ts";
+import { formatClipDuration, formatClipLengthSeconds } from "./format.ts";
 import { updateTimeReadout } from "./playback-ui.ts";
 
 function pct(ms: number, startMs: number, endMs: number): number {
@@ -74,5 +75,7 @@ export function renderTimeline(playheadMs: number): void {
     renderSeekbar(playheadMs);
     renderZoomIndicator();
     updateTimeReadout();
-    durationEl.textContent = formatClipDuration(state.selectionEndMs - state.selectionStartMs);
+    const selectionMs = state.selectionEndMs - state.selectionStartMs;
+    durationEl.textContent = formatClipDuration(selectionMs);
+    durationSummaryEl.textContent = `Clip length: ${formatClipLengthSeconds(selectionMs)}`;
 }

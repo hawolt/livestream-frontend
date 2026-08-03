@@ -55,3 +55,7 @@ export const state: EditorState = {
     jobQueuePosition: null,
     submitted: false,
 };
+
+export function clipShareUrl(): string {
+    return state.clipCode ? `${location.origin}/${state.channel}/clip/${state.clipCode}` : "";
+}

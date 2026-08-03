@@ -3,12 +3,12 @@ import { parseChannelParam } from "./channel.ts";
 import { ensureSession, redirectToLogin } from "./session.ts";
 import { requestClipPin } from "./pin-api.ts";
 import { pickSupportedMimeType, streamPinMedia } from "./media.ts";
-import { DEFAULT_SPAN_MS, state } from "./context.ts";
+import { clipShareUrl, DEFAULT_SPAN_MS, state } from "./context.ts";
 import { render, setChannelLabel, setLoadProgress, showBody, showStateMessage } from "./render.ts";
 import { renderTimeline } from "./timeline-render.ts";
 import { wireTimeline } from "./timeline-interactions.ts";
 import { wirePlaybackControls } from "./controls.ts";
-import { releasePinIfHeld, startPinRenewal, stopPinRenewal, wireCreateForm } from "./create.ts";
+import { releasePinIfHeld, startPinRenewal, stopPinRenewal, wireCreateForm, wireResultRetry } from "./create.ts";
 import { copyText } from "../clipboard.ts";
 
 let mediaCancelled = false;
@@ -56,7 +56,7 @@ async function loadMediaIntoVideo(): Promise<boolean> {
 
 function wireResultCopy(): void {
     resultCopyEl.addEventListener("click", () => {
-        const url = state.clipCode ? `${location.origin}/${state.channel}/clip/${state.clipCode}` : "";
+        const url = clipShareUrl();
         if (!url) return;
         void copyText(url).then((copied) => {
             resultCopyEl.textContent = copied ? "Copied" : "Failed";
@@ -127,6 +127,7 @@ export async function boot(): Promise<void> {
     wirePlaybackControls();
     wireCreateForm();
     wireResultCopy();
+    wireResultRetry();
     startPinRenewal();
 
     window.addEventListener("pagehide", () => {
