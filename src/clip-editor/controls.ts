@@ -4,6 +4,7 @@ import { clampSelection } from "./clamp.ts";
 import { renderTimeline } from "./timeline-render.ts";
 import { currentPlayheadMs, seekTo } from "./playhead.ts";
 import { flashToggleIcon, updatePlayPauseIcon, updateVolumeUI } from "./playback-ui.ts";
+import { currentTimeFromMediaMs } from "./media-timeline.ts";
 
 function setSelectionStart(ms: number): void {
     const result = clampSelection(ms, state.selectionEndMs, state.mediaStartMs, state.nowMs, MIN_SPAN_MS, MAX_SPAN_MS);
@@ -36,7 +37,7 @@ function stopSelectionPlayback(): void {
 function playSelection(): void {
     stopSelectionPlayback();
     seekTo(state.selectionStartMs);
-    const outSeconds = state.selectionEndMs / 1000;
+    const outSeconds = currentTimeFromMediaMs(state.selectionEndMs, state.mediaStartMs);
     const handler = () => {
         if (videoEl.currentTime >= outSeconds) {
             videoEl.pause();

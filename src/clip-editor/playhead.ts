@@ -1,9 +1,10 @@
 import { videoEl } from "./dom.ts";
 import { state } from "./context.ts";
 import { renderTimeline } from "./timeline-render.ts";
+import { currentTimeFromMediaMs, mediaMsFromCurrentTime } from "./media-timeline.ts";
 
 export function currentPlayheadMs(): number {
-    return videoEl.currentTime * 1000;
+    return mediaMsFromCurrentTime(videoEl.currentTime, state.mediaStartMs);
 }
 
 function clampPlayheadMs(ms: number): number {
@@ -13,7 +14,7 @@ function clampPlayheadMs(ms: number): number {
 export function seekTo(ms: number): void {
     const clamped = clampPlayheadMs(ms);
     try {
-        videoEl.currentTime = clamped / 1000;
+        videoEl.currentTime = currentTimeFromMediaMs(clamped, state.mediaStartMs);
     } catch {}
     renderTimeline(clamped);
 }

@@ -11,7 +11,7 @@ Frontend for the itzon.tv livestreaming site. It provides every public surface o
 - a user **dashboard** (stream keys, channel settings, chat overlay builder, health telemetry, account settings)
 - static **legal pages** and an **API documentation** page
 
-Everything is plain TypeScript compiled by Bun, one entry point per page, no framework and no runtime dependencies.
+Everything is plain TypeScript compiled by Bun, one entry point per page, no framework and no runtime dependencies, with one sanctioned exception: the clip editor page depends on `hls.js` for its preview player (see ARCHITECTURE.md's clip editor section). That import is reachable only from `src/clip-editor.ts`, so it bundles solely into `public/clip-editor.js`; every other page stays dependency-free.
 
 The dashboard renders only the tabs it carries loaders for. If the signed-in session grants a tab this repo has no loader for, the sidebar shows a single external link in its place instead of a broken tab.
 
@@ -61,7 +61,7 @@ Build outputs (`public/*.js`, `public/dash/`) are gitignored; a fresh checkout h
 | Dashboard | `src/dashboard.ts` | `dashboard.html` | Tab shell at `/dashboard/<tab>`; tabs in `src/dash/tabs/` |
 | API docs | `src/wiki.ts` | `wiki.html` | Hash-routed topic sections with a generated sidebar |
 | Legal | `src/legal.ts` | `terms.html`, `privacy.html`, `impressum.html` | Static pages, navbar only |
-| Clip editor | `src/clip-editor.ts` | `clip-editor.html` | `/clip/create?channel=<name>`: dedicated clip creation page opened in a new tab, streams a pinned window into MediaSource, in/out selection, submits and polls until the clip is ready at `/<channel>/clip/<code>` |
+| Clip editor | `src/clip-editor.ts` | `clip-editor.html` | `/clip/create?channel=<name>`: dedicated clip creation page opened in a new tab, plays a pinned window through an `hls.js`-backed HLS VOD player (the one sanctioned runtime dependency), in/out selection, submits and polls until the clip is ready at `/<channel>/clip/<code>` |
 
 The dashboard health tabs embed a `/details` telemetry page in an iframe. That page is not part of this repository; production deployments provide it separately, and without it those tabs show their loading state indefinitely.
 

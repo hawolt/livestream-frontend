@@ -5,8 +5,8 @@ export const bodyEl = document.getElementById("ce-body") as HTMLElement;
 export const videoEl = document.getElementById("ce-video") as HTMLVideoElement;
 export const toggleFlashBubbleEl = document.getElementById("ce-toggle-flash-bubble") as HTMLElement;
 export const loadOverlayEl = document.getElementById("ce-load-overlay") as HTMLElement;
-export const loadBarFillEl = document.getElementById("ce-load-bar-fill") as HTMLElement;
 export const loadLabelEl = document.getElementById("ce-load-label") as HTMLElement;
+export const quotaNoticeEl = document.getElementById("ce-quota-notice") as HTMLElement;
 
 export const playerControlsEl = document.getElementById("ce-player-controls") as HTMLElement;
 export const seekbarTrackEl = document.getElementById("ce-seekbar-track") as HTMLElement;

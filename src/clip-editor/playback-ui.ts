@@ -34,7 +34,7 @@ export function updateVolumeUI(): void {
 }
 
 export function updateTimeReadout(): void {
-    const currentMs = Math.max(0, videoEl.currentTime * 1000 - state.mediaStartMs);
+    const currentMs = Math.max(0, videoEl.currentTime * 1000);
     const spanMs = Math.max(0, state.selectionEndMs - state.selectionStartMs);
     timeEl.textContent = `${formatClipDuration(currentMs)} / ${formatClipDuration(spanMs)}`;
 }

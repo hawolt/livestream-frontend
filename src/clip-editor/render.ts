@@ -10,12 +10,12 @@ import {
     channelNameEl,
     errorEl,
     formEl,
-    loadBarFillEl,
     loadLabelEl,
     loadOverlayEl,
     playerControlsEl,
     progressEl,
     progressLabelEl,
+    quotaNoticeEl,
     resultCopyEl,
     resultEl,
     resultHeadingEl,
@@ -50,12 +50,18 @@ export function showBody(): void {
     bodyEl.hidden = false;
 }
 
-export function setLoadProgress(fraction: number, visible: boolean): void {
+export function setBuffering(visible: boolean, label = "Buffering..."): void {
     loadOverlayEl.hidden = !visible;
-    if (!visible) return;
-    const pct = Math.round(Math.min(1, Math.max(0, fraction)) * 100);
-    loadBarFillEl.style.width = `${pct}%`;
-    loadLabelEl.textContent = `Loading clip window... ${pct}%`;
+    if (visible) loadLabelEl.textContent = label;
+}
+
+export function setQuotaNotice(visible: boolean): void {
+    quotaNoticeEl.hidden = !visible;
+    if (visible) {
+        quotaNoticeEl.textContent = "Playback memory limit reached. Older parts of the window may no longer stay buffered, but the editor keeps working over what is loaded.";
+    } else {
+        quotaNoticeEl.textContent = "";
+    }
 }
 
 export function render(): void {

@@ -120,20 +120,21 @@
             font-size: 13px;
         }
         .clip-editor-page .ce-load-overlay[hidden] { display: none; }
-        .clip-editor-page .ce-load-bar {
-            width: 60%;
-            max-width: 320px;
-            height: 6px;
-            border-radius: 3px;
-            background: rgba(255, 255, 255, .18);
-            overflow: hidden;
+        .clip-editor-page .ce-load-overlay .ce-spinner {
+            width: 22px;
+            height: 22px;
         }
-        .clip-editor-page .ce-load-bar-fill {
-            height: 100%;
-            width: 0%;
-            background: var(--accent);
-            transition: width .15s;
+
+        .clip-editor-page .ce-quota-notice {
+            margin: 0 0 12px;
+            padding: 8px 12px;
+            border-radius: 6px;
+            background: rgba(248, 113, 113, .1);
+            border: 1px solid rgba(248, 113, 113, .3);
+            color: var(--text);
+            font-size: 12.5px;
         }
+        .clip-editor-page .ce-quota-notice[hidden] { display: none; }
 
         .clip-editor-page .ce-player-controls { margin-top: 12px; }
         .clip-editor-page .ce-seekbar-track {
@@ -518,14 +519,15 @@
         <span id="ce-state-text" class="ce-state-text">Preparing your clip window...</span>
     </div>
     <div id="ce-body" class="ce-body" hidden>
+        <div id="ce-quota-notice" class="ce-quota-notice" hidden></div>
         <div class="ce-card ce-stage-card">
             <div class="ce-video-wrap" id="ce-video-wrap">
                 <video id="ce-video" playsinline tabindex="-1"></video>
                 <div class="ce-toggle-flash" aria-hidden="true">
                     <span id="ce-toggle-flash-bubble" class="ce-toggle-flash-bubble"></span>
                 </div>
-                <div id="ce-load-overlay" class="ce-load-overlay">
-                    <div class="ce-load-bar"><div id="ce-load-bar-fill" class="ce-load-bar-fill"></div></div>
+                <div id="ce-load-overlay" class="ce-load-overlay" hidden>
+                    <span class="ce-spinner" aria-hidden="true"></span>
                     <div id="ce-load-label" class="ce-load-label"></div>
                 </div>
             </div>

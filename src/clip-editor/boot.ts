@@ -1,10 +1,11 @@
+import Hls from "hls.js";
 import { resultCopyEl, videoEl } from "./dom.ts";
 import { parseChannelParam } from "./channel.ts";
 import { ensureSession, redirectToLogin } from "./session.ts";
 import { requestClipPin } from "./pin-api.ts";
-import { pickSupportedMimeType, streamPinMedia } from "./media.ts";
+import { clipPlaylistUrl, createClipHls, fetchPinMediaHeaders } from "./media.ts";
 import { clipShareUrl, DEFAULT_SPAN_MS, state } from "./context.ts";
-import { render, setChannelLabel, setLoadProgress, showBody, showStateMessage } from "./render.ts";
+import { render, setBuffering, setChannelLabel, setQuotaNotice, showBody, showStateMessage } from "./render.ts";
 import { renderTimeline } from "./timeline-render.ts";
 import { wireTimeline } from "./timeline-interactions.ts";
 import { wirePlaybackControls } from "./controls.ts";
@@ -12,32 +13,51 @@ import { releasePinIfHeld, startPinRenewal, stopPinRenewal, wireCreateForm, wire
 import { copyText } from "../clipboard.ts";
 
 let mediaCancelled = false;
+let hls: Hls | null = null;
 
 function isMediaCancelled(): boolean {
     return mediaCancelled;
 }
 
+function teardownHls(): void {
+    if (hls) {
+        hls.destroy();
+        hls = null;
+    }
+}
+
+function wireBufferingIndicator(): void {
+    videoEl.addEventListener("waiting", () => setBuffering(true));
+    videoEl.addEventListener("playing", () => setBuffering(false));
+    videoEl.addEventListener("canplay", () => setBuffering(false));
+}
+
+function handleHlsError(_event: unknown, data: { fatal: boolean; details: string; type: string }, onFatalDuringLoad: () => void): void {
+    if (data.details === Hls.ErrorDetails.BUFFER_FULL_ERROR) {
+        setQuotaNotice(true);
+        return;
+    }
+    if (!data.fatal || isMediaCancelled() || !hls) return;
+    if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
+        hls.startLoad();
+        return;
+    }
+    if (data.type === Hls.ErrorTypes.MEDIA_ERROR) {
+        hls.recoverMediaError();
+        return;
+    }
+    onFatalDuringLoad();
+}
+
 async function loadMediaIntoVideo(): Promise<boolean> {
-    const mime = pickSupportedMimeType();
-    if (!mime || typeof MediaSource === "undefined") {
+    if (!Hls.isSupported()) {
         state.phase = "media-error";
         showStateMessage("This browser cannot preview clip media.", false);
         return false;
     }
-    const mediaSource = new MediaSource();
-    const objectUrl = URL.createObjectURL(mediaSource);
-    videoEl.src = objectUrl;
-    const sourceBuffer = await new Promise<SourceBuffer>((resolve) => {
-        mediaSource.addEventListener("sourceopen", () => {
-            URL.revokeObjectURL(objectUrl);
-            resolve(mediaSource.addSourceBuffer(mime));
-        }, { once: true });
-    });
-    sourceBuffer.mode = "segments";
-    setLoadProgress(0, true);
-    const headers = await streamPinMedia(state.channel, state.pin!, state.token, sourceBuffer, (fraction) => {
-        setLoadProgress(fraction, true);
-    }, isMediaCancelled);
+    const playlistUrl = clipPlaylistUrl(state.channel, state.pin!);
+    setBuffering(true, "Loading player...");
+    const headers = await fetchPinMediaHeaders(playlistUrl, state.token);
     if (isMediaCancelled()) return false;
     if (!headers) {
         state.phase = "media-error";
@@ -47,11 +67,33 @@ async function loadMediaIntoVideo(): Promise<boolean> {
     state.nowMs = headers.nowMs;
     state.windowMs = headers.windowMs;
     state.mediaStartMs = headers.mediaStartMs;
-    setLoadProgress(1, false);
-    try {
-        if (mediaSource.readyState === "open") mediaSource.endOfStream();
-    } catch {}
-    return true;
+
+    return new Promise<boolean>((resolve) => {
+        let settled = false;
+        const finish = (ok: boolean) => {
+            if (settled) return;
+            settled = true;
+            resolve(ok);
+        };
+        hls = createClipHls(state.token);
+        hls.on(Hls.Events.MEDIA_ATTACHED, () => {
+            if (isMediaCancelled() || !hls) return;
+            hls.loadSource(playlistUrl);
+        });
+        hls.on(Hls.Events.MANIFEST_PARSED, () => {
+            if (isMediaCancelled()) return;
+            setBuffering(false);
+            finish(true);
+        });
+        hls.on(Hls.Events.ERROR, (event, data) => {
+            handleHlsError(event, data, () => {
+                state.phase = "media-error";
+                showStateMessage("Could not load this clip window. Try again.", false);
+                finish(false);
+            });
+        });
+        hls.attachMedia(videoEl);
+    });
 }
 
 function wireResultCopy(): void {
@@ -112,6 +154,7 @@ export async function boot(): Promise<void> {
 
     state.phase = "loading-media";
     showBody();
+    wireBufferingIndicator();
     const loaded = await loadMediaIntoVideo();
     if (!loaded) return;
 
@@ -134,5 +177,6 @@ export async function boot(): Promise<void> {
         mediaCancelled = true;
         stopPinRenewal();
         releasePinIfHeld();
+        teardownHls();
     });
 }
