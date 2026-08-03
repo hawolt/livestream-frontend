@@ -6,6 +6,7 @@ import {
     helpEl,
     helpFootEl,
     msgsEl,
+    pingMuteToggleEl,
     profileBodyEl,
     profileBtnEl,
     profileEl,
@@ -23,6 +24,7 @@ import { loadProfile, renderProfileCard, type Profile } from "../profile-card.ts
 
 export const TIMESTAMPS_KEY = "live-chat-timestamps";
 export const AVATARS_KEY = "live-chat-avatars";
+export const MUTE_PINGS_KEY = "live-chat-mute-pings";
 
 export function renderUserlist(): void {
     const byBucket = new Map<number, string[]>();
@@ -261,4 +263,9 @@ export function applyTimestampPref(on: boolean): void {
 export function applyAvatarPref(on: boolean): void {
     msgsEl.classList.toggle("show-avatars", on);
     avatarToggleEl.checked = on;
+}
+
+export function applyMutePingsPref(on: boolean): void {
+    ctx.pingsMuted = on;
+    pingMuteToggleEl.checked = on;
 }

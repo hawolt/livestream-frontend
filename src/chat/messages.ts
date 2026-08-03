@@ -9,6 +9,8 @@ import { renderPickerGrid } from "./composer.ts";
 import { updateSuggest } from "./suggest.ts";
 import { renderPins } from "./pins.ts";
 import { openProfileFromUser } from "./panels.ts";
+import { shouldPingForMention } from "./mention-ping.ts";
+import { playMentionPing } from "./ping-sound.ts";
 
 export const MAX_MESSAGES = 200;
 const SCROLL_SLACK_PX = 40;
@@ -170,7 +172,11 @@ export function addMessage(
         line.dataset["msgid"] = msgid;
         line.appendChild(buildActions(from, text, msgid));
     }
-    if (repliedToMe || mentionsMe(text)) line.classList.add("live-chat-mentioned");
+    const mentioned = mentionsMe(text);
+    if (repliedToMe || mentioned) line.classList.add("live-chat-mentioned");
+    if (mentioned && shouldPingForMention({ text, from, myUsername: ctx.nick, signedIn: ctx.isAccount, live: ctx.joined })) {
+        playMentionPing();
+    }
     append(line);
 }
 

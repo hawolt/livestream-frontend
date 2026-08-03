@@ -42,15 +42,19 @@ export function splitTrailingPunctuation(token: string): { core: string; trail: 
 
 export const MENTION_RE = /^@([A-Za-z0-9_-]{1,32})$/;
 
-export function mentionsMe(text: string): boolean {
-    const me = myNickLower();
-    if (!me) return false;
+export function textMentionsUsername(text: string, username: string): boolean {
+    const target = username.toLowerCase();
+    if (!target) return false;
     for (const tok of text.split(/\s+/)) {
         const { core } = splitTrailingPunctuation(tok);
         const m = MENTION_RE.exec(core);
-        if (m && m[1]!.toLowerCase() === me) return true;
+        if (m && m[1]!.toLowerCase() === target) return true;
     }
     return false;
+}
+
+export function mentionsMe(text: string): boolean {
+    return textMentionsUsername(text, myNickLower());
 }
 
 export function hashColor(from: string): string {

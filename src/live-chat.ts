@@ -1,5 +1,6 @@
 import { readLocalStorage, writeLocalStorage } from "./storage.ts";
 import { ctx } from "./chat/context.ts";
+import { primePingAudio } from "./chat/ping-sound.ts";
 import {
     avatarToggleEl,
     emoteBtnEl,
@@ -9,6 +10,7 @@ import {
     inputEl,
     msgsEl,
     pickerFilterEl,
+    pingMuteToggleEl,
     profileBtnEl,
     profileCloseEl,
     replyCancelEl,
@@ -33,9 +35,11 @@ import { autoGrowInput, MAX_TEXT, renderPickerGrid, submit, togglePicker } from 
 import { clearReply } from "./chat/messages.ts";
 import {
     applyAvatarPref,
+    applyMutePingsPref,
     applyTimestampPref,
     AVATARS_KEY,
     closeProfile,
+    MUTE_PINGS_KEY,
     setHelp,
     setSettings,
     setUserlist,
@@ -124,6 +128,15 @@ export function startChat(user: string, emoteTwitchId?: string, onLoginRequested
         writeLocalStorage(AVATARS_KEY, avatarToggleEl.checked ? "1" : "0");
     };
     avatarToggleEl.addEventListener("change", onAvatarToggleChange);
+    applyMutePingsPref(readLocalStorage(MUTE_PINGS_KEY) === "1");
+    const onMutePingsToggleChange = (): void => {
+        applyMutePingsPref(pingMuteToggleEl.checked);
+        writeLocalStorage(MUTE_PINGS_KEY, pingMuteToggleEl.checked ? "1" : "0");
+    };
+    pingMuteToggleEl.addEventListener("change", onMutePingsToggleChange);
+    const onFirstInteraction = (): void => primePingAudio();
+    document.addEventListener("click", onFirstInteraction);
+    inputEl.addEventListener("focus", onFirstInteraction);
     const onPickerFilterInput = (): void => renderPickerGrid(pickerFilterEl.value);
     pickerFilterEl.addEventListener("input", onPickerFilterInput);
     const onInputInput = (): void => {
@@ -200,6 +213,9 @@ export function startChat(user: string, emoteTwitchId?: string, onLoginRequested
         profileCloseEl.removeEventListener("click", closeProfile);
         timestampToggleEl.removeEventListener("change", onTimestampToggleChange);
         avatarToggleEl.removeEventListener("change", onAvatarToggleChange);
+        pingMuteToggleEl.removeEventListener("change", onMutePingsToggleChange);
+        document.removeEventListener("click", onFirstInteraction);
+        inputEl.removeEventListener("focus", onFirstInteraction);
         pickerFilterEl.removeEventListener("input", onPickerFilterInput);
         inputEl.removeEventListener("input", onInputInput);
         inputEl.removeEventListener("click", updateSuggest);

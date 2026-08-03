@@ -41,6 +41,7 @@ export const ctx = {
     suggestItemsData: [] as SuggestItem[],
     tabCycleRange: null as ReplaceRange | null,
     replyTo: null as ReplyTarget | null,
+    pingsMuted: false,
 };
 
 export function myNickLower(): string {

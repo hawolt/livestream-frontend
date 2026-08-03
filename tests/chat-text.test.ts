@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { countChar, cssEsc, hashColor, splitTrailingPunctuation, truncate } from "../src/chat/text.ts";
+import { countChar, cssEsc, hashColor, splitTrailingPunctuation, textMentionsUsername, truncate } from "../src/chat/text.ts";
 
 test("truncate leaves short strings untouched and ellipsizes long ones", () => {
     expect(truncate("hello", 10)).toBe("hello");
@@ -58,4 +58,33 @@ test("hashColor is deterministic per name and stays within the hsl range", () =>
 
 test("hashColor differs for different names in the common case", () => {
     expect(hashColor("alice")).not.toBe(hashColor("bob"));
+});
+
+test("textMentionsUsername matches a whole-token mention with word boundaries", () => {
+    expect(textMentionsUsername("hi @alice how are you", "alice")).toBe(true);
+    expect(textMentionsUsername("hi @alice2", "alice")).toBe(false);
+    expect(textMentionsUsername("hi @al", "alice")).toBe(false);
+});
+
+test("textMentionsUsername is case-insensitive", () => {
+    expect(textMentionsUsername("hey @ALICE", "alice")).toBe(true);
+    expect(textMentionsUsername("hey @Alice", "ALICE")).toBe(true);
+});
+
+test("textMentionsUsername ignores an @ that appears inside another token", () => {
+    expect(textMentionsUsername("email me at me@alice.com", "alice")).toBe(false);
+    expect(textMentionsUsername("foo@alice", "alice")).toBe(false);
+});
+
+test("textMentionsUsername returns true once even with multiple mentions", () => {
+    expect(textMentionsUsername("@alice @alice are you there @alice", "alice")).toBe(true);
+});
+
+test("textMentionsUsername strips trailing punctuation off the mention", () => {
+    expect(textMentionsUsername("hey @alice!", "alice")).toBe(true);
+    expect(textMentionsUsername("hey @alice,", "alice")).toBe(true);
+});
+
+test("textMentionsUsername returns false for an empty username", () => {
+    expect(textMentionsUsername("hey @alice", "")).toBe(false);
 });
