@@ -511,15 +511,20 @@
         .login-modal-close:hover { color: var(--text); }
         #btn-clip[hidden] { display: none; }
         .live-clip-watch-live {
+            position: absolute;
+            right: 16px;
+            bottom: 68px;
+            z-index: 5;
             background: var(--accent);
             color: #000;
             font-weight: 700;
-            font-size: 12px;
+            font-size: 13px;
             letter-spacing: .02em;
-            padding: 6px 12px;
+            padding: 7px 14px;
             border-radius: 3px;
             text-decoration: none;
             white-space: nowrap;
+            box-shadow: 0 2px 8px rgba(0,0,0,.45);
         }
         .live-clip-watch-live:hover { filter: brightness(1.08); }
         .live-clip-watch-live[hidden] { display: none; }
@@ -1486,6 +1491,7 @@
                     <button id="browse-mini-return" class="browse-mini-return" type="button">Return to <span id="browse-mini-username"></span></button>
                     <button id="browse-mini-close" class="browse-mini-close" type="button" aria-label="Close mini player">&times;</button>
                 </div>
+                <a id="live-clip-watch-live" class="live-clip-watch-live" href="#" hidden>Watch live now</a>
                 <div class="live-controls" id="live-controls">
                     <div class="live-seekbar" id="live-seekbar" hidden>
                         <div class="live-seekbar-track" id="live-seekbar-track">
@@ -1583,7 +1589,6 @@
             <div id="live-chat-profile" class="live-chat-profile" hidden>
                 <div class="live-chat-profile-head">
                     <span>Profile</span>
-                    <a id="live-clip-watch-live" class="live-clip-watch-live" href="#" hidden>Watch live now</a>
                     <button type="button" id="live-chat-profile-close" title="Back to chat" aria-label="Back to chat">&times;</button>
                 </div>
                 <div id="live-chat-profile-body" class="live-chat-profile-body"></div>
