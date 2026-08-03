@@ -528,11 +528,6 @@
         }
         .live-clip-watch-live:hover { filter: brightness(1.08); }
         .live-clip-watch-live[hidden] { display: none; }
-        body.clip-mode .live-controls { display: none; }
-        body.clip-mode .live-channel-rail { display: none; }
-        body.clip-mode #live-follow,
-        body.clip-mode #live-viewers,
-        body.clip-mode #live-uptime { display: none; }
         #live-viewers {
             flex-shrink: 0;
             display: inline-flex;
@@ -1509,6 +1504,7 @@
                         <button id="btn-mute" type="button" title="Mute" aria-label="Mute"></button>
                         <input type="range" id="vol" min="0" max="1" step="0.01" value="1" title="Volume" aria-label="Volume" />
                         <span id="live-volpct"></span>
+                        <span id="live-clip-time" class="live-quality" hidden></span>
                         <div class="live-controls-spacer"></div>
                         <span id="live-behind" class="live-behind" hidden></span>
                         <button id="btn-live-chip" type="button" class="live-chip" hidden>LIVE</button>

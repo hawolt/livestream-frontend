@@ -85,14 +85,14 @@ export function wireChatOverflow(): void {
     });
 }
 
-function updatePlayIcon(): void {
+export function updatePlayIcon(): void {
     btnPlay.innerHTML = video.paused ? ICON_PLAY : ICON_PAUSE;
     const label = video.paused ? "Play" : "Pause";
     btnPlay.setAttribute("aria-label", label);
     btnPlay.title = label;
 }
 
-function isMutedState(): boolean {
+export function isMutedState(): boolean {
     return video.muted || video.volume === 0;
 }
 
@@ -100,7 +100,7 @@ function volumePercent(): number {
     return isMutedState() ? 0 : Math.round(video.volume * 100);
 }
 
-function updateVolumeUI(): void {
+export function updateVolumeUI(): void {
     const muted = isMutedState();
     const pct = volumePercent();
     volInput.value = String(muted ? 0 : video.volume);
@@ -135,13 +135,12 @@ function wireVideoClickToPause(): void {
 }
 
 let controlsHideTimer: number | null = null;
+let chatAndLayoutChromeWired = false;
 
-export function wireControls(): void {
+export function wireChatAndLayoutChrome(): void {
+    if (chatAndLayoutChromeWired) return;
+    chatAndLayoutChromeWired = true;
     wireChatOverflow();
-    if (isIOS() || !volumeIsSettable()) {
-        volInput.hidden = true;
-        volpctEl.hidden = true;
-    }
 
     wireLayoutQuery();
     window.addEventListener("resize", syncLayout);
@@ -155,56 +154,58 @@ export function wireControls(): void {
     video.addEventListener("loadedmetadata", fitChat);
     new ResizeObserver(fitChat).observe(stageEl);
 
-    updatePlayIcon();
-    updateVolumeUI();
-    btnFullscreen.innerHTML = ICON_FULLSCREEN;
-    btnFullscreen.setAttribute("aria-label", "Fullscreen");
-    btnFullscreen.title = "Fullscreen";
     updateChatFullscreenButton();
     btnCinema.innerHTML = ICON_CINEMA;
     btnCinema.setAttribute("aria-label", "Cinema mode");
     btnCinema.title = "Cinema mode";
-    btnClip.innerHTML = ICON_CLIP;
-    btnClip.setAttribute("aria-label", "Clip");
-    btnClip.title = "Clip";
-    wireClipButton();
-    wireSeekBar();
-    wireVideoClickToPause();
-    wireQualityMenu();
-    renderQualityMenu();
+    btnCinema.addEventListener("click", toggleCinemaMode);
 
-    btnPlay.addEventListener("click", () => {
-        if (video.paused) {
+    stageEl.addEventListener("mouseenter", () => stageEl.classList.add("controls-visible"));
+    stageEl.addEventListener("mouseleave", () => stageEl.classList.remove("controls-visible"));
+    stageEl.addEventListener("pointerdown", (ev) => {
+        if (ev.pointerType === "mouse") return;
+        stageEl.classList.add("controls-visible");
+        if (controlsHideTimer !== null) window.clearTimeout(controlsHideTimer);
+        controlsHideTimer = window.setTimeout(() => {
+            stageEl.classList.remove("controls-visible");
+            controlsHideTimer = null;
+        }, CONTROLS_HIDE_MS);
+        const target = ev.target as HTMLElement | null;
+        if (video.muted && !(target && target.closest(".live-controls"))) {
+            video.muted = false;
             void video.play().catch(() => {});
-        } else {
-            video.pause();
+            updateVolumeUI();
         }
     });
 
-    video.addEventListener("play", () => {
-        updatePlayIcon();
-        if (ctx.transportKind === "ws" && ctx.lastMediaArrivalAt > 0 && Date.now() - ctx.lastMediaArrivalAt > HEALTH_STALE_MS) {
-            healthRestart("resume-stale");
-            return;
-        }
-        if (ctx.transportKind === "ws" && ctx.behindLive) return;
-        const edge = bufferedEnd();
-        if (edge > 0) {
-            video.currentTime = Math.max(0, edge - START_BEHIND_S);
-        }
+    btnLayoutToggle.addEventListener("click", cycleLayout);
+    btnChatToggle.addEventListener("click", toggleChat);
+    btnChatCollapse.addEventListener("click", toggleChat);
+    btnChatFullscreen.addEventListener("click", toggleChatFullscreen);
+    btnChatSide.addEventListener("click", () => {
+        const left = !document.body.classList.contains("chat-left");
+        document.body.classList.toggle("chat-left", left);
+        writeLocalStorage(CHAT_SIDE_KEY, left ? "left" : "right");
     });
-    video.addEventListener("pause", () => {
-        updatePlayIcon();
+    btnChatPopout.addEventListener("click", () => {
+        const url = `/${encodeURIComponent(ctx.username)}?chat=popout`;
+        window.open(url, `chat_${ctx.username}`, "width=420,height=760,menubar=no,toolbar=no,location=no");
     });
-    video.addEventListener("resize", updateQuality);
-    video.addEventListener("loadedmetadata", updateQuality);
-    startFpsMeter();
-    video.addEventListener("timeupdate", () => {
-        if (Math.abs(video.currentTime - ctx.lastObservedTime) > 0.01) {
-            ctx.lastObservedTime = video.currentTime;
-            ctx.lastProgressAt = Date.now();
-        }
-    });
+    if (readLocalStorage(CHAT_SIDE_KEY) === "left") document.body.classList.add("chat-left");
+    const storedChat = readLocalStorage(CHAT_COLLAPSE_KEY);
+    setChatCollapsed(window.innerWidth <= COMPACT_MAX_WIDTH_PX ? false : storedChat === "1");
+}
+
+let volumeControlWired = false;
+
+export function wireVolumeControl(): void {
+    if (volumeControlWired) return;
+    volumeControlWired = true;
+    if (isIOS() || !volumeIsSettable()) {
+        volInput.hidden = true;
+        volpctEl.hidden = true;
+    }
+    updateVolumeUI();
 
     btnMute.addEventListener("click", () => {
         if (isMutedState()) {
@@ -225,39 +226,62 @@ export function wireControls(): void {
         writeLocalStorage(VOLUME_KEY, String(v));
     });
 
+    const storedVol = readLocalStorage(VOLUME_KEY);
+    if (storedVol !== null) {
+        const v = parseFloat(storedVol);
+        if (!Number.isNaN(v) && v >= 0 && v <= 1) {
+            video.volume = v;
+            updateVolumeUI();
+        }
+    }
+}
+
+let fullscreenControlWired = false;
+
+export function wireFullscreenControl(): void {
+    if (fullscreenControlWired) return;
+    fullscreenControlWired = true;
+    btnFullscreen.innerHTML = ICON_FULLSCREEN;
+    btnFullscreen.setAttribute("aria-label", "Fullscreen");
+    btnFullscreen.title = "Fullscreen";
     btnFullscreen.addEventListener("click", () => {
         if (isVideoFullscreen()) exitFullscreen();
         else enterFullscreen();
     });
-    btnCinema.addEventListener("click", toggleCinemaMode);
     document.addEventListener("fullscreenchange", onFullscreenChange);
     document.addEventListener("webkitfullscreenchange", onFullscreenChange);
     video.addEventListener("webkitbeginfullscreen", onFullscreenChange);
     video.addEventListener("webkitendfullscreen", onFullscreenChange);
+}
 
-    stageEl.addEventListener("mouseenter", () => stageEl.classList.add("controls-visible"));
-    stageEl.addEventListener("mouseleave", () => stageEl.classList.remove("controls-visible"));
-    stageEl.addEventListener("pointerdown", (ev) => {
-        if (ev.pointerType === "mouse") return;
-        stageEl.classList.add("controls-visible");
-        if (controlsHideTimer !== null) window.clearTimeout(controlsHideTimer);
-        controlsHideTimer = window.setTimeout(() => {
-            stageEl.classList.remove("controls-visible");
-            controlsHideTimer = null;
-        }, CONTROLS_HIDE_MS);
-        const target = ev.target as HTMLElement | null;
-        if (video.muted && !(target && target.closest(".live-controls"))) {
-            video.muted = false;
+let playPauseButtonWired = false;
+
+export function wirePlayPauseButton(): void {
+    if (playPauseButtonWired) return;
+    playPauseButtonWired = true;
+    btnPlay.addEventListener("click", () => {
+        if (video.paused) {
             void video.play().catch(() => {});
-            updateVolumeUI();
+        } else {
+            video.pause();
         }
     });
+    video.addEventListener("play", updatePlayIcon);
+    video.addEventListener("pause", updatePlayIcon);
+}
 
+export function isInteractiveTarget(target: EventTarget | null): boolean {
+    return !!(target instanceof HTMLElement && target.closest(
+        "a[href], button, input, select, textarea, [contenteditable]:not([contenteditable=false]), [role=button], [role=link], [role=slider], [role=textbox], [role=menuitem]",
+    ));
+}
+
+let keyboardShortcutsWired = false;
+
+export function wireKeyboardShortcuts(): void {
+    if (keyboardShortcutsWired) return;
+    keyboardShortcutsWired = true;
     document.addEventListener("keydown", (ev) => {
-        const target = ev.target as HTMLElement | null;
-        const interactive = target?.closest(
-            "a[href], button, input, select, textarea, [contenteditable]:not([contenteditable=false]), [role=button], [role=link], [role=slider], [role=textbox], [role=menuitem]",
-        );
         if (ev.defaultPrevented || ev.repeat) return;
         if (ev.key === "Escape") {
             if (isChatFullscreen() && !isChatFsNative()) {
@@ -269,7 +293,7 @@ export function wireControls(): void {
             }
             return;
         }
-        if (ev.altKey || ev.ctrlKey || ev.metaKey || ev.shiftKey || interactive) return;
+        if (ev.altKey || ev.ctrlKey || ev.metaKey || ev.shiftKey || isInteractiveTarget(ev.target)) return;
         if (ev.key === " ") {
             ev.preventDefault();
             btnPlay.click();
@@ -279,32 +303,46 @@ export function wireControls(): void {
             btnFullscreen.click();
         }
     });
+}
 
-    btnLayoutToggle.addEventListener("click", cycleLayout);
-    btnChatToggle.addEventListener("click", toggleChat);
-    btnChatCollapse.addEventListener("click", toggleChat);
-    btnChatFullscreen.addEventListener("click", toggleChatFullscreen);
-    btnChatSide.addEventListener("click", () => {
-        const left = !document.body.classList.contains("chat-left");
-        document.body.classList.toggle("chat-left", left);
-        writeLocalStorage(CHAT_SIDE_KEY, left ? "left" : "right");
-    });
-    btnChatPopout.addEventListener("click", () => {
-        const url = `/${encodeURIComponent(ctx.username)}?chat=popout`;
-        window.open(url, `chat_${ctx.username}`, "width=420,height=760,menubar=no,toolbar=no,location=no");
-    });
-    if (readLocalStorage(CHAT_SIDE_KEY) === "left") document.body.classList.add("chat-left");
-    const storedChat = readLocalStorage(CHAT_COLLAPSE_KEY);
-    setChatCollapsed(window.innerWidth <= COMPACT_MAX_WIDTH_PX ? false : storedChat === "1");
+export function wireControls(): void {
+    wireChatAndLayoutChrome();
+    wireVolumeControl();
+    wireFullscreenControl();
+    updatePlayIcon();
+    wirePlayPauseButton();
 
-    const storedVol = readLocalStorage(VOLUME_KEY);
-    if (storedVol !== null) {
-        const v = parseFloat(storedVol);
-        if (!Number.isNaN(v) && v >= 0 && v <= 1) {
-            video.volume = v;
-            updateVolumeUI();
+    btnClip.innerHTML = ICON_CLIP;
+    btnClip.setAttribute("aria-label", "Clip");
+    btnClip.title = "Clip";
+    wireClipButton();
+    wireSeekBar();
+    wireVideoClickToPause();
+    wireQualityMenu();
+    renderQualityMenu();
+
+    video.addEventListener("play", () => {
+        if (ctx.transportKind === "ws" && ctx.lastMediaArrivalAt > 0 && Date.now() - ctx.lastMediaArrivalAt > HEALTH_STALE_MS) {
+            healthRestart("resume-stale");
+            return;
         }
-    }
+        if (ctx.transportKind === "ws" && ctx.behindLive) return;
+        const edge = bufferedEnd();
+        if (edge > 0) {
+            video.currentTime = Math.max(0, edge - START_BEHIND_S);
+        }
+    });
+    video.addEventListener("resize", updateQuality);
+    video.addEventListener("loadedmetadata", updateQuality);
+    startFpsMeter();
+    video.addEventListener("timeupdate", () => {
+        if (Math.abs(video.currentTime - ctx.lastObservedTime) > 0.01) {
+            ctx.lastObservedTime = video.currentTime;
+            ctx.lastProgressAt = Date.now();
+        }
+    });
+
+    wireKeyboardShortcuts();
 
     wireBrowseMode();
     wirePageLifecycle();

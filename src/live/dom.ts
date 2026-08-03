@@ -54,6 +54,7 @@ export const seekTrackEl = document.getElementById("live-seekbar-track") as HTML
 export const seekProgressEl = document.getElementById("live-seekbar-progress") as HTMLElement;
 export const seekThumbEl = document.getElementById("live-seekbar-thumb") as HTMLElement;
 export const behindReadoutEl = document.getElementById("live-behind") as HTMLElement;
+export const clipTimeEl = document.getElementById("live-clip-time") as HTMLElement;
 export const btnLiveChip = document.getElementById("btn-live-chip") as HTMLButtonElement;
 export const browseMiniOverlay = document.getElementById("browse-mini-overlay") as HTMLElement;
 export const browseMiniReturn = document.getElementById("browse-mini-return") as HTMLButtonElement;
