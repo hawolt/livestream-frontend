@@ -1,4 +1,4 @@
-import { btnPlay, clipTimeEl, seekBarEl, seekProgressEl, seekThumbEl, seekTrackEl, stageEl, video } from "../dom.ts";
+import { btnPlay, clipTimeEl, clipUnmuteEl, seekBarEl, seekProgressEl, seekThumbEl, seekTrackEl, stageEl, video } from "../dom.ts";
 import { isInteractiveTarget, updatePlayIcon, updateVolumeUI, wireChatAndLayoutChrome, wireFullscreenControl, wireKeyboardShortcuts, wireVolumeControl } from "../controls.ts";
 import { clampClipTime, formatClipTime, seekTimeFromFraction } from "./time.ts";
 
@@ -103,14 +103,33 @@ export function wireClipPlayer(): void {
 }
 
 export function attemptClipAutoplay(): void {
-    video.play().catch(() => {
+    video.play().then(() => {
+        if (video.muted) showUnmuteOverlay();
+    }).catch(() => {
         video.muted = true;
         updateVolumeUI();
-        video.play().catch(() => {
+        video.play().then(() => {
+            showUnmuteOverlay();
+        }).catch(() => {
             video.muted = false;
             updateVolumeUI();
             updatePlayIcon();
         });
+    });
+}
+
+function showUnmuteOverlay(): void {
+    clipUnmuteEl.hidden = false;
+}
+
+export function wireClipUnmute(): void {
+    clipUnmuteEl.addEventListener("click", () => {
+        video.muted = false;
+        clipUnmuteEl.hidden = true;
+        updateVolumeUI();
+    });
+    video.addEventListener("volumechange", () => {
+        if (!video.muted) clipUnmuteEl.hidden = true;
     });
 }
 

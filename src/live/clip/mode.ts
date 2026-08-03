@@ -36,7 +36,7 @@ import { connectViewcount } from "../stream-info.ts";
 import { startChannelRail } from "../channel-rail.ts";
 import { applyDefaultProfileVisibility, openProfileFromUser } from "../../chat/panels.ts";
 import { loadProfile, offlineArtUrl } from "../../profile-card.ts";
-import { attemptClipAutoplay, hideClipControls, showClipControls, wireClipPlayer } from "./player.ts";
+import { attemptClipAutoplay, hideClipControls, showClipControls, wireClipPlayer, wireClipUnmute } from "./player.ts";
 
 interface ChannelChrome {
     category: string;
@@ -203,6 +203,7 @@ export async function bootClipMode(route: ClipRoute): Promise<void> {
     setClipPoster("Loading clip...");
 
     wireClipPlayer();
+    wireClipUnmute();
     syncLayout();
 
     startChannelRail();

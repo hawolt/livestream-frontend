@@ -528,6 +528,31 @@
         }
         .live-clip-watch-live:hover { filter: brightness(1.08); }
         .live-clip-watch-live[hidden] { display: none; }
+        .live-clip-unmute {
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            z-index: 5;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(0,0,0,.65);
+            color: var(--text);
+            border: 1px solid var(--border);
+            font: inherit;
+            font-size: 14px;
+            font-weight: 600;
+            padding: 10px 16px;
+            border-radius: 3px;
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(0,0,0,.45);
+        }
+        .live-clip-unmute:hover {
+            border-color: var(--accent);
+            color: #fff;
+        }
+        .live-clip-unmute svg { color: var(--accent); }
+        .live-clip-unmute[hidden] { display: none; }
         #live-viewers {
             flex-shrink: 0;
             display: inline-flex;
@@ -1492,6 +1517,10 @@
                     <button id="browse-mini-close" class="browse-mini-close" type="button" aria-label="Close mini player">&times;</button>
                 </div>
                 <a id="live-clip-watch-live" class="live-clip-watch-live" href="#" hidden>Watch live now</a>
+                <button type="button" id="live-clip-unmute" class="live-clip-unmute" hidden>
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><line x1="23" y1="9" x2="17" y2="15"></line><line x1="17" y1="9" x2="23" y2="15"></line></svg>
+                    <span>Click to unmute</span>
+                </button>
                 <div class="live-controls" id="live-controls">
                     <div class="live-seekbar" id="live-seekbar" hidden>
                         <div class="live-seekbar-track" id="live-seekbar-track">
