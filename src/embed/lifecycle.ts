@@ -43,6 +43,7 @@ async function refreshMediaBase(): Promise<void> {
         if (info && typeof info.mediaBase === "string") {
             ctx.mediaBase = info.mediaBase.replace(/\/+$/, "");
         }
+        if (info) ctx.wssBase = typeof info.wssBase === "string" ? info.wssBase.replace(/\/+$/, "") : "";
     } catch {}
 }
 
@@ -137,7 +138,7 @@ export function goOffline(g: number): void {
     scheduleRestart(nextRetryDelay(), retryGeneration);
 }
 
-export function restartAfterFailure(g: number): void {
+export function restartAfterFailure(g: number, immediate = false): void {
     if (!isCurrent(g)) return;
     const retryGeneration = nextGen();
     fullTeardown();
@@ -145,7 +146,7 @@ export function restartAfterFailure(g: number): void {
     ctx.lastStateChangeAt = Date.now();
     setPoster(null);
     notifyPreview("connecting");
-    scheduleRestart(nextRetryDelay(), retryGeneration);
+    scheduleRestart(immediate ? 100 : nextRetryDelay(), retryGeneration);
 }
 
 export function beginTransport(): void {

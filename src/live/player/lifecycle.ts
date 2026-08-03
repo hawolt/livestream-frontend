@@ -44,6 +44,7 @@ export async function refreshMediaBase(): Promise<void> {
         if (info && typeof info.mediaBase === "string") {
             ctx.mediaBase = info.mediaBase.replace(/\/+$/, "");
         }
+        if (info) ctx.wssBase = typeof info.wssBase === "string" ? info.wssBase.replace(/\/+$/, "") : "";
     } catch {}
 }
 

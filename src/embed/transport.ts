@@ -4,20 +4,21 @@ import { HLS_BEACON_INTERVAL_MS } from "./constants.ts";
 import { captchaQuery, getCaptchaToken } from "../captcha.ts";
 import { ensureViewerId } from "../player-shared/viewer-id.ts";
 import { mediaWsUrl as sharedMediaWsUrl } from "../player-shared/ws-url.ts";
+import { chooseTransportBase, markDirectFailed, shouldMarkDirectFailed } from "../player-shared/transport-fallback.ts";
 import { beginTransport, enterTerminal, goOffline, resetRetryBackoff, restartAfterFailure, setPlaying } from "./lifecycle.ts";
 import { attachMediaSource, pump } from "./mse.ts";
 import { attachVideoFailureListeners } from "./health.ts";
 
-function mediaWsUrl(path: string): string {
+function mediaWsUrl(base: string, path: string): string {
     const proto = location.protocol === "https:" ? "wss" : "ws";
-    return sharedMediaWsUrl(ctx.mediaBase, path, `${proto}://${location.host}`, location.protocol);
+    return sharedMediaWsUrl(base, path, `${proto}://${location.host}`, location.protocol);
 }
 
 function sendHLSBeat(g: number): void {
     void Promise.all([captchaQuery(), ensureViewerId(ctx.mediaBase, ctx.username)]).then(([tq, vid]) => {
         if (!isCurrent(g)) return;
         const url = `${ctx.mediaBase}/hls/${encodeURIComponent(ctx.username)}/beat?id=${encodeURIComponent(vid)}${tq}`;
-        fetch(url, { method: "POST" }).catch(() => {});
+        fetch(url, { method: "POST", credentials: "include" }).catch(() => {});
     });
 }
 
@@ -57,7 +58,12 @@ export function fallbackFromMSE(g: number): void {
     enterTerminal("Playback not supported");
 }
 
-function handleWSClose(g: number, ev: CloseEvent): void {
+function handleWSClose(g: number, ev: CloseEvent, direct: boolean, joined: boolean): void {
+    if (shouldMarkDirectFailed(direct, joined)) {
+        markDirectFailed(ctx.wssBase);
+        restartAfterFailure(g, true);
+        return;
+    }
     if (ev.code === 4404 || ev.code === 1000) {
         goOffline(g);
     } else {
@@ -69,10 +75,12 @@ export function startWSTransport(g: number): void {
     attachVideoFailureListeners(g);
     void Promise.all([captchaQuery(), ensureViewerId(ctx.mediaBase, ctx.username)]).then(([tq, vid]) => {
         if (!isCurrent(g)) return;
+        const { base, direct } = chooseTransportBase(ctx.wssBase, ctx.mediaBase);
+        let joined = false;
         const path = `/ws/live?u=${encodeURIComponent(ctx.username)}&viewer_id=${encodeURIComponent(vid)}${tq}`;
         let sock: WebSocket;
         try {
-            sock = new WebSocket(mediaWsUrl(path));
+            sock = new WebSocket(mediaWsUrl(base, path));
         } catch {
             restartAfterFailure(g);
             return;
@@ -88,7 +96,10 @@ export function startWSTransport(g: number): void {
                     msg = JSON.parse(ev.data);
                 } catch {}
                 const codecs = typeof msg.codecs === "string" ? msg.codecs : "";
-                if (codecs) attachMediaSource(g, codecs);
+                if (codecs) {
+                    joined = true;
+                    attachMediaSource(g, codecs);
+                }
                 return;
             }
             ctx.lastMediaArrivalAt = Date.now();
@@ -98,7 +109,7 @@ export function startWSTransport(g: number): void {
 
         sock.onclose = (ev) => {
             if (!isCurrent(g)) return;
-            handleWSClose(g, ev);
+            handleWSClose(g, ev, direct, joined);
         };
 
         sock.onerror = () => {

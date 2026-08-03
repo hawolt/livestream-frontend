@@ -165,6 +165,7 @@ async function boot(): Promise<void> {
             if (typeof info.mediaBase === "string") {
                 ctx.mediaBase = info.mediaBase.replace(/\/+$/, "");
             }
+            ctx.wssBase = typeof info.wssBase === "string" ? info.wssBase.replace(/\/+$/, "") : "";
             if (typeof info.emoteTwitchId === "string") {
                 emoteTwitchId = info.emoteTwitchId;
             }

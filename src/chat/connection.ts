@@ -31,6 +31,9 @@ import {
 import { sanitizeSubscriberBadgeName } from "./badges.ts";
 import { addPin, clearPins, dismissedPins, removePin } from "./pins.ts";
 import { renderUserlist, setHelp, setSettings, setUserlist } from "./panels.ts";
+import { getChatWssBase } from "./ws-config.ts";
+import { toWsOrigin } from "../player-shared/ws-url.ts";
+import { chooseTransportBase, markDirectFailed, shouldMarkDirectFailed } from "../player-shared/transport-fallback.ts";
 
 const GUEST_NICK_KEY = "live-chat-guest-nick";
 const LEGACY_NICK_KEY = "live-chat-nick";
@@ -337,6 +340,66 @@ function scheduleRetry(delayMs: number): void {
     }, delayMs);
 }
 
+function readyToOpenSocket(): boolean {
+    return !ctx.destroyed && !(ctx.sock && (ctx.sock.readyState === WebSocket.CONNECTING || ctx.sock.readyState === WebSocket.OPEN));
+}
+
+function openChatSocket(chatWssBase: string): void {
+    if (!readyToOpenSocket()) return;
+    const proto = location.protocol === "https:" ? "wss" : "ws";
+    const fallback = `${proto}://${location.host}`;
+    const normalizedDirect = chatWssBase ? toWsOrigin(chatWssBase, location.protocol) : "";
+    const { base, direct } = chooseTransportBase(normalizedDirect, fallback);
+    const s = new WebSocket(`${base}/ws/irc`);
+    ctx.sock = s;
+
+    s.onopen = () => {
+        if (ctx.sock !== s) return;
+        ctx.pendingCapRequests = 2;
+        s.send("CAP REQ :message-tags echo-message draft/message-redaction");
+        s.send("CAP REQ :server-time");
+        s.send(`NICK ${ctx.nick}`);
+        s.send(`USER ${ctx.nick} 0 * :${ctx.nick}`);
+    };
+    s.onmessage = (ev) => {
+        if (ctx.sock !== s) return;
+        if (typeof ev.data !== "string") return;
+        for (const raw of ev.data.split("\n")) {
+            const line = parse(raw.replace(/\r$/, ""));
+            if (line) handle(line);
+        }
+    };
+    s.onclose = (ev) => {
+        if (ctx.sock !== s) return;
+        cancelNamesRefresh();
+        ctx.sock = null;
+        const wasJoined = ctx.joined;
+        ctx.joined = false;
+        updateComposer();
+        if (ctx.destroyed) return;
+        if (shouldMarkDirectFailed(direct, wasJoined)) {
+            markDirectFailed(normalizedDirect);
+            scheduleRetry(100);
+            return;
+        }
+        if (ev.reason === "session-limit") {
+            addSystem("Chat is open in too many windows.");
+            scheduleRetry(FLOOD_RETRY_MS);
+            return;
+        }
+        const reason = CLOSE_REASONS[ev.code];
+        if (reason) addSystem(reason);
+        const delay = ctx.banRetry || ctx.banned
+            ? BAN_RETRY_MS
+            : ev.code === 4400 ? FLOOD_RETRY_MS : RETRY_MS;
+        ctx.banRetry = false;
+        scheduleRetry(delay);
+    };
+    s.onerror = () => {
+        if (ctx.sock === s) s.close();
+    };
+}
+
 export function connect(): void {
     if (ctx.destroyed) return;
     if (ctx.sock && (ctx.sock.readyState === WebSocket.CONNECTING || ctx.sock.readyState === WebSocket.OPEN)) return;
@@ -365,49 +428,7 @@ export function connect(): void {
     updateModTools();
     ctx.nick = guestNick();
 
-    const proto = location.protocol === "https:" ? "wss" : "ws";
-    const s = new WebSocket(`${proto}://${location.host}/ws/irc`);
-    ctx.sock = s;
-
-    s.onopen = () => {
-        if (ctx.sock !== s) return;
-        ctx.pendingCapRequests = 2;
-        s.send("CAP REQ :message-tags echo-message draft/message-redaction");
-        s.send("CAP REQ :server-time");
-        s.send(`NICK ${ctx.nick}`);
-        s.send(`USER ${ctx.nick} 0 * :${ctx.nick}`);
-    };
-    s.onmessage = (ev) => {
-        if (ctx.sock !== s) return;
-        if (typeof ev.data !== "string") return;
-        for (const raw of ev.data.split("\n")) {
-            const line = parse(raw.replace(/\r$/, ""));
-            if (line) handle(line);
-        }
-    };
-    s.onclose = (ev) => {
-        if (ctx.sock !== s) return;
-        cancelNamesRefresh();
-        ctx.sock = null;
-        ctx.joined = false;
-        updateComposer();
-        if (ctx.destroyed) return;
-        if (ev.reason === "session-limit") {
-            addSystem("Chat is open in too many windows.");
-            scheduleRetry(FLOOD_RETRY_MS);
-            return;
-        }
-        const reason = CLOSE_REASONS[ev.code];
-        if (reason) addSystem(reason);
-        const delay = ctx.banRetry || ctx.banned
-            ? BAN_RETRY_MS
-            : ev.code === 4400 ? FLOOD_RETRY_MS : RETRY_MS;
-        ctx.banRetry = false;
-        scheduleRetry(delay);
-    };
-    s.onerror = () => {
-        if (ctx.sock === s) s.close();
-    };
+    void getChatWssBase().then(openChatSocket);
 }
 
 export function restartChatConnection(): void {

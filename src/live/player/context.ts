@@ -42,6 +42,7 @@ export const ctx = {
     lastStateChangeAt: 0,
 
     mediaBase: "",
+    wssBase: "",
     username: "",
     displayUsername: "",
 };

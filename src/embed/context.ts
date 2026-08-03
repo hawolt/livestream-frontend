@@ -5,6 +5,7 @@ export const previewMode = new URLSearchParams(location.search).get("preview") =
 export const ctx = {
     username: "",
     mediaBase: "",
+    wssBase: "",
     transportKind: "none" as "ws" | "hls" | "none",
 
     gen: 0,

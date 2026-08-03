@@ -89,6 +89,7 @@ export interface LiveChannelInfo {
     categoryId: number | null;
     language: StreamLanguageCode;
     mediaBase: string;
+    wssBase?: string;
     emoteTwitchId: string | null;
 }
 
