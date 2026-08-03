@@ -1,6 +1,6 @@
 <div id="pane-clips" class="tab-pane">
-    <div class="card" style="padding:24px">
-        <div class="section-title">Your Clips</div>
+    <div class="card" style="padding:24px;margin-bottom:16px">
+        <div class="section-title">Your clips</div>
         <p style="font-size:13px;color:var(--muted);margin:0 0 12px">
             Clips you cut from a live stream. Processing clips finish automatically; open one to check on it.
         </p>
@@ -9,7 +9,21 @@
                 <thead>
                 <tr><th>Clip</th><th>Channel</th><th>Created</th><th>Duration</th><th>Status</th><th></th></tr>
                 </thead>
-                <tbody id="clips-body"><tr><td colspan="6" class="empty">Loading...</td></tr></tbody>
+                <tbody id="clips-own-body"><tr><td colspan="6" class="empty">Loading...</td></tr></tbody>
+            </table>
+        </div>
+    </div>
+    <div class="card" id="clips-channel-card" style="padding:24px;display:none">
+        <div class="section-title">Clips of your channel</div>
+        <p style="font-size:13px;color:var(--muted);margin:0 0 12px">
+            Clips other viewers cut from your channel. You can remove any of them.
+        </p>
+        <div class="tbl-wrap">
+            <table>
+                <thead>
+                <tr><th>Clip</th><th>Creator</th><th>Created</th><th>Duration</th><th>Status</th><th></th></tr>
+                </thead>
+                <tbody id="clips-channel-body"><tr><td colspan="6" class="empty">Loading...</td></tr></tbody>
             </table>
         </div>
     </div>

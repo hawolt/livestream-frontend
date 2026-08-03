@@ -115,6 +115,7 @@ export interface LiveMod {
 export interface Clip {
     id: string;
     channel: string;
+    creator: string;
     title: string;
     status: string;
     url: string | null;
