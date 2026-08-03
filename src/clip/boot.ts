@@ -1,7 +1,7 @@
 import { parseClipIdFromPath } from "./id.ts";
 import { fetchClip, type ClipRecord } from "./api.ts";
 import { renderClip, showLoadError, showLoading, showNotFound } from "./render.ts";
-import { startClipPolling, stopClipPolling } from "./poll.ts";
+import { clipPollingActive, startClipPolling, stopClipPolling } from "./poll.ts";
 
 function applyResult(id: string, result: ClipRecord | null | "not-found"): void {
     if (result === "not-found") {
@@ -10,7 +10,9 @@ function applyResult(id: string, result: ClipRecord | null | "not-found"): void 
         return;
     }
     if (result === null) {
-        showLoadError();
+        // While polling a processing clip, a failed fetch is transient; the
+        // next tick recovers, so only the initial load treats it as terminal.
+        if (!clipPollingActive()) showLoadError();
         return;
     }
     document.title = result.title ? `${result.title} - Clip` : "Clip";

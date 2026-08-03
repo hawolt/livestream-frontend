@@ -40,11 +40,9 @@ export async function renewClipPin(channel: string, pin: string, token: string):
 }
 
 export function releaseClipPin(channel: string, pin: string, token: string): void {
-    try {
-        void fetch(`/api/main/v1/clips/pin?channel=${encodeURIComponent(channel)}&pin=${encodeURIComponent(pin)}`, {
-            method: "DELETE",
-            headers: authHeaders(token),
-            keepalive: true,
-        });
-    } catch {}
+    fetch(`/api/main/v1/clips/pin?channel=${encodeURIComponent(channel)}&pin=${encodeURIComponent(pin)}`, {
+        method: "DELETE",
+        headers: authHeaders(token),
+        keepalive: true,
+    }).catch(() => {});
 }

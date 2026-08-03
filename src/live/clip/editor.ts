@@ -28,7 +28,7 @@ import { behindMsFromSelection, clampClipSpan, defaultClipSpan, selectableRange 
 import { formatClipDuration } from "./format.ts";
 import { clipProcessingMessage } from "../../clip-processing-message.ts";
 import { clipCtx, resetClipEditorState } from "./context.ts";
-import { releaseClipPin, renewClipPin, requestClipPin } from "./pin.ts";
+import { releaseClipPin, renewClipPin, requestClipPin, type ClipPin } from "./pin.ts";
 import { startClipStatusPolling, stopClipStatusPolling } from "./poll.ts";
 import { copyText } from "../../clipboard.ts";
 import { sessionTokenMetadata } from "../../session-token.ts";
@@ -157,6 +157,31 @@ function trapFocus(event: KeyboardEvent): void {
     }
 }
 
+async function acquireClipPin(token: string): Promise<ClipPin | null> {
+    const result = await requestClipPin(ctx.username, token);
+    if (!clipCtx.open) {
+        if (result.ok) releaseClipPin(ctx.username, result.data.pin, token);
+        return null;
+    }
+    if (!result.ok) {
+        if (result.status === 401) {
+            closeClipEditor();
+            openLoginModal("clip");
+            return null;
+        }
+        clipCtx.phase = "blocked";
+        clipCtx.errorMessage = result.status === 404
+            ? "This channel cannot be clipped right now."
+            : result.status === 429
+            ? "Too many clip requests. Please wait a moment and try again."
+            : "Could not start clip creation. Try again.";
+        render();
+        return null;
+    }
+    clipCtx.pin = result.data.pin;
+    return result.data;
+}
+
 export async function openClipEditor(): Promise<void> {
     if (clipCtx.open) return;
     const token = currentToken();
@@ -179,28 +204,9 @@ export async function openClipEditor(): Promise<void> {
     render();
     clipEditorTitleEl.focus();
 
-    const result = await requestClipPin(ctx.username, token);
-    if (!clipCtx.open) {
-        if (result.ok) releaseClipPin(ctx.username, result.data.pin, token);
-        return;
-    }
-    if (!result.ok) {
-        if (result.status === 401) {
-            closeClipEditor();
-            openLoginModal("clip");
-            return;
-        }
-        clipCtx.phase = "blocked";
-        clipCtx.errorMessage = result.status === 404
-            ? "This channel cannot be clipped right now."
-            : result.status === 429
-            ? "Too many clip requests. Please wait a moment and try again."
-            : "Could not start clip creation. Try again.";
-        render();
-        return;
-    }
-    clipCtx.pin = result.data.pin;
-    const range = selectableRange(start, end, result.data.windowMs);
+    const pin = await acquireClipPin(token);
+    if (!pin) return;
+    const range = selectableRange(start, end, pin.windowMs);
     clipCtx.selectableStartSeconds = range.startSeconds;
     clipCtx.selectableSpanMs = Math.max(0, (range.endSeconds - range.startSeconds) * 1000);
     const initial = defaultClipSpan(clipCtx.selectableSpanMs, CLIP_DEFAULT_SPAN_MS, CLIP_MAX_SPAN_MS);
@@ -240,9 +246,11 @@ function posFromEvent(ev: PointerEvent): number {
 }
 
 function applyDrag(pos: number): void {
+    // Keep the grabbed handle on its own side of the pair; clampClipSpan would
+    // otherwise swap start/end while `dragging` still names the original handle.
     const span = dragging === "start"
-        ? clampClipSpan(pos, clipCtx.endMs, clipCtx.selectableSpanMs, CLIP_MIN_SPAN_MS, CLIP_MAX_SPAN_MS)
-        : clampClipSpan(clipCtx.startMs, pos, clipCtx.selectableSpanMs, CLIP_MIN_SPAN_MS, CLIP_MAX_SPAN_MS);
+        ? clampClipSpan(Math.min(pos, clipCtx.endMs - CLIP_MIN_SPAN_MS), clipCtx.endMs, clipCtx.selectableSpanMs, CLIP_MIN_SPAN_MS, CLIP_MAX_SPAN_MS)
+        : clampClipSpan(clipCtx.startMs, Math.max(pos, clipCtx.startMs + CLIP_MIN_SPAN_MS), clipCtx.selectableSpanMs, CLIP_MIN_SPAN_MS, CLIP_MAX_SPAN_MS);
     clipCtx.startMs = span.startMs;
     clipCtx.endMs = span.endMs;
     renderRange();
@@ -307,6 +315,7 @@ async function submitClip(): Promise<void> {
             method: "POST",
             headers: { "Authorization": `Bearer ${token}` },
         });
+        if (!clipCtx.open) return;
         if (res.status === 401) {
             closeClipEditor();
             openLoginModal("clip");
@@ -354,12 +363,36 @@ async function submitClip(): Promise<void> {
         render();
         startClipStatusPolling(render);
     } catch {
+        if (!clipCtx.open) return;
         clipCtx.phase = "form";
         clipCtx.submitted = false;
         clipCtx.errorMessage = "Could not reach the server. Try again.";
         startPinRenewal();
         render();
     }
+}
+
+async function retryClip(): Promise<void> {
+    const token = currentToken();
+    if (!sessionTokenMetadata(token)) {
+        closeClipEditor();
+        openLoginModal("clip");
+        return;
+    }
+    stopClipStatusPolling();
+    // The pin that led here is consumed or invalid; a retry needs a fresh one.
+    clipCtx.phase = "pinning";
+    clipCtx.pin = null;
+    clipCtx.clipId = null;
+    clipCtx.resultUrl = null;
+    clipCtx.errorMessage = "";
+    clipCtx.pollGeneration += 1;
+    clipCtx.submitted = false;
+    render();
+    if (!(await acquireClipPin(token))) return;
+    clipCtx.phase = "form";
+    startPinRenewal();
+    render();
 }
 
 export function wireClipEditor(): void {
@@ -389,14 +422,5 @@ export function wireClipEditor(): void {
             }, 1200);
         });
     });
-    clipEditorRetryEl.addEventListener("click", () => {
-        clipCtx.phase = "form";
-        clipCtx.clipId = null;
-        clipCtx.resultUrl = null;
-        clipCtx.errorMessage = "";
-        clipCtx.pollGeneration += 1;
-        clipCtx.submitted = false;
-        startPinRenewal();
-        render();
-    });
+    clipEditorRetryEl.addEventListener("click", () => void retryClip());
 }

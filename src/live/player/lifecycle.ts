@@ -1,4 +1,4 @@
-import { badgeEl, behindReadoutEl, btnLiveChip, posterEl, seekBarEl, stageEl, video } from "../dom.ts";
+import { badgeEl, behindReadoutEl, btnClip, btnLiveChip, posterEl, seekBarEl, stageEl, video } from "../dom.ts";
 import { ctx, isCurrent, nextGen, runGenCleanup, type PlayerState } from "./context.ts";
 import { PRUNE_KEEP_S, RETRY_MAX_MS, RETRY_MIN_MS, RETRY_MULT } from "../constants.ts";
 import { QUALITY_SOURCE } from "../../quality.ts";
@@ -198,6 +198,7 @@ export function fullTeardown(): void {
     seekBarEl.hidden = true;
     behindReadoutEl.hidden = true;
     btnLiveChip.hidden = true;
+    btnClip.hidden = true;
 }
 
 export function goOffline(g: number): void {

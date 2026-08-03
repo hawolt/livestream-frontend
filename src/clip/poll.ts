@@ -28,6 +28,10 @@ export function startClipPolling(id: string, onResult: (result: ClipRecord | nul
     pollTimer = window.setInterval(() => void pollOnce(id, generation, onResult), POLL_MS);
 }
 
+export function clipPollingActive(): boolean {
+    return pollTimer !== null;
+}
+
 export function stopClipPolling(): void {
     pollGeneration += 1;
     if (pollTimer !== null) {

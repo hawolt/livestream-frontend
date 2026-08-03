@@ -236,7 +236,8 @@ HTTP under `API_BASE = /api/main/v1` unless noted. Listed as consumed by this co
 | `GET /auth/verify?token=` | verify | `{ok, kind, error}` |
 | `POST /auth/forgot-password`, `POST /auth/reset-password` | auth pages | `{ok, error}` |
 | `POST /auth/resend-verification` | settings | success/error |
-| `POST /clips?channel=&title=&startMs=&endMs=` | clip editor | binary body (length-prefixed init segment plus fragments), `Bearer` auth; `{id}` on success, `{error}` on `422`/other failure |
+| `POST /clips/pin?channel=`, `POST /clips/pin/renew?channel=&pin=`, `DELETE /clips/pin?channel=&pin=` | clip editor | `Bearer` auth; pin gives `{pin, nowMs, windowMs}` (`404` unclippable, `429` rate-limited), renew and release are status-only |
+| `POST /clips?channel=&title=&pin=&startBehindMs=&endBehindMs=` | clip editor | bodyless, `Bearer` auth; `202` gives `{id, status}`, `{error}` on `409`/`410`/`422` failure, `429` retryable, `503` unavailable |
 | `GET /api/live/explore` (absolute path) | explorer | `{streams, categories, mediaBase}` |
 | `GET /api/live/channel/<user>` (absolute path) | viewer, embed | `{title, category, categoryId, mediaBase, emoteTwitchId}`, 404 for no channel |
 | `GET /api/live/captcha/config`, `POST /api/live/captcha/token` (absolute paths) | captcha | `{enabled, sitekey}`, `{token, ttl}` |
