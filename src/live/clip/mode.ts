@@ -36,7 +36,7 @@ import { connectViewcount } from "../stream-info.ts";
 import { startChannelRail } from "../channel-rail.ts";
 import { applyDefaultProfileVisibility, openProfileFromUser } from "../../chat/panels.ts";
 import { loadProfile, offlineArtUrl } from "../../profile-card.ts";
-import { hideClipControls, showClipControls, wireClipPlayer } from "./player.ts";
+import { attemptClipAutoplay, hideClipControls, showClipControls, wireClipPlayer } from "./player.ts";
 
 interface ChannelChrome {
     category: string;
@@ -142,6 +142,7 @@ function renderClipRecord(route: ClipRoute, clip: ClipStatusRecord): void {
         if (video.getAttribute("src") !== clip.url) video.src = clip.url;
         showClipControls();
         stopClipStatusPolling();
+        attemptClipAutoplay();
         return;
     }
     video.removeAttribute("src");

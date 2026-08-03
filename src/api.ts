@@ -112,6 +112,17 @@ export interface LiveMod {
     createdAt: number;
 }
 
+export interface Clip {
+    id: string;
+    channel: string;
+    title: string;
+    status: string;
+    url: string | null;
+    thumbnailUrl: string | null;
+    durationMs: number | null;
+    createdAt: string | null;
+}
+
 export const API_BASE = "/api/main/v1";
 
 export function buildRequestHeaders(headers?: HeadersInit): HeadersInit {

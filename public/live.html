@@ -511,20 +511,15 @@
         .login-modal-close:hover { color: var(--text); }
         #btn-clip[hidden] { display: none; }
         .live-clip-watch-live {
-            position: absolute;
-            top: 12px;
-            left: 50%;
-            transform: translateX(-50%);
-            z-index: 10;
             background: var(--accent);
             color: #000;
             font-weight: 700;
-            font-size: 13px;
+            font-size: 12px;
             letter-spacing: .02em;
-            padding: 8px 16px;
-            border-radius: 20px;
+            padding: 6px 12px;
+            border-radius: 3px;
             text-decoration: none;
-            box-shadow: 0 4px 14px rgba(0,0,0,.4);
+            white-space: nowrap;
         }
         .live-clip-watch-live:hover { filter: brightness(1.08); }
         .live-clip-watch-live[hidden] { display: none; }
@@ -1487,7 +1482,6 @@
                 <span class="live-badge" id="live-badge" hidden>OFFLINE</span>
                 <video id="live-video" muted autoplay playsinline></video>
                 <div id="live-poster" class="hidden" role="status" aria-live="polite" aria-atomic="true" aria-busy="false"></div>
-                <a id="live-clip-watch-live" class="live-clip-watch-live" href="#" hidden>Watch live now</a>
                 <div class="browse-mini-overlay" id="browse-mini-overlay" hidden>
                     <button id="browse-mini-return" class="browse-mini-return" type="button">Return to <span id="browse-mini-username"></span></button>
                     <button id="browse-mini-close" class="browse-mini-close" type="button" aria-label="Close mini player">&times;</button>
@@ -1589,6 +1583,7 @@
             <div id="live-chat-profile" class="live-chat-profile" hidden>
                 <div class="live-chat-profile-head">
                     <span>Profile</span>
+                    <a id="live-clip-watch-live" class="live-clip-watch-live" href="#" hidden>Watch live now</a>
                     <button type="button" id="live-chat-profile-close" title="Back to chat" aria-label="Back to chat">&times;</button>
                 </div>
                 <div id="live-chat-profile-body" class="live-chat-profile-body"></div>

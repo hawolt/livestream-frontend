@@ -1,5 +1,5 @@
 import { btnPlay, clipTimeEl, seekBarEl, seekProgressEl, seekThumbEl, seekTrackEl, stageEl, video } from "../dom.ts";
-import { isInteractiveTarget, updatePlayIcon, wireChatAndLayoutChrome, wireFullscreenControl, wireKeyboardShortcuts, wireVolumeControl } from "../controls.ts";
+import { isInteractiveTarget, updatePlayIcon, updateVolumeUI, wireChatAndLayoutChrome, wireFullscreenControl, wireKeyboardShortcuts, wireVolumeControl } from "../controls.ts";
 import { clampClipTime, formatClipTime, seekTimeFromFraction } from "./time.ts";
 
 let clipPlayerWired = false;
@@ -99,6 +99,18 @@ export function wireClipPlayer(): void {
             ev.preventDefault();
             seekClipBy(5);
         }
+    });
+}
+
+export function attemptClipAutoplay(): void {
+    video.play().catch(() => {
+        video.muted = true;
+        updateVolumeUI();
+        video.play().catch(() => {
+            video.muted = false;
+            updateVolumeUI();
+            updatePlayIcon();
+        });
     });
 }
 
