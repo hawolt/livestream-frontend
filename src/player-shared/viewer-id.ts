@@ -27,7 +27,7 @@ export function ensureViewerId(mediaBase: string, username: string): Promise<str
     if (signedViewerId) return Promise.resolve(signedViewerId);
     if (signedViewerIdPending) return signedViewerIdPending;
     const url = `${mediaBase}/hls/${encodeURIComponent(username)}/vid`;
-    signedViewerIdPending = fetch(url)
+    signedViewerIdPending = fetch(url, { credentials: "include" })
         .then((res) => (res.ok ? res.json() : null))
         .then((body: { id?: string } | null) => {
             const minted = body?.id ?? "";

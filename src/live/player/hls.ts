@@ -12,7 +12,7 @@ function sendHLSBeat(g: number): void {
     void Promise.all([captchaQuery(), ensureViewerId(ctx.mediaBase, ctx.username)]).then(([tq, vid]) => {
         if (!isCurrent(g)) return;
         const url = `${ctx.mediaBase}/hls/${encodeURIComponent(ctx.username)}/beat?id=${encodeURIComponent(vid)}${tq}`;
-        fetch(url, { method: "POST" }).catch(() => {});
+        fetch(url, { method: "POST", credentials: "include" }).catch(() => {});
     });
 }
 
