@@ -46,3 +46,43 @@ export function releaseClipPin(channel: string, pin: string, token: string): voi
         keepalive: true,
     }).catch(() => {});
 }
+
+export interface CreateClipResult {
+    ok: boolean;
+    status: number;
+    id: string | null;
+    error: string | null;
+}
+
+export async function createClip(
+    channel: string,
+    title: string,
+    pin: string,
+    startBehindMs: number,
+    endBehindMs: number,
+    token: string,
+): Promise<CreateClipResult> {
+    const params = new URLSearchParams({
+        channel,
+        title,
+        pin,
+        startBehindMs: String(startBehindMs),
+        endBehindMs: String(endBehindMs),
+    });
+    try {
+        const res = await fetch(`/api/main/v1/clips?${params.toString()}`, {
+            method: "POST",
+            headers: authHeaders(token),
+        });
+        let id: string | null = null;
+        let error: string | null = null;
+        try {
+            const data = await res.json() as { id?: string; error?: string };
+            if (typeof data.id === "string" && data.id) id = data.id;
+            if (typeof data.error === "string" && data.error) error = data.error;
+        } catch {}
+        return { ok: res.ok, status: res.status, id, error };
+    } catch {
+        return { ok: false, status: 0, id: null, error: null };
+    }
+}

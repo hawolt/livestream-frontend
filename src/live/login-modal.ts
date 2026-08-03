@@ -18,7 +18,6 @@ import { isPopoutMode } from "./layout.ts";
 import { canAutoFollow, initFollow } from "./follow.ts";
 import { closeDismissibleSurface, openDismissibleSurface } from "../dismissible-surface.ts";
 import { inertSiblings, restoreInertSiblings, type InertSiblingState } from "../inert-siblings.ts";
-import { openClipEditor } from "./clip/editor.ts";
 
 export type LoginIntent = "follow" | "chat" | "clip";
 
@@ -143,7 +142,7 @@ export function wireLoginModal(): void {
             reconnectChatAfterLogin();
             if (!isPopoutMode()) await initFollow();
             if (intent === "follow" && canAutoFollow()) followBtnEl.click();
-            if (intent === "clip") void openClipEditor();
+            if (intent === "clip") window.open(`/clip/create?channel=${encodeURIComponent(ctx.username)}`, "_blank");
         } catch (error) {
             if (!(error instanceof DOMException && error.name === "AbortError")) {
                 loginModalErrorEl.textContent = "Could not reach the login service. Check your connection and try again.";

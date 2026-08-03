@@ -32,11 +32,5 @@ export const VIEWCOUNT_RETRY_MS = 5000;
 export const VOLUME_KEY = "live-volume";
 export const QUALITY_STORAGE_KEY = "live-quality";
 export const CLIP_MIN_CAPTURE_S = 10;
-export const CLIP_MIN_SPAN_MS = 3000;
-export const CLIP_MAX_SPAN_MS = 30000;
-export const CLIP_DEFAULT_SPAN_MS = 15000;
-export const CLIP_TITLE_MAX_LEN = 100;
-export const CLIP_POLL_MS = 2000;
-export const CLIP_PIN_RENEW_MS = 300000;
 
 export const EXPLORE_TITLE = "Explore";

@@ -4,7 +4,6 @@ import { bufferedEnd, bufferedStart } from "../player/mse.ts";
 import { CLIP_MIN_CAPTURE_S } from "../constants.ts";
 import { sessionTokenMetadata } from "../../session-token.ts";
 import { openLoginModal } from "../login-modal.ts";
-import { openClipEditor, wireClipEditor } from "./editor.ts";
 
 function isSignedIn(): boolean {
     const token = sessionStorage.getItem("dash_token") ?? "";
@@ -20,9 +19,11 @@ let clipButtonWired = false;
 export function wireClipButton(): void {
     if (clipButtonWired) return;
     clipButtonWired = true;
-    wireClipEditor();
     btnClip.addEventListener("click", () => {
-        if (isSignedIn()) void openClipEditor();
-        else openLoginModal("clip");
+        if (isSignedIn()) {
+            window.open(`/clip/create?channel=${encodeURIComponent(ctx.username)}`, "_blank");
+        } else {
+            openLoginModal("clip");
+        }
     });
 }

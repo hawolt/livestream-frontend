@@ -32,6 +32,8 @@ import { openLoginModal, wireLoginModal } from "./live/login-modal.ts";
 import { initFollow } from "./live/follow.ts";
 import { connectViewcount, resumeViewcount, suspendViewcount } from "./live/stream-info.ts";
 import { openProfileFromUser } from "./chat/panels.ts";
+import { parseClipRoute } from "./live/clip/route.ts";
+import { bootClipMode } from "./live/clip/mode.ts";
 
 const chatPopout = new URLSearchParams(location.search).get("chat") === "popout";
 let bootGeneration = 0;
@@ -59,8 +61,22 @@ window.addEventListener("pageshow", (event) => {
 });
 
 async function boot(): Promise<void> {
-    const generation = ++bootGeneration;
+    ++bootGeneration;
     bootCompleted = false;
+
+    const clipRoute = parseClipRoute(location.pathname);
+    if (clipRoute) {
+        page.hidden = false;
+        if (!shellWired) {
+            shellWired = true;
+            void initSiteNav(null);
+        }
+        await bootClipMode(clipRoute);
+        bootCompleted = true;
+        return;
+    }
+
+    const generation = bootGeneration;
     if (chatPopout) document.body.classList.add("chat-popout");
 
     page.hidden = false;

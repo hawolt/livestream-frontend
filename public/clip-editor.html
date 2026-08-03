@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en" class="live-host">
+<head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/png" href="/static/img/favicon.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="robots" content="noindex" />
+    <title>Create clip</title>
+    <link rel="stylesheet" href="/static/css/shared.css" />
+    <link rel="stylesheet" href="/static/css/site.css" />
+    <style>
+        .clip-editor-page { max-width: 860px; margin: 0 auto; padding: 24px 20px 100px; }
+        .clip-editor-page .ce-heading { font-size: 18px; color: var(--text); margin: 0 0 4px; }
+        .clip-editor-page .ce-subheading { font-size: 13px; color: var(--muted); margin: 0 0 20px; }
+        .clip-editor-page .ce-state {
+            border: 1px solid var(--border);
+            background: var(--surface);
+            border-radius: var(--radius);
+            padding: 40px 20px;
+            text-align: center;
+            color: var(--muted);
+            font-size: 14px;
+        }
+        .clip-editor-page .ce-state[hidden] { display: none; }
+        .clip-editor-page .ce-body[hidden] { display: none; }
+        .clip-editor-page .ce-video-wrap {
+            position: relative;
+            background: #000;
+            border-radius: var(--radius);
+            overflow: hidden;
+        }
+        .clip-editor-page video {
+            width: 100%;
+            max-height: 60vh;
+            display: block;
+            background: #000;
+        }
+        .clip-editor-page .ce-load-overlay {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            background: rgba(0, 0, 0, .55);
+            color: var(--text);
+            font-size: 13px;
+        }
+        .clip-editor-page .ce-load-overlay[hidden] { display: none; }
+        .clip-editor-page .ce-load-bar {
+            width: 60%;
+            max-width: 320px;
+            height: 6px;
+            border-radius: 3px;
+            background: rgba(255, 255, 255, .2);
+            overflow: hidden;
+        }
+        .clip-editor-page .ce-load-bar-fill {
+            height: 100%;
+            width: 0%;
+            background: var(--accent);
+        }
+        .clip-editor-page .ce-overview {
+            margin-top: 14px;
+            padding: 2px 1px;
+        }
+        .clip-editor-page .ce-overview-track {
+            position: relative;
+            height: 34px;
+            border-radius: 4px;
+            background: rgba(255, 255, 255, .08);
+            cursor: pointer;
+            touch-action: none;
+        }
+        .clip-editor-page .ce-overview-selection {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            background: rgba(74, 222, 128, .35);
+            pointer-events: none;
+        }
+        .clip-editor-page .ce-overview-viewport {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            border: 1px solid rgba(255, 255, 255, .7);
+            box-sizing: border-box;
+            pointer-events: none;
+        }
+        .clip-editor-page .ce-overview-playhead {
+            position: absolute;
+            top: -2px;
+            bottom: -2px;
+            width: 2px;
+            background: var(--red, #ef4444);
+            pointer-events: none;
+        }
+        .clip-editor-page .ce-detail {
+            margin-top: 8px;
+            padding: 2px 1px;
+        }
+        .clip-editor-page .ce-detail-track {
+            position: relative;
+            height: 54px;
+            border-radius: 4px;
+            background: rgba(255, 255, 255, .05);
+            cursor: pointer;
+            touch-action: none;
+            overflow: visible;
+        }
+        .clip-editor-page .ce-detail-selection {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            background: rgba(74, 222, 128, .25);
+            pointer-events: none;
+        }
+        .clip-editor-page .ce-detail-handle {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 10px;
+            margin-left: -5px;
+            background: var(--accent);
+            border-radius: 3px;
+            cursor: ew-resize;
+            touch-action: none;
+        }
+        .clip-editor-page .ce-detail-playhead {
+            position: absolute;
+            top: -3px;
+            bottom: -3px;
+            width: 2px;
+            background: var(--red, #ef4444);
+            pointer-events: none;
+        }
+        .clip-editor-page .ce-toolbar {
+            margin-top: 12px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .clip-editor-page .ce-duration {
+            margin-left: auto;
+            font-size: 13px;
+            color: var(--muted);
+            font-variant-numeric: tabular-nums;
+        }
+        .clip-editor-page .ce-form {
+            margin-top: 18px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            max-width: 420px;
+        }
+        .clip-editor-page .ce-form input {
+            width: 100%;
+            padding: 10px 12px;
+            border-radius: 6px;
+            border: 1px solid var(--border);
+            background: var(--bg);
+            color: var(--text);
+            font-size: 14px;
+        }
+        .clip-editor-page .ce-error { color: var(--red); font-size: 13px; min-height: 16px; }
+        .clip-editor-page .ce-progress {
+            margin-top: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .clip-editor-page .ce-progress[hidden] { display: none; }
+        .clip-editor-page .ce-progress::before {
+            content: "";
+            width: 14px;
+            height: 14px;
+            flex: 0 0 14px;
+            box-sizing: border-box;
+            border: 2px solid rgba(255, 255, 255, .25);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: ce-spin .8s linear infinite;
+        }
+        @keyframes ce-spin { to { transform: rotate(360deg); } }
+        @media (prefers-reduced-motion: reduce) {
+            .clip-editor-page .ce-progress::before { animation: none; }
+        }
+        .clip-editor-page .ce-progress-label { font-size: 13px; color: var(--muted); }
+        .clip-editor-page .ce-result {
+            margin-top: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .clip-editor-page .ce-result[hidden] { display: none; }
+        .clip-editor-page .ce-result-status { font-size: 14px; color: var(--text); }
+        .clip-editor-page .ce-result-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+        .clip-editor-page .ce-result-link { color: var(--accent); font-size: 13px; word-break: break-all; text-underline-offset: 3px; }
+    </style>
+</head>
+<body>
+<header class="site-nav">
+    <a class="site-brand" href="/">ITZon</a>
+    <nav class="site-links">
+        <a class="site-link" href="/" data-nav="browse">Browse</a>
+    </nav>
+    <div class="site-nav-right" id="site-nav-right"></div>
+</header>
+<div class="clip-editor-page">
+    <h1 class="ce-heading">Create a clip<span id="ce-channel-suffix"></span></h1>
+    <p class="ce-subheading">This clip window stays reserved to you while this tab stays open.</p>
+    <div id="ce-state" class="ce-state" role="status" aria-live="polite">Preparing your clip window...</div>
+    <div id="ce-body" class="ce-body" hidden>
+        <div class="ce-video-wrap">
+            <video id="ce-video" playsinline></video>
+            <div id="ce-load-overlay" class="ce-load-overlay">
+                <div class="ce-load-bar"><div id="ce-load-bar-fill" class="ce-load-bar-fill"></div></div>
+                <div id="ce-load-label" class="ce-load-label"></div>
+            </div>
+        </div>
+        <div class="ce-overview" id="ce-overview">
+            <div class="ce-overview-track" id="ce-overview-track">
+                <div class="ce-overview-selection" id="ce-overview-selection"></div>
+                <div class="ce-overview-viewport" id="ce-overview-viewport"></div>
+                <div class="ce-overview-playhead" id="ce-overview-playhead"></div>
+            </div>
+        </div>
+        <div class="ce-detail" id="ce-detail">
+            <div class="ce-detail-track" id="ce-detail-track">
+                <div class="ce-detail-selection" id="ce-detail-selection"></div>
+                <div class="ce-detail-handle" id="ce-detail-handle-in" role="slider" tabindex="0" aria-label="Clip start"></div>
+                <div class="ce-detail-handle" id="ce-detail-handle-out" role="slider" tabindex="0" aria-label="Clip end"></div>
+                <div class="ce-detail-playhead" id="ce-detail-playhead"></div>
+            </div>
+        </div>
+        <div class="ce-toolbar">
+            <button type="button" id="ce-btn-set-in" class="btn btn-sm">Set in (I)</button>
+            <button type="button" id="ce-btn-set-out" class="btn btn-sm">Set out (O)</button>
+            <button type="button" id="ce-btn-play-selection" class="btn btn-sm">Play selection</button>
+            <span id="ce-duration" class="ce-duration"></span>
+        </div>
+        <form id="ce-form" class="ce-form">
+            <input id="ce-title" type="text" maxlength="100" placeholder="Clip title" aria-label="Clip title" autocomplete="off" required />
+            <div id="ce-error" class="ce-error" role="alert" aria-live="polite" aria-atomic="true"></div>
+            <button type="submit" id="ce-btn-create" class="btn btn-primary">Create</button>
+        </form>
+        <div id="ce-progress" class="ce-progress" hidden role="status" aria-live="polite">
+            <span id="ce-progress-label" class="ce-progress-label"></span>
+        </div>
+        <div id="ce-result" class="ce-result" hidden>
+            <div id="ce-result-status" class="ce-result-status" role="status" aria-live="polite"></div>
+            <div class="ce-result-row">
+                <a id="ce-result-link" class="ce-result-link" href="#" target="_blank" rel="noopener"></a>
+                <button type="button" id="ce-result-copy" class="btn btn-sm" hidden>Copy link</button>
+            </div>
+        </div>
+    </div>
+</div>
+<script type="module" src="/clip-editor.js"></script>
+</body>
+</html>

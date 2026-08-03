@@ -191,7 +191,6 @@ export function fullTeardown(): void {
     setBadge(false);
     setViewers(null);
     ctx.behindLive = false;
-    ctx.frozen = false;
     resetSeekDrag();
     ctx.quotaKeepS = PRUNE_KEEP_S;
     ctx.quotaFailStreak = 0;
@@ -236,32 +235,6 @@ export function beginTransport(): void {
     ctx.startedOnce = true;
     if (ctx.transportKind === "ws") startWSTransport(g);
     else if (ctx.transportKind === "hls") startHLSTransport(g);
-}
-
-export function freezeForClip(): void {
-    if (ctx.frozen) return;
-    ctx.frozen = true;
-    video.pause();
-    stopChase();
-    stopHealthTimer();
-    clearWaitingTimer();
-    if (ctx.ws) {
-        ctx.ws.onopen = null;
-        ctx.ws.onmessage = null;
-        ctx.ws.onclose = null;
-        ctx.ws.onerror = null;
-        try {
-            ctx.ws.close();
-        } catch {}
-    }
-    ctx.ws = null;
-    ctx.appendQueue = [];
-}
-
-export function resumeFromClip(): void {
-    if (!ctx.frozen) return;
-    ctx.frozen = false;
-    beginTransport();
 }
 
 let pageHideTornDown = false;

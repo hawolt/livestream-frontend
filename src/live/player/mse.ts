@@ -17,7 +17,6 @@ export function bufferedStart(): number {
 }
 
 export function pruneBuffer(): void {
-    if (ctx.frozen) return;
     if (!ctx.sourceBuffer || ctx.sourceBuffer.updating) return;
     const b = video.buffered;
     if (!b.length) return;
@@ -31,7 +30,7 @@ export function pruneBuffer(): void {
 }
 
 export function pump(g: number): void {
-    if (!isCurrent(g) || ctx.frozen) return;
+    if (!isCurrent(g)) return;
     if (!ctx.sourceBuffer || ctx.sourceBuffer.updating || !ctx.appendQueue.length) return;
     const chunk = ctx.appendQueue.shift()!;
     try {

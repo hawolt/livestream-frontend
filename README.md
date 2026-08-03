@@ -3,8 +3,8 @@
 Frontend for the itzon.tv livestreaming site. It provides every public surface of the site:
 
 - a stream **explorer** with category browsing and hover previews
-- a **channel viewer** with low-latency playback, DVR rewind, live chat, and clip creation
-- a public **clip page** for playing back a created clip
+- a **channel viewer** with low-latency playback, DVR rewind, live chat, and clip playback (the same page also serves clip URLs)
+- a dedicated **clip editor** page for creating a clip in a new tab
 - an **embeddable player** for any channel
 - a transparent **OBS chat overlay**
 - user **auth pages** (login, register, email verify, password reset)
@@ -27,7 +27,7 @@ bunx tsc --noEmit
 
 `bun run build` runs two steps:
 
-- `build:pages` bundles each page entry (`explore`, `live`, `embed`, `chat-overlay`, `follow-alerts`, `user-login`, `register`, `verify`, `reset-password`, `legal`, `wiki`, `clip`) to `public/<name>.js`
+- `build:pages` bundles each page entry (`explore`, `live`, `embed`, `chat-overlay`, `follow-alerts`, `user-login`, `register`, `verify`, `reset-password`, `legal`, `wiki`, `clip-editor`) to `public/<name>.js`
 - `build:dash` bundles `src/dashboard.ts` to `public/dash/` with code splitting, so tab modules load on demand
 
 Build outputs (`public/*.js`, `public/dash/`) are gitignored; a fresh checkout has no servable bundles until the build runs. Both build steps delete their previous output first, so stale bundles never accumulate.
@@ -49,7 +49,7 @@ Build outputs (`public/*.js`, `public/dash/`) are gitignored; a fresh checkout h
 | Page | Entry | HTML | What it does |
 |---|---|---|---|
 | Explorer | `src/explore.ts` | `explore.html` | Live stream and category grid at `/`, hover live previews |
-| Channel viewer | `src/live.ts` | `live.html` | `/<username>`: WS+MSE playback with native HLS fallback, DVR rewind, cinema mode, browse picture-in-picture, chat |
+| Channel viewer | `src/live.ts` | `live.html` | `/<username>`: WS+MSE playback with native HLS fallback, DVR rewind, cinema mode, browse picture-in-picture, chat; also serves clip playback at `/<username>/clip/<code>` in a reduced clip mode |
 | Chat client | `src/live-chat.ts` | (part of `live.html`) | IRC over WebSocket: badges, 7TV emotes, replies, mentions, whispers, pins, moderation actions |
 | Embed player | `src/embed.ts` | `embed.html` | `/embed/<username>`: minimal muted-autoplay player, click to unmute, preview mode for the explorer |
 | Chat overlay | `src/chat-overlay.ts` | `chat.html` | `/chat/<username>`: transparent read-only chat for OBS browser sources, styled via URL params |
@@ -61,7 +61,7 @@ Build outputs (`public/*.js`, `public/dash/`) are gitignored; a fresh checkout h
 | Dashboard | `src/dashboard.ts` | `dashboard.html` | Tab shell at `/dashboard/<tab>`; tabs in `src/dash/tabs/` |
 | API docs | `src/wiki.ts` | `wiki.html` | Hash-routed topic sections with a generated sidebar |
 | Legal | `src/legal.ts` | `terms.html`, `privacy.html`, `impressum.html` | Static pages, navbar only |
-| Clip page | `src/clip.ts` | `clip.html` | `/clip/<id>`: public clip playback page, polls while processing |
+| Clip editor | `src/clip-editor.ts` | `clip-editor.html` | `/clip/create?channel=<name>`: dedicated clip creation page opened in a new tab, streams a pinned window into MediaSource, in/out selection, submits and polls until the clip is ready at `/<channel>/clip/<code>` |
 
 The dashboard health tabs embed a `/details` telemetry page in an iframe. That page is not part of this repository; production deployments provide it separately, and without it those tabs show their loading state indefinitely.
 
