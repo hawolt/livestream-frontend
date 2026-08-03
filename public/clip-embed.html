@@ -45,6 +45,19 @@
             background: #000;
         }
         #clip-embed-state.hidden { display: none; }
+        #clip-embed-open, #clip-embed-watch-live {
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity .15s ease;
+        }
+        #clip-embed-stage.chrome-visible #clip-embed-open,
+        #clip-embed-stage.chrome-visible #clip-embed-watch-live {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        @media (prefers-reduced-motion: reduce) {
+            #clip-embed-open, #clip-embed-watch-live { transition: none; }
+        }
         #clip-embed-open {
             position: absolute;
             right: 8px;

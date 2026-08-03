@@ -1,5 +1,6 @@
 import { parseClipEmbedRoute } from "./clip-embed/route.ts";
 import { openLink, stateEl, video, watchLiveLink } from "./clip-embed/dom.ts";
+import { wireChromeVisibility } from "./clip-embed/chrome.ts";
 
 interface ChannelResponse {
     live?: boolean;
@@ -48,6 +49,7 @@ async function boot(): Promise<void> {
         return;
     }
 
+    wireChromeVisibility();
     openLink.href = `/${encodeURIComponent(route.channel)}/clip/${encodeURIComponent(route.code)}`;
     openLink.classList.remove("hidden");
 
