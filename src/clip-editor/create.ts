@@ -3,7 +3,7 @@ import { PIN_RENEW_MS, state, TITLE_MAX_LEN } from "./context.ts";
 import { behindMsFromSelection } from "./behind.ts";
 import { createClip, releaseClipPin, renewClipPin } from "./pin-api.ts";
 import { currentToken, redirectToLogin } from "./session.ts";
-import { render } from "./render.ts";
+import { render, showStateMessage } from "./render.ts";
 import { startClipStatusPolling, stopClipStatusPolling } from "../clip-status-poll.ts";
 
 let renewTimer: number | null = null;
@@ -25,7 +25,7 @@ async function renewPin(): Promise<void> {
         stopPinRenewal();
         state.phase = "blocked";
         state.errorMessage = "Your clip session expired. Reload the page and try again.";
-        render();
+        showStateMessage(state.errorMessage, false);
     }
 }
 

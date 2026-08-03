@@ -21,7 +21,7 @@ async function loadMediaIntoVideo(): Promise<boolean> {
     const mime = pickSupportedMimeType();
     if (!mime || typeof MediaSource === "undefined") {
         state.phase = "media-error";
-        showStateMessage("This browser cannot preview clip media.");
+        showStateMessage("This browser cannot preview clip media.", false);
         return false;
     }
     const mediaSource = new MediaSource();
@@ -41,7 +41,7 @@ async function loadMediaIntoVideo(): Promise<boolean> {
     if (isMediaCancelled()) return false;
     if (!headers) {
         state.phase = "media-error";
-        showStateMessage("Could not load this clip window. Try again.");
+        showStateMessage("Could not load this clip window. Try again.", false);
         return false;
     }
     state.nowMs = headers.nowMs;
@@ -71,7 +71,7 @@ export async function boot(): Promise<void> {
     const channel = parseChannelParam(location.search);
     if (!channel) {
         state.phase = "invalid-channel";
-        showStateMessage("Missing or invalid channel.");
+        showStateMessage("Missing or invalid channel.", false);
         return;
     }
     state.channel = channel;
@@ -94,16 +94,16 @@ export async function boot(): Promise<void> {
         }
         if (pinResult.status === 404) {
             state.phase = "channel-offline";
-            showStateMessage("This channel cannot be clipped right now.");
+            showStateMessage("This channel cannot be clipped right now.", false);
             return;
         }
         if (pinResult.status === 429) {
             state.phase = "blocked";
-            showStateMessage("Too many clip requests. Please wait a moment and try again.");
+            showStateMessage("Too many clip requests. Please wait a moment and try again.", false);
             return;
         }
         state.phase = "blocked";
-        showStateMessage("Could not start clip creation. Try again.");
+        showStateMessage("Could not start clip creation. Try again.", false);
         return;
     }
     state.pin = pinResult.data.pin;

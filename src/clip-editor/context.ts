@@ -30,7 +30,6 @@ export interface EditorState {
     selectionEndMs: number;
     viewStartMs: number;
     viewEndMs: number;
-    playingSelection: boolean;
     clipCode: string | null;
     errorMessage: string;
     jobPhase: string | null;
@@ -50,7 +49,6 @@ export const state: EditorState = {
     selectionEndMs: 0,
     viewStartMs: 0,
     viewEndMs: 0,
-    playingSelection: false,
     clipCode: null,
     errorMessage: "",
     jobPhase: null,

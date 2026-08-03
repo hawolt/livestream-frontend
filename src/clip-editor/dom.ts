@@ -1,10 +1,25 @@
-export const channelSuffixEl = document.getElementById("ce-channel-suffix") as HTMLElement;
+export const channelNameEl = document.getElementById("ce-channel-name") as HTMLElement;
 export const stateEl = document.getElementById("ce-state") as HTMLElement;
+export const stateTextEl = document.getElementById("ce-state-text") as HTMLElement;
 export const bodyEl = document.getElementById("ce-body") as HTMLElement;
 export const videoEl = document.getElementById("ce-video") as HTMLVideoElement;
+export const toggleFlashBubbleEl = document.getElementById("ce-toggle-flash-bubble") as HTMLElement;
 export const loadOverlayEl = document.getElementById("ce-load-overlay") as HTMLElement;
 export const loadBarFillEl = document.getElementById("ce-load-bar-fill") as HTMLElement;
 export const loadLabelEl = document.getElementById("ce-load-label") as HTMLElement;
+
+export const playerControlsEl = document.getElementById("ce-player-controls") as HTMLElement;
+export const seekbarTrackEl = document.getElementById("ce-seekbar-track") as HTMLElement;
+export const seekbarProgressEl = document.getElementById("ce-seekbar-progress") as HTMLElement;
+export const seekbarThumbEl = document.getElementById("ce-seekbar-thumb") as HTMLElement;
+export const btnPlayPauseEl = document.getElementById("ce-btn-playpause") as HTMLButtonElement;
+export const timeEl = document.getElementById("ce-time") as HTMLElement;
+export const btnMuteEl = document.getElementById("ce-btn-mute") as HTMLButtonElement;
+export const volumeEl = document.getElementById("ce-volume") as HTMLInputElement;
+
+export const timelineCardEl = document.getElementById("ce-timeline-card") as HTMLElement;
+export const zoomIndicatorEl = document.getElementById("ce-zoom-indicator") as HTMLElement;
+export const btnZoomResetEl = document.getElementById("ce-btn-zoom-reset") as HTMLButtonElement;
 export const overviewTrackEl = document.getElementById("ce-overview-track") as HTMLElement;
 export const overviewSelectionEl = document.getElementById("ce-overview-selection") as HTMLElement;
 export const overviewViewportEl = document.getElementById("ce-overview-viewport") as HTMLElement;
@@ -13,11 +28,14 @@ export const detailTrackEl = document.getElementById("ce-detail-track") as HTMLE
 export const detailSelectionEl = document.getElementById("ce-detail-selection") as HTMLElement;
 export const detailHandleInEl = document.getElementById("ce-detail-handle-in") as HTMLElement;
 export const detailHandleOutEl = document.getElementById("ce-detail-handle-out") as HTMLElement;
+export const handleInTooltipEl = document.getElementById("ce-handle-in-tooltip") as HTMLElement;
+export const handleOutTooltipEl = document.getElementById("ce-handle-out-tooltip") as HTMLElement;
 export const detailPlayheadEl = document.getElementById("ce-detail-playhead") as HTMLElement;
 export const btnSetInEl = document.getElementById("ce-btn-set-in") as HTMLButtonElement;
 export const btnSetOutEl = document.getElementById("ce-btn-set-out") as HTMLButtonElement;
 export const btnPlaySelectionEl = document.getElementById("ce-btn-play-selection") as HTMLButtonElement;
 export const durationEl = document.getElementById("ce-duration") as HTMLElement;
+
 export const formEl = document.getElementById("ce-form") as HTMLFormElement;
 export const titleInputEl = document.getElementById("ce-title") as HTMLInputElement;
 export const errorEl = document.getElementById("ce-error") as HTMLElement;

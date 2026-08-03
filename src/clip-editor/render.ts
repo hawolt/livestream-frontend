@@ -1,11 +1,18 @@
 import {
     bodyEl,
     btnCreateEl,
-    channelSuffixEl,
+    btnMuteEl,
+    btnPlayPauseEl,
+    btnPlaySelectionEl,
+    btnSetInEl,
+    btnSetOutEl,
+    btnZoomResetEl,
+    channelNameEl,
     errorEl,
     loadBarFillEl,
     loadLabelEl,
     loadOverlayEl,
+    playerControlsEl,
     progressEl,
     progressLabelEl,
     resultCopyEl,
@@ -13,17 +20,22 @@ import {
     resultLinkEl,
     resultStatusEl,
     stateEl,
+    stateTextEl,
+    timelineCardEl,
+    titleInputEl,
+    volumeEl,
 } from "./dom.ts";
 import { state } from "./context.ts";
 import { clipProcessingMessage } from "../clip-processing-message.ts";
 
 export function setChannelLabel(channel: string): void {
-    channelSuffixEl.textContent = channel ? ` for ${channel}` : "";
+    channelNameEl.textContent = channel;
 }
 
-export function showStateMessage(text: string): void {
+export function showStateMessage(text: string, loading = true): void {
     stateEl.hidden = false;
-    stateEl.textContent = text;
+    stateTextEl.textContent = text;
+    stateEl.classList.toggle("ce-state-loading", loading);
     bodyEl.hidden = true;
 }
 
@@ -42,10 +54,25 @@ export function setLoadProgress(fraction: number, visible: boolean): void {
 
 export function render(): void {
     const phase = state.phase;
-    btnCreateEl.disabled = phase !== "ready";
-    errorEl.textContent = phase === "ready" ? state.errorMessage : "";
+    const editable = phase === "ready";
+    const mediaReady = phase !== "loading-media";
+
+    btnCreateEl.disabled = !editable;
+    errorEl.textContent = editable ? state.errorMessage : "";
     progressEl.hidden = phase !== "submitting" && phase !== "processing";
     resultEl.hidden = phase !== "done" && phase !== "create-failed";
+
+    timelineCardEl.classList.toggle("ce-disabled", !editable);
+    btnSetInEl.disabled = !editable;
+    btnSetOutEl.disabled = !editable;
+    btnPlaySelectionEl.disabled = !editable;
+    titleInputEl.disabled = !editable;
+    if (!editable) btnZoomResetEl.disabled = true;
+
+    playerControlsEl.classList.toggle("ce-disabled", !mediaReady);
+    btnPlayPauseEl.disabled = !mediaReady;
+    btnMuteEl.disabled = !mediaReady;
+    volumeEl.disabled = !mediaReady;
 
     if (phase === "submitting") {
         progressLabelEl.textContent = "Submitting clip...";
