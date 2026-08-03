@@ -69,11 +69,14 @@ export type MediaProgressCallback = (loadedFraction: number, headers: PinMediaHe
 export async function streamPinMedia(
     channel: string,
     pin: string,
+    token: string,
     sourceBuffer: SourceBuffer,
     onProgress: MediaProgressCallback,
     isCancelled: () => boolean,
 ): Promise<PinMediaHeaders | null> {
-    const res = await fetch(`/api/main/v1/clips/pin/media?channel=${encodeURIComponent(channel)}&pin=${encodeURIComponent(pin)}`);
+    const res = await fetch(`/api/main/v1/clips/pin/media?channel=${encodeURIComponent(channel)}&pin=${encodeURIComponent(pin)}`, {
+        headers: { "Authorization": `Bearer ${token}` },
+    });
     if (!res.ok || !res.body) return null;
     const headers = parsePinMediaHeaders(res.headers);
     if (!headers) return null;

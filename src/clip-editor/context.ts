@@ -21,6 +21,7 @@ export const PIN_RENEW_MS = 300000;
 export interface EditorState {
     channel: string;
     phase: EditorPhase;
+    token: string;
     pin: string | null;
     nowMs: number;
     windowMs: number;
@@ -40,6 +41,7 @@ export interface EditorState {
 export const state: EditorState = {
     channel: "",
     phase: "checking-session",
+    token: "",
     pin: null,
     nowMs: 0,
     windowMs: 0,

@@ -35,7 +35,7 @@ async function loadMediaIntoVideo(): Promise<boolean> {
     });
     sourceBuffer.mode = "segments";
     setLoadProgress(0, true);
-    const headers = await streamPinMedia(state.channel, state.pin!, sourceBuffer, (fraction) => {
+    const headers = await streamPinMedia(state.channel, state.pin!, state.token, sourceBuffer, (fraction) => {
         setLoadProgress(fraction, true);
     }, isMediaCancelled);
     if (isMediaCancelled()) return false;
@@ -78,6 +78,7 @@ export async function boot(): Promise<void> {
     setChannelLabel(channel);
 
     const token = await ensureSession();
+    if (token) state.token = token;
     if (!token) {
         redirectToLogin();
         return;
