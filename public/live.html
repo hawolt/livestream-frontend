@@ -597,7 +597,7 @@
             background: var(--surface);
             min-height: 0;
         }
-        #live-chat.collapsed { display: none; }
+        body.chat-collapsed #live-chat { display: none; }
 
         .live-chat-msg.live-chat-automod {
             opacity: 0.6;
@@ -1482,6 +1482,7 @@
     </style>
 </head>
 <body>
+<script>try{if(location.search.indexOf("chat=popout")===-1){if(window.innerWidth>900&&localStorage.getItem("live-chat-collapsed")==="1")document.body.classList.add("chat-collapsed");if(localStorage.getItem("live-channel-rail-collapsed")==="1")document.body.classList.add("rail-collapsed");if(localStorage.getItem("live-chat-side")==="left")document.body.classList.add("chat-left");}}catch(e){}</script>
 <header class="site-nav">
     <a class="site-brand" href="/">ITZon</a>
     <nav class="site-links">

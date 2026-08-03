@@ -47,7 +47,7 @@ export function syncLayout(): void {
     const isVertical = effective === "vertical";
     page.classList.toggle("is-vertical", isVertical);
     document.body.classList.toggle("is-vertical", isVertical);
-    if (isVertical) chatEl.classList.remove("collapsed");
+    if (isVertical) document.body.classList.remove("chat-collapsed");
     const label = layoutLabel(mode);
     btnLayoutToggle.title = label;
     btnLayoutToggle.setAttribute("aria-label", label);
@@ -105,21 +105,21 @@ export function updateCinemaButtonVisibility(): void {
 
 export function setChatCollapsed(collapsed: boolean): void {
     if (isPopoutMode()) {
-        chatEl.classList.remove("collapsed");
+        document.body.classList.remove("chat-collapsed");
         fitChat();
         return;
     }
-    chatEl.classList.toggle("collapsed", collapsed);
+    document.body.classList.toggle("chat-collapsed", collapsed);
     writeLocalStorage(CHAT_COLLAPSE_KEY, collapsed ? "1" : "0");
     fitChat();
 }
 
 export function toggleChat(): void {
-    setChatCollapsed(!chatEl.classList.contains("collapsed"));
+    setChatCollapsed(!document.body.classList.contains("chat-collapsed"));
 }
 
 export function fitChat(): void {
-    if (isPopoutMode() || page.classList.contains("is-vertical") || chatEl.classList.contains("collapsed") || window.innerWidth < CHAT_FIT_MIN_VW) {
+    if (isPopoutMode() || page.classList.contains("is-vertical") || document.body.classList.contains("chat-collapsed") || window.innerWidth < CHAT_FIT_MIN_VW) {
         chatEl.style.width = "";
         return;
     }

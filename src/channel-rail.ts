@@ -262,7 +262,7 @@ export function createChannelRail(options: ChannelRailOptions): ChannelRailHandl
     }
 
     function setRailCollapsed(collapsed: boolean): void {
-        elements.rail.classList.toggle("collapsed", collapsed);
+        document.body.classList.toggle("rail-collapsed", collapsed);
         elements.toggle.setAttribute("aria-expanded", String(!collapsed));
         const label = collapsed ? "Expand live channels" : "Collapse live channels";
         elements.toggle.title = label;
@@ -277,7 +277,7 @@ export function createChannelRail(options: ChannelRailOptions): ChannelRailHandl
         railStarted = true;
         setRailCollapsed(readLocalStorage(RAIL_COLLAPSED_KEY) === "1");
         elements.toggle.addEventListener("click", () => {
-            setRailCollapsed(!elements.rail.classList.contains("collapsed"));
+            setRailCollapsed(!document.body.classList.contains("rail-collapsed"));
         });
         elements.rail.addEventListener("transitionend", (ev) => {
             if (ev.target === elements.rail && ev.propertyName === "width") onCollapsedChange?.();
