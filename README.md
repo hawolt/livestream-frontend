@@ -27,7 +27,7 @@ bunx tsc --noEmit
 
 `bun run build` runs two steps:
 
-- `build:pages` bundles each page entry (`explore`, `live`, `embed`, `chat-overlay`, `follow-alerts`, `user-login`, `register`, `verify`, `reset-password`, `legal`, `wiki`, `clip-editor`) to `public/<name>.js`
+- `build:pages` bundles each page entry (`explore`, `live`, `embed`, `chat-overlay`, `follow-alerts`, `user-login`, `register`, `verify`, `reset-password`, `legal`, `wiki`, `clip-editor`, `clip-embed`) to `public/<name>.js`
 - `build:dash` bundles `src/dashboard.ts` to `public/dash/` with code splitting, so tab modules load on demand
 
 Build outputs (`public/*.js`, `public/dash/`) are gitignored; a fresh checkout has no servable bundles until the build runs. Both build steps delete their previous output first, so stale bundles never accumulate.
@@ -62,6 +62,7 @@ Build outputs (`public/*.js`, `public/dash/`) are gitignored; a fresh checkout h
 | API docs | `src/wiki.ts` | `wiki.html` | Hash-routed topic sections with a generated sidebar |
 | Legal | `src/legal.ts` | `terms.html`, `privacy.html`, `impressum.html` | Static pages, navbar only |
 | Clip editor | `src/clip-editor.ts` | `clip-editor.html` | `/clip/create?channel=<name>`: dedicated clip creation page opened in a new tab, plays a pinned window through an `hls.js`-backed HLS VOD player (the one sanctioned runtime dependency), in/out selection, submits and polls until the clip is ready at `/<channel>/clip/<code>` |
+| Clip embed | `src/clip-embed.ts` | `clip-embed.html` | `/embed/clip/<channel>/<code>`: minimal cross-origin player X (Twitter) loads as its player-card iframe, native controls, muted autoplay, poster from `thumbnailUrl`, a small corner link to the full clip page |
 
 The dashboard health tabs embed a `/details` telemetry page in an iframe. That page is not part of this repository; production deployments provide it separately, and without it those tabs show their loading state indefinitely.
 
