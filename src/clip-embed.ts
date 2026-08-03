@@ -1,5 +1,9 @@
 import { parseClipEmbedRoute } from "./clip-embed/route.ts";
-import { openLink, stateEl, video } from "./clip-embed/dom.ts";
+import { openLink, stateEl, video, watchLiveLink } from "./clip-embed/dom.ts";
+
+interface ChannelResponse {
+    live?: boolean;
+}
 
 interface ClipResponse {
     channel?: string;
@@ -23,6 +27,18 @@ function renderClip(url: string, thumbnailUrl: string | null): void {
     video.src = url;
     video.classList.remove("hidden");
     video.play().catch(() => {});
+}
+
+async function showWatchLiveIfChannelIsLive(channel: string): Promise<void> {
+    try {
+        const res = await fetch(`/api/live/channel/${encodeURIComponent(channel)}`);
+        if (!res.ok) return;
+        const info = await res.json() as ChannelResponse;
+        if (info.live !== true) return;
+        watchLiveLink.href = `/${encodeURIComponent(channel)}`;
+        watchLiveLink.classList.remove("hidden");
+    } catch {
+    }
 }
 
 async function boot(): Promise<void> {
@@ -49,6 +65,7 @@ async function boot(): Promise<void> {
         }
         if (data.status === "ready" && typeof data.url === "string" && data.url) {
             renderClip(data.url, typeof data.thumbnailUrl === "string" && data.thumbnailUrl ? data.thumbnailUrl : null);
+            void showWatchLiveIfChannelIsLive(route.channel);
             return;
         }
         renderState("Clip not available.");
