@@ -19,11 +19,18 @@
     font-size: 15px;
     font-weight: 700;
     line-height: 1;
+    letter-spacing: 0.09em;
     color: var(--text);
     text-decoration: none;
     white-space: nowrap;
 }
 .site-brand:hover { color: var(--accent); text-decoration: none; }
+.brand-o {
+    width: 0.92em;
+    height: 0.92em;
+    margin: 0 0.10em 0 0.06em;
+    vertical-align: -0.075em;
+}
 
 .site-links {
     display: flex;
