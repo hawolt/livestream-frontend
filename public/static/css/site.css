@@ -25,10 +25,9 @@
 }
 .site-brand:hover { color: var(--accent); text-decoration: none; }
 .brand-o {
-    width: 0.80em;
-    height: 0.80em;
-    margin: 0 0.05em;
-    vertical-align: -0.025em;
+    display: block;
+    width: 22px;
+    height: 22px;
 }
 
 .site-links {
