@@ -16,6 +16,8 @@
 }
 
 .site-brand {
+    display: inline-flex;
+    align-items: center;
     font-size: 15px;
     font-weight: 700;
     line-height: 1;
@@ -28,6 +30,21 @@
     display: block;
     width: 22px;
     height: 22px;
+}
+.brand-wm {
+    overflow: hidden;
+    max-width: 0;
+    opacity: 0;
+    margin-left: 0;
+    transition: max-width 0.35s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.25s ease, margin-left 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.site-brand:hover .brand-wm, .site-brand:focus-visible .brand-wm {
+    max-width: 90px;
+    opacity: 1;
+    margin-left: 9px;
+}
+@media (prefers-reduced-motion: reduce) {
+    .brand-wm { transition: none; }
 }
 
 .site-links {
