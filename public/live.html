@@ -1348,6 +1348,9 @@
             .live-app:not(.is-vertical) #live-chat { width: 40%; max-width: 340px; }
         }
         .is-vertical #btn-cinema { display: none; }
+        @media (orientation: landscape) and (max-height: 500px) {
+            #btn-layout-toggle { display: none; }
+        }
 
         #live-chat.chat-fullscreen {
             border-left: none;
