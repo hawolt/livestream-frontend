@@ -108,6 +108,7 @@ async function boot(): Promise<void> {
         setCaptchaAnchor(chatEl);
         warmCaptcha();
         void loadAds("chat").then(ads => {
+            if (document.body.classList.contains("is-vertical")) return;
             renderAdSlot(chatFeatureSlotEl, ads);
             chatFeatureSlotEl.classList.toggle("feature-filled", ads.length > 0);
         });

@@ -632,7 +632,7 @@
             align-items: center;
             gap: 2px;
         }
-        .live-chat-head button {
+        .live-chat-head button, .live-chat-head-actions button {
             background: none;
             border: none;
             color: var(--muted);
@@ -640,7 +640,7 @@
             font-size: 16px;
             padding: 4px 6px;
         }
-        .live-chat-head button:hover { color: var(--text); }
+        .live-chat-head button:hover, .live-chat-head-actions button:hover { color: var(--text); }
         #btn-chat-more.active,
         .live-chat-head-actions:has(.live-chat-overflow button.active) #btn-chat-more { color: var(--accent); }
         .live-chat-overflow {
@@ -1304,8 +1304,8 @@
         .live-app.is-vertical .live-left { flex: 0 0 auto; }
         .live-app.is-vertical .live-stage { aspect-ratio: 16 / 9; flex: none; height: auto; }
         .live-app.is-vertical #live-chat { width: 100%; border-left: none; border-top: 1px solid var(--border); flex: 1 1 0; height: auto; min-height: 220px; }
-        .live-app.is-vertical .live-chat-head { justify-content: flex-end; }
-        .live-app.is-vertical .live-chat-head span { display: none; }
+        .live-app.is-vertical .live-chat-head { display: none; }
+        body.is-vertical #live-chat-feature { display: none; }
 
         #live-viewers-count, #live-viewers-header-count {
             display: inline-flex;
@@ -1565,9 +1565,9 @@
         </div>
         <div id="live-chat">
             <div id="live-chat-feature"></div>
-            <div class="live-chat-head">
+            <div class="live-chat-head" id="live-chat-head">
                 <span>Chat</span>
-                <div class="live-chat-head-actions">
+                <div class="live-chat-head-actions" id="live-chat-head-actions">
                     <button id="btn-chat-more" type="button" title="More chat options" aria-label="More chat options" aria-haspopup="true" aria-expanded="false" aria-controls="live-chat-overflow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg></button>
                     <div class="live-chat-overflow" id="live-chat-overflow" hidden>
                         <span class="live-chat-overflow-label">Chat</span>

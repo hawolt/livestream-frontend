@@ -1,4 +1,4 @@
-import { btnCinema, btnLayoutToggle, channelRailEl, chatEl, mainEl, page, stageEl, video } from "./dom.ts";
+import { btnCinema, btnLayoutToggle, channelRailEl, chatEl, chatHeadActionsEl, chatHeadEl, followWrapEl, mainEl, page, stageEl, video } from "./dom.ts";
 import { syncChannelRailVisibility } from "./channel-rail.ts";
 import { readLocalStorage, writeLocalStorage } from "../storage.ts";
 import {
@@ -48,6 +48,11 @@ export function syncLayout(): void {
     page.classList.toggle("is-vertical", isVertical);
     document.body.classList.toggle("is-vertical", isVertical);
     if (isVertical) document.body.classList.remove("chat-collapsed");
+    if (isVertical) {
+        followWrapEl.after(chatHeadActionsEl);
+    } else if (chatHeadActionsEl.parentElement !== chatHeadEl) {
+        chatHeadEl.appendChild(chatHeadActionsEl);
+    }
     const label = layoutLabel(mode);
     btnLayoutToggle.title = label;
     btnLayoutToggle.setAttribute("aria-label", label);
