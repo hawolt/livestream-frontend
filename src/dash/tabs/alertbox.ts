@@ -28,6 +28,13 @@ function buildFollowParams(): URLSearchParams {
     return params;
 }
 
+let hasSound = false;
+
+function setHasSound(value: boolean): void {
+    hasSound = value;
+    el<HTMLButtonElement>("fa-sound-remove").disabled = !value;
+}
+
 function soundStatus(text: string, color: string): void {
     const status = el("fa-sound-status");
     status.textContent = text;
@@ -38,6 +45,7 @@ async function refreshSoundStatus(generation: number): Promise<void> {
     try {
         const res = await fetch(`/api/live/alert-sound/${encodeURIComponent(username())}?v=${Date.now()}`, { method: "HEAD" });
         if (!isCurrentActivation(generation)) return;
+        setHasSound(res.ok);
         soundStatus(res.ok ? "Custom sound uploaded." : "No sound uploaded yet.", "var(--muted)");
     } catch {
         if (!isCurrentActivation(generation)) return;
@@ -60,6 +68,7 @@ async function uploadSound(file: File): Promise<void> {
             body: bytes,
         });
         if (!isCurrentActivation(generation)) return;
+        setHasSound(true);
         soundStatus("Sound uploaded.", "var(--success)");
         scheduleFollowPreview();
     } catch (e) {
@@ -73,7 +82,8 @@ async function removeSound(): Promise<void> {
     try {
         await authFetch<{ ok: boolean }>("/api/profile/me/alert-sound", { method: "DELETE" });
         if (!isCurrentActivation(generation)) return;
-        soundStatus("Sound removed.", "var(--muted)");
+        setHasSound(false);
+        soundStatus("Sound removed. Refresh any open overlay page to silence it.", "var(--muted)");
         scheduleFollowPreview();
     } catch {
         if (!isCurrentActivation(generation)) return;

@@ -31,9 +31,12 @@
                 <div id="live-info-body" style="flex:1;overflow-y:auto;min-height:0">Loading...</div>
             </div>
             <div class="card" style="padding:24px;flex:1;display:flex;flex-direction:column">
-                <div class="section-title" style="display:flex;align-items:center;justify-content:space-between">
+                <div class="section-title" style="display:flex;align-items:center;justify-content:space-between;gap:10px">
                     <span>Recent activity</span>
-                    <button class="btn btn-sm" id="act-sound-toggle" type="button">Sound: on</button>
+                    <span style="display:flex;align-items:center;gap:8px">
+                        <input id="act-sound-volume" type="range" min="0" max="100" step="5" title="Alert sound volume" style="width:90px">
+                        <button class="btn btn-sm" id="act-sound-toggle" type="button">Sound: on</button>
+                    </span>
                 </div>
                 <div id="act-events-body" style="flex:1;overflow-y:auto;scrollbar-gutter:stable;padding-right:8px;min-height:0">Loading...</div>
             </div>

@@ -235,10 +235,22 @@ function renderInfo(): void {
 }
 
 const SOUND_PREF_KEY = "activity_sound";
+const SOUND_VOLUME_KEY = "activity_sound_volume";
 const SOUND_MIN_GAP_MS = 1500;
 let alertAudio: HTMLAudioElement | null = null;
 let alertAudioFailed = false;
 let lastSoundAt = 0;
+
+function soundVolumePct(): number {
+    try {
+        const raw = localStorage.getItem(SOUND_VOLUME_KEY);
+        if (raw === null) return 100;
+        const v = Number(raw);
+        return Number.isFinite(v) && v >= 0 && v <= 100 ? v : 100;
+    } catch {
+        return 100;
+    }
+}
 
 function soundPrefOn(): boolean {
     try {
@@ -255,6 +267,8 @@ function renderSoundToggle(): void {
 
 function playFollowSound(): void {
     if (!soundPrefOn() || alertAudioFailed) return;
+    const volume = soundVolumePct();
+    if (volume <= 0) return;
     const now = Date.now();
     if (now - lastSoundAt < SOUND_MIN_GAP_MS) return;
     lastSoundAt = now;
@@ -266,6 +280,7 @@ function playFollowSound(): void {
             alertAudioFailed = true;
         };
     }
+    alertAudio.volume = volume / 100;
     try {
         alertAudio.currentTime = 0;
     } catch {}
@@ -281,6 +296,18 @@ export function init(): void {
         renderSoundToggle();
     });
     renderSoundToggle();
+    const volumeInput = document.getElementById("act-sound-volume") as HTMLInputElement | null;
+    if (volumeInput) {
+        volumeInput.value = String(soundVolumePct());
+        volumeInput.addEventListener("input", () => {
+            const v = Number(volumeInput.value);
+            if (!Number.isFinite(v) || v < 0 || v > 100) return;
+            try {
+                localStorage.setItem(SOUND_VOLUME_KEY, String(Math.round(v)));
+            } catch {}
+            if (alertAudio) alertAudio.volume = v / 100;
+        });
+    }
     const chip = document.getElementById("act-viewer-chip");
     chip?.addEventListener("click", () => {
         concealed = !concealed;
