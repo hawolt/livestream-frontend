@@ -382,6 +382,51 @@ a.btn:hover { text-decoration: none; }
 .card-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 @media (max-width: 900px) { .card-grid-2 { grid-template-columns: 1fr; } }
 
+.ov-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 16px;
+    align-items: start;
+}
+@media (max-width: 1100px) { .ov-layout { grid-template-columns: 1fr; } }
+
+.ov-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px 18px;
+    align-items: start;
+}
+.ov-grid .ov-span-2 { grid-column: 1 / -1; }
+@media (max-width: 640px) { .ov-grid { grid-template-columns: 1fr; } }
+
+.ov-section {
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--dim);
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    margin: 20px 0 12px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+}
+.ov-section:first-child { margin-top: 0; padding-top: 0; border-top: none; }
+
+.ov-toggle { display: flex; align-items: flex-start; gap: 8px; }
+.ov-toggle input { margin-top: 3px; flex-shrink: 0; }
+.ov-toggle > span {
+    display: block;
+    font-size: 13px;
+    font-weight: 400;
+    text-transform: none;
+    letter-spacing: 0;
+    color: inherit;
+    margin-bottom: 0;
+}
+.ov-toggle .ov-toggle-name { font-size: 13px; font-weight: 600; display: block; }
+
+.ov-url-row { display: flex; gap: 6px; align-items: center; }
+.ov-url-row code { font-size: 11px; word-break: break-all; flex: 1; }
+
 .ov-preview-toolbar { display: flex; gap: 8px; margin-bottom: 10px; }
 .ov-preview-frame {
     width: 400px;
