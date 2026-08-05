@@ -33,9 +33,20 @@
             <div class="card" style="padding:24px;flex:1;display:flex;flex-direction:column">
                 <div class="section-title" style="display:flex;align-items:center;justify-content:space-between;gap:10px">
                     <span>Recent activity</span>
-                    <span style="display:flex;align-items:center;gap:8px">
-                        <input id="act-sound-volume" type="range" min="0" max="100" step="5" title="Alert sound volume" style="width:90px">
-                        <button class="btn btn-sm" id="act-sound-toggle" type="button">Sound: on</button>
+                    <span class="sound-pop-wrap">
+                        <button class="btn btn-sm" id="act-sound-settings" type="button" title="Alert sound settings" aria-haspopup="true">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:block"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+                        </button>
+                        <div class="sound-pop" id="act-sound-pop">
+                            <div class="sound-pop-row">
+                                <span>Alert sound</span>
+                                <input type="checkbox" id="act-sound-on">
+                            </div>
+                            <div class="sound-pop-row">
+                                <span>Volume</span>
+                                <input type="range" class="ov-range" id="act-sound-volume" min="0" max="100" step="5" style="width:110px">
+                            </div>
+                        </div>
                     </span>
                 </div>
                 <div id="act-events-body" style="flex:1;overflow-y:auto;scrollbar-gutter:stable;padding-right:8px;min-height:0">Loading...</div>

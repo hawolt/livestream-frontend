@@ -260,11 +260,6 @@ function soundPrefOn(): boolean {
     }
 }
 
-function renderSoundToggle(): void {
-    const btn = document.getElementById("act-sound-toggle");
-    if (btn) btn.textContent = soundPrefOn() ? "Sound: on" : "Sound: off";
-}
-
 function playFollowSound(): void {
     if (!soundPrefOn() || alertAudioFailed) return;
     const volume = soundVolumePct();
@@ -288,14 +283,28 @@ function playFollowSound(): void {
 }
 
 export function init(): void {
-    const soundToggle = document.getElementById("act-sound-toggle");
-    soundToggle?.addEventListener("click", () => {
-        try {
-            localStorage.setItem(SOUND_PREF_KEY, soundPrefOn() ? "0" : "1");
-        } catch {}
-        renderSoundToggle();
+    const soundButton = document.getElementById("act-sound-settings");
+    const soundPop = document.getElementById("act-sound-pop");
+    soundButton?.addEventListener("click", (ev) => {
+        ev.stopPropagation();
+        soundPop?.classList.toggle("open");
     });
-    renderSoundToggle();
+    document.addEventListener("pointerdown", (ev) => {
+        if (!soundPop?.classList.contains("open")) return;
+        const wrap = soundButton?.parentElement;
+        if (wrap && ev.target instanceof Node && !wrap.contains(ev.target)) {
+            soundPop.classList.remove("open");
+        }
+    });
+    const soundOn = document.getElementById("act-sound-on") as HTMLInputElement | null;
+    if (soundOn) {
+        soundOn.checked = soundPrefOn();
+        soundOn.addEventListener("change", () => {
+            try {
+                localStorage.setItem(SOUND_PREF_KEY, soundOn.checked ? "1" : "0");
+            } catch {}
+        });
+    }
     const volumeInput = document.getElementById("act-sound-volume") as HTMLInputElement | null;
     if (volumeInput) {
         volumeInput.value = String(soundVolumePct());
