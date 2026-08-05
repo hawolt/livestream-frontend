@@ -63,7 +63,7 @@ function buildParams(): URLSearchParams {
 }
 
 function currentUrl(): string {
-    return `${location.origin}/multichat.html?${buildParams().toString()}`;
+    return `${location.origin}/multichat?${buildParams().toString()}`;
 }
 
 function updateUrl(): void {

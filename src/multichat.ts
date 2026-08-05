@@ -30,33 +30,33 @@ const PLATFORM_ICON_PATHS: Record<Exclude<Platform, "itzon">, { path: string; co
     },
 };
 
-type BadgeName = "op" | "staff" | "bot" | "mod" | "vip" | "unverified" | "regular";
+type SiteBadge = "op" | "staff" | "bot" | "mod" | "vip" | "unverified";
 
-const TWITCH_BADGE_MAP: Record<string, BadgeName> = {
-    broadcaster: "op",
-    moderator: "mod",
-    vip: "vip",
-    partner: "staff",
-    subscriber: "regular",
-    founder: "regular",
+const TWITCH_BADGE_IDS: Record<string, string> = {
+    broadcaster: "5527c58c-fb7d-422d-b71b-f309dcb85cc1",
+    moderator: "3267646d-33f0-4b17-b3df-f923a41db1d0",
+    vip: "b817aba4-fad8-49e2-b88a-7cc744dfa6ec",
+    partner: "d12a2e27-16f6-41d0-ab77-b780518f00a3",
+    staff: "d97c37bd-a6f5-4c38-8f57-4e4bef88af34",
+    subscriber: "5d9f2208-5dd8-11e7-8513-2ff4adfae661",
+    founder: "511b78a9-ab37-472f-9569-457753bbe7d3",
+    premium: "bbbe0db0-a598-423e-86d0-f9fb98ca1933",
+    turbo: "bd444ec6-8f34-4bf9-91f4-af1e3428d80f",
 };
 
-const KICK_BADGE_MAP: Record<string, BadgeName> = {
-    broadcaster: "op",
-    moderator: "mod",
-    vip: "vip",
-    verified: "staff",
-    og: "regular",
-    founder: "regular",
-    subscriber: "regular",
+const KICK_BADGE_CHIPS: Record<string, { label: string; color: string }> = {
+    broadcaster: { label: "HOST", color: "#e93d82" },
+    moderator: { label: "MOD", color: "#31a3ff" },
+    vip: { label: "VIP", color: "#ff9d00" },
+    og: { label: "OG", color: "#00e5c7" },
+    founder: { label: "FOUNDER", color: "#ff5c00" },
+    verified: { label: "VERIFIED", color: "#53fc18" },
+    subscriber: { label: "SUB", color: "#53fc18" },
+    sub_gifter: { label: "GIFTER", color: "#b066ff" },
 };
 
-const YOUTUBE_BADGE_MAP: Record<string, BadgeName> = {
-    owner: "op",
-    moderator: "mod",
-    verified: "staff",
-    member: "regular",
-};
+const YT_MOD_PATH = "M22.7 19l-9.1-9.1c.9-2.3.4-5-1.5-6.9-2-2-5-2.4-7.4-1.3L9 6 6 9 1.6 4.7C.4 7.1.9 10.1 2.9 12.1c1.9 1.9 4.6 2.4 6.9 1.5l9.1 9.1c.4.4 1 .4 1.4 0l2.3-2.3c.5-.4.5-1.1.1-1.4z";
+const YT_VERIFIED_PATH = "M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2zm-2 15l-5-5 1.4-1.4L10 14.2l7.6-7.6L19 8l-9 9z";
 
 const emotes = new ChatEmoteCatalog();
 const twitchEmotes = new Map<string, string>();
@@ -137,25 +137,41 @@ function makeIcon(platform: Platform): HTMLSpanElement {
     return wrap;
 }
 
-function makeBadge(name: BadgeName): HTMLImageElement {
+function makeSiteBadge(name: SiteBadge): HTMLImageElement {
+    return makeBadgeImg(`/static/img/badge-${name}.svg`, name);
+}
+
+function makeBadgeImg(url: string, title: string): HTMLImageElement {
     const img = document.createElement("img");
     img.className = "badge";
-    img.src = `/static/img/badge-${name}.svg`;
-    img.alt = name;
-    img.title = name;
+    img.src = url;
+    img.alt = title;
+    img.title = title;
     return img;
 }
 
-function buildBadgeImgs(names: BadgeName[]): HTMLImageElement[] {
-    if (!showBadges) return [];
-    const seen = new Set<BadgeName>();
-    const out: HTMLImageElement[] = [];
-    for (const name of names) {
-        if (seen.has(name)) continue;
-        seen.add(name);
-        out.push(makeBadge(name));
-    }
-    return out;
+function makeChip(label: string, color: string, title: string): HTMLSpanElement {
+    const chip = document.createElement("span");
+    chip.className = "chip";
+    chip.textContent = label;
+    chip.style.color = color;
+    chip.style.borderColor = color;
+    chip.title = title;
+    return chip;
+}
+
+function makeBadgeSvg(path: string, color: string, title: string): HTMLSpanElement {
+    const wrap = document.createElement("span");
+    wrap.className = "badge-svg";
+    wrap.title = title;
+    const svg = document.createElementNS(SVG_NS, "svg");
+    svg.setAttribute("viewBox", "0 0 24 24");
+    const p = document.createElementNS(SVG_NS, "path");
+    p.setAttribute("d", path);
+    p.setAttribute("fill", color);
+    svg.appendChild(p);
+    wrap.appendChild(svg);
+    return wrap;
 }
 
 function nearBottom(): boolean {
@@ -194,7 +210,8 @@ interface MessageMeta {
     amount?: string;
     id?: string;
     login?: string;
-    badges?: BadgeName[];
+    badges?: Node[];
+    nickClass?: string;
 }
 
 function addChat(platform: Platform, from: string, body: Node, meta: MessageMeta = {}): void {
@@ -210,9 +227,10 @@ function addChat(platform: Platform, from: string, body: Node, meta: MessageMeta
         amount.textContent = meta.amount;
         line.appendChild(amount);
     }
-    if (meta.badges?.length) line.append(...buildBadgeImgs(meta.badges));
+    if (showBadges && meta.badges?.length) line.append(...meta.badges);
     const who = document.createElement("span");
     who.className = "nick";
+    if (meta.nickClass) who.classList.add(meta.nickClass);
     who.textContent = from;
     who.style.color = meta.color || nickColor(from);
     line.append(who, document.createTextNode(": "), body);
@@ -493,16 +511,16 @@ function startItzon(channelName: string): void {
         }
     };
 
-    const badgesFor = (from: string): BadgeName[] => {
+    const badgesFor = (from: string): Node[] => {
         const key = from.toLowerCase();
-        const out: BadgeName[] = [];
+        const out: Node[] = [];
         const role = roles.get(key);
-        if (role === "staff") out.push("staff");
-        if (key === channel.slice(1)) out.push("op");
-        if (role === "bot") out.push("bot");
-        if (role === "mod") out.push("mod");
-        if (vips.has(key)) out.push("vip");
-        if (unverified.has(key)) out.push("unverified");
+        if (role === "staff") out.push(makeSiteBadge("staff"));
+        if (key === channel.slice(1)) out.push(makeSiteBadge("op"));
+        if (role === "bot") out.push(makeSiteBadge("bot"));
+        if (role === "mod") out.push(makeSiteBadge("mod"));
+        if (vips.has(key)) out.push(makeSiteBadge("vip"));
+        if (unverified.has(key)) out.push(makeSiteBadge("unverified"));
         return out;
     };
 
@@ -655,13 +673,13 @@ function renderTwitchBody(text: string, emotesTag: string): DocumentFragment {
     return frag;
 }
 
-function parseTwitchBadges(badgesTag: string): BadgeName[] {
-    const out: BadgeName[] = [];
+function parseTwitchBadges(badgesTag: string): Node[] {
+    const out: Node[] = [];
     for (const entry of badgesTag.split(",")) {
         const slash = entry.indexOf("/");
         const name = slash < 0 ? entry : entry.slice(0, slash);
-        const mapped = TWITCH_BADGE_MAP[name];
-        if (mapped) out.push(mapped);
+        const id = TWITCH_BADGE_IDS[name];
+        if (id) out.push(makeBadgeImg(`https://static-cdn.jtvnw.net/badges/v1/${id}/2`, name));
     }
     return out;
 }
@@ -768,15 +786,30 @@ function renderYoutubeRuns(runs: YtRun[]): DocumentFragment {
     return frag;
 }
 
-function parseYoutubeBadges(badges: unknown): BadgeName[] {
-    if (!Array.isArray(badges)) return [];
-    const out: BadgeName[] = [];
+function parseYoutubeBadges(badges: unknown): { nodes: Node[]; owner: boolean } {
+    const nodes: Node[] = [];
+    let owner = false;
+    if (!Array.isArray(badges)) return { nodes, owner };
     for (const badge of badges) {
-        if (typeof badge !== "string") continue;
-        const mapped = YOUTUBE_BADGE_MAP[badge];
-        if (mapped) out.push(mapped);
+        const type: unknown = typeof badge === "string" ? badge : (badge as any)?.type;
+        const url: unknown = typeof badge === "object" && badge !== null ? (badge as any).url : undefined;
+        switch (type) {
+            case "owner":
+                owner = true;
+                break;
+            case "moderator":
+                nodes.push(makeBadgeSvg(YT_MOD_PATH, "#5f84f1", "moderator"));
+                break;
+            case "verified":
+                nodes.push(makeBadgeSvg(YT_VERIFIED_PATH, "#aaaaaa", "verified"));
+                break;
+            case "member":
+                if (typeof url === "string" && url) nodes.push(makeBadgeImg(url, "member"));
+                else nodes.push(makeChip("MEMBER", "#2ba640", "member"));
+                break;
+        }
     }
-    return out;
+    return { nodes, owner };
 }
 
 function startYoutube(base: string, query: string): void {
@@ -802,7 +835,9 @@ function startYoutube(base: string, query: string): void {
                 return;
             }
             if (frame.type === "chat" && typeof frame.author === "string") {
-                const meta: MessageMeta = { badges: parseYoutubeBadges(frame.badges) };
+                const parsed = parseYoutubeBadges(frame.badges);
+                const meta: MessageMeta = { badges: parsed.nodes };
+                if (parsed.owner) meta.nickClass = "nick-yt-owner";
                 if (typeof frame.id === "string") meta.id = frame.id;
                 if (typeof frame.amount === "string" && frame.amount) meta.amount = frame.amount;
                 const runs: YtRun[] = Array.isArray(frame.runs) ? frame.runs : [];
@@ -844,14 +879,14 @@ function renderKickBody(content: string): DocumentFragment {
     return frag;
 }
 
-function parseKickBadges(badges: unknown): BadgeName[] {
+function parseKickBadges(badges: unknown): Node[] {
     if (!Array.isArray(badges)) return [];
-    const out: BadgeName[] = [];
+    const out: Node[] = [];
     for (const badge of badges) {
         const type: unknown = (badge as any)?.type;
         if (typeof type !== "string") continue;
-        const mapped = KICK_BADGE_MAP[type];
-        if (mapped) out.push(mapped);
+        const chip = KICK_BADGE_CHIPS[type];
+        if (chip) out.push(makeChip(chip.label, chip.color, type));
     }
     return out;
 }
