@@ -34,8 +34,11 @@ function parseParams(): void {
     durationMs = Number.isFinite(durationSec) && durationSec > 0 ? durationSec * 1000 : DEFAULT_DURATION_MS;
     demoMode = qs.get("demo") === "1";
     soundEnabled = qs.get("sound") !== "0";
-    const volume = Number(qs.get("volume"));
-    if (Number.isFinite(volume) && volume >= 0 && volume <= 100) soundVolume = volume / 100;
+    const rawVolume = qs.get("volume");
+    if (rawVolume !== null) {
+        const volume = Number(rawVolume);
+        if (Number.isFinite(volume) && volume >= 0 && volume <= 100) soundVolume = volume / 100;
+    }
     const scrubbed = scrubOverlayToken(location.href);
     token = scrubbed.token;
     if (scrubbed.replacement) history.replaceState(history.state, "", scrubbed.replacement);
