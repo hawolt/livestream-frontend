@@ -14,6 +14,7 @@ const TAB_LOADERS: Record<string, () => Promise<TabModule>> = {
     "stream-manager": () => import("./dash/tabs/stream-manager.ts"),
     chatbox:          () => import("./dash/tabs/chatbox.ts"),
     alertbox:         () => import("./dash/tabs/alertbox.ts"),
+    multichat:        () => import("./dash/tabs/multichat.ts"),
     "stream-health":  () => import("./dash/tabs/stream-health.ts"),
     "stream-summary": () => import("./dash/tabs/stream-summary.ts"),
     activity:         () => import("./dash/tabs/activity.ts"),

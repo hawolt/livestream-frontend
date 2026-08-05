@@ -30,8 +30,40 @@ const PLATFORM_ICON_PATHS: Record<Exclude<Platform, "itzon">, { path: string; co
     },
 };
 
+type BadgeName = "op" | "staff" | "bot" | "mod" | "vip" | "unverified" | "regular";
+
+const TWITCH_BADGE_MAP: Record<string, BadgeName> = {
+    broadcaster: "op",
+    moderator: "mod",
+    vip: "vip",
+    partner: "staff",
+    subscriber: "regular",
+    founder: "regular",
+};
+
+const KICK_BADGE_MAP: Record<string, BadgeName> = {
+    broadcaster: "op",
+    moderator: "mod",
+    vip: "vip",
+    verified: "staff",
+    og: "regular",
+    founder: "regular",
+    subscriber: "regular",
+};
+
+const YOUTUBE_BADGE_MAP: Record<string, BadgeName> = {
+    owner: "op",
+    moderator: "mod",
+    verified: "staff",
+    member: "regular",
+};
+
 const emotes = new ChatEmoteCatalog();
+const twitchEmotes = new Map<string, string>();
 let showEmotes = true;
+let showBadges = true;
+let showIcons = true;
+let fadeMs = 0;
 let pinned = true;
 
 interface Sources {
@@ -48,6 +80,13 @@ function parseParams(): Sources {
     const size = qs.get("size");
     if (size === "s" || size === "l") document.body.dataset["size"] = size;
     showEmotes = qs.get("emotes") !== "0";
+    showBadges = qs.get("badges") !== "0";
+    showIcons = qs.get("icons") !== "0";
+    if (qs.get("overlay") === "1") document.body.dataset["overlay"] = "1";
+    if (qs.get("bg") === "1") document.body.dataset["linebg"] = "1";
+    if (qs.get("shadow") === "0") document.body.dataset["shadow"] = "0";
+    const fadeSec = Number(qs.get("fade"));
+    fadeMs = Number.isFinite(fadeSec) && fadeSec > 0 ? fadeSec * 1000 : 0;
     const clean = (value: string | null, pattern: RegExp): string => {
         const v = (value ?? "").trim().replace(/^[@#]/, "");
         return pattern.test(v) ? v : "";
@@ -98,6 +137,27 @@ function makeIcon(platform: Platform): HTMLSpanElement {
     return wrap;
 }
 
+function makeBadge(name: BadgeName): HTMLImageElement {
+    const img = document.createElement("img");
+    img.className = "badge";
+    img.src = `/static/img/badge-${name}.svg`;
+    img.alt = name;
+    img.title = name;
+    return img;
+}
+
+function buildBadgeImgs(names: BadgeName[]): HTMLImageElement[] {
+    if (!showBadges) return [];
+    const seen = new Set<BadgeName>();
+    const out: HTMLImageElement[] = [];
+    for (const name of names) {
+        if (seen.has(name)) continue;
+        seen.add(name);
+        out.push(makeBadge(name));
+    }
+    return out;
+}
+
 function nearBottom(): boolean {
     return scrollEl.scrollHeight - scrollEl.scrollTop - scrollEl.clientHeight < 40;
 }
@@ -121,6 +181,12 @@ function append(node: HTMLElement): void {
     msgsEl.appendChild(node);
     while (msgsEl.childElementCount > MAX_MESSAGES) msgsEl.removeChild(msgsEl.firstElementChild as Element);
     if (pinned) scrollToBottom();
+    if (fadeMs > 0) {
+        window.setTimeout(() => {
+            node.classList.add("fade-out");
+            window.setTimeout(() => node.remove(), 400);
+        }, fadeMs);
+    }
 }
 
 interface MessageMeta {
@@ -128,6 +194,7 @@ interface MessageMeta {
     amount?: string;
     id?: string;
     login?: string;
+    badges?: BadgeName[];
 }
 
 function addChat(platform: Platform, from: string, body: Node, meta: MessageMeta = {}): void {
@@ -136,13 +203,14 @@ function addChat(platform: Platform, from: string, body: Node, meta: MessageMeta
     line.dataset["platform"] = platform;
     if (meta.id) line.dataset["mid"] = meta.id;
     if (meta.login) line.dataset["login"] = meta.login.toLowerCase();
-    line.appendChild(makeIcon(platform));
+    if (showIcons) line.appendChild(makeIcon(platform));
     if (meta.amount) {
         const amount = document.createElement("span");
         amount.className = "amount";
         amount.textContent = meta.amount;
         line.appendChild(amount);
     }
+    if (meta.badges?.length) line.append(...buildBadgeImgs(meta.badges));
     const who = document.createElement("span");
     who.className = "nick";
     who.textContent = from;
@@ -154,7 +222,7 @@ function addChat(platform: Platform, from: string, body: Node, meta: MessageMeta
 function addSystem(platform: Platform, text: string): void {
     const line = document.createElement("div");
     line.className = "msg sys";
-    line.appendChild(makeIcon(platform));
+    if (showIcons) line.appendChild(makeIcon(platform));
     line.appendChild(document.createTextNode(text));
     append(line);
 }
@@ -260,6 +328,73 @@ async function loadChannelEmotes(user: string): Promise<void> {
     await Promise.all(jobs);
 }
 
+function addSevenTvEmotes(list: unknown, into: Map<string, string>): void {
+    if (!Array.isArray(list)) return;
+    for (const value of list) {
+        const emote: any = value;
+        const name: unknown = emote?.name;
+        const host = emote?.data?.host;
+        if (typeof name !== "string" || !name || typeof host?.url !== "string") continue;
+        const files: { name?: string }[] = Array.isArray(host.files) ? host.files : [];
+        const file = files.find((candidate) => candidate.name === "2x.webp")
+            ?? files.find((candidate) => candidate.name === "1x.webp");
+        if (!file?.name) continue;
+        into.set(name, `https:${host.url}/${file.name}`);
+    }
+}
+
+function addBttvEmotes(list: unknown, into: Map<string, string>): void {
+    if (!Array.isArray(list)) return;
+    for (const value of list) {
+        const emote: any = value;
+        if (typeof emote?.code === "string" && typeof emote?.id === "string") {
+            into.set(emote.code, `https://cdn.betterttv.net/emote/${emote.id}/2x`);
+        }
+    }
+}
+
+function addFfzEmotes(sets: unknown, into: Map<string, string>): void {
+    if (typeof sets !== "object" || sets === null) return;
+    for (const set of Object.values(sets as Record<string, any>)) {
+        const emoticons = set?.emoticons;
+        if (!Array.isArray(emoticons)) continue;
+        for (const emote of emoticons) {
+            const name: unknown = emote?.name;
+            const urls = emote?.urls;
+            if (typeof name !== "string" || typeof urls !== "object" || urls === null) continue;
+            const url: unknown = urls["2"] ?? urls["1"];
+            if (typeof url !== "string") continue;
+            into.set(name, url.startsWith("http") ? url : `https:${url}`);
+        }
+    }
+}
+
+async function fetchJSON(url: string): Promise<any> {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(String(res.status));
+    return res.json();
+}
+
+async function loadTwitchThirdPartyEmotes(roomID: string): Promise<void> {
+    await Promise.all([
+        fetchJSON(`https://7tv.io/v3/users/twitch/${encodeURIComponent(roomID)}`)
+            .then((payload) => addSevenTvEmotes(payload?.emote_set?.emotes, twitchEmotes)).catch(() => {}),
+        fetchJSON(EMOTE_SET_URL)
+            .then((payload) => addSevenTvEmotes(payload?.emotes, twitchEmotes)).catch(() => {}),
+        fetchJSON(`https://api.betterttv.net/3/cached/users/twitch/${encodeURIComponent(roomID)}`)
+            .then((payload) => {
+                addBttvEmotes(payload?.channelEmotes, twitchEmotes);
+                addBttvEmotes(payload?.sharedEmotes, twitchEmotes);
+            }).catch(() => {}),
+        fetchJSON("https://api.betterttv.net/3/cached/emotes/global")
+            .then((payload) => addBttvEmotes(payload, twitchEmotes)).catch(() => {}),
+        fetchJSON(`https://api.frankerfacez.com/v1/room/id/${encodeURIComponent(roomID)}`)
+            .then((payload) => addFfzEmotes(payload?.sets, twitchEmotes)).catch(() => {}),
+        fetchJSON("https://api.frankerfacez.com/v1/set/global")
+            .then((payload) => addFfzEmotes(payload?.sets, twitchEmotes)).catch(() => {}),
+    ]);
+}
+
 interface IrcLine {
     nick: string;
     command: string;
@@ -313,13 +448,62 @@ function guestNick(): string {
     return "guest_" + Array.from(buf, (b) => b.toString(16).padStart(2, "0")).join("");
 }
 
+type ItzonRole = "op" | "staff" | "bot" | "mod";
+
 function startItzon(channelName: string): void {
     const channel = `#${channelName.toLowerCase()}`;
+    const roles = new Map<string, ItzonRole>();
+    const vips = new Set<string>();
+    const unverified = new Set<string>();
+    const knownMembers = new Set<string>();
     let sock: WebSocket | null = null;
     let nick = "";
 
     const send = (line: string): void => {
         if (sock && sock.readyState === WebSocket.OPEN) sock.send(line);
+    };
+
+    const applyNamesList = (names: string): void => {
+        for (const raw of names.split(/\s+/)) {
+            if (!raw) continue;
+            let i = 0;
+            let role: ItzonRole | null = null;
+            let vip = false;
+            let unver = false;
+            for (; i < raw.length; i++) {
+                const ch = raw[i];
+                if (ch === "@") role = "op";
+                else if (ch === "%") role = "staff";
+                else if (ch === "&") role = "bot";
+                else if (ch === "+") role = "mod";
+                else if (ch === "~") vip = true;
+                else if (ch === "=") unver = true;
+                else break;
+            }
+            const name = raw.slice(i);
+            if (!name) continue;
+            const key = name.toLowerCase();
+            knownMembers.add(key);
+            if (role) roles.set(key, role);
+            else roles.delete(key);
+            if (vip) vips.add(key);
+            else vips.delete(key);
+            if (unver) unverified.add(key);
+            else unverified.delete(key);
+        }
+    };
+
+    const badgesFor = (from: string): BadgeName[] => {
+        const key = from.toLowerCase();
+        const out: BadgeName[] = [];
+        const role = roles.get(key);
+        if (role === "staff") out.push("staff");
+        if (key === channel.slice(1)) out.push("op");
+        if (role === "bot") out.push("bot");
+        if (role === "mod") out.push("mod");
+        if (vips.has(key)) out.push("vip");
+        if (unverified.has(key)) out.push("unverified");
+        return out;
     };
 
     const handle = (line: IrcLine): void => {
@@ -336,9 +520,34 @@ function startItzon(channelName: string): void {
                 nick = line.params[0] ?? nick;
                 send(`JOIN ${channel}`);
                 return;
+            case "JOIN": {
+                const key = line.nick.toLowerCase();
+                if (line.nick !== nick && !knownMembers.has(key)) {
+                    knownMembers.add(key);
+                    send(`NAMES ${channel}`);
+                }
+                return;
+            }
+            case "353": {
+                const names = line.params[line.params.length - 1] ?? "";
+                const chan = line.params[line.params.length - 2] ?? "";
+                if (chan.toLowerCase() === channel) applyNamesList(names);
+                return;
+            }
+            case "MODE": {
+                if (line.params[0]?.toLowerCase() !== channel) return;
+                const modeStr = line.params[1] ?? "";
+                const target = (line.params[2] ?? "").toLowerCase();
+                if (!target) return;
+                if (modeStr === "+v") roles.set(target, "mod");
+                else if (modeStr === "-v") roles.delete(target);
+                else if (modeStr === "+V") vips.add(target);
+                else if (modeStr === "-V") vips.delete(target);
+                return;
+            }
             case "PRIVMSG": {
                 if (line.params[0]?.toLowerCase() !== channel || !line.params[1]) return;
-                const meta: MessageMeta = {};
+                const meta: MessageMeta = { badges: badgesFor(line.nick) };
                 const color = line.tags.get("color");
                 if (color && /^#[0-9a-fA-F]{6}$/.test(color)) meta.color = color;
                 const msgid = line.tags.get("msgid");
@@ -359,6 +568,10 @@ function startItzon(channelName: string): void {
 
     const connect = (): void => {
         nick = guestNick();
+        roles.clear();
+        vips.clear();
+        unverified.clear();
+        knownMembers.clear();
         const proto = location.protocol === "https:" ? "wss" : "ws";
         const s = new WebSocket(`${proto}://${location.host}/ws/irc`);
         sock = s;
@@ -386,21 +599,46 @@ function startItzon(channelName: string): void {
     connect();
 }
 
+function renderTwitchText(text: string, frag: DocumentFragment): void {
+    if (!showEmotes || twitchEmotes.size === 0) {
+        frag.appendChild(document.createTextNode(text));
+        return;
+    }
+    let pendingWs = "";
+    for (const token of text.split(/(\s+)/)) {
+        if (!token) continue;
+        if (/^\s+$/.test(token)) {
+            pendingWs += token;
+            continue;
+        }
+        if (pendingWs) {
+            frag.appendChild(document.createTextNode(pendingWs));
+            pendingWs = "";
+        }
+        const url = twitchEmotes.get(token);
+        if (url) frag.appendChild(buildEmoteImg(token, url));
+        else frag.appendChild(document.createTextNode(token));
+    }
+    if (pendingWs) frag.appendChild(document.createTextNode(pendingWs));
+}
+
 function renderTwitchBody(text: string, emotesTag: string): DocumentFragment {
     const frag = document.createDocumentFragment();
     const cps = Array.from(text);
     const ranges: { id: string; start: number; end: number }[] = [];
-    for (const group of emotesTag.split("/")) {
-        const colon = group.indexOf(":");
-        if (colon <= 0) continue;
-        const id = group.slice(0, colon);
-        for (const span of group.slice(colon + 1).split(",")) {
-            const dash = span.indexOf("-");
-            if (dash <= 0) continue;
-            const start = Number(span.slice(0, dash));
-            const end = Number(span.slice(dash + 1));
-            if (Number.isInteger(start) && Number.isInteger(end) && start >= 0 && end >= start && end < cps.length) {
-                ranges.push({ id, start, end });
+    if (showEmotes && emotesTag) {
+        for (const group of emotesTag.split("/")) {
+            const colon = group.indexOf(":");
+            if (colon <= 0) continue;
+            const id = group.slice(0, colon);
+            for (const span of group.slice(colon + 1).split(",")) {
+                const dash = span.indexOf("-");
+                if (dash <= 0) continue;
+                const start = Number(span.slice(0, dash));
+                const end = Number(span.slice(dash + 1));
+                if (Number.isInteger(start) && Number.isInteger(end) && start >= 0 && end >= start && end < cps.length) {
+                    ranges.push({ id, start, end });
+                }
             }
         }
     }
@@ -408,18 +646,30 @@ function renderTwitchBody(text: string, emotesTag: string): DocumentFragment {
     let pos = 0;
     for (const range of ranges) {
         if (range.start < pos) continue;
-        if (range.start > pos) frag.appendChild(document.createTextNode(cps.slice(pos, range.start).join("")));
+        if (range.start > pos) renderTwitchText(cps.slice(pos, range.start).join(""), frag);
         const token = cps.slice(range.start, range.end + 1).join("");
         frag.appendChild(buildEmoteImg(token, `https://static-cdn.jtvnw.net/emoticons/v2/${range.id}/default/dark/1.0`));
         pos = range.end + 1;
     }
-    if (pos < cps.length) frag.appendChild(document.createTextNode(cps.slice(pos).join("")));
+    if (pos < cps.length) renderTwitchText(cps.slice(pos).join(""), frag);
     return frag;
+}
+
+function parseTwitchBadges(badgesTag: string): BadgeName[] {
+    const out: BadgeName[] = [];
+    for (const entry of badgesTag.split(",")) {
+        const slash = entry.indexOf("/");
+        const name = slash < 0 ? entry : entry.slice(0, slash);
+        const mapped = TWITCH_BADGE_MAP[name];
+        if (mapped) out.push(mapped);
+    }
+    return out;
 }
 
 function startTwitch(channelName: string): void {
     const channel = `#${channelName.toLowerCase()}`;
     let sock: WebSocket | null = null;
+    let emotesLoaded = false;
 
     const send = (line: string): void => {
         if (sock && sock.readyState === WebSocket.OPEN) sock.send(line);
@@ -433,21 +683,28 @@ function startTwitch(channelName: string): void {
             case "001":
                 send(`JOIN ${channel}`);
                 return;
+            case "ROOMSTATE": {
+                const roomID = line.tags.get("room-id");
+                if (roomID && /^\d+$/.test(roomID) && !emotesLoaded && showEmotes) {
+                    emotesLoaded = true;
+                    void loadTwitchThirdPartyEmotes(roomID);
+                }
+                return;
+            }
             case "PRIVMSG": {
                 if (line.params[0]?.toLowerCase() !== channel || !line.params[1]) return;
                 let body = line.params[1];
                 if (body.startsWith("\u0001ACTION ") && body.endsWith("\u0001")) body = body.slice(8, -1);
-                const meta: MessageMeta = { login: line.nick };
+                const meta: MessageMeta = {
+                    login: line.nick,
+                    badges: parseTwitchBadges(line.tags.get("badges") ?? ""),
+                };
                 const color = line.tags.get("color");
                 if (color && /^#[0-9a-fA-F]{6}$/.test(color)) meta.color = color;
                 const msgid = line.tags.get("id");
                 if (msgid) meta.id = msgid;
                 const display = line.tags.get("display-name") || line.nick;
-                const emotesTag = line.tags.get("emotes") ?? "";
-                const rendered = showEmotes && emotesTag
-                    ? renderTwitchBody(body, emotesTag)
-                    : document.createTextNode(body);
-                addChat("twitch", display, rendered, meta);
+                addChat("twitch", display, renderTwitchBody(body, line.tags.get("emotes") ?? ""), meta);
                 return;
             }
             case "CLEARMSG": {
@@ -511,6 +768,17 @@ function renderYoutubeRuns(runs: YtRun[]): DocumentFragment {
     return frag;
 }
 
+function parseYoutubeBadges(badges: unknown): BadgeName[] {
+    if (!Array.isArray(badges)) return [];
+    const out: BadgeName[] = [];
+    for (const badge of badges) {
+        if (typeof badge !== "string") continue;
+        const mapped = YOUTUBE_BADGE_MAP[badge];
+        if (mapped) out.push(mapped);
+    }
+    return out;
+}
+
 function startYoutube(base: string, query: string): void {
     let sock: WebSocket | null = null;
     let lastState = "";
@@ -534,7 +802,7 @@ function startYoutube(base: string, query: string): void {
                 return;
             }
             if (frame.type === "chat" && typeof frame.author === "string") {
-                const meta: MessageMeta = {};
+                const meta: MessageMeta = { badges: parseYoutubeBadges(frame.badges) };
                 if (typeof frame.id === "string") meta.id = frame.id;
                 if (typeof frame.amount === "string" && frame.amount) meta.amount = frame.amount;
                 const runs: YtRun[] = Array.isArray(frame.runs) ? frame.runs : [];
@@ -576,6 +844,18 @@ function renderKickBody(content: string): DocumentFragment {
     return frag;
 }
 
+function parseKickBadges(badges: unknown): BadgeName[] {
+    if (!Array.isArray(badges)) return [];
+    const out: BadgeName[] = [];
+    for (const badge of badges) {
+        const type: unknown = (badge as any)?.type;
+        if (typeof type !== "string") continue;
+        const mapped = KICK_BADGE_MAP[type];
+        if (mapped) out.push(mapped);
+    }
+    return out;
+}
+
 function startKick(base: string, slug: string): void {
     let sock: WebSocket | null = null;
 
@@ -609,7 +889,7 @@ function startKick(base: string, slug: string): void {
                 const from: unknown = payload?.sender?.username;
                 const content: unknown = payload?.content;
                 if (typeof from !== "string" || typeof content !== "string") return;
-                const meta: MessageMeta = {};
+                const meta: MessageMeta = { badges: parseKickBadges(payload?.sender?.identity?.badges) };
                 if (typeof payload?.id === "string") meta.id = payload.id;
                 const color: unknown = payload?.sender?.identity?.color;
                 if (typeof color === "string" && /^#[0-9a-fA-F]{6}$/.test(color)) meta.color = color;
@@ -660,7 +940,7 @@ function showHint(): void {
     const p2 = document.createElement("p");
     p2.append("Optional: ");
     const code2 = document.createElement("code");
-    code2.textContent = "ytvideo=<video id>, size=s|l, emotes=0";
+    code2.textContent = "ytvideo=<video id>, size=s|l, badges=0, emotes=0, icons=0, overlay=1, bg=1, shadow=0, fade=<seconds>";
     p2.appendChild(code2);
     hintEl.append(p, p2);
 }

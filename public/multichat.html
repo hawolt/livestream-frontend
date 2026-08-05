@@ -41,6 +41,31 @@
         .msg {
             line-height: 1.4;
             word-break: break-word;
+            transition: opacity .4s ease;
+        }
+        .msg.fade-out { opacity: 0; }
+        body[data-linebg="1"] .msg {
+            background: rgba(0, 0, 0, .55);
+            border-radius: 6px;
+            padding: 3px 8px;
+            align-self: flex-start;
+        }
+        body[data-overlay="1"] {
+            background: transparent;
+        }
+        body[data-overlay="1"] #chat-scroll {
+            overflow: hidden;
+        }
+        body[data-overlay="1"] #resume { display: none !important; }
+        body[data-overlay="1"] .msg {
+            text-shadow: 0 1px 3px rgba(0, 0, 0, .9);
+        }
+        body[data-shadow="0"] .msg { text-shadow: none; }
+        .badge {
+            display: inline-block;
+            height: 1.1em;
+            vertical-align: -0.21em;
+            margin-right: 3px;
         }
         .msg .picon {
             display: inline-block;

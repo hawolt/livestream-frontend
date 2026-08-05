@@ -1,0 +1,125 @@
+<div id="pane-multichat" class="tab-pane">
+    <div class="card-grid-2">
+        <div class="card" style="padding:24px">
+            <div class="section-title">Multichat builder</div>
+            <p style="font-size:13px;color:var(--muted);margin:0 0 16px">
+                One merged chat feed from your channel here plus Twitch, YouTube and Kick, each message
+                tagged with its platform. Use it as a popout window or an OBS Browser Source.
+                Your own channel's chat is always included.
+            </p>
+
+            <label style="display:block;margin-bottom:16px">
+                <span>Twitch channel</span>
+                <input id="mc-twitch" type="text" placeholder="yourtwitchname" autocomplete="off">
+                <div class="hint">Twitch login name, empty = no Twitch chat.</div>
+            </label>
+
+            <label style="display:block;margin-bottom:16px">
+                <span>YouTube handle</span>
+                <input id="mc-youtube" type="text" placeholder="yourhandle" autocomplete="off">
+                <div class="hint">The @handle without the @. Resolves your current public live stream automatically.</div>
+            </label>
+
+            <label style="display:block;margin-bottom:16px">
+                <span>YouTube video ID</span>
+                <input id="mc-ytvideo" type="text" placeholder="optional, e.g. dQw4w9WgXcQ" autocomplete="off">
+                <div class="hint">Overrides the handle. Needed for unlisted streams, which never resolve by handle.</div>
+            </label>
+
+            <label style="display:block;margin-bottom:16px">
+                <span>Kick channel</span>
+                <input id="mc-kick" type="text" placeholder="yourkickname" autocomplete="off">
+                <div class="hint">Kick channel slug, empty = no Kick chat.</div>
+            </label>
+
+            <label style="display:block;margin-bottom:16px">
+                <span>Mode</span>
+                <select id="mc-mode">
+                    <option value="popout" selected>Popout window (dark background)</option>
+                    <option value="overlay">OBS overlay (transparent background)</option>
+                </select>
+                <div class="hint">Overlay mode is transparent with text shadows, for a Browser Source.</div>
+            </label>
+
+            <label style="display:block;margin-bottom:16px">
+                <span>Size</span>
+                <select id="mc-size">
+                    <option value="s">Small</option>
+                    <option value="m" selected>Medium</option>
+                    <option value="l">Large</option>
+                </select>
+            </label>
+
+            <label style="display:block;margin-bottom:16px">
+                <span>Fade</span>
+                <input id="mc-fade" type="number" min="0" max="600" value="0">
+                <div class="hint">Seconds before a message disappears. 0 = messages never disappear.</div>
+            </label>
+
+            <label style="display:flex;align-items:flex-start;gap:8px;margin-bottom:16px">
+                <input type="checkbox" id="mc-icons" checked style="margin-top:3px">
+                <span>
+                    <span>Platform icons</span>
+                    <div class="hint">Small platform logo in front of each message.</div>
+                </span>
+            </label>
+
+            <label style="display:flex;align-items:flex-start;gap:8px;margin-bottom:16px">
+                <input type="checkbox" id="mc-badges" checked style="margin-top:3px">
+                <span>
+                    <span>Badges</span>
+                    <div class="hint">Role badges (owner, mod, VIP, subscriber) from every platform.</div>
+                </span>
+            </label>
+
+            <label style="display:flex;align-items:flex-start;gap:8px;margin-bottom:16px">
+                <input type="checkbox" id="mc-emotes" checked style="margin-top:3px">
+                <span>
+                    <span>Emotes</span>
+                    <div class="hint">7TV here, Twitch native + 7TV/BTTV/FFZ, YouTube emojis, Kick emotes.</div>
+                </span>
+            </label>
+
+            <label style="display:flex;align-items:flex-start;gap:8px;margin-bottom:16px">
+                <input type="checkbox" id="mc-linebg" style="margin-top:3px">
+                <span>
+                    <span>Line background</span>
+                    <div class="hint">Dark pill behind each line, for readability on bright video.</div>
+                </span>
+            </label>
+
+            <label style="display:flex;align-items:flex-start;gap:8px;margin-bottom:16px">
+                <input type="checkbox" id="mc-shadow" checked style="margin-top:3px">
+                <span>
+                    <span>Text shadow</span>
+                    <div class="hint">Drop shadow behind text in overlay mode.</div>
+                </span>
+            </label>
+
+            <div style="margin-top:16px">
+                <label style="font-size:12px;color:var(--muted)">Multichat URL</label>
+                <div style="display:flex;gap:6px;align-items:center">
+                    <code id="mc-url" style="font-size:11px;word-break:break-all;flex:1"></code>
+                    <button class="btn btn-sm" id="mc-url-copy" type="button">Copy</button>
+                </div>
+                <div style="margin-top:10px">
+                    <button class="btn btn-sm btn-primary" id="mc-open" type="button">Open popout</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="card" style="padding:24px">
+            <div class="section-title">Preview</div>
+            <p style="font-size:13px;color:var(--muted);margin:0 0 12px">
+                Live preview with your real chats connected. Messages appear as they happen.
+            </p>
+            <div class="ov-preview-toolbar">
+                <button class="btn btn-sm btn-primary" id="mc-bg-checker" type="button">Checkerboard</button>
+                <button class="btn btn-sm" id="mc-bg-dark" type="button">Dark</button>
+            </div>
+            <div class="ov-preview-frame bg-checker" id="mc-preview-frame">
+                <iframe id="mc-preview-iframe" title="Multichat preview"></iframe>
+            </div>
+        </div>
+    </div>
+</div>
