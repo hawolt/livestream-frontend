@@ -24,6 +24,28 @@
                 </label>
             </div>
 
+            <div class="ov-section">Sound</div>
+            <div class="ov-grid">
+                <label class="ov-toggle">
+                    <input type="checkbox" id="fa-sound" checked>
+                    <span>
+                        <span class="ov-toggle-name">Play sound</span>
+                        <div class="hint">Plays your uploaded sound with each alert.</div>
+                    </span>
+                </label>
+                <label>
+                    <span>Volume</span>
+                    <input id="fa-volume" type="number" min="0" max="100" value="100">
+                </label>
+                <div class="ov-span-2">
+                    <input id="fa-sound-file" type="file" accept=".mp3,.ogg,.wav,audio/mpeg,audio/ogg,audio/wav" style="display:none">
+                    <button class="btn btn-sm" id="fa-sound-upload" type="button">Upload sound</button>
+                    <button class="btn btn-sm" id="fa-sound-remove" type="button">Remove</button>
+                    <span id="fa-sound-status" style="font-size:13px;margin-left:8px"></span>
+                    <div class="hint">mp3, ogg or wav, up to 2 MB. The same sound plays in the Stream Activity tab while it is open.</div>
+                </div>
+            </div>
+
             <div class="ov-section">Use it</div>
             <div class="ov-url-row">
                 <code id="fa-url"></code>

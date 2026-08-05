@@ -22,7 +22,63 @@ function buildFollowParams(): URLSearchParams {
     if (size !== "m") params.set("size", size);
     const duration = Number(el<HTMLInputElement>("fa-duration").value);
     if (Number.isFinite(duration) && duration > 0 && duration !== 5) params.set("duration", String(duration));
+    if (!el<HTMLInputElement>("fa-sound").checked) params.set("sound", "0");
+    const volume = Number(el<HTMLInputElement>("fa-volume").value);
+    if (Number.isFinite(volume) && volume >= 0 && volume < 100) params.set("volume", String(Math.round(volume)));
     return params;
+}
+
+function soundStatus(text: string, color: string): void {
+    const status = el("fa-sound-status");
+    status.textContent = text;
+    status.style.color = color;
+}
+
+async function refreshSoundStatus(generation: number): Promise<void> {
+    try {
+        const res = await fetch(`/api/live/alert-sound/${encodeURIComponent(username())}?v=${Date.now()}`, { method: "HEAD" });
+        if (!isCurrentActivation(generation)) return;
+        soundStatus(res.ok ? "Custom sound uploaded." : "No sound uploaded yet.", "var(--muted)");
+    } catch {
+        if (!isCurrentActivation(generation)) return;
+        soundStatus("", "var(--muted)");
+    }
+}
+
+async function uploadSound(file: File): Promise<void> {
+    const generation = activationGeneration;
+    if (file.size > 2 * 1024 * 1024) {
+        soundStatus("Sound exceeds the 2 MB limit", "var(--red)");
+        return;
+    }
+    soundStatus("Uploading...", "var(--muted)");
+    try {
+        const bytes = await file.arrayBuffer();
+        await authFetch<{ ok: boolean }>("/api/profile/me/alert-sound", {
+            method: "POST",
+            headers: { "Content-Type": file.type || "application/octet-stream" },
+            body: bytes,
+        });
+        if (!isCurrentActivation(generation)) return;
+        soundStatus("Sound uploaded.", "var(--success)");
+        scheduleFollowPreview();
+    } catch (e) {
+        if (!isCurrentActivation(generation)) return;
+        soundStatus(e instanceof Error ? e.message : "Upload failed", "var(--red)");
+    }
+}
+
+async function removeSound(): Promise<void> {
+    const generation = activationGeneration;
+    try {
+        await authFetch<{ ok: boolean }>("/api/profile/me/alert-sound", { method: "DELETE" });
+        if (!isCurrentActivation(generation)) return;
+        soundStatus("Sound removed.", "var(--muted)");
+        scheduleFollowPreview();
+    } catch {
+        if (!isCurrentActivation(generation)) return;
+        soundStatus("Failed to remove sound", "var(--red)");
+    }
 }
 
 function followUrl(): string {
@@ -155,7 +211,16 @@ export function init(): void {
     el("fa-token-btn").addEventListener("click", () => void rotateFollowToken());
     el("fa-test-btn").addEventListener("click", () => void sendTestAlert());
 
-    for (const id of ["fa-size", "fa-duration"]) {
+    el("fa-sound-upload").addEventListener("click", () => el<HTMLInputElement>("fa-sound-file").click());
+    el("fa-sound-file").addEventListener("change", () => {
+        const input = el<HTMLInputElement>("fa-sound-file");
+        const file = input.files?.[0];
+        input.value = "";
+        if (file) void uploadSound(file);
+    });
+    el("fa-sound-remove").addEventListener("click", () => void removeSound());
+
+    for (const id of ["fa-size", "fa-duration", "fa-sound", "fa-volume"]) {
         el(id).addEventListener("input", onFollowChange);
     }
 }
@@ -172,6 +237,7 @@ export function activate(): void {
     updateFollowUrl();
     updateFollowPreview();
     void loadFollowToken(generation);
+    void refreshSoundStatus(generation);
 }
 
 export function deactivate(): void {

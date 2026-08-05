@@ -17,6 +17,9 @@ interface FollowEvent {
 let token = "";
 let demoMode = false;
 let durationMs = DEFAULT_DURATION_MS;
+let soundEnabled = true;
+let soundVolume = 1;
+let audio: HTMLAudioElement | null = null;
 let sock: WebSocket | null = null;
 let retryTimer: number | null = null;
 let showing = false;
@@ -29,6 +32,9 @@ function parseParams(): void {
     const durationSec = Number(qs.get("duration"));
     durationMs = Number.isFinite(durationSec) && durationSec > 0 ? durationSec * 1000 : DEFAULT_DURATION_MS;
     demoMode = qs.get("demo") === "1";
+    soundEnabled = qs.get("sound") !== "0";
+    const volume = Number(qs.get("volume"));
+    if (Number.isFinite(volume) && volume >= 0 && volume <= 100) soundVolume = volume / 100;
     const scrubbed = scrubOverlayToken(location.href);
     token = scrubbed.token;
     if (scrubbed.replacement) history.replaceState(history.state, "", scrubbed.replacement);
@@ -56,6 +62,12 @@ function showNext(): void {
     showing = true;
     const card = buildCard(next.username);
     stageEl.replaceChildren(card);
+    if (audio) {
+        try {
+            audio.currentTime = 0;
+        } catch {}
+        void audio.play().catch(() => {});
+    }
     let watchdog: number | null = window.setTimeout(() => {
         watchdog = null;
         card.remove();
@@ -145,10 +157,22 @@ function startDemo(): void {
     window.setInterval(step, DEMO_INTERVAL_MS);
 }
 
+function setupSound(username: string): void {
+    if (!soundEnabled || soundVolume <= 0) return;
+    const el = new Audio(`/api/live/alert-sound/${encodeURIComponent(username)}`);
+    el.preload = "auto";
+    el.volume = soundVolume;
+    el.onerror = () => {
+        audio = null;
+    };
+    audio = el;
+}
+
 function boot(): void {
     const m = location.pathname.match(/^\/alerts\/([A-Za-z0-9_-]{3,32})\/?$/);
     if (!m) return;
     parseParams();
+    setupSound(m[1]!.toLowerCase());
     if (demoMode) {
         startDemo();
         return;

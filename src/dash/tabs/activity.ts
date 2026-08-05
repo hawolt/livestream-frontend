@@ -133,9 +133,12 @@ function connectEvents(generation: number): void {
         if (msg.type === "follow" && msg.username && typeof msg.at === "number") {
             const event = { type: "follow", username: msg.username, at: msg.at };
             if (recentSnapshotPending) liveEvents.set(followEventKey(event), event);
-            if (addEvent(event) && followerCount !== null) {
-                followerCount += 1;
-                renderFollowerCount();
+            if (addEvent(event)) {
+                playFollowSound();
+                if (followerCount !== null) {
+                    followerCount += 1;
+                    renderFollowerCount();
+                }
             }
         } else if (msg.type === "viewcount" && typeof msg.viewers === "number") {
             viewerCount = msg.viewers;
@@ -231,7 +234,53 @@ function renderInfo(): void {
     });
 }
 
+const SOUND_PREF_KEY = "activity_sound";
+const SOUND_MIN_GAP_MS = 1500;
+let alertAudio: HTMLAudioElement | null = null;
+let alertAudioFailed = false;
+let lastSoundAt = 0;
+
+function soundPrefOn(): boolean {
+    try {
+        return localStorage.getItem(SOUND_PREF_KEY) !== "0";
+    } catch {
+        return true;
+    }
+}
+
+function renderSoundToggle(): void {
+    const btn = document.getElementById("act-sound-toggle");
+    if (btn) btn.textContent = soundPrefOn() ? "Sound: on" : "Sound: off";
+}
+
+function playFollowSound(): void {
+    if (!soundPrefOn() || alertAudioFailed) return;
+    const now = Date.now();
+    if (now - lastSoundAt < SOUND_MIN_GAP_MS) return;
+    lastSoundAt = now;
+    if (!alertAudio) {
+        const me = getMe()?.username;
+        if (!me) return;
+        alertAudio = new Audio(`/api/live/alert-sound/${encodeURIComponent(me.toLowerCase())}`);
+        alertAudio.onerror = () => {
+            alertAudioFailed = true;
+        };
+    }
+    try {
+        alertAudio.currentTime = 0;
+    } catch {}
+    void alertAudio.play().catch(() => {});
+}
+
 export function init(): void {
+    const soundToggle = document.getElementById("act-sound-toggle");
+    soundToggle?.addEventListener("click", () => {
+        try {
+            localStorage.setItem(SOUND_PREF_KEY, soundPrefOn() ? "0" : "1");
+        } catch {}
+        renderSoundToggle();
+    });
+    renderSoundToggle();
     const chip = document.getElementById("act-viewer-chip");
     chip?.addEventListener("click", () => {
         concealed = !concealed;
@@ -245,6 +294,8 @@ export function init(): void {
 
 export function activate(): void {
     const generation = ++activationGeneration;
+    alertAudio = null;
+    alertAudioFailed = false;
     liveEvents = new Map();
     recentSnapshotPending = true;
     loadChat();
