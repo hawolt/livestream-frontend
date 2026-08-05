@@ -11,7 +11,8 @@ export const fmtTime = (d: Date | null | undefined): string => {
     if (!d) return "-";
     const hours = String(d.getHours()).padStart(2, "0");
     const minutes = String(d.getMinutes()).padStart(2, "0");
-    return `${hours}:${minutes}`;
+    const seconds = String(d.getSeconds()).padStart(2, "0");
+    return `${hours}:${minutes}:${seconds}`;
 };
 export const esc = (s: string | null | undefined) =>
     String(s ?? "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;").replace(/`/g,"&#96;");

@@ -60,7 +60,7 @@ function eventRowHtml(e: FollowEvent): string {
     const at = dateOf(e.at);
     return `<div style="display:flex;justify-content:space-between;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border)">
         <span><b>${esc(e.username)}</b> followed</span>
-        <span style="font-size:11px;color:var(--muted);white-space:nowrap">${fmtTime(at)} ${fmtDate(at)}</span>
+        <span style="font-size:11px;color:var(--muted);white-space:nowrap;font-family:var(--font-mono)">${fmtTime(at)} ${fmtDate(at)}</span>
     </div>`;
 }
 
