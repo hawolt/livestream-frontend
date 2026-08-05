@@ -11,7 +11,7 @@ const OFFLINE_RETRY_MS = 45000;
 const EMOTE_SET_URL = "https://7tv.io/v3/emote-sets/global";
 const RENDERED_BODY_CLASS = "rendered-emote-body";
 
-type Platform = "itzon" | "twitch" | "youtube" | "kick";
+type Platform = "itzon" | "twitch" | "youtube" | "kick" | "tiktok";
 
 const SVG_NS = "http://www.w3.org/2000/svg";
 
@@ -28,6 +28,16 @@ const PLATFORM_ICON_PATHS: Record<Exclude<Platform, "itzon">, { path: string; co
         path: "M1.333 0h8v5.333H12V2.667h2.667V0h8v8H20v2.667h-2.667v2.666H20V16h2.667v8h-8v-2.667H12v-2.666H9.333V24h-8Z",
         color: "#53fc18",
     },
+    tiktok: {
+        path: "M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-1.43.08-2.86-.31-4.08-1.03-2.02-1.19-3.44-3.37-3.65-5.71-.02-.5-.03-1-.01-1.49.18-1.9 1.12-3.72 2.58-4.96 1.66-1.44 3.98-2.13 6.15-1.72.02 1.48-.04 2.96-.04 4.44-.99-.32-2.15-.23-3.02.37-.63.41-1.11 1.04-1.36 1.75-.21.51-.15 1.07-.14 1.61.24 1.64 1.82 3.02 3.5 2.87 1.12-.01 2.19-.66 2.77-1.61.19-.33.4-.67.41-1.06.1-1.79.06-3.57.07-5.36.01-4.03-.01-8.05.02-12.07z",
+        color: "#fe2c55",
+    },
+};
+
+const TIKTOK_BADGE_CHIPS: Record<string, { label: string; color: string }> = {
+    owner: { label: "HOST", color: "#fe2c55" },
+    moderator: { label: "MOD", color: "#25f4ee" },
+    subscriber: { label: "SUB", color: "#fe2c55" },
 };
 
 type SiteBadge = "op" | "staff" | "bot" | "mod" | "vip" | "unverified";
@@ -72,6 +82,7 @@ interface Sources {
     youtube: string;
     ytVideo: string;
     kick: string;
+    tiktok: string;
     proxy: string;
 }
 
@@ -97,6 +108,7 @@ function parseParams(): Sources {
         youtube: clean(qs.get("youtube"), /^[A-Za-z0-9._-]{3,30}$/),
         ytVideo: clean(qs.get("ytvideo"), /^[A-Za-z0-9_-]{11}$/),
         kick: clean(qs.get("kick"), /^[A-Za-z0-9_-]{3,30}$/),
+        tiktok: clean(qs.get("tiktok"), /^[A-Za-z0-9._]{2,30}$/),
         proxy: (qs.get("proxy") ?? "").trim().replace(/[^A-Za-z0-9.:-]/g, ""),
     };
 }
@@ -860,6 +872,64 @@ function startYoutube(base: string, query: string): void {
     connect();
 }
 
+function parseTikTokBadges(badges: unknown): Node[] {
+    if (!Array.isArray(badges)) return [];
+    const out: Node[] = [];
+    for (const badge of badges) {
+        const type: unknown = typeof badge === "string" ? badge : (badge as any)?.type;
+        if (typeof type !== "string") continue;
+        const chip = TIKTOK_BADGE_CHIPS[type];
+        if (chip) out.push(makeChip(chip.label, chip.color, type));
+    }
+    return out;
+}
+
+function startTikTok(base: string, user: string): void {
+    let sock: WebSocket | null = null;
+    let nextDelay = RETRY_MS;
+
+    const connect = (): void => {
+        nextDelay = RETRY_MS;
+        const s = new WebSocket(`wss://${base}/ws/tiktok?u=${encodeURIComponent(user)}`);
+        sock = s;
+        s.onmessage = (ev) => {
+            if (typeof ev.data !== "string") return;
+            let frame: any;
+            try {
+                frame = JSON.parse(ev.data);
+            } catch {
+                return;
+            }
+            if (frame.type === "status" && typeof frame.state === "string") {
+                if (frame.state === "offline" || frame.state === "ended" || frame.state === "unavailable") {
+                    if (frame.state === "unavailable") addSystem("tiktok", "TikTok chat unavailable");
+                    nextDelay = frame.state === "unavailable" ? 2 * OFFLINE_RETRY_MS : OFFLINE_RETRY_MS;
+                    s.close();
+                }
+                return;
+            }
+            if (frame.type === "chat" && typeof frame.author === "string") {
+                const meta: MessageMeta = { badges: parseTikTokBadges(frame.badges) };
+                if (typeof frame.id === "string") meta.id = frame.id;
+                const runs: YtRun[] = Array.isArray(frame.runs) ? frame.runs : [];
+                addChat("tiktok", frame.author, renderYoutubeRuns(runs), meta);
+                return;
+            }
+            if (frame.type === "delete" && typeof frame.id === "string") {
+                removeMessage("tiktok", frame.id);
+            }
+        };
+        s.onclose = () => {
+            if (sock !== s) return;
+            sock = null;
+            window.setTimeout(connect, nextDelay);
+        };
+        s.onerror = () => s.close();
+    };
+
+    connect();
+}
+
 const KICK_EMOTE_PATTERN = /\[emote:(\d+):([^\]]*)\]/g;
 
 function renderKickBody(content: string): DocumentFragment {
@@ -970,7 +1040,7 @@ function showHint(): void {
     const p = document.createElement("p");
     p.append("No chat sources configured. Add any of: ");
     const code = document.createElement("code");
-    code.textContent = "?channel=<itzon user>&twitch=<channel>&youtube=<handle>&kick=<slug>";
+    code.textContent = "?channel=<itzon user>&twitch=<channel>&youtube=<handle>&kick=<slug>&tiktok=<username>";
     p.appendChild(code);
     const p2 = document.createElement("p");
     p2.append("Optional: ");
@@ -1001,6 +1071,10 @@ function boot(): void {
     }
     if (sources.kick) {
         startKick(base, sources.kick);
+        any = true;
+    }
+    if (sources.tiktok) {
+        startTikTok(base, sources.tiktok);
         any = true;
     }
     if (!any) showHint();

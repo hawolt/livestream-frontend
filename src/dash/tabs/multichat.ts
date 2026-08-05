@@ -9,12 +9,13 @@ function cleanName(value: string, pattern: RegExp): string {
     return pattern.test(v) ? v : "";
 }
 
-function sourceValues(): { twitch: string; youtube: string; ytvideo: string; kick: string } {
+function sourceValues(): { twitch: string; youtube: string; ytvideo: string; kick: string; tiktok: string } {
     return {
         twitch: cleanName(el<HTMLInputElement>("mc-twitch").value, /^[A-Za-z0-9_]{3,32}$/),
         youtube: cleanName(el<HTMLInputElement>("mc-youtube").value, /^[A-Za-z0-9._-]{3,30}$/),
         ytvideo: cleanName(el<HTMLInputElement>("mc-ytvideo").value, /^[A-Za-z0-9_-]{11}$/),
         kick: cleanName(el<HTMLInputElement>("mc-kick").value, /^[A-Za-z0-9_-]{3,30}$/),
+        tiktok: cleanName(el<HTMLInputElement>("mc-tiktok").value, /^[A-Za-z0-9._]{2,30}$/),
     };
 }
 
@@ -23,7 +24,7 @@ function loadStored(): void {
         const raw = localStorage.getItem(STORAGE_KEY);
         if (!raw) return;
         const data: any = JSON.parse(raw);
-        for (const [key, id] of [["twitch", "mc-twitch"], ["youtube", "mc-youtube"], ["ytvideo", "mc-ytvideo"], ["kick", "mc-kick"]] as const) {
+        for (const [key, id] of [["twitch", "mc-twitch"], ["youtube", "mc-youtube"], ["ytvideo", "mc-ytvideo"], ["kick", "mc-kick"], ["tiktok", "mc-tiktok"]] as const) {
             if (typeof data?.[key] === "string") el<HTMLInputElement>(id).value = data[key];
         }
     } catch {}
@@ -36,6 +37,7 @@ function persist(): void {
             youtube: el<HTMLInputElement>("mc-youtube").value.trim(),
             ytvideo: el<HTMLInputElement>("mc-ytvideo").value.trim(),
             kick: el<HTMLInputElement>("mc-kick").value.trim(),
+            tiktok: el<HTMLInputElement>("mc-tiktok").value.trim(),
         }));
     } catch {}
 }
@@ -48,6 +50,7 @@ function buildParams(): URLSearchParams {
     if (sources.ytvideo) params.set("ytvideo", sources.ytvideo);
     else if (sources.youtube) params.set("youtube", sources.youtube);
     if (sources.kick) params.set("kick", sources.kick);
+    if (sources.tiktok) params.set("tiktok", sources.tiktok);
 
     if (el<HTMLSelectElement>("mc-mode").value === "overlay") params.set("overlay", "1");
     const size = el<HTMLSelectElement>("mc-size").value;
@@ -95,7 +98,7 @@ export function init(): void {
         window.open(currentUrl(), "_blank", "noopener,width=420,height=720");
     });
 
-    for (const id of ["mc-twitch", "mc-youtube", "mc-ytvideo", "mc-kick", "mc-mode", "mc-size", "mc-fade", "mc-icons", "mc-badges", "mc-emotes", "mc-linebg", "mc-shadow"]) {
+    for (const id of ["mc-twitch", "mc-youtube", "mc-ytvideo", "mc-kick", "mc-tiktok", "mc-mode", "mc-size", "mc-fade", "mc-icons", "mc-badges", "mc-emotes", "mc-linebg", "mc-shadow"]) {
         el(id).addEventListener("input", onChange);
     }
 }
