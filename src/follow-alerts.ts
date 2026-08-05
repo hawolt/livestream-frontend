@@ -20,6 +20,7 @@ let durationMs = DEFAULT_DURATION_MS;
 let soundEnabled = true;
 let soundVolume = 1;
 let audio: HTMLAudioElement | null = null;
+let soundUnlockPrompted = false;
 let sock: WebSocket | null = null;
 let retryTimer: number | null = null;
 let showing = false;
@@ -62,12 +63,7 @@ function showNext(): void {
     showing = true;
     const card = buildCard(next.username);
     stageEl.replaceChildren(card);
-    if (audio) {
-        try {
-            audio.currentTime = 0;
-        } catch {}
-        void audio.play().catch(() => {});
-    }
+    playAlertSound();
     let watchdog: number | null = window.setTimeout(() => {
         watchdog = null;
         card.remove();
@@ -155,6 +151,37 @@ function startDemo(): void {
     };
     step();
     window.setInterval(step, DEMO_INTERVAL_MS);
+}
+
+function playAlertSound(): void {
+    if (!audio) return;
+    try {
+        audio.currentTime = 0;
+    } catch {}
+    void audio.play().catch((err: unknown) => {
+        if ((err as DOMException)?.name === "NotAllowedError") promptSoundUnlock();
+    });
+}
+
+function promptSoundUnlock(): void {
+    if (soundUnlockPrompted) return;
+    soundUnlockPrompted = true;
+    const hint = document.createElement("div");
+    hint.id = "sound-unlock";
+    hint.textContent = "Click to enable alert sound";
+    document.body.appendChild(hint);
+    const unlock = (): void => {
+        document.removeEventListener("pointerdown", unlock);
+        hint.remove();
+        if (!audio) return;
+        void audio.play().then(() => {
+            audio?.pause();
+            try {
+                if (audio) audio.currentTime = 0;
+            } catch {}
+        }).catch(() => {});
+    };
+    document.addEventListener("pointerdown", unlock);
 }
 
 function setupSound(username: string): void {
