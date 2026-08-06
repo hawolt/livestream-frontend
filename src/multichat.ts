@@ -886,10 +886,9 @@ function parseTikTokBadges(badges: unknown): Node[] {
 
 function startTikTok(base: string, user: string): void {
     let sock: WebSocket | null = null;
-    let nextDelay = RETRY_MS;
+    let lastState = "";
 
     const connect = (): void => {
-        nextDelay = RETRY_MS;
         const s = new WebSocket(`wss://${base}/ws/tiktok?u=${encodeURIComponent(user)}`);
         sock = s;
         s.onmessage = (ev) => {
@@ -901,11 +900,10 @@ function startTikTok(base: string, user: string): void {
                 return;
             }
             if (frame.type === "status" && typeof frame.state === "string") {
-                if (frame.state === "offline" || frame.state === "ended" || frame.state === "unavailable") {
-                    if (frame.state === "unavailable") addSystem("tiktok", "TikTok chat unavailable");
-                    nextDelay = frame.state === "unavailable" ? 2 * OFFLINE_RETRY_MS : OFFLINE_RETRY_MS;
-                    s.close();
+                if (frame.state !== lastState && frame.state !== "connecting" && frame.state !== "live") {
+                    addSystem("tiktok", `TikTok chat ${frame.state}`);
                 }
+                lastState = frame.state;
                 return;
             }
             if (frame.type === "chat" && typeof frame.author === "string") {
@@ -922,7 +920,8 @@ function startTikTok(base: string, user: string): void {
         s.onclose = () => {
             if (sock !== s) return;
             sock = null;
-            window.setTimeout(connect, nextDelay);
+            const delay = lastState === "live" || lastState === "connecting" ? RETRY_MS : OFFLINE_RETRY_MS;
+            window.setTimeout(connect, delay);
         };
         s.onerror = () => s.close();
     };
