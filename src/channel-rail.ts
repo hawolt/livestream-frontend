@@ -3,7 +3,7 @@ import { ICON_CHEVRON_LEFT, ICON_CHEVRON_RIGHT } from "./live/icons.ts";
 import { readLocalStorage, writeLocalStorage } from "./storage.ts";
 
 const RAIL_COLLAPSED_KEY = "live-channel-rail-collapsed";
-const RAIL_POLL_MS = 10000;
+const RAIL_POLL_MS = 180000;
 const FOLLOW_REFRESH_MS = 60000;
 
 export interface ChannelRailElements {

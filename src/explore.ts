@@ -14,7 +14,7 @@ import {
     railToggleEl,
     railToggleGlyphEl,
 } from "./explore/dom.ts";
-import { loadExplore, startExplorePolling } from "./explore/poll.ts";
+import { loadExplore } from "./explore/poll.ts";
 import { applyState, navigate } from "./explore/render.ts";
 import { updateModeButtons } from "./explore/stream-cards.ts";
 import { stateFromLocation, urlFor } from "./explore/url-state.ts";
@@ -93,7 +93,6 @@ async function boot(): Promise<void> {
     history.replaceState(initial, "", urlFor(initial.mode, initial.categoryId));
     updateModeButtons();
     await loadExplore();
-    startExplorePolling();
 }
 
 void boot();
