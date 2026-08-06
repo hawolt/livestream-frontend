@@ -75,6 +75,7 @@ let showBadges = true;
 let showIcons = true;
 let fadeMs = 0;
 let pinned = true;
+let demoMode = false;
 
 interface Sources {
     channel: string;
@@ -98,6 +99,7 @@ function parseParams(): Sources {
     if (qs.get("shadow") === "0") document.body.dataset["shadow"] = "0";
     const fadeSec = Number(qs.get("fade"));
     fadeMs = Number.isFinite(fadeSec) && fadeSec > 0 ? fadeSec * 1000 : 0;
+    demoMode = qs.get("demo") === "1";
     const clean = (value: string | null, pattern: RegExp): string => {
         const v = (value ?? "").trim().replace(/^[@#]/, "");
         return pattern.test(v) ? v : "";
@@ -1071,6 +1073,53 @@ function startKick(base: string, slug: string): void {
     void resolveAndConnect();
 }
 
+const DEMO_INTERVAL_MS = 1500;
+
+interface DemoLine {
+    platform: Platform;
+    from: string;
+    body: () => Node;
+    meta: () => MessageMeta;
+}
+
+function demoEmoteToken(): string {
+    if (emotes.size > 0) return emotes.names().next().value as string;
+    return "nice";
+}
+
+function demoScript(owner: string): DemoLine[] {
+    const text = (value: string): (() => Node) => () => document.createTextNode(value);
+    return [
+        { platform: "itzon", from: owner, body: () => buildRenderedBody("welcome in, chat is bridged from everywhere today"), meta: () => ({ badges: [makeSiteBadge("op")] }) },
+        { platform: "twitch", from: "riverside", body: text("keep it friendly in here, twitch crew"), meta: () => ({ badges: parseTwitchBadges("moderator/1"), color: "#8a2be2" }) },
+        { platform: "youtube", from: "emberly", body: text("youtube squad checking in"), meta: () => ({ badges: parseYoutubeBadges(["member"]).nodes }) },
+        { platform: "kick", from: "greenroom", body: text("kick chat works too"), meta: () => ({ badges: parseKickBadges([{ type: "subscriber" }]) }) },
+        { platform: "tiktok", from: "driftwave", body: text("tiktok says hi"), meta: () => ({ badges: parseTikTokBadges(["moderator"]) }) },
+        { platform: "itzon", from: "sentinel", body: () => buildRenderedBody("everything looking good from our side"), meta: () => ({ badges: [makeSiteBadge("staff")] }) },
+        { platform: "youtube", from: "goldleaf", body: text("great stream, keep it up"), meta: () => ({ amount: "$5.00", badges: [] }) },
+        { platform: "twitch", from: "kestrel", body: text("been subbed for six months already"), meta: () => ({ badges: parseTwitchBadges("subscriber/6") }) },
+        { platform: "itzon", from: "pixelfox", body: () => buildRenderedBody(`${demoEmoteToken()} that play was insane`), meta: () => ({ badges: [makeItzonSubBadge("regular")] }) },
+        { platform: "kick", from: "hostmode", body: text("thanks for hanging out everyone"), meta: () => ({ badges: parseKickBadges([{ type: "broadcaster" }]) }) },
+        { platform: "tiktok", from: "lumenkid", body: text("welcome to all the new followers"), meta: () => ({ badges: parseTikTokBadges(["owner"]) }) },
+        { platform: "itzon", from: "guest_8f3a91c2", body: () => buildRenderedBody("first time here, loving the stream so far"), meta: () => ({ badges: [makeSiteBadge("unverified")] }) },
+        { platform: "youtube", from: "northwind", body: text("this is a much longer message meant to show how the feed wraps text across multiple lines once a viewer writes something more substantial than a quick reaction"), meta: () => ({ badges: parseYoutubeBadges(["moderator"]).nodes }) },
+    ];
+}
+
+function startDemo(channelName: string): void {
+    const owner = channelName || "yourchannel";
+    if (showEmotes && channelName) void loadChannelEmotes(channelName.toLowerCase());
+    let i = 0;
+    const step = (): void => {
+        const script = demoScript(owner);
+        const line = script[i % script.length]!;
+        addChat(line.platform, line.from, line.body(), line.meta());
+        i++;
+    };
+    step();
+    window.setInterval(step, DEMO_INTERVAL_MS);
+}
+
 function showHint(): void {
     hintEl.classList.add("show");
     const p = document.createElement("p");
@@ -1088,6 +1137,10 @@ function showHint(): void {
 
 function boot(): void {
     const sources = parseParams();
+    if (demoMode) {
+        startDemo(sources.channel);
+        return;
+    }
     const base = proxyBase(sources);
     let any = false;
     if (sources.channel) {

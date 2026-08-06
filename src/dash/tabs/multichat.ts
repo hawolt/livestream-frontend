@@ -75,7 +75,9 @@ function updateUrl(): void {
 
 function updatePreview(): void {
     previewTimer = null;
-    el<HTMLIFrameElement>("mc-preview-iframe").src = currentUrl();
+    const params = buildParams();
+    params.set("demo", "1");
+    el<HTMLIFrameElement>("mc-preview-iframe").src = `/multichat?${params.toString()}`;
 }
 
 function schedulePreview(): void {
