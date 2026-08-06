@@ -6,6 +6,7 @@ export const ctx = {
     username: "",
     mediaBase: "",
     wssBase: "",
+    streamPass: "",
     transportKind: "none" as "ws" | "hls" | "none",
 
     gen: 0,

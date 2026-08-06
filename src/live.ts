@@ -34,6 +34,7 @@ import { connectViewcount, resumeViewcount, suspendViewcount } from "./live/stre
 import { openProfileFromUser } from "./chat/panels.ts";
 import { parseClipRoute } from "./live/clip/route.ts";
 import { bootClipMode } from "./live/clip/mode.ts";
+import { promptStreamPassword } from "./live/stream-pass-gate.ts";
 
 const chatPopout = new URLSearchParams(location.search).get("chat") === "popout";
 let bootGeneration = 0;
@@ -146,8 +147,34 @@ async function boot(): Promise<void> {
             return;
         }
         if (res.ok) {
-            const info = await res.json() as Partial<LiveChannelInfo>;
+            let info = await res.json() as Partial<LiveChannelInfo>;
             if (!isCurrentBoot(generation, request)) return;
+            if (info.locked === true) {
+                if (typeof info.username === "string" && info.username) {
+                    ctx.displayUsername = info.username;
+                    nameEl.textContent = ctx.displayUsername;
+                    document.title = ctx.displayUsername;
+                }
+                const unlocked = await promptStreamPassword(ctx.username, request.signal);
+                if (!unlocked || !isCurrentBoot(generation, request)) return;
+                const retry = await fetch(`/api/live/channel/${encodeURIComponent(ctx.username)}`, { signal: request.signal });
+                if (!isCurrentBoot(generation, request)) return;
+                if (!retry.ok) {
+                    bootCompleted = true;
+                    enterTerminal("No channel");
+                    return;
+                }
+                info = await retry.json() as Partial<LiveChannelInfo>;
+                if (!isCurrentBoot(generation, request)) return;
+                if (info.locked === true) {
+                    bootCompleted = true;
+                    enterTerminal("Private stream");
+                    return;
+                }
+            }
+            if (typeof info.streamPass === "string") {
+                ctx.streamPass = info.streamPass;
+            }
             if (typeof info.username === "string" && info.username) {
                 ctx.displayUsername = info.username;
             }

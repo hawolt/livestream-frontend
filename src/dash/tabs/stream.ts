@@ -9,7 +9,7 @@ let liveCache: LiveInfo | null = null;
 let regions: RegionOption[] = [];
 
 async function loadLive(): Promise<void> {
-    const ids = ["live-ingest-body", "live-playback-body", "live-channel-body", "live-webhook-body"];
+    const ids = ["live-ingest-body", "live-playback-body", "live-channel-body", "live-thumbnail-body", "live-private-body", "live-webhook-body"];
     for (const id of ids) {
         const el = document.getElementById(id);
         if (el) el.textContent = "Loading...";
@@ -20,6 +20,8 @@ async function loadLive(): Promise<void> {
         renderIngest();
         renderPlayback();
         renderChannel();
+        renderThumbnail();
+        renderPrivate();
         renderWebhooks();
     } catch (e) {
         for (const id of ids) {
@@ -207,6 +209,122 @@ function renderChannel(): void {
             status.textContent = e instanceof Error ? e.message : String(e);
             status.style.color = "var(--red)";
         }
+    });
+}
+
+function thumbnailKib(): number {
+    const bytes = liveCache?.maxImageBytes;
+    return typeof bytes === "number" && bytes > 0 ? Math.floor(bytes / 1024) : 256;
+}
+
+function renderThumbnail(): void {
+    const el = document.getElementById("live-thumbnail-body");
+    if (!el || !liveCache) return;
+    const allowed = liveCache.thumbnailAllowed === true;
+    const version = liveCache.thumbnailVersion;
+    const previewUrl = liveCache.hasThumbnail && liveCache.usernameOk
+        ? `/api/live/thumbnail/${encodeURIComponent(liveCache.username.toLowerCase())}?v=${version ?? 0}`
+        : "";
+    el.innerHTML = `
+        ${allowed ? "" : `<p style="color:var(--muted);font-size:13px;margin:0 0 12px">A subscription is required to upload a custom thumbnail. <a href="/dashboard/subscription" data-switch-tab="subscription">See subscription plans</a>.</p>`}
+        ${previewUrl ? `<img id="live-thumb-preview" src="${esc(previewUrl)}" alt="Stream thumbnail" style="display:block;width:100%;max-width:320px;aspect-ratio:16/9;object-fit:cover;border:1px solid var(--border);border-radius:6px;margin-bottom:10px">` : ""}
+        <input id="live-thumb-file" type="file" accept="image/png,image/jpeg" hidden>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+            <button class="btn btn-primary" id="live-thumb-upload" ${allowed ? "" : "disabled"}>${liveCache.hasThumbnail ? "Replace" : "Upload"}</button>
+            ${liveCache.hasThumbnail ? `<button class="btn" id="live-thumb-remove">Remove</button>` : ""}
+        </div>
+        <div style="font-size:12px;color:var(--muted);margin-top:8px">JPG or PNG, 16:9 recommended, up to ${thumbnailKib()} KiB and 2560x1440.</div>
+        <div id="live-thumb-error" style="color:var(--red);font-size:13px;margin-top:6px"></div>`;
+    const fileInput = document.getElementById("live-thumb-file") as HTMLInputElement;
+    const uploadBtn = document.getElementById("live-thumb-upload") as HTMLButtonElement;
+    const errEl = document.getElementById("live-thumb-error")!;
+    uploadBtn.addEventListener("click", () => fileInput.click());
+    fileInput.addEventListener("change", async () => {
+        const file = fileInput.files?.[0];
+        fileInput.value = "";
+        if (!file || !liveCache) return;
+        errEl.textContent = "";
+        if (!["image/png", "image/jpeg"].includes(file.type)) {
+            errEl.textContent = "Unsupported format, use JPG or PNG.";
+            return;
+        }
+        const maxBytes = liveCache.maxImageBytes ?? 256 * 1024;
+        if (file.size > maxBytes) {
+            errEl.textContent = `Image exceeds the ${thumbnailKib()} KiB limit for this account.`;
+            return;
+        }
+        uploadBtn.disabled = true;
+        try {
+            const bytes = await file.arrayBuffer();
+            const res = await authFetch<LiveInfo>("/api/live/thumbnail", {
+                method: "POST",
+                headers: { "Content-Type": file.type },
+                body: bytes,
+            });
+            liveCache = { ...liveCache, ...res };
+            renderThumbnail();
+        } catch (e) {
+            errEl.textContent = e instanceof Error ? e.message : String(e);
+            uploadBtn.disabled = false;
+        }
+    });
+    document.getElementById("live-thumb-remove")?.addEventListener("click", async () => {
+        if (!confirm("Remove the custom thumbnail? Browse falls back to the automatic stream screenshot.")) return;
+        if (!liveCache) return;
+        errEl.textContent = "";
+        try {
+            const res = await authFetch<LiveInfo>("/api/live/thumbnail", { method: "DELETE" });
+            liveCache = { ...liveCache, ...res };
+            renderThumbnail();
+        } catch (e) {
+            errEl.textContent = e instanceof Error ? e.message : String(e);
+        }
+    });
+}
+
+function renderPrivate(): void {
+    const el = document.getElementById("live-private-body");
+    if (!el || !liveCache) return;
+    const allowed = liveCache.privateAllowed === true;
+    const active = liveCache.passwordProtected === true;
+    el.innerHTML = `
+        ${allowed || active ? "" : `<p style="color:var(--muted);font-size:13px;margin:0 0 12px">A subscription is required to make your stream private. <a href="/dashboard/subscription" data-switch-tab="subscription">See subscription plans</a>.</p>`}
+        ${active ? `<div style="font-size:13px;color:var(--success);margin-bottom:10px">Password protection is on. Your channel is hidden from Browse.</div>` : ""}
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+            <input id="live-private-pass" type="password" placeholder="${active ? "New stream password" : "Stream password"}" minlength="4" maxlength="64" autocomplete="new-password" style="width:220px;max-width:240px;flex:none" ${allowed ? "" : "disabled"}>
+            <button class="btn btn-primary" id="live-private-save" ${allowed ? "" : "disabled"}>${active ? "Change" : "Enable"}</button>
+            ${active ? `<button class="btn" id="live-private-off">Disable</button>` : ""}
+        </div>
+        <div style="font-size:12px;color:var(--muted);margin-top:8px">
+            Chat locks within a minute of a change. Video applies from the next stream start, so set the password before going live.
+        </div>
+        <div id="live-private-error" style="color:var(--red);font-size:13px;margin-top:6px"></div>`;
+    const input = document.getElementById("live-private-pass") as HTMLInputElement;
+    const errEl = document.getElementById("live-private-error")!;
+    const save = async (password: string): Promise<void> => {
+        errEl.textContent = "";
+        try {
+            const res = await authFetch<LiveInfo>("/api/live/password", {
+                method: "PUT",
+                body: JSON.stringify({ password }),
+            });
+            liveCache = { ...liveCache!, ...res };
+            renderPrivate();
+        } catch (e) {
+            errEl.textContent = e instanceof Error ? e.message : String(e);
+        }
+    };
+    document.getElementById("live-private-save")?.addEventListener("click", () => {
+        const password = input.value;
+        if (password.length < 4 || password.length > 64) {
+            errEl.textContent = "Password must be 4 to 64 characters.";
+            return;
+        }
+        void save(password);
+    });
+    document.getElementById("live-private-off")?.addEventListener("click", () => {
+        if (!confirm("Disable password protection? Your channel becomes public and shows on Browse again.")) return;
+        void save("");
     });
 }
 

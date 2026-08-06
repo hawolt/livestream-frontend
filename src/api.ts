@@ -80,6 +80,12 @@ export interface LiveInfo {
     webhookSecret: string;
     discordWebhookUrl: string;
     emoteTwitch: string;
+    hasThumbnail: boolean;
+    thumbnailVersion: number | null;
+    passwordProtected: boolean;
+    thumbnailAllowed?: boolean;
+    privateAllowed?: boolean;
+    maxImageBytes?: number;
 }
 
 export interface LiveChannelInfo {
@@ -91,6 +97,9 @@ export interface LiveChannelInfo {
     mediaBase: string;
     wssBase?: string;
     emoteTwitchId: string | null;
+    passwordRequired?: boolean;
+    locked?: boolean;
+    streamPass?: string;
 }
 
 export interface LiveCategory {

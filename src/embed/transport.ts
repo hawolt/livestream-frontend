@@ -77,7 +77,8 @@ export function startWSTransport(g: number): void {
         if (!isCurrent(g)) return;
         const { base, direct } = chooseTransportBase(ctx.wssBase, ctx.mediaBase);
         let joined = false;
-        const path = `/ws/live?u=${encodeURIComponent(ctx.username)}&viewer_id=${encodeURIComponent(vid)}${tq}`;
+        const pwParam = ctx.streamPass ? `&pw=${encodeURIComponent(ctx.streamPass)}` : "";
+        const path = `/ws/live?u=${encodeURIComponent(ctx.username)}&viewer_id=${encodeURIComponent(vid)}${tq}${pwParam}`;
         let sock: WebSocket;
         try {
             sock = new WebSocket(mediaWsUrl(base, path));
@@ -122,7 +123,7 @@ export function startWSTransport(g: number): void {
 }
 
 export function startHLSTransport(g: number): void {
-    const src = `${ctx.mediaBase}/hls/${encodeURIComponent(ctx.username)}/live.m3u8`;
+    const src = `${ctx.mediaBase}/hls/${encodeURIComponent(ctx.username)}/live.m3u8${ctx.streamPass ? `?pw=${encodeURIComponent(ctx.streamPass)}` : ""}`;
     attachVideoFailureListeners(g);
 
     const onPlaying = () => {

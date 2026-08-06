@@ -20,7 +20,7 @@ const streamCards = new Map<string, StreamCard>();
 
 export function updateStreamThumbnail(card: StreamCard, s: ExploreStream): void {
     const img = card.image;
-    const src = buildThumbUrl(s.username, s.mediaBase, ctx.mediaBase, thumbnailMinute());
+    const src = buildThumbUrl(s.username, s.mediaBase, ctx.mediaBase, thumbnailMinute(), s.thumbnail);
     if (img.dataset["thumbSrc"] === src) return;
     img.dataset["thumbSrc"] = src;
     img.style.removeProperty("display");

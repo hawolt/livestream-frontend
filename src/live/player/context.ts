@@ -45,6 +45,7 @@ export const ctx = {
     wssBase: "",
     username: "",
     displayUsername: "",
+    streamPass: "",
 };
 
 export function nextGen(): number {

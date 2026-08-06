@@ -9,6 +9,7 @@ export interface ExploreStream {
     language: string;
     viewers: number;
     mediaBase?: string;
+    thumbnail?: string;
 }
 
 export interface ExploreCategory {

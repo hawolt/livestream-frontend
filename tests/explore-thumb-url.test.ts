@@ -21,4 +21,14 @@ describe("buildThumbUrl", () => {
         expect(buildThumbUrl("Weird Name!", undefined, "https://fallback.example", 1))
             .toBe("https://fallback.example/thumb/weird%20name!.jpg?t=1");
     });
+
+    test("prefers a custom thumbnail over the media thumb", () => {
+        expect(buildThumbUrl("alice", "https://cdn.example", "https://fallback.example", 123, "/api/live/thumbnail/alice?v=42"))
+            .toBe("/api/live/thumbnail/alice?v=42");
+    });
+
+    test("ignores an empty custom thumbnail", () => {
+        expect(buildThumbUrl("alice", undefined, "https://fallback.example", 1, ""))
+            .toBe("https://fallback.example/thumb/alice.jpg?t=1");
+    });
 });

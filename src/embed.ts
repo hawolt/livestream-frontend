@@ -53,10 +53,16 @@ async function boot(): Promise<void> {
         if (res.ok) {
             const info: any = await res.json();
             if (!isCurrentBoot(generation, request)) return;
+            if (info && info.locked === true) {
+                bootCompleted = true;
+                enterTerminal("Private stream");
+                return;
+            }
             if (info && typeof info.mediaBase === "string") {
                 ctx.mediaBase = info.mediaBase.replace(/\/+$/, "");
             }
             if (info) ctx.wssBase = typeof info.wssBase === "string" ? info.wssBase.replace(/\/+$/, "") : "";
+            if (info && typeof info.streamPass === "string") ctx.streamPass = info.streamPass;
         }
     } catch {
         if (!isCurrentBoot(generation, request)) return;

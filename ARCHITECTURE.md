@@ -276,13 +276,17 @@ HTTP under `API_BASE = /api/main/v1` unless noted. Listed as consumed by this co
 | `GET /clips/pin/clipinit?channel=&pin=`, `GET /clips/pin/clipseg?channel=&pin=&n=<index>` | clip editor (fetched by `hls.js`, never called directly) | the init segment and the nth keyframe-aligned segment referenced by the `/clips/pin/hls` playlist |
 | `POST /clips?channel=&title=&pin=&startBehindMs=&endBehindMs=` | clip editor | bodyless, `Bearer` auth, duration 3000..30000 ms, `startBehindMs` greater than `endBehindMs`, both relative to `nowMs`; gives `{id}` (a word code, e.g. `DarkMuffinScooter`), `{error}` on `409`/`410`/`422` failure, `429` retryable, `503` unavailable |
 | `GET /clips`, `GET /clips/channel`, `DELETE /clips/{id}` | clips tab | `Bearer` auth; list gives `{clips: Clip[]}` (`id, channel, creator, title, status, url, thumbnailUrl, durationMs, createdAt`) scoped to the caller's own created clips; `/clips/channel` is the same row shape scoped to clips cut from a channel the caller owns; delete succeeds for either the clip's creator or the channel owner and is status-only (`204`) |
-| `GET /api/live/explore` (absolute path) | explorer | `{streams, categories, mediaBase}` |
-| `GET /api/live/channel/<user>` (absolute path) | viewer, embed, clip playback mode | `{title, category, categoryId, mediaBase, emoteTwitchId}`, 404 for no channel; clip playback mode reads `category`, `categoryId`, `language`, `emoteTwitchId`, and `username` for the offline-style chrome, plus an optional `live` flag to decide whether to show "Watch live now" |
+| `GET /api/live/explore` (absolute path) | explorer | `{streams, categories, mediaBase}`; a stream may carry `thumbnail` (a `/api/live/thumbnail/<user>?v=` URL) which replaces the automatic `/thumb/` screenshot on the card; password-protected channels never appear |
+| `GET /api/live/channel/<user>` (absolute path) | viewer, embed, clip playback mode | `{title, category, categoryId, mediaBase, emoteTwitchId}`, 404 for no channel; clip playback mode reads `category`, `categoryId`, `language`, `emoteTwitchId`, and `username` for the offline-style chrome, plus an optional `live` flag to decide whether to show "Watch live now". A password-protected channel answers `{username, passwordRequired: true, locked: true}` and nothing else until the viewer unlocks (cookie, or staff/owner session), after which the full payload carries `passwordRequired: true, locked: false` and a `streamPass` token the player appends as `pw=` on media requests |
+| `POST /api/live/channel/<user>/unlock` (absolute path) | viewer password gate | body `{password}`; 200 sets the `stream_pass_<user>` cookie and gives `{token, ttl}`, 403 wrong password, 429 rate limited |
+| `GET /api/live/thumbnail/<user>` (absolute path) | explorer, stream tab preview | the channel's uploaded thumbnail image, 404 when none |
 | `GET /api/live/captcha/config`, `POST /api/live/captcha/token` (absolute paths) | captcha | `{enabled, sitekey}`, `{token, ttl}` |
 | `GET /api/live/spots?slot=` (absolute path) | viewer | `{ads: [{id, imageUrl, targetUrl, altText, label}]}` |
 | `GET /api/live/spots/visit/{id}` (absolute path, plain anchor href) | viewer | 302 redirect to the ad's target |
 | `GET /api/live/clips/{code}` (absolute path) | clip editor, clip playback mode, clip embed page | `{id, channel, title, status, phase, queuePosition, durationMs, createdAt, url, thumbnailUrl, pageUrl}`, `phase`/`queuePosition` present while `status` is `processing`, 404 for no clip |
 | `GET /live`, `PUT /live/info`, `POST /live/rotate-key`, `POST /live/playback-key/rotate`, `POST /live/region`, `POST /live/emote-twitch`, `PUT /live/webhooks`, `POST /live/webhooks/rotate-secret` | stream tabs | `LiveInfo` |
+| `POST /api/live/thumbnail` (raw image bytes, file MIME as Content-Type), `DELETE /api/live/thumbnail` | stream tab thumbnail card | `LiveInfo`; 403 without the `thumbnail` entitlement, 413 over the account's `maxImageBytes` |
+| `PUT /api/live/password` | stream tab private card | body `{password}` (empty clears); `LiveInfo`; 403 without the `private` entitlement when setting |
 | `GET /live/categories`, `GET /live/mods`, `DELETE /live/mods/{id}`, `GET /live/bans`, `DELETE /live/bans/{id}` | stream manager | lists |
 | `GET /regions` | stream tab | `{regions: [{id, label}]}` |
 | `GET /settings`, `PUT /settings`, `PUT /settings/password`, `PUT /settings/username`, `PUT /settings/chat-color`, `POST /settings/chat-bot-token/rotate` | settings | `AccountSettings` and per-call results |
@@ -292,9 +296,9 @@ Media and chat transports (page or `mediaBase` origin):
 
 | Endpoint | Used by |
 |---|---|
-| `WS /ws/live?u=&viewer_id=[&t=]` | viewer, embed (fMP4 over WebSocket) |
-| `GET /hls/<user>/live.m3u8` | viewer, embed (native HLS fallback) |
-| `POST /hls/<user>/beat?id=[&t=]` | viewer, embed (HLS viewer presence) |
+| `WS /ws/live?u=&viewer_id=[&t=][&pw=]` | viewer, embed (fMP4 over WebSocket; `pw` is the `streamPass` unlock token for password-protected channels) |
+| `GET /hls/<user>/live.m3u8[?pw=]` | viewer, embed (native HLS fallback; segment requests rely on the `stream_pass_<user>` cookie for protected channels) |
+| `POST /hls/<user>/beat?id=[&t=][&pw=]` | viewer, embed (HLS viewer presence) |
 | `GET /thumb/<user>.jpg` | explorer thumbnails |
 | `WS /ws/irc` | chat client, chat overlay (IRC line protocol) |
 

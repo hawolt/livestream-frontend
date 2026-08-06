@@ -495,6 +495,7 @@
         }
         .login-modal-submit:disabled { opacity: .6; cursor: default; }
         .login-modal-error { color: var(--red); font-size: 13px; min-height: 16px; }
+        .stream-pass-hint { color: var(--muted); font-size: 13px; margin: 0 0 12px; }
         .login-modal-alt { font-size: 13px; color: var(--muted); text-align: center; }
         .login-modal-alt a { color: var(--accent); text-decoration: none; }
         .login-modal-close {
@@ -1657,6 +1658,17 @@
     </div>
 </div>
 <iframe id="browse-iframe" class="browse-iframe" title="Browse" hidden></iframe>
+<div id="stream-pass-gate" class="login-modal" role="dialog" aria-modal="true" aria-labelledby="stream-pass-title" hidden>
+    <div class="login-modal-box" tabindex="-1">
+        <h3 id="stream-pass-title">This channel is private</h3>
+        <p class="stream-pass-hint">Enter the stream password to watch and chat.</p>
+        <form id="stream-pass-form" class="login-modal-form" aria-describedby="stream-pass-error" aria-busy="false">
+            <input id="stream-pass-input" type="password" placeholder="Stream password" aria-label="Stream password" autocomplete="off" required />
+            <div id="stream-pass-error" class="login-modal-error" role="alert" aria-live="polite" aria-atomic="true"></div>
+            <button type="submit" id="stream-pass-submit" class="login-modal-submit">Unlock</button>
+        </form>
+    </div>
+</div>
 <div id="login-modal" class="login-modal" role="dialog" aria-modal="true" aria-labelledby="login-modal-title" hidden>
     <div class="login-modal-box" tabindex="-1">
         <button type="button" id="login-modal-close" class="login-modal-close" aria-label="Close">&times;</button>
