@@ -19,17 +19,32 @@ import { applyState, navigate } from "./explore/render.ts";
 import { updateModeButtons } from "./explore/stream-cards.ts";
 import { stateFromLocation, urlFor } from "./explore/url-state.ts";
 
+const MANUAL_REFRESH_THROTTLE_MS = 10000;
+let lastManualRefresh = 0;
+let railRefresh: (() => void) | null = null;
+
+function refreshOnNavigation(): void {
+    const now = Date.now();
+    if (now - lastManualRefresh < MANUAL_REFRESH_THROTTLE_MS) return;
+    lastManualRefresh = now;
+    void loadExplore();
+    railRefresh?.();
+}
+
 modeStreamsBtn.addEventListener("click", () => {
+    refreshOnNavigation();
     if (ctx.mode === "streams") return;
     navigate({ mode: "streams", categoryId: null });
 });
 
 modeCategoriesBtn.addEventListener("click", () => {
+    refreshOnNavigation();
     if (ctx.mode === "categories" && ctx.drillCategoryId === null) return;
     navigate({ mode: "categories", categoryId: null });
 });
 
 backBtn.addEventListener("click", () => {
+    refreshOnNavigation();
     if (ctx.mode === "categories" && ctx.drillCategoryId === null) return;
     navigate({ mode: "categories", categoryId: null });
 });
@@ -40,12 +55,14 @@ gridEl.addEventListener("click", (e) => {
     if (!anchor) return;
     if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
     e.preventDefault();
+    refreshOnNavigation();
     const raw = anchor.dataset["categoryId"] ?? "";
     const categoryId: CategorySelector = raw === "none" ? "none" : (/^\d+$/.test(raw) ? Number(raw) : "invalid");
     navigate({ mode: "categories", categoryId });
 });
 
 window.addEventListener("popstate", (e) => {
+    refreshOnNavigation();
     const state = (e.state as ViewState | null) ?? stateFromLocation();
     applyState(state);
 });
@@ -57,7 +74,7 @@ async function boot(): Promise<void> {
     const reportRailWidth = (): void => {
         window.parent.postMessage({ type: "itzon:rail-width", width: railEl.getBoundingClientRect().width }, location.origin);
     };
-    createChannelRail({
+    const rail = createChannelRail({
         elements: {
             rail: railEl,
             toggle: railToggleEl,
@@ -69,7 +86,10 @@ async function boot(): Promise<void> {
         getActiveUsername: () => "",
         onCollapsedChange: isFramed ? reportRailWidth : undefined,
         linkTarget: isFramed ? "_top" : undefined,
-    }).start();
+    });
+    rail.start();
+    railRefresh = rail.refresh;
+    lastManualRefresh = Date.now();
     if (isFramed) {
         requestAnimationFrame(reportRailWidth);
         window.addEventListener("resize", reportRailWidth);

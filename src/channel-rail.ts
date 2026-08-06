@@ -26,6 +26,7 @@ export interface ChannelRailOptions {
 export interface ChannelRailHandle {
     start: () => void;
     syncVisibility: () => void;
+    refresh: () => void;
 }
 
 interface ChannelRailStream {
@@ -291,5 +292,5 @@ export function createChannelRail(options: ChannelRailOptions): ChannelRailHandl
         syncVisibility();
     }
 
-    return { start, syncVisibility };
+    return { start, syncVisibility, refresh: (): void => void loadRail() };
 }
