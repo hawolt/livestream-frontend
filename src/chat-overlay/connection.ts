@@ -49,6 +49,7 @@ function applyNamesList(names: string): void {
             else if (ch === "~") vip = true;
             else if (ch === "*") sub = true;
             else if (ch === "=") unver = true;
+            else if (ch === "?") continue;
             else break;
         }
         const name = raw.slice(i);
