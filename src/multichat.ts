@@ -153,6 +153,24 @@ function makeSiteBadge(name: SiteBadge): HTMLImageElement {
     return makeBadgeImg(`/static/img/badge-${name}.svg`, name);
 }
 
+const SUB_BADGE_NAME_RE = /^[a-z0-9_]{1,24}$/;
+
+function sanitizeSubBadgeName(raw: string | undefined): string {
+    if (raw && SUB_BADGE_NAME_RE.test(raw)) return raw;
+    return "regular";
+}
+
+function makeItzonSubBadge(name: string): HTMLImageElement {
+    const img = makeBadgeImg(`/static/img/badge-${name.replace(/_/g, "-")}.svg`, name);
+    if (name !== "regular") {
+        img.addEventListener("error", () => {
+            img.src = "/static/img/badge-regular.svg";
+            img.title = "regular";
+        }, { once: true });
+    }
+    return img;
+}
+
 function makeBadgeImg(url: string, title: string): HTMLImageElement {
     const img = document.createElement("img");
     img.className = "badge";
@@ -484,6 +502,8 @@ function startItzon(channelName: string): void {
     const channel = `#${channelName.toLowerCase()}`;
     const roles = new Map<string, ItzonRole>();
     const vips = new Set<string>();
+    const subscribers = new Set<string>();
+    const subscriberBadges = new Map<string, string>();
     const unverified = new Set<string>();
     const knownMembers = new Set<string>();
     let sock: WebSocket | null = null;
@@ -499,6 +519,7 @@ function startItzon(channelName: string): void {
             let i = 0;
             let role: ItzonRole | null = null;
             let vip = false;
+            let sub = false;
             let unver = false;
             for (; i < raw.length; i++) {
                 const ch = raw[i];
@@ -507,7 +528,9 @@ function startItzon(channelName: string): void {
                 else if (ch === "&") role = "bot";
                 else if (ch === "+") role = "mod";
                 else if (ch === "~") vip = true;
+                else if (ch === "*") sub = true;
                 else if (ch === "=") unver = true;
+                else if (ch === "?") continue;
                 else break;
             }
             const name = raw.slice(i);
@@ -518,6 +541,13 @@ function startItzon(channelName: string): void {
             else roles.delete(key);
             if (vip) vips.add(key);
             else vips.delete(key);
+            if (sub) {
+                subscribers.add(key);
+                if (!subscriberBadges.has(key)) subscriberBadges.set(key, "regular");
+            } else {
+                subscribers.delete(key);
+                subscriberBadges.delete(key);
+            }
             if (unver) unverified.add(key);
             else unverified.delete(key);
         }
@@ -532,6 +562,7 @@ function startItzon(channelName: string): void {
         if (role === "bot") out.push(makeSiteBadge("bot"));
         if (role === "mod") out.push(makeSiteBadge("mod"));
         if (vips.has(key)) out.push(makeSiteBadge("vip"));
+        if (subscribers.has(key)) out.push(makeItzonSubBadge(sanitizeSubBadgeName(subscriberBadges.get(key))));
         if (unverified.has(key)) out.push(makeSiteBadge("unverified"));
         return out;
     };
@@ -577,6 +608,12 @@ function startItzon(channelName: string): void {
             }
             case "PRIVMSG": {
                 if (line.params[0]?.toLowerCase() !== channel || !line.params[1]) return;
+                const subBadge = line.tags.get("sub-badge");
+                if (subBadge !== undefined) {
+                    const key = line.nick.toLowerCase();
+                    subscribers.add(key);
+                    subscriberBadges.set(key, sanitizeSubBadgeName(subBadge));
+                }
                 const meta: MessageMeta = { badges: badgesFor(line.nick) };
                 const color = line.tags.get("color");
                 if (color && /^#[0-9a-fA-F]{6}$/.test(color)) meta.color = color;
