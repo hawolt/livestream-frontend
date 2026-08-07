@@ -1,7 +1,7 @@
 export {};
 import { API_BASE } from "./api.ts";
 import { initSiteNav } from "./nav.ts";
-import { buildDenyRedirect, parseAuthorizeParams, type OAuthAuthorizeParams } from "./oauth-authorize/params.ts";
+import { buildDenyRedirect, parseAuthorizeParams, scopeList, SCOPE_DESCRIPTIONS, type OAuthAuthorizeParams } from "./oauth-authorize/params.ts";
 import { ensureSession, redirectToLogin } from "./oauth-authorize/session.ts";
 
 void initSiteNav(null);
@@ -21,6 +21,7 @@ const loadingEl = document.getElementById("oauth-loading") as HTMLElement;
 const consentEl = document.getElementById("oauth-consent") as HTMLElement;
 const terminalEl = document.getElementById("oauth-terminal") as HTMLElement;
 const appLineEl = document.getElementById("oauth-app-line") as HTMLElement;
+const scopesEl = document.getElementById("oauth-scopes") as HTMLElement;
 const accountEl = document.getElementById("oauth-account") as HTMLElement;
 const errorEl = document.getElementById("oauth-error") as HTMLElement;
 const approveBtn = document.getElementById("btn-approve") as HTMLButtonElement;
@@ -84,9 +85,21 @@ async function boot(): Promise<void> {
         return;
     }
 
+    const grantedScopes = scopeList(data.scope ?? params.scope);
     const appName = document.createElement("strong");
     appName.textContent = data.app;
-    appLineEl.replaceChildren(appName, document.createTextNode(" wants to verify your itzon identity"));
+    const appAction = grantedScopes.some((scope) => scope !== "identity")
+        ? " wants to access your itzon account"
+        : " wants to verify your itzon identity";
+    appLineEl.replaceChildren(appName, document.createTextNode(appAction));
+    scopesEl.replaceChildren(...grantedScopes.map((scope) => {
+        const line = document.createElement("div");
+        line.className = "oauth-scope";
+        const name = document.createElement("strong");
+        name.textContent = scope;
+        line.append(name, document.createTextNode(`: ${SCOPE_DESCRIPTIONS[scope] ?? "Unknown permission."}`));
+        return line;
+    }));
     accountEl.textContent = data.username ? `Signed in as ${data.username}` : "";
     loadingEl.hidden = true;
     consentEl.hidden = false;

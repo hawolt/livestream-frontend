@@ -175,6 +175,17 @@ PONG :go-irc</code></pre>
             </ul>
             <p>Base URL: <code>https://<span data-fill="host">itzon.tv</span>/api/public/v1</code></p>
 
+            <h2>Authenticating with OAuth tokens</h2>
+            <p>
+                OAuth access tokens from <a href="#oauth">Sign in with itzon</a> work here too, sent exactly the same way:
+                <code>Authorization: Bearer &lt;access_token&gt;</code>. A personal API token always has full access to every
+                endpoint; an OAuth token acts on behalf of the user who approved it and is limited by its granted scopes:
+                <code>api:read</code> unlocks the read endpoints (channel, followers, categories, me), <code>api:write</code>
+                unlocks <code>PUT /me/stream-info</code>. Calling an endpoint the token's scopes do not cover answers
+                <code>403</code> with an <code>insufficient_scope</code> error naming the scope you need. Each endpoint below
+                states its required scope; OAuth tokens are rate limited per token just like personal tokens.
+            </p>
+
             <h2>Rate limits</h2>
             <ul>
                 <li>120 requests per minute per token, plus a global cap shared by all callers.</li>
@@ -188,13 +199,13 @@ PONG :go-irc</code></pre>
                 <tr><th>Status</th><th>Meaning</th></tr>
                 <tr><td><code>400</code></td><td>invalid parameter, cursor, or body</td></tr>
                 <tr><td><code>401</code></td><td>missing, malformed, or revoked token</td></tr>
-                <tr><td><code>403</code></td><td>the token owner lacks the required capability</td></tr>
+                <tr><td><code>403</code></td><td>the token owner lacks the required capability, or an OAuth token is missing the endpoint's scope (<code>insufficient_scope</code>)</td></tr>
                 <tr><td><code>404</code></td><td>unknown channel, or one you are not allowed to see</td></tr>
                 <tr><td><code>429</code></td><td>rate limited</td></tr>
             </table>
 
             <h2>GET /channel/{username}</h2>
-            <p>Public info for a channel. <code>viewers</code> is only present while the channel is live; <code>category</code> and <code>categoryId</code> are <code>null</code> when unset; <code>language</code> is an ISO 639-1 code or <code>und</code>. Unknown, banned, and non-streaming accounts answer <code>404</code>. Password-protected channels answer <code>404</code> to everyone except a token owned by the channel itself.</p>
+            <p>OAuth scope: <code>api:read</code>. Public info for a channel. <code>viewers</code> is only present while the channel is live; <code>category</code> and <code>categoryId</code> are <code>null</code> when unset; <code>language</code> is an ISO 639-1 code or <code>und</code>. Unknown, banned, and non-streaming accounts answer <code>404</code>. Password-protected channels answer <code>404</code> to everyone except a token owned by the channel itself.</p>
             <pre><code>curl https://<span data-fill="host">itzon.tv</span>/api/public/v1/channel/streamer \
   -H "Authorization: Bearer $TOKEN"</code></pre>
             <pre><code>{
@@ -209,7 +220,7 @@ PONG :go-irc</code></pre>
 }</code></pre>
 
             <h2>GET /channel/{username}/followers</h2>
-            <p>Follower list, newest first, with cursor pagination. Same privacy rule as the channel endpoint.</p>
+            <p>OAuth scope: <code>api:read</code>. Follower list, newest first, with cursor pagination. Same privacy rule as the channel endpoint.</p>
             <table>
                 <tr><th>Param</th><th>Meaning</th></tr>
                 <tr><td><code>limit</code></td><td>page size, 1 to 100, default 50</td></tr>
@@ -234,18 +245,19 @@ PONG :go-irc</code></pre>
             </p>
 
             <h2>GET /categories</h2>
+            <p>OAuth scope: <code>api:read</code>.</p>
             <pre><code>curl https://<span data-fill="host">itzon.tv</span>/api/public/v1/categories \
   -H "Authorization: Bearer $TOKEN"</code></pre>
             <pre><code>{ "categories": [ { "id": 3, "name": "Retro" }, { "id": 7, "name": "Music" } ] }</code></pre>
 
             <h2>GET /me</h2>
-            <p>Identifies the token owner.</p>
+            <p>OAuth scope: <code>api:read</code>. Identifies the token owner.</p>
             <pre><code>curl https://<span data-fill="host">itzon.tv</span>/api/public/v1/me \
   -H "Authorization: Bearer $TOKEN"</code></pre>
             <pre><code>{ "id": 42, "username": "streamer" }</code></pre>
 
             <h2>PUT /me/stream-info</h2>
-            <p>Updates the token owner's stream title, category, and language with exactly the validation the dashboard uses. Requires a streaming account; others get <code>403</code>.</p>
+            <p>OAuth scope: <code>api:write</code>. Updates the token owner's stream title, category, and language with exactly the validation the dashboard uses. Requires a streaming account; others get <code>403</code>.</p>
             <table>
                 <tr><th>Field</th><th>Rules</th></tr>
                 <tr><td><code>title</code></td><td>max 200 characters; omitted or empty clears the title</td></tr>
@@ -260,12 +272,12 @@ PONG :go-irc</code></pre>
             <p>Note that <code>title</code> and <code>categoryId</code> are replaced on every call, so send the full desired state. Validation failures answer <code>400</code> with the reason.</p>
 
             <h2>GET /me/followers</h2>
-            <p>The follower list of the token owner's own channel, same shape and pagination as the channel followers endpoint, without the privacy restriction.</p>
+            <p>OAuth scope: <code>api:read</code>. The follower list of the token owner's own channel, same shape and pagination as the channel followers endpoint, without the privacy restriction.</p>
         </section>
 
         <section data-topic="oauth" data-title="Sign in with itzon">
             <h1>Sign in with itzon</h1>
-            <p class="intro">An OAuth 2.0 authorization code flow that lets your app verify a user's itzon identity. The only scope is <code>identity</code>.</p>
+            <p class="intro">An OAuth 2.0 authorization code flow that lets your app verify a user's itzon identity and, with the api scopes, call the <a href="#public-api">Public API</a> on the user's behalf.</p>
 
             <h2>Registering your app</h2>
             <ul>
@@ -273,6 +285,15 @@ PONG :go-irc</code></pre>
                 <li>Redirect URIs must be absolute <code>http(s)</code> URLs without a fragment, max 512 characters, and are matched exactly, character for character, including any query string.</li>
                 <li>You receive a 32-hex <code>client_id</code> and a 64-hex <code>client_secret</code>. The secret is shown once; store it server-side and never ship it to a browser or app binary.</li>
             </ul>
+
+            <h2>Scopes</h2>
+            <p>Scopes are space-separated and shown to the user on the consent page. <code>identity</code> is always implied: requesting <code>api:read</code> grants <code>identity api:read</code>. Anything outside this table is rejected with <code>invalid_scope</code>.</p>
+            <table>
+                <tr><th>Scope</th><th>Grants</th></tr>
+                <tr><td><code>identity</code></td><td>confirm who the user is: <code>GET /api/oauth/userinfo</code> (public username, user id, avatar). Every token has it.</td></tr>
+                <tr><td><code>api:read</code></td><td>the Public API read endpoints: channel, channel followers, categories, me, me/followers</td></tr>
+                <tr><td><code>api:write</code></td><td><code>PUT /api/public/v1/me/stream-info</code> only; implies nothing else</td></tr>
+            </table>
 
             <h2>1. Send the user to the consent page</h2>
             <pre><code>https://<span data-fill="host">itzon.tv</span>/oauth/authorize
@@ -286,10 +307,10 @@ PONG :go-irc</code></pre>
                 <tr><td><code>client_id</code></td><td>required, your 32-hex id</td></tr>
                 <tr><td><code>redirect_uri</code></td><td>required, must exactly match a registered URI</td></tr>
                 <tr><td><code>response_type</code></td><td>required, exactly <code>code</code></td></tr>
-                <tr><td><code>scope</code></td><td><code>identity</code>; omitted defaults to it</td></tr>
+                <tr><td><code>scope</code></td><td>space-separated scopes from the table above; omitted defaults to <code>identity</code></td></tr>
                 <tr><td><code>state</code></td><td>optional, max 512 characters, echoed back untouched; use a random value to tie the callback to the session that started it</td></tr>
             </table>
-            <p>A signed-out user is sent through login first and lands back on the consent page. The page shows your app name and the requested scope with Approve and Deny buttons.</p>
+            <p>A signed-out user is sent through login first and lands back on the consent page. The page shows your app name and a plain-language line per requested scope with Approve and Deny buttons.</p>
 
             <h2>2. Receive the redirect</h2>
             <p>Approval navigates to your redirect URI with a code:</p>
@@ -307,9 +328,25 @@ PONG :go-irc</code></pre>
   "access_token": "64_HEX_TOKEN",
   "token_type": "bearer",
   "expires_in": 3600,
+  "refresh_token": "64_HEX_TOKEN",
+  "refresh_expires_in": 2592000,
   "scope": "identity"
 }</code></pre>
-            <p>Form-encoded and JSON bodies are both accepted. <code>redirect_uri</code> must be the exact value used in step 1. Access tokens live for 1 hour and cannot be refreshed; run the flow again when one expires.</p>
+            <p>Form-encoded and JSON bodies are both accepted. <code>redirect_uri</code> must be the exact value used in step 1. Access tokens live for 1 hour; use the refresh token to get a new pair when one expires.</p>
+
+            <h2>Refreshing a token</h2>
+            <pre><code>curl -X POST https://<span data-fill="host">itzon.tv</span>/api/oauth/token \
+  -d grant_type=refresh_token \
+  -d client_id=YOUR_CLIENT_ID \
+  -d client_secret=YOUR_CLIENT_SECRET \
+  -d refresh_token=REFRESH_TOKEN</code></pre>
+            <p>
+                The response has the same shape as the code exchange. Refresh tokens live for 30 days, are single use,
+                and rotate: a successful refresh revokes BOTH the old access token and the old refresh token atomically
+                and issues a fresh pair, so store the new <code>refresh_token</code> from every response. Reusing a
+                consumed refresh token, presenting it with a different client, or refreshing after the 30 days answer
+                <code>invalid_grant</code>; the user then has to run the authorization flow again.
+            </p>
 
             <h2>4. Fetch the user's identity</h2>
             <pre><code>curl https://<span data-fill="host">itzon.tv</span>/api/oauth/userinfo \
@@ -328,9 +365,9 @@ PONG :go-irc</code></pre>
                 <tr><td><code>invalid_request</code></td><td>authorize, token</td><td>missing or malformed parameter, or an unregistered redirect URI</td></tr>
                 <tr><td><code>invalid_client</code></td><td>authorize, token</td><td>unknown <code>client_id</code> or wrong <code>client_secret</code></td></tr>
                 <tr><td><code>unsupported_response_type</code></td><td>authorize</td><td><code>response_type</code> is not <code>code</code></td></tr>
-                <tr><td><code>invalid_scope</code></td><td>authorize</td><td>a scope other than <code>identity</code></td></tr>
-                <tr><td><code>unsupported_grant_type</code></td><td>token</td><td><code>grant_type</code> is not <code>authorization_code</code></td></tr>
-                <tr><td><code>invalid_grant</code></td><td>token</td><td>code invalid, expired, already used, or bound to a different client or redirect URI</td></tr>
+                <tr><td><code>invalid_scope</code></td><td>authorize</td><td>a scope outside <code>identity</code>, <code>api:read</code>, <code>api:write</code></td></tr>
+                <tr><td><code>unsupported_grant_type</code></td><td>token</td><td><code>grant_type</code> is not <code>authorization_code</code> or <code>refresh_token</code></td></tr>
+                <tr><td><code>invalid_grant</code></td><td>token</td><td>code or refresh token invalid, expired, already used, or bound to a different client (codes also check the redirect URI)</td></tr>
                 <tr><td><code>invalid_token</code></td><td>userinfo</td><td>access token invalid or expired</td></tr>
                 <tr><td><code>login_required</code></td><td>authorize, consent</td><td>no signed-in session; the consent page handles this by redirecting to login</td></tr>
                 <tr><td><code>access_denied</code></td><td>redirect</td><td>the user pressed Deny</td></tr>

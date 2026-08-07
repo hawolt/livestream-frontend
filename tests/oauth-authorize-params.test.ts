@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { buildDenyRedirect, isValidRedirectUri, parseAuthorizeParams } from "../src/oauth-authorize/params.ts";
+import { buildDenyRedirect, isValidRedirectUri, normalizeScope, parseAuthorizeParams, scopeList } from "../src/oauth-authorize/params.ts";
 
 const CLIENT_ID = "abcdef0123456789abcdef0123456789";
 const REDIRECT = "https://app.example.com/cb";
@@ -62,11 +62,47 @@ describe("parseAuthorizeParams", () => {
     test("rejects an unknown scope", () => {
         expect(parseAuthorizeParams(search({ scope: "email" }))).toBeNull();
         expect(parseAuthorizeParams(search({ scope: "identity email" }))).toBeNull();
+        expect(parseAuthorizeParams(search({ scope: "API:READ" }))).toBeNull();
+    });
+
+    test("accepts and normalizes api scopes", () => {
+        expect(parseAuthorizeParams(search({ scope: "api:read" }))?.scope).toBe("identity api:read");
+        expect(parseAuthorizeParams(search({ scope: "api:write api:read identity" }))?.scope)
+            .toBe("identity api:read api:write");
     });
 
     test("rejects an oversized state", () => {
         expect(parseAuthorizeParams(search({ state: "x".repeat(513) }))).toBeNull();
         expect(parseAuthorizeParams(search({ state: "x".repeat(512) }))).not.toBeNull();
+    });
+});
+
+describe("normalizeScope", () => {
+    test("empty and blank default to identity", () => {
+        expect(normalizeScope("")).toBe("identity");
+        expect(normalizeScope("   ")).toBe("identity");
+        expect(normalizeScope("identity")).toBe("identity");
+    });
+
+    test("implies identity and orders canonically", () => {
+        expect(normalizeScope("api:write")).toBe("identity api:write");
+        expect(normalizeScope("api:write api:read")).toBe("identity api:read api:write");
+    });
+
+    test("deduplicates", () => {
+        expect(normalizeScope("api:read api:read identity")).toBe("identity api:read");
+    });
+
+    test("rejects unknown scopes", () => {
+        expect(normalizeScope("email")).toBeNull();
+        expect(normalizeScope("identity email")).toBeNull();
+    });
+});
+
+describe("scopeList", () => {
+    test("splits a normalized scope", () => {
+        expect(scopeList("identity api:read")).toEqual(["identity", "api:read"]);
+        expect(scopeList("identity")).toEqual(["identity"]);
     });
 });
 

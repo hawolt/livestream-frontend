@@ -10,14 +10,18 @@
     <style>
         .auth-page { min-height: calc(100dvh - 52px); }
         .oauth-app-line { font-size: 16px; margin-bottom: 14px; text-align: center; line-height: 1.5; }
-        .oauth-scope {
+        .oauth-scopes {
             border: 1px solid var(--border, rgba(255,255,255,.12));
             border-radius: 8px;
-            padding: 10px 14px;
+            padding: 4px 14px;
             margin-bottom: 14px;
+        }
+        .oauth-scope {
+            padding: 6px 0;
             font-size: 13px;
             color: var(--muted);
         }
+        .oauth-scope + .oauth-scope { border-top: 1px solid var(--border, rgba(255,255,255,.08)); }
         .oauth-scope strong { color: inherit; }
         .oauth-account { font-size: 12.5px; color: var(--muted); text-align: center; margin-bottom: 16px; }
         .oauth-deny {
@@ -45,7 +49,7 @@
         <div id="oauth-loading">Checking this authorization request&hellip;</div>
         <div id="oauth-consent" hidden>
             <div class="oauth-app-line" id="oauth-app-line"></div>
-            <div class="oauth-scope"><strong>identity</strong>: your public username, user id and avatar. The app never sees your password or email.</div>
+            <div class="oauth-scopes" id="oauth-scopes"></div>
             <div class="oauth-account" id="oauth-account"></div>
             <button type="button" id="btn-approve" class="login-btn">Approve</button>
             <button type="button" id="btn-deny" class="login-btn oauth-deny">Deny</button>
