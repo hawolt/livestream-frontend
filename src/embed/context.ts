@@ -1,9 +1,12 @@
+import { resolveEmbedModes } from "./modes.ts";
+
 export type EmbedPlaybackState = "offline" | "connecting" | "playing" | "retrying";
 
-const pageParams = new URLSearchParams(location.search);
+const modes = resolveEmbedModes(new URLSearchParams(location.search));
 
-export const previewMode = pageParams.get("preview") === "1";
-export const cleanfeedMode = pageParams.get("cleanfeed") === "1";
+export const previewMode = modes.preview;
+export const controlsMode = modes.controls;
+export const cleanfeedMode = modes.cleanfeed;
 
 export const ctx = {
     username: "",

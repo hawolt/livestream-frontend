@@ -1,4 +1,4 @@
-import { cleanfeedMode, ctx, previewMode } from "./embed/context.ts";
+import { cleanfeedMode, controlsMode, ctx, previewMode } from "./embed/context.ts";
 import { beginTransport, enterTerminal, setPoster, wirePageLifecycle, wireUnmute } from "./embed/lifecycle.ts";
 import { canUseNativeHLS } from "./embed/transport.ts";
 import { video } from "./embed/dom.ts";
@@ -26,10 +26,13 @@ async function boot(): Promise<void> {
     const generation = ++bootGeneration;
     bootCompleted = false;
     if (previewMode) document.body.classList.add("embed-preview");
-    if (cleanfeedMode) {
-        document.body.classList.add("embed-cleanfeed");
+    if (controlsMode) {
+        document.body.classList.add("embed-controls");
+        video.setAttribute("controls", "");
+    } else {
         video.removeAttribute("controls");
     }
+    if (cleanfeedMode) document.body.classList.add("embed-cleanfeed");
     if (!shellWired) {
         shellWired = true;
         wireUnmute();
