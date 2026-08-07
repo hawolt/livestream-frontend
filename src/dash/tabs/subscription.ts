@@ -199,14 +199,14 @@ function tierCard(tier: BillingTier, index: number, tiers: BillingTier[], tokenL
     </div>`;
 }
 
-function portalButtonLabel(provider: string): string {
-    return provider === "polar" ? "Manage legacy subscription" : "Manage subscription";
+function portalButtonLabel(): string {
+    return "Manage subscription";
 }
 
 function portalButtonsHtml(): string {
     const providers = cache?.portalProviders ?? [];
     return providers
-        .map(provider => `<button class="btn" data-portal-provider="${esc(provider)}">${esc(portalButtonLabel(provider))}</button>`)
+        .map(provider => `<button class="btn" data-portal-provider="${esc(provider)}">${esc(portalButtonLabel())}</button>`)
         .join("");
 }
 
