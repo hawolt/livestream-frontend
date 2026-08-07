@@ -18,6 +18,7 @@ export interface ApiTokenInfo {
     id: number;
     label: string;
     prefix: string;
+    scope: string;
     createdAt: number;
     lastUsedAt: number | null;
 }
@@ -27,6 +28,7 @@ export interface ApiTokenCreated {
     token: string;
     label: string;
     prefix: string;
+    scope: string;
     createdAt: number;
 }
 

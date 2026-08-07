@@ -167,28 +167,25 @@ PONG :go-irc</code></pre>
             <p class="intro">A JSON REST API for third-party tools: channel status, followers, categories, and stream info updates.</p>
 
             <h2>Authentication</h2>
-            <ul>
-                <li>Create an API token in the dashboard <a href="/dashboard/settings">Settings</a> tab, in the API tokens card. Give it a label so you can tell tokens apart.</li>
-                <li>The token is a 64-character hex secret shown exactly once at creation; only its first 8 characters appear in the list afterwards. Store it like a password.</li>
-                <li>You can hold up to 32 tokens. Deleting a token revokes it immediately.</li>
-                <li>Send it on every request: <code>Authorization: Bearer &lt;token&gt;</code>. Requests without a valid token get <code>401</code>.</li>
-            </ul>
-            <p>Base URL: <code>https://<span data-fill="host">itzon.tv</span>/api/public/v1</code></p>
-
-            <h2>Authenticating with OAuth tokens</h2>
             <p>
-                OAuth access tokens from <a href="#oauth">Sign in with itzon</a> work here too, sent exactly the same way:
-                <code>Authorization: Bearer &lt;access_token&gt;</code>. A personal API token always has full access to every
-                endpoint; an OAuth token acts on behalf of the user who approved it and is limited by its granted scopes:
-                <code>api:read</code> unlocks the read endpoints (channel, followers, categories, me), <code>api:write</code>
-                unlocks <code>PUT /me/stream-info</code>. Calling an endpoint the token's scopes do not cover answers
-                <code>403</code> with an <code>insufficient_scope</code> error naming the scope you need. Each endpoint below
-                states its required scope; OAuth tokens are rate limited per token just like personal tokens.
+                Every request carries one OAuth bearer token: <code>Authorization: Bearer &lt;token&gt;</code>.
+                There are two ways to get one, and the API treats them identically; what a token may do is decided
+                only by its scopes: <code>api:read</code> unlocks the read endpoints (channel, followers, categories, me),
+                <code>api:write</code> unlocks <code>PUT /me/stream-info</code>. Each endpoint below states its required scope.
             </p>
+            <ul>
+                <li><strong>Personal tokens</strong>: created in the dashboard <a href="/dashboard/settings">Settings</a> tab, in the API tokens card. You pick the scopes when creating one, give it a label so you can tell tokens apart, and it acts as your own account. The 64-character hex secret is shown exactly once at creation; only its first 8 characters appear in the list afterwards, so store it like a password. Personal tokens never expire; deleting one revokes it immediately. You can hold up to 32.</li>
+                <li><strong>App tokens</strong>: access tokens minted through <a href="#oauth">Sign in with itzon</a>. They act on behalf of the user who approved the grant, carry the scopes that user consented to, live for 1 hour, and are renewed with a refresh token.</li>
+            </ul>
+            <p>
+                Requests without a valid token answer <code>401</code>. Calling an endpoint the token's scopes do not
+                cover answers <code>403</code> with an <code>insufficient_scope</code> error naming the scope you need.
+            </p>
+            <p>Base URL: <code>https://<span data-fill="host">itzon.tv</span>/api/public/v1</code></p>
 
             <h2>Rate limits</h2>
             <ul>
-                <li>120 requests per minute per token, plus a global cap shared by all callers.</li>
+                <li>120 requests per minute per token (personal or app), plus a global cap shared by all callers.</li>
                 <li>Every authenticated response carries <code>X-RateLimit-Remaining</code>, the requests left in the current minute.</li>
                 <li>Over the limit, requests answer <code>429</code> with <code>X-RateLimit-Remaining: 0</code> until the window resets.</li>
             </ul>
@@ -199,13 +196,13 @@ PONG :go-irc</code></pre>
                 <tr><th>Status</th><th>Meaning</th></tr>
                 <tr><td><code>400</code></td><td>invalid parameter, cursor, or body</td></tr>
                 <tr><td><code>401</code></td><td>missing, malformed, or revoked token</td></tr>
-                <tr><td><code>403</code></td><td>the token owner lacks the required capability, or an OAuth token is missing the endpoint's scope (<code>insufficient_scope</code>)</td></tr>
+                <tr><td><code>403</code></td><td>the token is missing the endpoint's scope (<code>insufficient_scope</code>), or the token owner lacks the required capability</td></tr>
                 <tr><td><code>404</code></td><td>unknown channel, or one you are not allowed to see</td></tr>
                 <tr><td><code>429</code></td><td>rate limited</td></tr>
             </table>
 
             <h2>GET /channel/{username}</h2>
-            <p>OAuth scope: <code>api:read</code>. Public info for a channel. <code>viewers</code> is only present while the channel is live; <code>category</code> and <code>categoryId</code> are <code>null</code> when unset; <code>language</code> is an ISO 639-1 code or <code>und</code>. Unknown, banned, and non-streaming accounts answer <code>404</code>. Password-protected channels answer <code>404</code> to everyone except a token owned by the channel itself.</p>
+            <p>Scope: <code>api:read</code>. Public info for a channel. <code>viewers</code> is only present while the channel is live; <code>category</code> and <code>categoryId</code> are <code>null</code> when unset; <code>language</code> is an ISO 639-1 code or <code>und</code>. Unknown, banned, and non-streaming accounts answer <code>404</code>. Password-protected channels answer <code>404</code> to everyone except a token owned by the channel itself.</p>
             <pre><code>curl https://<span data-fill="host">itzon.tv</span>/api/public/v1/channel/streamer \
   -H "Authorization: Bearer $TOKEN"</code></pre>
             <pre><code>{
@@ -220,7 +217,7 @@ PONG :go-irc</code></pre>
 }</code></pre>
 
             <h2>GET /channel/{username}/followers</h2>
-            <p>OAuth scope: <code>api:read</code>. Follower list, newest first, with cursor pagination. Same privacy rule as the channel endpoint.</p>
+            <p>Scope: <code>api:read</code>. Follower list, newest first, with cursor pagination. Same privacy rule as the channel endpoint.</p>
             <table>
                 <tr><th>Param</th><th>Meaning</th></tr>
                 <tr><td><code>limit</code></td><td>page size, 1 to 100, default 50</td></tr>
@@ -245,19 +242,19 @@ PONG :go-irc</code></pre>
             </p>
 
             <h2>GET /categories</h2>
-            <p>OAuth scope: <code>api:read</code>.</p>
+            <p>Scope: <code>api:read</code>.</p>
             <pre><code>curl https://<span data-fill="host">itzon.tv</span>/api/public/v1/categories \
   -H "Authorization: Bearer $TOKEN"</code></pre>
             <pre><code>{ "categories": [ { "id": 3, "name": "Retro" }, { "id": 7, "name": "Music" } ] }</code></pre>
 
             <h2>GET /me</h2>
-            <p>OAuth scope: <code>api:read</code>. Identifies the token owner.</p>
+            <p>Scope: <code>api:read</code>. Identifies the token owner.</p>
             <pre><code>curl https://<span data-fill="host">itzon.tv</span>/api/public/v1/me \
   -H "Authorization: Bearer $TOKEN"</code></pre>
             <pre><code>{ "id": 42, "username": "streamer" }</code></pre>
 
             <h2>PUT /me/stream-info</h2>
-            <p>OAuth scope: <code>api:write</code>. Updates the token owner's stream title, category, and language with exactly the validation the dashboard uses. Requires a streaming account; others get <code>403</code>.</p>
+            <p>Scope: <code>api:write</code>. Updates the token owner's stream title, category, and language with exactly the validation the dashboard uses. Requires a streaming account; others get <code>403</code>.</p>
             <table>
                 <tr><th>Field</th><th>Rules</th></tr>
                 <tr><td><code>title</code></td><td>max 200 characters; omitted or empty clears the title</td></tr>
@@ -272,7 +269,7 @@ PONG :go-irc</code></pre>
             <p>Note that <code>title</code> and <code>categoryId</code> are replaced on every call, so send the full desired state. Validation failures answer <code>400</code> with the reason.</p>
 
             <h2>GET /me/followers</h2>
-            <p>OAuth scope: <code>api:read</code>. The follower list of the token owner's own channel, same shape and pagination as the channel followers endpoint, without the privacy restriction.</p>
+            <p>Scope: <code>api:read</code>. The follower list of the token owner's own channel, same shape and pagination as the channel followers endpoint, without the privacy restriction.</p>
         </section>
 
         <section data-topic="oauth" data-title="Sign in with itzon">
@@ -294,6 +291,12 @@ PONG :go-irc</code></pre>
                 <tr><td><code>api:read</code></td><td>the Public API read endpoints: channel, channel followers, categories, me, me/followers</td></tr>
                 <tr><td><code>api:write</code></td><td><code>PUT /api/public/v1/me/stream-info</code> only; implies nothing else</td></tr>
             </table>
+            <p>
+                Access tokens share their token store and semantics with the personal API tokens created in the
+                dashboard Settings tab: the <a href="#public-api">Public API</a> treats both kinds identically and
+                only scopes decide access. The difference is lifetime: an app token expires after 1 hour and is
+                renewed with its refresh token, a personal token never expires until its owner deletes it.
+            </p>
 
             <h2>1. Send the user to the consent page</h2>
             <pre><code>https://<span data-fill="host">itzon.tv</span>/oauth/authorize

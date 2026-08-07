@@ -187,6 +187,36 @@ function formatTokenDate(millis: number | null): string {
     return typeof millis === "number" ? new Date(millis).toLocaleDateString() : "never";
 }
 
+function formatTokenScope(scope: string): string {
+    const parts = scope.split(/\s+/).filter(Boolean);
+    const names: string[] = [];
+    if (parts.includes("api:read")) names.push("read");
+    if (parts.includes("api:write")) names.push("write");
+    return names.join(" + ") || "identity";
+}
+
+function selectedTokenScopes(): string[] {
+    const scopes: string[] = [];
+    if ((document.getElementById("st-api-scope-read") as HTMLInputElement | null)?.checked) scopes.push("api:read");
+    if ((document.getElementById("st-api-scope-write") as HTMLInputElement | null)?.checked) scopes.push("api:write");
+    return scopes;
+}
+
+function updateTokenScopeState(): void {
+    const btn = document.getElementById("btn-api-token-create") as HTMLButtonElement | null;
+    const status = document.getElementById("st-api-token-status");
+    const none = selectedTokenScopes().length === 0;
+    if (btn) btn.disabled = none;
+    if (status) {
+        if (none) {
+            status.textContent = "Pick at least one scope.";
+            status.style.color = "var(--red)";
+        } else if (status.textContent === "Pick at least one scope.") {
+            status.textContent = "";
+        }
+    }
+}
+
 function renderApiTokens(tokens: ApiTokenInfo[]): void {
     const el = document.getElementById("st-api-tokens-body");
     if (!el) return;
@@ -207,6 +237,9 @@ function renderApiTokens(tokens: ApiTokenInfo[]): void {
         const label = document.createElement("span");
         label.style.cssText = "font-size:13px;flex:1;min-width:120px";
         label.textContent = token.label || "(no label)";
+        const scope = document.createElement("span");
+        scope.style.cssText = "font-size:11px;color:var(--muted);border:1px solid var(--border);border-radius:4px;padding:1px 6px";
+        scope.textContent = formatTokenScope(token.scope);
         const dates = document.createElement("span");
         dates.style.cssText = "font-size:12px;color:var(--muted)";
         dates.textContent = `created ${formatTokenDate(token.createdAt)}, last used ${formatTokenDate(token.lastUsedAt)}`;
@@ -214,7 +247,7 @@ function renderApiTokens(tokens: ApiTokenInfo[]): void {
         deleteBtn.className = "btn btn-sm btn-danger";
         deleteBtn.textContent = "Delete";
         deleteBtn.addEventListener("click", () => void deleteApiToken(token, deleteBtn));
-        row.append(code, label, dates, deleteBtn);
+        row.append(code, label, scope, dates, deleteBtn);
         el.append(row);
     }
 }
@@ -275,12 +308,17 @@ async function createApiToken(): Promise<void> {
     const btn = document.getElementById("btn-api-token-create") as HTMLButtonElement | null;
     const labelInput = document.getElementById("st-api-token-label") as HTMLInputElement | null;
     const status = document.getElementById("st-api-token-status");
+    const scopes = selectedTokenScopes();
+    if (scopes.length === 0) {
+        updateTokenScopeState();
+        return;
+    }
     const operation = beginOperation("api-token-create");
     if (btn) btn.disabled = true;
     try {
         const created = await authFetch<ApiTokenCreated>("/api/settings/api-tokens", {
             method: "POST",
-            body: JSON.stringify({ label: labelInput?.value.trim() ?? "" }),
+            body: JSON.stringify({ label: labelInput?.value.trim() ?? "", scopes }),
         });
         if (isCurrentOperation(operation)) {
             if (labelInput) labelInput.value = "";
@@ -435,6 +473,8 @@ export function init(): void {
         e.preventDefault();
         void createApiToken();
     });
+    document.getElementById("st-api-scope-read")?.addEventListener("change", updateTokenScopeState);
+    document.getElementById("st-api-scope-write")?.addEventListener("change", updateTokenScopeState);
 
     document.getElementById("st-chat-color")?.addEventListener("input", syncColorPreview);
     document.getElementById("st-username-new")?.addEventListener("input", updateUsernameSaveState);
@@ -577,6 +617,7 @@ export function activate(): void {
     document.querySelectorAll<HTMLButtonElement>("#st-bot-body button").forEach(button => { button.disabled = false; });
     const createTokenBtn = document.getElementById("btn-api-token-create") as HTMLButtonElement | null;
     if (createTokenBtn) createTokenBtn.disabled = false;
+    updateTokenScopeState();
     void loadSettings(generation);
     void loadApiTokens(generation);
 }
