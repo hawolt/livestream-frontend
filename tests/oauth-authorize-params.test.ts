@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { buildDenyRedirect, isValidRedirectUri, normalizeScope, parseAuthorizeParams, scopeList } from "../src/oauth-authorize/params.ts";
+import { buildDenyRedirect, consentRequest, displayedScope, isValidRedirectUri, normalizeScope, parseAuthorizeParams, scopeList } from "../src/oauth-authorize/params.ts";
 
 const CLIENT_ID = "abcdef0123456789abcdef0123456789";
 const REDIRECT = "https://app.example.com/cb";
@@ -132,5 +132,27 @@ describe("buildDenyRedirect", () => {
     test("omits state when empty and encodes it otherwise", () => {
         expect(buildDenyRedirect(REDIRECT, "")).toBe(`${REDIRECT}?error=access_denied`);
         expect(buildDenyRedirect(REDIRECT, "a b&c")).toBe(`${REDIRECT}?error=access_denied&state=a%20b%26c`);
+    });
+});
+
+describe("consent binding", () => {
+    test("approves the scope the server validated, not the query value", () => {
+        const requested = parseAuthorizeParams(search({ scope: "identity api:read api:write" }));
+        const authorize = { pendingId: "pending-handle", scope: "identity api:read" };
+        expect(requested?.scope).toBe("identity api:read api:write");
+        expect(displayedScope(authorize)).toBe("identity api:read");
+        expect(consentRequest(authorize)).toEqual({ pendingId: "pending-handle" });
+    });
+
+    test("the consent body carries the handle only, never a scope", () => {
+        const body = consentRequest({ pendingId: "pending-handle", scope: "identity api:write" });
+        expect(Object.keys(body ?? {})).toEqual(["pendingId"]);
+    });
+
+    test("a response without a handle cannot be consented to", () => {
+        expect(consentRequest(null)).toBeNull();
+        expect(consentRequest({ scope: "identity" })).toBeNull();
+        expect(displayedScope(null)).toBeNull();
+        expect(displayedScope({ pendingId: "x" })).toBeNull();
     });
 });

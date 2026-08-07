@@ -36,6 +36,28 @@ describe("parseExploreData", () => {
         });
     });
 
+    test("keeps same-origin thumbnails and drops cross-origin ones", () => {
+        const parsed = parseExploreData({
+            streams: [
+                { username: "same", thumbnail: "/api/live/thumbnail/same?v=1" },
+                { username: "protocolrelative", thumbnail: "//attacker.example/x.jpg" },
+                { username: "absolute", thumbnail: "https://attacker.example/x.jpg" },
+                { username: "backslash", thumbnail: "/\\attacker.example/x.jpg" },
+                { username: "tabbed", thumbnail: "/\t/attacker.example/x.jpg" },
+                { username: "notastring", thumbnail: 7 },
+            ],
+            categories: [],
+        });
+        expect(parsed.streams.map((stream) => stream.thumbnail)).toEqual([
+            "/api/live/thumbnail/same?v=1",
+            undefined,
+            undefined,
+            undefined,
+            undefined,
+            undefined,
+        ]);
+    });
+
     test("preserves a category's imageUrl when present", () => {
         expect(parseExploreData({
             streams: [],

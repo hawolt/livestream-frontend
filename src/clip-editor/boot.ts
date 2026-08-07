@@ -139,6 +139,11 @@ export async function boot(): Promise<void> {
             showStateMessage("This channel cannot be clipped right now.", false);
             return;
         }
+        if (pinResult.status === 403) {
+            state.phase = "blocked";
+            showStateMessage("Clips are disabled for password protected channels.", false);
+            return;
+        }
         if (pinResult.status === 429) {
             state.phase = "blocked";
             showStateMessage("Too many clip requests. Please wait a moment and try again.", false);

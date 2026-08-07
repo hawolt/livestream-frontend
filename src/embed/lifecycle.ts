@@ -42,9 +42,8 @@ async function refreshMediaBase(): Promise<void> {
         const info = await res.json();
         if (info && typeof info.mediaBase === "string") {
             ctx.mediaBase = info.mediaBase.replace(/\/+$/, "");
-            ctx.wssBase = typeof info.wssBase === "string" ? info.wssBase.replace(/\/+$/, "") : "";
         }
-        if (info && typeof info.streamPass === "string") ctx.streamPass = info.streamPass;
+        if (info) ctx.wssBase = typeof info.wssBase === "string" ? info.wssBase.replace(/\/+$/, "") : "";
     } catch {}
 }
 

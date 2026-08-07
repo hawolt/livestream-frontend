@@ -1,4 +1,4 @@
-import type { AccountSettings, ApiTokenCreated, ApiTokenInfo } from "../../api.ts";
+import type { AccountSettings, ApiTokenCreated, ApiTokenInfo, OAuthGrantInfo } from "../../api.ts";
 import { copyText } from "../../clipboard.ts";
 import { $ } from "../dom.ts";
 import { authFetch, getMe, setToken } from "../session.ts";
@@ -271,6 +271,13 @@ async function loadApiTokens(generation = activationGeneration): Promise<void> {
     }
 }
 
+function clearCreatedApiToken(): void {
+    const el = document.getElementById("st-api-token-created");
+    if (!el) return;
+    el.replaceChildren();
+    el.style.cssText = "display:none";
+}
+
 function renderCreatedApiToken(created: ApiTokenCreated): void {
     const el = document.getElementById("st-api-token-created");
     if (!el) return;
@@ -296,10 +303,7 @@ function renderCreatedApiToken(created: ApiTokenCreated): void {
     const dismissBtn = document.createElement("button");
     dismissBtn.className = "btn btn-sm";
     dismissBtn.textContent = "Dismiss";
-    dismissBtn.addEventListener("click", () => {
-        el.replaceChildren();
-        el.style.cssText = "display:none";
-    });
+    dismissBtn.addEventListener("click", clearCreatedApiToken);
     row.append(code, copyBtn, dismissBtn);
     el.append(warning, row);
 }
@@ -344,6 +348,80 @@ async function deleteApiToken(token: ApiTokenInfo, btn: HTMLButtonElement): Prom
     try {
         await authFetch(`/api/settings/api-tokens/${token.id}`, { method: "DELETE" });
         void loadApiTokens(operation.generation);
+    } catch (e) {
+        if (isCurrentOperation(operation)) {
+            alert("Failed: " + (e instanceof Error ? e.message : String(e)));
+            btn.disabled = false;
+        }
+    }
+}
+
+function formatGrantScope(scope: string): string {
+    const parts = scope.split(/\s+/).filter(Boolean);
+    const names: string[] = ["identity"];
+    if (parts.includes("api:read")) names.push("read");
+    if (parts.includes("api:write")) names.push("write");
+    return names.join(" + ");
+}
+
+function renderOAuthGrants(grants: OAuthGrantInfo[]): void {
+    const el = document.getElementById("st-oauth-grants-body");
+    if (!el) return;
+    el.replaceChildren();
+    if (grants.length === 0) {
+        const empty = document.createElement("div");
+        empty.style.cssText = "font-size:13px;color:var(--muted)";
+        empty.textContent = "No connected apps.";
+        el.append(empty);
+        return;
+    }
+    for (const grant of grants) {
+        const row = document.createElement("div");
+        row.style.cssText = "display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:6px 0;border-top:1px solid var(--border)";
+        const name = document.createElement("span");
+        name.style.cssText = "font-size:13px;font-weight:600;flex:1;min-width:120px";
+        name.textContent = grant.app;
+        const scope = document.createElement("span");
+        scope.style.cssText = "font-size:11px;color:var(--muted);border:1px solid var(--border);border-radius:4px;padding:1px 6px";
+        scope.textContent = formatGrantScope(grant.scope);
+        const dates = document.createElement("span");
+        dates.style.cssText = "font-size:12px;color:var(--muted)";
+        dates.textContent = `granted ${formatTokenDate(grant.grantedAt)}, last used ${formatTokenDate(grant.lastUsedAt)}`;
+        const revokeBtn = document.createElement("button");
+        revokeBtn.className = "btn btn-sm btn-danger";
+        revokeBtn.textContent = "Revoke";
+        revokeBtn.addEventListener("click", () => void revokeOAuthGrant(grant, revokeBtn));
+        row.append(name, scope, dates, revokeBtn);
+        el.append(row);
+    }
+}
+
+async function loadOAuthGrants(generation = activationGeneration): Promise<void> {
+    if (!isCurrentActivation(generation)) return;
+    const operation = beginOperation("oauth-grants-load");
+    try {
+        const res = await authFetch<{ grants: OAuthGrantInfo[] }>("/api/settings/oauth-grants");
+        if (isCurrentOperation(operation)) renderOAuthGrants(res.grants);
+    } catch (e) {
+        if (!isCurrentOperation(operation)) return;
+        const el = document.getElementById("st-oauth-grants-body");
+        if (el) {
+            el.replaceChildren();
+            const err = document.createElement("div");
+            err.style.cssText = "font-size:13px;color:var(--red)";
+            err.textContent = e instanceof Error ? e.message : String(e);
+            el.append(err);
+        }
+    }
+}
+
+async function revokeOAuthGrant(grant: OAuthGrantInfo, btn: HTMLButtonElement): Promise<void> {
+    if (!confirm(`Revoke access for "${grant.app}"? Its tokens stop working immediately and it has to ask for your approval again.`)) return;
+    const operation = beginOperation("oauth-grant-revoke");
+    btn.disabled = true;
+    try {
+        await authFetch(`/api/settings/oauth-grants/${encodeURIComponent(grant.clientId)}`, { method: "DELETE" });
+        void loadOAuthGrants(operation.generation);
     } catch (e) {
         if (isCurrentOperation(operation)) {
             alert("Failed: " + (e instanceof Error ? e.message : String(e)));
@@ -620,9 +698,11 @@ export function activate(): void {
     updateTokenScopeState();
     void loadSettings(generation);
     void loadApiTokens(generation);
+    void loadOAuthGrants(generation);
 }
 
 export function deactivate(): void {
     active = false;
     activationGeneration += 1;
+    clearCreatedApiToken();
 }

@@ -11,8 +11,7 @@ import { renderQualityMenu } from "../quality-menu.ts";
 function sendHLSBeat(g: number): void {
     void Promise.all([captchaQuery(), ensureViewerId(ctx.mediaBase, ctx.username)]).then(([tq, vid]) => {
         if (!isCurrent(g)) return;
-        const pwParam = ctx.streamPass ? `&pw=${encodeURIComponent(ctx.streamPass)}` : "";
-        const url = `${ctx.mediaBase}/hls/${encodeURIComponent(ctx.username)}/beat?id=${encodeURIComponent(vid)}${tq}${pwParam}`;
+        const url = `${ctx.mediaBase}/hls/${encodeURIComponent(ctx.username)}/beat?id=${encodeURIComponent(vid)}${tq}`;
         fetch(url, { method: "POST", credentials: "include" }).catch(() => {});
     });
 }
@@ -58,7 +57,7 @@ export function fallbackFromMSE(g: number): void {
 
 export function startHLSTransport(g: number): void {
     attachVideoFailureListeners(g);
-    const src = `${ctx.mediaBase}/hls/${encodeURIComponent(ctx.username)}/live.m3u8${ctx.streamPass ? `?pw=${encodeURIComponent(ctx.streamPass)}` : ""}`;
+    const src = `${ctx.mediaBase}/hls/${encodeURIComponent(ctx.username)}/live.m3u8`;
 
     const onPlaying = () => {
         if (!isCurrent(g)) return;

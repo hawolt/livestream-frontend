@@ -172,9 +172,7 @@ async function boot(): Promise<void> {
                     return;
                 }
             }
-            if (typeof info.streamPass === "string") {
-                ctx.streamPass = info.streamPass;
-            }
+            ctx.clipsDisabled = info.passwordRequired === true;
             if (typeof info.username === "string" && info.username) {
                 ctx.displayUsername = info.username;
             }

@@ -1,7 +1,7 @@
 export {};
 import { API_BASE } from "./api.ts";
 import { initSiteNav } from "./nav.ts";
-import { buildDenyRedirect, parseAuthorizeParams, scopeList, SCOPE_DESCRIPTIONS, type OAuthAuthorizeParams } from "./oauth-authorize/params.ts";
+import { buildDenyRedirect, consentRequest, displayedScope, parseAuthorizeParams, scopeList, SCOPE_DESCRIPTIONS, type OAuthAuthorizeParams } from "./oauth-authorize/params.ts";
 import { ensureSession, redirectToLogin } from "./oauth-authorize/session.ts";
 
 void initSiteNav(null);
@@ -13,6 +13,7 @@ interface AuthorizeResponse {
     scope?: string;
     state?: string;
     username?: string;
+    pendingId?: string;
     error?: string;
     error_description?: string;
 }
@@ -80,12 +81,14 @@ async function boot(): Promise<void> {
         redirectToLogin();
         return;
     }
-    if (!res.ok || !data?.app) {
+    const consentPayload = consentRequest(data);
+    const serverScope = displayedScope(data);
+    if (!res.ok || !data?.app || !consentPayload || !serverScope) {
         showTerminal(data?.error_description ?? "This authorization request was rejected. Contact the app that sent you here.");
         return;
     }
 
-    const grantedScopes = scopeList(data.scope ?? params.scope);
+    const grantedScopes = scopeList(serverScope);
     const appName = document.createElement("strong");
     appName.textContent = data.app;
     const appAction = grantedScopes.some((scope) => scope !== "identity")
@@ -116,12 +119,7 @@ async function boot(): Promise<void> {
                     "Content-Type": "application/json",
                 },
                 credentials: "include",
-                body: JSON.stringify({
-                    clientId: params.clientId,
-                    redirectUri: params.redirectUri,
-                    scope: params.scope,
-                    state: params.state,
-                }),
+                body: JSON.stringify(consentPayload),
             });
             const consentData = await consentRes.json().catch(() => null) as { redirect?: string; error_description?: string } | null;
             if (!consentRes.ok || !consentData?.redirect) {

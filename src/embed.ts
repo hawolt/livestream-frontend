@@ -67,7 +67,6 @@ async function boot(): Promise<void> {
                 ctx.mediaBase = info.mediaBase.replace(/\/+$/, "");
             }
             if (info) ctx.wssBase = typeof info.wssBase === "string" ? info.wssBase.replace(/\/+$/, "") : "";
-            if (info && typeof info.streamPass === "string") ctx.streamPass = info.streamPass;
         }
     } catch {
         if (!isCurrentBoot(generation, request)) return;

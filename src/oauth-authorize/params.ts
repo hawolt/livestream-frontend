@@ -32,6 +32,19 @@ export function scopeList(scope: string): string[] {
     return scope.split(/\s+/).filter((part) => part.length > 0);
 }
 
+export interface AuthorizeGrant {
+    pendingId?: string;
+    scope?: string;
+}
+
+export function displayedScope(grant: AuthorizeGrant | null): string | null {
+    return grant?.scope ?? null;
+}
+
+export function consentRequest(grant: AuthorizeGrant | null): { pendingId: string } | null {
+    return grant?.pendingId ? { pendingId: grant.pendingId } : null;
+}
+
 export function parseAuthorizeParams(search: string): OAuthAuthorizeParams | null {
     const params = new URLSearchParams(search);
     const clientId = params.get("client_id") ?? "";

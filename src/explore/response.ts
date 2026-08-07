@@ -6,6 +6,14 @@ export interface ExploreData {
     mediaBase?: string;
 }
 
+function sameOriginPath(value: unknown): string | undefined {
+    if (typeof value !== "string") return undefined;
+    if (value.replace(/[\t\n\r]/g, "") !== value) return undefined;
+    if (!value.startsWith("/")) return undefined;
+    if (value.startsWith("//") || value.startsWith("/\\")) return undefined;
+    return value;
+}
+
 function streamFrom(value: unknown): ExploreStream | null {
     if (!value || typeof value !== "object") return null;
     const stream = value as Record<string, unknown>;
@@ -23,9 +31,7 @@ function streamFrom(value: unknown): ExploreStream | null {
             ? Math.max(0, Math.floor(stream["viewers"]))
             : 0,
         mediaBase: typeof stream["mediaBase"] === "string" ? stream["mediaBase"] : undefined,
-        thumbnail: typeof stream["thumbnail"] === "string" && stream["thumbnail"].startsWith("/")
-            ? stream["thumbnail"]
-            : undefined,
+        thumbnail: sameOriginPath(stream["thumbnail"]),
     };
 }
 

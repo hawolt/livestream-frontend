@@ -23,6 +23,14 @@ export interface ApiTokenInfo {
     lastUsedAt: number | null;
 }
 
+export interface OAuthGrantInfo {
+    clientId: string;
+    app: string;
+    scope: string;
+    grantedAt: number | null;
+    lastUsedAt: number | null;
+}
+
 export interface ApiTokenCreated {
     id: number;
     token: string;
@@ -117,7 +125,6 @@ export interface LiveChannelInfo {
     emoteTwitchId: string | null;
     passwordRequired?: boolean;
     locked?: boolean;
-    streamPass?: string;
 }
 
 export interface LiveCategory {

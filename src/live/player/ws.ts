@@ -75,8 +75,7 @@ export function startWSTransport(g: number): void {
         const qParam = qualityWsParam(ctx.requestedQuality);
         const { base, direct } = chooseTransportBase(ctx.wssBase, ctx.mediaBase);
         let joined = false;
-        const pwParam = ctx.streamPass ? `&pw=${encodeURIComponent(ctx.streamPass)}` : "";
-        const path = `/ws/live?u=${encodeURIComponent(ctx.username)}&viewer_id=${encodeURIComponent(vid)}${tq}${qParam}${pwParam}`;
+        const path = `/ws/live?u=${encodeURIComponent(ctx.username)}&viewer_id=${encodeURIComponent(vid)}${tq}${qParam}`;
         let sock: WebSocket;
         try {
             sock = new WebSocket(mediaWsUrl(base, path));
