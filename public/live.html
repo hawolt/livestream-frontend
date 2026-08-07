@@ -496,6 +496,19 @@
         .login-modal-submit:disabled { opacity: .6; cursor: default; }
         .login-modal-error { color: var(--red); font-size: 13px; min-height: 16px; }
         .stream-pass-hint { color: var(--muted); font-size: 13px; margin: 0 0 12px; }
+        .stream-pass-ticket { display: flex; flex-direction: column; gap: 8px; }
+        .stream-pass-ticket-buy {
+            padding: 9px 12px;
+            border-radius: 6px;
+            border: none;
+            background: var(--accent);
+            color: #000;
+            font-weight: 700;
+            font-size: 14px;
+            cursor: pointer;
+        }
+        .stream-pass-ticket-buy:disabled { opacity: .6; cursor: default; }
+        .stream-pass-or { color: var(--muted); font-size: 12px; text-align: center; }
         .login-modal-alt { font-size: 13px; color: var(--muted); text-align: center; }
         .login-modal-alt a { color: var(--accent); text-decoration: none; }
         .login-modal-close {
@@ -1661,7 +1674,11 @@
 <div id="stream-pass-gate" class="login-modal" role="dialog" aria-modal="true" aria-labelledby="stream-pass-title" hidden>
     <div class="login-modal-box" tabindex="-1">
         <h3 id="stream-pass-title">This channel is private</h3>
-        <p class="stream-pass-hint">Enter the stream password to watch and chat.</p>
+        <p class="stream-pass-hint" id="stream-pass-hint">Enter the stream password to watch and chat.</p>
+        <div class="stream-pass-ticket" id="stream-pass-ticket" hidden>
+            <button type="button" id="stream-pass-ticket-buy" class="stream-pass-ticket-buy">Buy a ticket</button>
+            <div class="stream-pass-or" id="stream-pass-or" hidden>or unlock with a password</div>
+        </div>
         <form id="stream-pass-form" class="login-modal-form" aria-describedby="stream-pass-error" aria-busy="false">
             <input id="stream-pass-input" type="password" placeholder="Stream password" aria-label="Stream password" autocomplete="off" required />
             <div id="stream-pass-error" class="login-modal-error" role="alert" aria-live="polite" aria-atomic="true"></div>

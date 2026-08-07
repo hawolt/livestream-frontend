@@ -270,6 +270,45 @@ PONG :go-irc</code></pre>
 
             <h2>GET /me/followers</h2>
             <p>Scope: <code>api:read</code>. The follower list of the token owner's own channel, same shape and pagination as the channel followers endpoint, without the privacy restriction.</p>
+
+            <h2>Live status badge</h2>
+            <p>
+                <strong>No token required.</strong> The badge endpoints are public so they can sit in a README:
+                <code>GET /badge/{username}.svg</code> renders a small image and
+                <code>GET /badge/{username}.json</code> returns the same state as JSON. Both are rate limited per IP,
+                cached for 30 seconds and answer <code>304</code> when your <code>If-None-Match</code> matches.
+            </p>
+            <table>
+                <tr><th>Param</th><th>Meaning</th></tr>
+                <tr><td><code>style</code></td><td><code>flat</code> (default) or <code>dot</code></td></tr>
+                <tr><td><code>label</code></td><td>custom left-hand text, max 24 characters, sanitized and XML-escaped; defaults to the channel name</td></tr>
+            </table>
+            <p>
+                The badge shows <code>LIVE</code> or <code>OFFLINE</code> and nothing else: no viewer count.
+                Password-protected and ticketed channels always render <code>OFFLINE</code>, and so does an unknown
+                or banned channel, so a badge never reveals whether a private stream is running or whether an
+                account exists.
+            </p>
+            <p>Markdown for a README:</p>
+            <pre><code>[![stream status](https://<span data-fill="host">itzon.tv</span>/api/public/v1/badge/streamer.svg)](https://<span data-fill="host">itzon.tv</span>/streamer)</code></pre>
+            <p>Plain HTML:</p>
+            <pre><code>&lt;a href="https://<span data-fill="host">itzon.tv</span>/streamer"&gt;
+  &lt;img src="https://<span data-fill="host">itzon.tv</span>/api/public/v1/badge/streamer.svg?style=dot&amp;label=my%20stream" alt="stream status" /&gt;
+&lt;/a&gt;</code></pre>
+            <p>
+                The JSON variant speaks the shields.io endpoint schema, so shields.io can render the badge in its own
+                style while the live state still comes from here:
+            </p>
+            <pre><code>![stream status](https://img.shields.io/endpoint?url=https%3A%2F%2F<span data-fill="host">itzon.tv</span>%2Fapi%2Fpublic%2Fv1%2Fbadge%2Fstreamer.json)</code></pre>
+            <pre><code>curl https://<span data-fill="host">itzon.tv</span>/api/public/v1/badge/streamer.json</code></pre>
+            <pre><code>{
+  "schemaVersion": 1,
+  "label": "streamer",
+  "message": "LIVE",
+  "color": "2ecc71",
+  "live": true,
+  "username": "streamer"
+}</code></pre>
         </section>
 
         <section data-topic="oauth" data-title="Sign in with itzon">
@@ -375,6 +414,58 @@ PONG :go-irc</code></pre>
                 <tr><td><code>login_required</code></td><td>authorize, consent</td><td>no signed-in session; the consent page handles this by redirecting to login</td></tr>
                 <tr><td><code>access_denied</code></td><td>redirect</td><td>the user pressed Deny</td></tr>
                 <tr><td><code>temporarily_unavailable</code></td><td>authorize, token</td><td>rate limited (30 requests per minute per IP), retry later</td></tr>
+            </table>
+        </section>
+
+        <section data-topic="tickets" data-title="Private and ticketed streams">
+            <h1>Private and ticketed streams</h1>
+            <p class="intro">Two ways to close a channel: a shared password, or paid tickets. Both hide the channel the same way, and a channel can use either or both.</p>
+
+            <h2>What closing a channel changes</h2>
+            <p>
+                A protected channel disappears from Browse and from the channel rail, its page renders no title,
+                category or social preview, and its thumbnail stops being served. Anyone opening the link sees an
+                unlock screen instead of the stream. Video and chat are both gated: there is no way to reach the
+                feed without passing the gate, and no clip can be created from a protected channel by anyone,
+                including you.
+            </p>
+            <p>
+                You, anyone on staff, and holders of a valid ticket always get in. Clips that already existed from
+                before the channel was closed stay public, because they were public content when they were made.
+            </p>
+
+            <h2>Password protection</h2>
+            <p>
+                Set a password under Stream in your dashboard. Share the link plus the password; viewers enter it
+                once and stay unlocked on that device for six hours. Clearing the field reopens the channel.
+                Changing the password does not kick viewers who already unlocked, they simply need the new one
+                after their access expires.
+            </p>
+            <p>
+                Chat locks within about a minute of a change. Video privacy applies from your next stream start, so
+                set the password <em>before</em> going live rather than mid stream.
+            </p>
+
+            <h2>Ticketed streams</h2>
+            <p>
+                Set a ticket price under Stream instead of, or alongside, a password. Viewers land on the channel
+                page and get a Buy ticket button with the price. After paying they are let straight in, with no
+                password to type, and their ticket lasts 30 days from purchase. Buying again while a ticket is
+                still valid extends it rather than starting over.
+            </p>
+            <p>
+                Prices run from 1.00 to 500.00 in your configured currency. Selling tickets needs the ticketing
+                capability on your account; clearing the price never does, so a lapsed subscription can never trap
+                a channel in a paid state.
+            </p>
+
+            <h2>Which one to use</h2>
+            <table>
+                <tr><th>Situation</th><th>Use</th></tr>
+                <tr><td>Testing your setup, or a stream for a handful of friends</td><td>Password</td></tr>
+                <tr><td>A private community you already have a channel to share a secret with</td><td>Password</td></tr>
+                <tr><td>Paid workshops, coaching, a ticketed event or a supporters-only stream</td><td>Tickets</td></tr>
+                <tr><td>A paid event you also want a backdoor into for guests or staff</td><td>Both</td></tr>
             </table>
         </section>
 

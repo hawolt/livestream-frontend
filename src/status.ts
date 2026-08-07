@@ -8,16 +8,33 @@ import {
     type Overview,
     type OverviewService,
 } from "./status/overview.ts";
+import {
+    buildStrip,
+    formatDuration,
+    historySummary,
+    noteText,
+    parseHistory,
+    type History,
+    type HistoryIncident,
+} from "./status/history.ts";
 
 const REFRESH_MS = 30000;
+const HISTORY_REFRESH_MS = 300000;
+const HISTORY_DAYS = 90;
+const INCIDENT_LIMIT = 20;
 
 const bannerEl = document.getElementById("status-banner") as HTMLElement;
 const updatedEl = document.getElementById("status-updated") as HTMLElement;
 const groupsEl = document.getElementById("status-groups") as HTMLElement;
+const incidentsEl = document.getElementById("status-incidents") as HTMLElement;
 
 let lastLoadedAt = 0;
+let lastHistoryAt = 0;
 let hasData = false;
 let loading = false;
+let loadingHistory = false;
+let overview: Overview | null = null;
+let history: History | null = null;
 
 function el(tag: string, cls: string, text?: string): HTMLElement {
     const node = document.createElement(tag);
@@ -33,12 +50,26 @@ function metaEntry(key: string, value: string): HTMLElement {
     return entry;
 }
 
+function historyStrip(serviceId: string, nowMs: number): HTMLElement | null {
+    if (!history) return null;
+    const check = history.checks.find((entry) => entry.id === serviceId);
+    if (!check) return null;
+    const strip = el("div", "svc-bars");
+    for (const bar of buildStrip(check.days, history.days || HISTORY_DAYS, nowMs)) {
+        const node = el("span", `svc-bar ${bar.level}`);
+        node.title = bar.title;
+        strip.appendChild(node);
+    }
+    return strip;
+}
+
 function serviceRow(service: OverviewService, nowMs: number): HTMLElement {
     const row = el("div", "svc-row");
+    const head = el("div", "svc-head");
     const name = el("div", "svc-name");
     name.appendChild(el("span", "svc-label", service.label));
     if (service.region) name.appendChild(el("span", "svc-region", service.region));
-    row.appendChild(name);
+    head.appendChild(name);
     const meta = el("div", "svc-meta");
     const latency = formatLatency(service.latencyMs);
     if (latency) meta.appendChild(metaEntry("latency", latency));
@@ -46,12 +77,46 @@ function serviceRow(service: OverviewService, nowMs: number): HTMLElement {
     meta.appendChild(metaEntry("90d", formatUptime(service.uptime90d)));
     const changed = relativeTime(service.lastChange, nowMs);
     if (changed) meta.appendChild(metaEntry("since", changed));
-    row.appendChild(meta);
-    row.appendChild(el("span", `svc-chip ${service.status}`, statusLabel(service.status)));
+    head.appendChild(meta);
+    head.appendChild(el("span", `svc-chip ${service.status}`, statusLabel(service.status)));
+    row.appendChild(head);
+    const strip = historyStrip(service.id, nowMs);
+    if (strip) row.appendChild(strip);
     return row;
 }
 
-function render(overview: Overview): void {
+function incidentRow(incident: HistoryIncident): HTMLElement {
+    const row = el("article", "incident-row");
+    const head = el("div", "incident-head");
+    head.appendChild(el("span", "incident-label", incident.label || incident.checkId));
+    head.appendChild(el("span", `incident-chip ${incident.resolved ? "resolved" : "ongoing"}`,
+        incident.resolved ? "Resolved" : "Ongoing"));
+    row.appendChild(head);
+    const meta = el("div", "incident-meta");
+    meta.appendChild(el("span", "incident-start", new Date(incident.startedAt).toLocaleString()));
+    meta.appendChild(el("span", "incident-duration", formatDuration(incident.durationMinutes)));
+    row.appendChild(meta);
+    const note = noteText(incident.note);
+    if (note) row.appendChild(el("p", "incident-note", note));
+    return row;
+}
+
+function renderIncidents(): void {
+    incidentsEl.textContent = "";
+    if (!history) return;
+    const card = el("section", "status-card");
+    card.appendChild(el("h2", "status-card-title", "Recent incidents"));
+    const incidents = history.incidents.slice(0, INCIDENT_LIMIT);
+    if (incidents.length === 0) {
+        card.appendChild(el("p", "status-empty", "No incidents recorded."));
+    } else {
+        for (const incident of incidents) card.appendChild(incidentRow(incident));
+    }
+    incidentsEl.appendChild(card);
+}
+
+function render(): void {
+    if (!overview) return;
     const banner = overallBanner(overview.overall);
     bannerEl.className = `status-banner ${banner.cls}`;
     bannerEl.textContent = banner.label;
@@ -65,6 +130,11 @@ function render(overview: Overview): void {
         }
         groupsEl.appendChild(card);
     }
+    if (history) {
+        groupsEl.appendChild(el("p", "status-history-note",
+            historySummary(history.firstSampleAt, history.days || HISTORY_DAYS, nowMs)));
+    }
+    renderIncidents();
 }
 
 function renderError(): void {
@@ -86,12 +156,13 @@ async function refresh(): Promise<void> {
             renderError();
             return;
         }
-        const overview = parseOverview(await res.json());
-        if (!overview) {
+        const parsed = parseOverview(await res.json());
+        if (!parsed) {
             renderError();
             return;
         }
-        render(overview);
+        overview = parsed;
+        render();
         hasData = true;
         lastLoadedAt = Date.now();
         updatedEl.textContent = `Last updated ${new Date(lastLoadedAt).toLocaleTimeString()}`;
@@ -102,16 +173,41 @@ async function refresh(): Promise<void> {
     }
 }
 
+async function refreshHistory(): Promise<void> {
+    if (loadingHistory) return;
+    loadingHistory = true;
+    try {
+        const res = await fetch(`/api/status/history?days=${HISTORY_DAYS}`, { cache: "no-store" });
+        if (!res.ok) return;
+        const parsed = parseHistory(await res.json());
+        if (!parsed) return;
+        history = parsed;
+        lastHistoryAt = Date.now();
+        render();
+    } catch {
+        return;
+    } finally {
+        loadingHistory = false;
+    }
+}
+
 window.setInterval(() => {
     if (document.visibilityState === "hidden") return;
     void refresh();
 }, REFRESH_MS);
 
+window.setInterval(() => {
+    if (document.visibilityState === "hidden") return;
+    void refreshHistory();
+}, HISTORY_REFRESH_MS);
+
 document.addEventListener("visibilitychange", () => {
     if (document.visibilityState !== "visible") return;
     if (Date.now() - lastLoadedAt >= REFRESH_MS) void refresh();
+    if (Date.now() - lastHistoryAt >= HISTORY_REFRESH_MS) void refreshHistory();
 });
 
 void refresh();
+void refreshHistory();
 
 export {};

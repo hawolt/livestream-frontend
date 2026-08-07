@@ -155,7 +155,12 @@ async function boot(): Promise<void> {
                     nameEl.textContent = ctx.displayUsername;
                     document.title = ctx.displayUsername;
                 }
-                const unlocked = await promptStreamPassword(ctx.username, request.signal);
+                const unlocked = await promptStreamPassword(ctx.username, request.signal, {
+                    passwordRequired: info.passwordRequired === true,
+                    ticketRequired: info.ticketRequired === true,
+                    ticketPriceCents: info.ticketPriceCents ?? null,
+                    ticketCurrency: info.ticketCurrency ?? null,
+                });
                 if (!unlocked || !isCurrentBoot(generation, request)) return;
                 const retry = await fetch(`/api/live/channel/${encodeURIComponent(ctx.username)}`, { signal: request.signal });
                 if (!isCurrentBoot(generation, request)) return;
@@ -172,7 +177,7 @@ async function boot(): Promise<void> {
                     return;
                 }
             }
-            ctx.clipsDisabled = info.passwordRequired === true;
+            ctx.clipsDisabled = info.passwordRequired === true || info.ticketRequired === true;
             if (typeof info.username === "string" && info.username) {
                 ctx.displayUsername = info.username;
             }

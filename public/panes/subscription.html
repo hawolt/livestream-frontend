@@ -26,6 +26,22 @@
         #pane-subscription .sub-status span { color: var(--muted); font-size: 13px; }
         #pane-subscription .sub-pending { margin: 0 0 18px; padding: 12px 14px; border: 1px solid var(--border); border-radius: 10px; color: var(--muted); font-size: 13px; max-width: 1060px; }
         #pane-subscription .sub-fee { color: var(--dim); font-size: 12px; margin: 18px 0 0; }
+        #pane-subscription .sub-founder { max-width: 1060px; margin: 18px 0 0; }
+        #pane-subscription .sub-founder-card { display: flex; gap: 16px; align-items: flex-start; border: 1px solid var(--border); border-radius: 10px; padding: 18px; background: var(--surface); }
+        #pane-subscription .sub-founder-card.current { border-color: var(--accent); }
+        #pane-subscription .sub-founder-badge { flex: 0 0 auto; margin-top: 2px; }
+        #pane-subscription .sub-founder-main { flex: 1 1 auto; min-width: 0; }
+        #pane-subscription .sub-founder-note { font-size: 13px; color: var(--muted); margin: 4px 0 8px; }
+        #pane-subscription .sub-founder-seats { font-size: 12px; color: var(--accent); font-weight: 600; }
+        #pane-subscription .sub-founder-side { flex: 0 0 160px; display: flex; flex-direction: column; align-items: stretch; }
+        #pane-subscription .sub-founder-side .sub-price { margin: 0 0 8px; text-align: right; }
+        #pane-subscription .sub-founder-side .sub-current-label { margin-top: 0; padding: 0; text-align: right; }
+        @media (max-width: 700px) {
+            #pane-subscription .sub-founder-card { flex-wrap: wrap; }
+            #pane-subscription .sub-founder-side { flex: 1 1 100%; }
+            #pane-subscription .sub-founder-side .sub-price,
+            #pane-subscription .sub-founder-side .sub-current-label { text-align: left; }
+        }
     </style>
     <div class="card" style="padding:24px;max-width:1120px">
         <div class="section-title">Subscription</div>

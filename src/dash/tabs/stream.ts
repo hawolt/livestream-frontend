@@ -4,12 +4,13 @@ import { esc, maskSecret } from "../format.ts";
 import { openModal } from "../modal.ts";
 import { loadRegions } from "../regions.ts";
 import { authFetch } from "../session.ts";
+import { formatTicketPrice, parseTicketPrice, TICKET_MAX_CENTS, TICKET_MIN_CENTS } from "../../ticket-price.ts";
 
 let liveCache: LiveInfo | null = null;
 let regions: RegionOption[] = [];
 
 async function loadLive(): Promise<void> {
-    const ids = ["live-ingest-body", "live-playback-body", "live-channel-body", "live-thumbnail-body", "live-private-body", "live-webhook-body"];
+    const ids = ["live-ingest-body", "live-playback-body", "live-channel-body", "live-thumbnail-body", "live-private-body", "live-ticket-body", "live-webhook-body"];
     for (const id of ids) {
         const el = document.getElementById(id);
         if (el) el.textContent = "Loading...";
@@ -22,6 +23,7 @@ async function loadLive(): Promise<void> {
         renderChannel();
         renderThumbnail();
         renderPrivate();
+        renderTicket();
         renderWebhooks();
     } catch (e) {
         for (const id of ids) {
@@ -325,6 +327,56 @@ function renderPrivate(): void {
     document.getElementById("live-private-off")?.addEventListener("click", () => {
         if (!confirm("Disable password protection? Your channel becomes public and shows on Browse again.")) return;
         void save("");
+    });
+}
+
+function renderTicket(): void {
+    const el = document.getElementById("live-ticket-body");
+    if (!el || !liveCache) return;
+    const allowed = liveCache.ticketingAllowed === true;
+    const priceCents = typeof liveCache.ticketPriceCents === "number" ? liveCache.ticketPriceCents : null;
+    const active = priceCents !== null && priceCents > 0;
+    const days = liveCache.ticketDays ?? 30;
+    const currentValue = active ? (priceCents / 100).toFixed(2) : "";
+    el.innerHTML = `
+        ${allowed || active ? "" : `<p style="color:var(--muted);font-size:13px;margin:0 0 12px">A subscription is required to sell tickets. <a href="/dashboard/subscription" data-switch-tab="subscription">See subscription plans</a>.</p>`}
+        ${active ? `<div style="font-size:13px;color:var(--success);margin-bottom:10px">Tickets are on at ${esc(formatTicketPrice(priceCents!, liveCache.ticketCurrency))}. Your channel is hidden from Browse.</div>` : ""}
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+            <input id="live-ticket-price" type="text" inputmode="decimal" placeholder="${active ? "New ticket price" : "Ticket price"}" value="${esc(currentValue)}" style="width:160px;max-width:200px;flex:none" ${allowed ? "" : "disabled"}>
+            <button class="btn btn-primary" id="live-ticket-save" ${allowed ? "" : "disabled"}>${active ? "Change" : "Enable"}</button>
+            ${active ? `<button class="btn" id="live-ticket-off">Disable</button>` : ""}
+        </div>
+        <div style="font-size:12px;color:var(--muted);margin-top:8px">
+            ${esc((TICKET_MIN_CENTS / 100).toFixed(2))} to ${esc((TICKET_MAX_CENTS / 100).toFixed(0))} per ticket. A ticket lasts ${esc(String(days))} days and the buyer can renew it.
+            Chat locks within a minute of a change; video applies from the next stream start.
+        </div>
+        <div id="live-ticket-error" style="color:var(--red);font-size:13px;margin-top:6px"></div>`;
+    const input = document.getElementById("live-ticket-price") as HTMLInputElement;
+    const errEl = document.getElementById("live-ticket-error")!;
+    const save = async (cents: number | null): Promise<void> => {
+        errEl.textContent = "";
+        try {
+            const res = await authFetch<LiveInfo>("/api/live/ticket", {
+                method: "PUT",
+                body: JSON.stringify({ priceCents: cents }),
+            });
+            liveCache = { ...liveCache!, ...res };
+            renderTicket();
+        } catch (e) {
+            errEl.textContent = e instanceof Error ? e.message : String(e);
+        }
+    };
+    document.getElementById("live-ticket-save")?.addEventListener("click", () => {
+        const cents = parseTicketPrice(input.value);
+        if (cents === null) {
+            errEl.textContent = `Enter a price between ${(TICKET_MIN_CENTS / 100).toFixed(2)} and ${(TICKET_MAX_CENTS / 100).toFixed(0)}.`;
+            return;
+        }
+        void save(cents);
+    });
+    document.getElementById("live-ticket-off")?.addEventListener("click", () => {
+        if (!confirm("Stop selling tickets? Your channel becomes public again unless a password is set. Tickets already sold stay valid until they expire.")) return;
+        void save(null);
     });
 }
 

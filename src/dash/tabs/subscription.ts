@@ -1,4 +1,4 @@
-import type { BillingPerks, BillingTier, BillingTiers } from "../../api.ts";
+import type { BillingFounder, BillingPerks, BillingTier, BillingTiers } from "../../api.ts";
 import { esc, fmtDate } from "../format.ts";
 import { authFetch } from "../session.ts";
 
@@ -8,11 +8,13 @@ const POLL_INTERVAL_MS = 3000;
 const POLL_MAX_MS = 120000;
 
 let cache: BillingTiers | null = null;
+let founderCache: BillingFounder | null = null;
 let pollTimer: number | null = null;
 let pollStartedAt = 0;
 let activationGeneration = 0;
 let loadRevision = 0;
 let upgradeRevision = 0;
+let founderRevision = 0;
 let active = false;
 
 function isCurrentActivation(generation: number): boolean {
@@ -113,6 +115,21 @@ async function loadTiers(generation: number): Promise<void> {
     if (cache.current && cache.current.tier) clearPending();
     render();
     if (pendingCheckout()) schedulePoll(generation);
+    void loadFounder(generation);
+}
+
+async function loadFounder(generation: number): Promise<void> {
+    if (!isCurrentActivation(generation)) return;
+    const revision = ++founderRevision;
+    let loaded: BillingFounder;
+    try {
+        loaded = await authFetch<BillingFounder>("/api/billing/founder");
+    } catch {
+        return;
+    }
+    if (!isCurrentActivation(generation) || revision !== founderRevision) return;
+    founderCache = loaded;
+    render();
 }
 
 const CURRENCY_SYMBOLS: Record<string, string> = {
@@ -120,6 +137,15 @@ const CURRENCY_SYMBOLS: Record<string, string> = {
     USD: "$",
     GBP: "£",
 };
+
+function amountHtml(rawPrice: string, currency: string): string {
+    const price = (rawPrice ?? "").trim();
+    if (!price) return "";
+    const configured = (currency ?? "").trim();
+    const symbol = configured ? CURRENCY_SYMBOLS[configured.toUpperCase()] ?? configured : "";
+    const amount = symbol && /^[\d.,\s]+$/.test(price) ? `${price} ${symbol}` : price;
+    return esc(amount);
+}
 
 function priceHtml(rawPrice: string): string {
     const price = (rawPrice ?? "").trim();
@@ -244,7 +270,7 @@ function render(): void {
         ? `<div class="sub-grid">${tiers.map((t, i) => tierCard(t, i, tiers, tokenLists)).join("")}</div>`
         : `<p style="color:var(--muted);font-size:13px;margin:0">No plans configured.</p>`;
     const feeNote = cache.feeNote ? `<p class="sub-fee">${esc(cache.feeNote)}</p>` : "";
-    el.innerHTML = head + pendingBanner + statusBlock + grid + feeNote;
+    el.innerHTML = head + pendingBanner + statusBlock + grid + founderCardHtml() + feeNote;
     el.querySelectorAll<HTMLButtonElement>("[data-portal-provider]").forEach(btn => {
         btn.addEventListener("click", () => void openPortal(btn));
     });
@@ -257,6 +283,61 @@ function render(): void {
     el.querySelectorAll<HTMLButtonElement>("[data-sub-pass-tier]").forEach(btn => {
         btn.addEventListener("click", () => void checkoutPass(btn, btn.dataset["subPassTier"]));
     });
+    el.querySelector<HTMLButtonElement>("#sub-founder-buy")?.addEventListener("click", function () {
+        void checkoutFounder(this);
+    });
+}
+
+function founderCardHtml(): string {
+    const founder = founderCache;
+    if (!founder || !founder.enabled) return "";
+    const label = founder.label || "Founder";
+    const price = amountHtml(founder.price, founder.currency ?? cache?.currency ?? "");
+    const soldOut = founder.available <= 0;
+    let action: string;
+    if (founder.owned) {
+        action = `<div class="sub-current-label">Yours</div>`;
+    } else if (soldOut) {
+        action = `<div class="sub-current-label" style="color:var(--muted)">Sold out</div>`;
+    } else {
+        action = `<div class="sub-cta"><button class="btn btn-primary" id="sub-founder-buy">Buy</button></div>`;
+    }
+    const seats = founder.owned
+        ? `${esc(String(founder.taken))} of ${esc(String(founder.cap))} claimed`
+        : soldOut
+            ? `All ${esc(String(founder.cap))} claimed`
+            : `${esc(String(founder.available))} of ${esc(String(founder.cap))} left`;
+    return `<div class="sub-founder">
+        <div class="sub-founder-card${founder.owned ? " current" : ""}">
+            <img class="sub-founder-badge" src="/static/img/badge-${esc(founder.badge)}.svg" alt="" width="20" height="20">
+            <div class="sub-founder-main">
+                <div class="sub-tier-name">${esc(label)}</div>
+                <p class="sub-founder-note">A one time purchase, limited to ${esc(String(founder.cap))} accounts.
+                Carries the ${esc(label)} badge in chat forever, with no subscription and no renewal.</p>
+                <div class="sub-founder-seats">${seats}</div>
+            </div>
+            <div class="sub-founder-side">
+                <div class="sub-price">${price}</div>
+                ${action}
+            </div>
+        </div>
+    </div>`;
+}
+
+async function checkoutFounder(btn: HTMLButtonElement): Promise<void> {
+    const generation = activationGeneration;
+    btn.disabled = true;
+    try {
+        const res = await authFetch<{ url: string }>("/api/billing/founder/checkout", { method: "POST" });
+        sessionStorage.setItem(PENDING_KEY, String(Date.now()));
+        location.href = res.url;
+    } catch (e) {
+        if (isCurrentActivation(generation)) {
+            alert("Could not start checkout: " + (e instanceof Error ? e.message : String(e)));
+            void loadFounder(generation);
+        }
+        if (btn.isConnected && isCurrentActivation(generation)) btn.disabled = false;
+    }
 }
 
 async function upgrade(btn: HTMLButtonElement): Promise<void> {
@@ -362,6 +443,7 @@ export function deactivate(): void {
     active = false;
     activationGeneration += 1;
     loadRevision += 1;
+    founderRevision += 1;
     stopPolling();
     pollStartedAt = 0;
 }

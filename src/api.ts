@@ -81,6 +81,18 @@ export interface BillingTiers {
     passDays?: number;
 }
 
+export interface BillingFounder {
+    enabled: boolean;
+    label: string;
+    badge: string;
+    cap: number;
+    taken: number;
+    available: number;
+    price: string;
+    currency?: string;
+    owned: boolean;
+}
+
 export interface RegionOption {
     id: string;
     label: string;
@@ -111,6 +123,10 @@ export interface LiveInfo {
     passwordProtected: boolean;
     thumbnailAllowed?: boolean;
     privateAllowed?: boolean;
+    ticketingAllowed?: boolean;
+    ticketPriceCents?: number | null;
+    ticketCurrency?: string | null;
+    ticketDays?: number;
     maxImageBytes?: number;
 }
 
@@ -124,6 +140,9 @@ export interface LiveChannelInfo {
     wssBase?: string;
     emoteTwitchId: string | null;
     passwordRequired?: boolean;
+    ticketRequired?: boolean;
+    ticketPriceCents?: number | null;
+    ticketCurrency?: string | null;
     locked?: boolean;
 }
 

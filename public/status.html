@@ -92,14 +92,70 @@
             border-bottom: 1px solid var(--border);
         }
         .svc-row {
+            padding: 10px 16px;
+            border-bottom: 1px solid rgba(46, 46, 46, .5);
+        }
+        .svc-row:last-child { border-bottom: none; }
+        .svc-head {
             display: flex;
             align-items: center;
             gap: 12px;
-            padding: 10px 16px;
-            border-bottom: 1px solid rgba(46, 46, 46, .5);
             flex-wrap: wrap;
         }
-        .svc-row:last-child { border-bottom: none; }
+        .svc-bars {
+            display: flex;
+            align-items: flex-end;
+            gap: 2px;
+            margin-top: 8px;
+            height: 22px;
+        }
+        .svc-bar {
+            flex: 1 1 0;
+            min-width: 2px;
+            height: 100%;
+            border-radius: 1px;
+            background: #2a2a2a;
+        }
+        .svc-bar.up { background: var(--green); }
+        .svc-bar.warn { background: var(--yellow); }
+        .svc-bar.down { background: var(--red); }
+        .status-history-note {
+            color: var(--dim);
+            font-size: 12px;
+            margin: -4px 2px 18px;
+        }
+        .incident-row {
+            padding: 12px 16px;
+            border-bottom: 1px solid rgba(46, 46, 46, .5);
+        }
+        .incident-row:last-child { border-bottom: none; }
+        .incident-head {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .incident-label { color: #e8e8e8; }
+        .incident-chip {
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: .04em;
+            text-transform: uppercase;
+            border-radius: 4px;
+            padding: 2px 8px;
+        }
+        .incident-chip.resolved { color: var(--green); background: rgba(74, 222, 128, .12); }
+        .incident-chip.ongoing { color: var(--red); background: rgba(248, 113, 113, .12); }
+        .incident-meta {
+            display: flex;
+            gap: 14px;
+            flex-wrap: wrap;
+            font-size: 12px;
+            color: var(--dim);
+            margin-top: 2px;
+        }
+        .incident-note { font-size: 13px; margin-top: 6px; }
+        .status-empty { color: var(--dim); padding: 14px 16px; }
         .svc-name {
             flex: 1 1 180px;
             display: flex;
@@ -139,8 +195,9 @@
         .svc-chip.unknown { color: var(--dim); background: rgba(136, 136, 136, .12); }
         .status-error { color: var(--dim); padding: 16px; }
         @media (max-width: 560px) {
-            .svc-row { align-items: flex-start; }
+            .svc-head { align-items: flex-start; }
             .svc-meta { width: 100%; }
+            .svc-bar { min-width: 1px; }
         }
     </style>
 </head>
@@ -153,6 +210,7 @@
     <div id="status-banner" class="status-banner unknown">Loading</div>
     <div id="status-updated"></div>
     <div id="status-groups"></div>
+    <div id="status-incidents"></div>
 </div>
 <script src="/status.js" type="module"></script>
 </body>

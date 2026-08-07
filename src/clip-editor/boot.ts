@@ -141,7 +141,7 @@ export async function boot(): Promise<void> {
         }
         if (pinResult.status === 403) {
             state.phase = "blocked";
-            showStateMessage("Clips are disabled for password protected channels.", false);
+            showStateMessage("Clips are disabled for private and ticketed channels.", false);
             return;
         }
         if (pinResult.status === 429) {
