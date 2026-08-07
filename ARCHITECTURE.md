@@ -189,6 +189,8 @@ A reduced viewer for `/embed/<username>`: same generation-guarded transport mach
 
 `?preview=1` puts it in preview mode for the explorer's hover previews: the unmute button is suppressed and state transitions are reported to the parent window via `postMessage` with type `itzon:stream-preview` and state `connecting`, `playing`, or `unavailable`.
 
+`?cleanfeed=1` puts it in cleanfeed mode: video only, no chrome. Boot adds `embed-cleanfeed` to the body and `showUnmute()` treats the mode like preview, so the unmute button never appears (a `body.embed-cleanfeed #embed-unmute { display: none }` rule backstops it); boot also strips any `controls` attribute from the video element, and nothing in the embed ever sets one. The unmute button is the only UI chrome the embed renders, so cleanfeed hides exactly that; the offline/terminal poster text (`#embed-poster`, plain dim text on black) deliberately stays visible, since a silent black box on an offline channel reads as broken. Clicking the stage still unmutes (the existing tap-to-unmute gesture summons no UI and is the only audio path left), and preview's `postMessage` reporting is independent, so the two params compose.
+
 `embed.ts` is the entry; its transport lives in `src/embed/`: `context.ts`, `dom.ts`, `constants.ts`, `lifecycle.ts`, `mse.ts`, `chase.ts`, and `transport.ts` (WS and HLS). Pieces that are genuinely identical to the viewer's player live in `src/player-shared/`: `viewer-id.ts` (the persisted HLS viewer id), `ws-url.ts` (media WS URL building), and `transport-fallback.ts` (direct-`wssBase`-preferred, once-per-base-failure fallback to the `mediaBase`-derived URL, described in "WS+MSE path" above); both `src/live/player/` and `src/embed/` import from there, so the embed player's WS transport gets the identical direct-WSS preference and fallback semantics as the main viewer. The two transports are otherwise independent implementations, not a shared engine.
 
 ## Clip embed page (`src/clip-embed.ts`)
@@ -229,6 +231,10 @@ URL parameters:
 The script builds the sidebar from the sections, routes by hash (`#<topic>`, first section is the default), sets the document title from `data-title`, and fills every `[data-fill=host]` span with `location.host` so hostnames are correct on any deployment. Adding a topic is adding a section; no script changes.
 
 Guide video slots: the OBS topic wraps each major step's `<video controls preload="none" src="/static/guides/<slug>.mp4">` in a `.wiki-guide` container (slugs `obs-ingest-setup`, `obs-encoder-settings`, `obs-first-stream`). `wiki.ts` probes each source with a `HEAD` fetch and removes the container when the file is absent (a media `error` event also removes it), so the page ships with no videos and the owner can later drop mp4 files into `public/static/guides/` (the directory is created on demand; nothing in the build references it) with zero code changes.
+
+## Status page (`src/status.ts`)
+
+`status.html` on the `status.<domain>` vhost (Apache rewrites `/` to it and proxies `/api/status/` to the status backend). Standalone: no session, no navbar, no cookies, inline CSS in the HTML file using the house palette. It fetches `GET /api/status/overview` relative to the page origin and renders the overall banner (operational green, degraded yellow, down red, anything else gray) plus one card per group with per-service rows: label, region tag when present, latency, 24 h and 90 day uptime percentages (`null` renders as "no data"), the last status change as relative time, and a status chip. Auto-refreshes every 30 s with a last-updated stamp; the interval skips ticks while `document.visibilityState` is hidden and a `visibilitychange` back to visible refreshes immediately when the data is stale. A failed or malformed fetch shows a "Status unavailable" banner and keeps the last rendered cards (or an explanatory line when nothing loaded yet). The pure pieces (payload parsing/normalization, uptime/latency formatting, relative time, banner mapping) live in `src/status/overview.ts`, tested in `tests/status-overview.test.ts`.
 
 ## Auth pages
 
@@ -297,6 +303,7 @@ HTTP under `API_BASE = /api/main/v1` unless noted. Listed as consumed by this co
 | `GET /api/live/captcha/config`, `POST /api/live/captcha/token` (absolute paths) | captcha | `{enabled, sitekey}`, `{token, ttl}` |
 | `GET /api/live/spots?slot=` (absolute path) | viewer | `{ads: [{id, imageUrl, targetUrl, altText, label}]}` |
 | `GET /api/live/spots/visit/{id}` (absolute path, plain anchor href) | viewer | 302 redirect to the ad's target |
+| `GET /api/status/overview` (absolute path, status vhost origin) | status page | `{generatedAt, groups: [{label, services: [{id, label, region?, status, latencyMs, uptime24h, uptime90d, lastChange}]}], overall}` |
 | `GET /api/live/clips/{code}` (absolute path) | clip editor, clip playback mode, clip embed page | `{id, channel, title, status, phase, queuePosition, durationMs, createdAt, url, thumbnailUrl, pageUrl}`, `phase`/`queuePosition` present while `status` is `processing`, 404 for no clip |
 | `GET /live`, `PUT /live/info`, `POST /live/rotate-key`, `POST /live/playback-key/rotate`, `POST /live/region`, `POST /live/emote-twitch`, `PUT /live/webhooks`, `POST /live/webhooks/rotate-secret` | stream tabs | `LiveInfo` |
 | `POST /api/live/thumbnail` (raw image bytes, file MIME as Content-Type), `DELETE /api/live/thumbnail` | stream tab thumbnail card | `LiveInfo`; 403 without the `thumbnail` entitlement, 413 over the account's `maxImageBytes` |

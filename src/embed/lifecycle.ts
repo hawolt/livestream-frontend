@@ -1,5 +1,5 @@
 import { posterEl, stageEl, unmuteBtn, video } from "./dom.ts";
-import { ctx, isCurrent, nextGen, previewMode, runGenCleanup } from "./context.ts";
+import { cleanfeedMode, ctx, isCurrent, nextGen, previewMode, runGenCleanup } from "./context.ts";
 import { PREVIEW_MESSAGE_TYPE, RETRY_MAX_MS, RETRY_MIN_MS, RETRY_MULT } from "./constants.ts";
 import { stopChase } from "./chase.ts";
 import { startHLSTransport, startWSTransport, stopHLSBeacon } from "./transport.ts";
@@ -70,7 +70,7 @@ export function setPoster(label: string | null): void {
 }
 
 export function showUnmute(show: boolean): void {
-    if (previewMode) {
+    if (previewMode || cleanfeedMode) {
         unmuteBtn.classList.add("hidden");
         return;
     }

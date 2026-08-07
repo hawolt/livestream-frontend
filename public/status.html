@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ITZON status</title>
+    <link rel="icon" type="image/png" href="/static/img/favicon.png" />
+    <style>
+        @font-face {
+            font-family: 'Inter';
+            font-style: normal;
+            font-weight: 400 600;
+            font-display: swap;
+            src: url('/fonts/inter-latin.woff2') format('woff2');
+            unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+        }
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        :root {
+            --bg: #0d0d0d;
+            --surface: #141414;
+            --border: #2e2e2e;
+            --text: #c8c8c8;
+            --dim: #888;
+            --green: #4ade80;
+            --yellow: #fbbf24;
+            --red: #f87171;
+            --radius: 6px;
+        }
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'Inter', -apple-system, "Segoe UI", Roboto, sans-serif;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+        .status-page {
+            max-width: 860px;
+            margin: 0 auto;
+            padding: 28px 16px 48px;
+        }
+        .status-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .status-header img {
+            width: 26px;
+            height: 26px;
+            display: block;
+        }
+        .status-header h1 {
+            font-size: 18px;
+            font-weight: 600;
+            letter-spacing: .08em;
+            color: #fff;
+        }
+        .status-header h1 span { color: var(--dim); font-weight: 400; letter-spacing: normal; }
+        .status-banner {
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 14px 16px;
+            font-size: 16px;
+            font-weight: 600;
+            color: #fff;
+            background: var(--surface);
+        }
+        .status-banner.operational { border-color: rgba(74, 222, 128, .5); background: rgba(74, 222, 128, .08); color: var(--green); }
+        .status-banner.degraded { border-color: rgba(251, 191, 36, .5); background: rgba(251, 191, 36, .08); color: var(--yellow); }
+        .status-banner.down { border-color: rgba(248, 113, 113, .5); background: rgba(248, 113, 113, .08); color: var(--red); }
+        .status-banner.unknown { color: var(--dim); }
+        #status-updated {
+            color: var(--dim);
+            font-size: 12px;
+            margin: 8px 2px 20px;
+            min-height: 18px;
+        }
+        .status-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            margin-bottom: 16px;
+            overflow: hidden;
+        }
+        .status-card-title {
+            font-size: 13px;
+            font-weight: 600;
+            letter-spacing: .04em;
+            text-transform: uppercase;
+            color: var(--dim);
+            padding: 10px 16px;
+            border-bottom: 1px solid var(--border);
+        }
+        .svc-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 16px;
+            border-bottom: 1px solid rgba(46, 46, 46, .5);
+            flex-wrap: wrap;
+        }
+        .svc-row:last-child { border-bottom: none; }
+        .svc-name {
+            flex: 1 1 180px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            min-width: 0;
+        }
+        .svc-label { color: #e8e8e8; }
+        .svc-region {
+            font-size: 11px;
+            color: var(--dim);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            padding: 0 6px;
+        }
+        .svc-meta {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            flex-wrap: wrap;
+            font-size: 12px;
+        }
+        .svc-meta-key { color: var(--dim); margin-right: 4px; }
+        .svc-meta-value { color: var(--text); font-variant-numeric: tabular-nums; }
+        .svc-chip {
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: .04em;
+            text-transform: uppercase;
+            border-radius: 4px;
+            padding: 2px 8px;
+            white-space: nowrap;
+        }
+        .svc-chip.operational { color: var(--green); background: rgba(74, 222, 128, .12); }
+        .svc-chip.degraded { color: var(--yellow); background: rgba(251, 191, 36, .12); }
+        .svc-chip.down { color: var(--red); background: rgba(248, 113, 113, .12); }
+        .svc-chip.unknown { color: var(--dim); background: rgba(136, 136, 136, .12); }
+        .status-error { color: var(--dim); padding: 16px; }
+        @media (max-width: 560px) {
+            .svc-row { align-items: flex-start; }
+            .svc-meta { width: 100%; }
+        }
+    </style>
+</head>
+<body>
+<div class="status-page">
+    <header class="status-header">
+        <img src="/static/img/brand-o.png" alt="" />
+        <h1>ITZON <span>status</span></h1>
+    </header>
+    <div id="status-banner" class="status-banner unknown">Loading</div>
+    <div id="status-updated"></div>
+    <div id="status-groups"></div>
+</div>
+<script src="/status.js" type="module"></script>
+</body>
+</html>

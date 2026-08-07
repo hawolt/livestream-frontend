@@ -1,6 +1,9 @@
 export type EmbedPlaybackState = "offline" | "connecting" | "playing" | "retrying";
 
-export const previewMode = new URLSearchParams(location.search).get("preview") === "1";
+const pageParams = new URLSearchParams(location.search);
+
+export const previewMode = pageParams.get("preview") === "1";
+export const cleanfeedMode = pageParams.get("cleanfeed") === "1";
 
 export const ctx = {
     username: "",
