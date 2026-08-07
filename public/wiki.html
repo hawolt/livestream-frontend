@@ -50,6 +50,8 @@
         .wiki-content table { width: 100%; border-collapse: collapse; font-size: 13px; margin-bottom: 12px; }
         .wiki-content th, .wiki-content td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--border); vertical-align: middle; }
         .wiki-content th { color: var(--dim); font-size: 11px; text-transform: uppercase; letter-spacing: .06em; }
+        .wiki-guide { margin: 0 0 14px; }
+        .wiki-guide video { display: block; width: 100%; max-width: 640px; background: #000; border: 1px solid var(--border); border-radius: 10px; }
         @media (max-width: 760px) {
             .wiki-page { flex-direction: column; gap: 20px; }
             .wiki-side { position: static; flex: none; width: 100%; display: flex; flex-wrap: wrap; gap: 4px; }
@@ -157,6 +159,269 @@ PONG :go-irc</code></pre>
                 <tr><td>Connections</td><td>8 per account, oldest evicted</td></tr>
                 <tr><td>Content</td><td>automod filters slurs server-side</td></tr>
                 <tr><td>WS close codes</td><td><code>4400</code> flood&ensp;<code>4401</code> ping timeout&ensp;<code>4402</code> queue overflow&ensp;<code>4403</code> auth revoked</td></tr>
+            </table>
+        </section>
+
+        <section data-topic="public-api" data-title="Public API">
+            <h1>Public API</h1>
+            <p class="intro">A JSON REST API for third-party tools: channel status, followers, categories, and stream info updates.</p>
+
+            <h2>Authentication</h2>
+            <ul>
+                <li>Create an API token in the dashboard <a href="/dashboard/settings">Settings</a> tab, in the API tokens card. Give it a label so you can tell tokens apart.</li>
+                <li>The token is a 64-character hex secret shown exactly once at creation; only its first 8 characters appear in the list afterwards. Store it like a password.</li>
+                <li>You can hold up to 32 tokens. Deleting a token revokes it immediately.</li>
+                <li>Send it on every request: <code>Authorization: Bearer &lt;token&gt;</code>. Requests without a valid token get <code>401</code>.</li>
+            </ul>
+            <p>Base URL: <code>https://<span data-fill="host">itzon.tv</span>/api/public/v1</code></p>
+
+            <h2>Rate limits</h2>
+            <ul>
+                <li>120 requests per minute per token, plus a global cap shared by all callers.</li>
+                <li>Every authenticated response carries <code>X-RateLimit-Remaining</code>, the requests left in the current minute.</li>
+                <li>Over the limit, requests answer <code>429</code> with <code>X-RateLimit-Remaining: 0</code> until the window resets.</li>
+            </ul>
+
+            <h2>Errors</h2>
+            <p>Failures return JSON in the shape <code>{"ok": false, "error": "..."}</code>.</p>
+            <table>
+                <tr><th>Status</th><th>Meaning</th></tr>
+                <tr><td><code>400</code></td><td>invalid parameter, cursor, or body</td></tr>
+                <tr><td><code>401</code></td><td>missing, malformed, or revoked token</td></tr>
+                <tr><td><code>403</code></td><td>the token owner lacks the required capability</td></tr>
+                <tr><td><code>404</code></td><td>unknown channel, or one you are not allowed to see</td></tr>
+                <tr><td><code>429</code></td><td>rate limited</td></tr>
+            </table>
+
+            <h2>GET /channel/{username}</h2>
+            <p>Public info for a channel. <code>viewers</code> is only present while the channel is live; <code>category</code> and <code>categoryId</code> are <code>null</code> when unset; <code>language</code> is an ISO 639-1 code or <code>und</code>. Unknown, banned, and non-streaming accounts answer <code>404</code>. Password-protected channels answer <code>404</code> to everyone except a token owned by the channel itself.</p>
+            <pre><code>curl https://<span data-fill="host">itzon.tv</span>/api/public/v1/channel/streamer \
+  -H "Authorization: Bearer $TOKEN"</code></pre>
+            <pre><code>{
+  "username": "streamer",
+  "live": true,
+  "title": "Speedrun practice",
+  "category": "Retro",
+  "categoryId": 3,
+  "language": "en",
+  "followers": 1287,
+  "viewers": 341
+}</code></pre>
+
+            <h2>GET /channel/{username}/followers</h2>
+            <p>Follower list, newest first, with cursor pagination. Same privacy rule as the channel endpoint.</p>
+            <table>
+                <tr><th>Param</th><th>Meaning</th></tr>
+                <tr><td><code>limit</code></td><td>page size, 1 to 100, default 50</td></tr>
+                <tr><td><code>cursor</code></td><td>the <code>nextCursor</code> value from the previous page</td></tr>
+            </table>
+            <pre><code>curl "https://<span data-fill="host">itzon.tv</span>/api/public/v1/channel/streamer/followers?limit=2" \
+  -H "Authorization: Bearer $TOKEN"</code></pre>
+            <pre><code>{
+  "total": 1287,
+  "followers": [
+    { "username": "viewer1", "followedAt": "2026-08-05T18:24:11Z" },
+    { "username": "viewer2", "followedAt": "2026-08-04T09:02:58Z" }
+  ],
+  "nextCursor": "MTc1NDA2NzA1MTAwMDAwMC40Mg"
+}</code></pre>
+            <p>
+                The cursor is an opaque string marking the position after the last entry of the page.
+                Pass it back as <code>cursor=</code> to fetch the next page and keep going until
+                <code>nextCursor</code> is <code>null</code>. Because pagination is keyed on the follow
+                itself rather than an offset, pages stay stable while people follow or unfollow between
+                requests. A garbled cursor answers <code>400</code>.
+            </p>
+
+            <h2>GET /categories</h2>
+            <pre><code>curl https://<span data-fill="host">itzon.tv</span>/api/public/v1/categories \
+  -H "Authorization: Bearer $TOKEN"</code></pre>
+            <pre><code>{ "categories": [ { "id": 3, "name": "Retro" }, { "id": 7, "name": "Music" } ] }</code></pre>
+
+            <h2>GET /me</h2>
+            <p>Identifies the token owner.</p>
+            <pre><code>curl https://<span data-fill="host">itzon.tv</span>/api/public/v1/me \
+  -H "Authorization: Bearer $TOKEN"</code></pre>
+            <pre><code>{ "id": 42, "username": "streamer" }</code></pre>
+
+            <h2>PUT /me/stream-info</h2>
+            <p>Updates the token owner's stream title, category, and language with exactly the validation the dashboard uses. Requires a streaming account; others get <code>403</code>.</p>
+            <table>
+                <tr><th>Field</th><th>Rules</th></tr>
+                <tr><td><code>title</code></td><td>max 200 characters; omitted or empty clears the title</td></tr>
+                <tr><td><code>categoryId</code></td><td>must be an id from <code>/categories</code>; omitted or <code>null</code> clears the category</td></tr>
+                <tr><td><code>language</code></td><td>ISO 639-1 two-letter code; <code>null</code> resets to unspecified; omitted leaves it unchanged</td></tr>
+            </table>
+            <pre><code>curl -X PUT https://<span data-fill="host">itzon.tv</span>/api/public/v1/me/stream-info \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"title": "Speedrun practice", "categoryId": 3, "language": "en"}'</code></pre>
+            <pre><code>{ "title": "Speedrun practice", "category": "Retro", "categoryId": 3, "language": "en" }</code></pre>
+            <p>Note that <code>title</code> and <code>categoryId</code> are replaced on every call, so send the full desired state. Validation failures answer <code>400</code> with the reason.</p>
+
+            <h2>GET /me/followers</h2>
+            <p>The follower list of the token owner's own channel, same shape and pagination as the channel followers endpoint, without the privacy restriction.</p>
+        </section>
+
+        <section data-topic="oauth" data-title="Sign in with itzon">
+            <h1>Sign in with itzon</h1>
+            <p class="intro">An OAuth 2.0 authorization code flow that lets your app verify a user's itzon identity. The only scope is <code>identity</code>.</p>
+
+            <h2>Registering your app</h2>
+            <ul>
+                <li>Clients are registered by site staff; there is no self-service form. Reach out on the Discord linked in the navbar with your app name (max 64 characters) and up to 8 redirect URIs.</li>
+                <li>Redirect URIs must be absolute <code>http(s)</code> URLs without a fragment, max 512 characters, and are matched exactly, character for character, including any query string.</li>
+                <li>You receive a 32-hex <code>client_id</code> and a 64-hex <code>client_secret</code>. The secret is shown once; store it server-side and never ship it to a browser or app binary.</li>
+            </ul>
+
+            <h2>1. Send the user to the consent page</h2>
+            <pre><code>https://<span data-fill="host">itzon.tv</span>/oauth/authorize
+    ?client_id=YOUR_CLIENT_ID
+    &amp;redirect_uri=https%3A%2F%2Fapp.example.com%2Fcallback
+    &amp;response_type=code
+    &amp;scope=identity
+    &amp;state=RANDOM_STRING</code></pre>
+            <table>
+                <tr><th>Param</th><th>Rules</th></tr>
+                <tr><td><code>client_id</code></td><td>required, your 32-hex id</td></tr>
+                <tr><td><code>redirect_uri</code></td><td>required, must exactly match a registered URI</td></tr>
+                <tr><td><code>response_type</code></td><td>required, exactly <code>code</code></td></tr>
+                <tr><td><code>scope</code></td><td><code>identity</code>; omitted defaults to it</td></tr>
+                <tr><td><code>state</code></td><td>optional, max 512 characters, echoed back untouched; use a random value to tie the callback to the session that started it</td></tr>
+            </table>
+            <p>A signed-out user is sent through login first and lands back on the consent page. The page shows your app name and the requested scope with Approve and Deny buttons.</p>
+
+            <h2>2. Receive the redirect</h2>
+            <p>Approval navigates to your redirect URI with a code:</p>
+            <pre><code>https://app.example.com/callback?code=AUTHORIZATION_CODE&amp;state=RANDOM_STRING</code></pre>
+            <p>Denial redirects with <code>error=access_denied</code> and the same <code>state</code>. The code is single use and expires 60 seconds after it is minted, so exchange it immediately.</p>
+
+            <h2>3. Exchange the code for a token</h2>
+            <pre><code>curl -X POST https://<span data-fill="host">itzon.tv</span>/api/oauth/token \
+  -d grant_type=authorization_code \
+  -d client_id=YOUR_CLIENT_ID \
+  -d client_secret=YOUR_CLIENT_SECRET \
+  -d code=AUTHORIZATION_CODE \
+  -d redirect_uri=https://app.example.com/callback</code></pre>
+            <pre><code>{
+  "access_token": "64_HEX_TOKEN",
+  "token_type": "bearer",
+  "expires_in": 3600,
+  "scope": "identity"
+}</code></pre>
+            <p>Form-encoded and JSON bodies are both accepted. <code>redirect_uri</code> must be the exact value used in step 1. Access tokens live for 1 hour and cannot be refreshed; run the flow again when one expires.</p>
+
+            <h2>4. Fetch the user's identity</h2>
+            <pre><code>curl https://<span data-fill="host">itzon.tv</span>/api/oauth/userinfo \
+  -H "Authorization: Bearer ACCESS_TOKEN"</code></pre>
+            <pre><code>{
+  "id": 42,
+  "username": "streamer",
+  "avatar": "https://<span data-fill="host">itzon.tv</span>/api/live/profile/streamer/avatar?v=1722880000000"
+}</code></pre>
+            <p><code>avatar</code> is <code>null</code> when the user has not uploaded one.</p>
+
+            <h2>Error codes</h2>
+            <p>Failures answer with OAuth-style JSON: <code>{"error": "...", "error_description": "..."}</code>.</p>
+            <table>
+                <tr><th>Code</th><th>Where</th><th>Meaning</th></tr>
+                <tr><td><code>invalid_request</code></td><td>authorize, token</td><td>missing or malformed parameter, or an unregistered redirect URI</td></tr>
+                <tr><td><code>invalid_client</code></td><td>authorize, token</td><td>unknown <code>client_id</code> or wrong <code>client_secret</code></td></tr>
+                <tr><td><code>unsupported_response_type</code></td><td>authorize</td><td><code>response_type</code> is not <code>code</code></td></tr>
+                <tr><td><code>invalid_scope</code></td><td>authorize</td><td>a scope other than <code>identity</code></td></tr>
+                <tr><td><code>unsupported_grant_type</code></td><td>token</td><td><code>grant_type</code> is not <code>authorization_code</code></td></tr>
+                <tr><td><code>invalid_grant</code></td><td>token</td><td>code invalid, expired, already used, or bound to a different client or redirect URI</td></tr>
+                <tr><td><code>invalid_token</code></td><td>userinfo</td><td>access token invalid or expired</td></tr>
+                <tr><td><code>login_required</code></td><td>authorize, consent</td><td>no signed-in session; the consent page handles this by redirecting to login</td></tr>
+                <tr><td><code>access_denied</code></td><td>redirect</td><td>the user pressed Deny</td></tr>
+                <tr><td><code>temporarily_unavailable</code></td><td>authorize, token</td><td>rate limited (30 requests per minute per IP), retry later</td></tr>
+            </table>
+        </section>
+
+        <section data-topic="obs" data-title="OBS setup">
+            <h1>OBS setup</h1>
+            <p class="intro">How to go live with OBS Studio, from stream key to first broadcast.</p>
+
+            <h2>1. Find your ingest URL and stream key</h2>
+            <ul>
+                <li>Open the dashboard <a href="/dashboard/stream">Stream</a> tab. The Ingest card shows your <strong>RTMP URL</strong> and your <strong>Stream key</strong> (Reveal to see it, Copy to copy it).</li>
+                <li>If a Region selector is shown, pick the region closest to you; changing it updates the RTMP URL, so re-copy it afterwards.</li>
+                <li>The Rotate button invalidates the current key for the next publish. After rotating, every encoder that still has the old key stops being able to connect.</li>
+            </ul>
+            <div class="wiki-guide">
+                <video controls preload="none" src="/static/guides/obs-ingest-setup.mp4"></video>
+            </div>
+
+            <h2>2. Point OBS at the server</h2>
+            <ul>
+                <li>OBS: Settings, then Stream.</li>
+                <li>Service: <code>Custom...</code></li>
+                <li>Server: the RTMP URL from the Stream tab.</li>
+                <li>Stream Key: the stream key from the Stream tab.</li>
+            </ul>
+
+            <h2>3. Encoder settings</h2>
+            <p>Settings, then Output, set Output Mode to Advanced.</p>
+            <table>
+                <tr><th>Setting</th><th>Value</th></tr>
+                <tr><td>Encoder</td><td>NVENC H.264 if you have an NVIDIA GPU, otherwise x264</td></tr>
+                <tr><td>Rate control</td><td>CBR</td></tr>
+                <tr><td>Bitrate</td><td>6000 to 8000 kbps for 1080p60, up to 10000 kbps maximum</td></tr>
+                <tr><td>Keyframe interval</td><td>2 s</td></tr>
+                <tr><td>Preset</td><td>x264: veryfast (slower only if your CPU has headroom); NVENC: Quality (P5)</td></tr>
+                <tr><td>Profile</td><td>high</td></tr>
+            </table>
+            <p>
+                The declared bitrate cap is <strong>10000 kbps</strong>: a stream whose encoder announces a video
+                bitrate above that is disconnected immediately when the stream starts. Set 10000 or less in OBS
+                and the connection is accepted.
+            </p>
+            <p>
+                The keyframe interval matters: the player starts new viewers on a keyframe, so long intervals
+                mean slower joins and higher latency. Leave it at 2 s.
+            </p>
+            <p>Only H.264 video with AAC audio is accepted; HEVC and AV1 publishes are rejected.</p>
+            <div class="wiki-guide">
+                <video controls preload="none" src="/static/guides/obs-encoder-settings.mp4"></video>
+            </div>
+
+            <h2>4. Audio</h2>
+            <ul>
+                <li>Audio encoder: AAC.</li>
+                <li>Bitrate: 160 kbps is plenty for stereo.</li>
+                <li>Sample rate (Settings, Audio): 48 kHz.</li>
+            </ul>
+
+            <h2>5. Resolution and framerate</h2>
+            <p>Settings, then Video: set the Output (Scaled) Resolution and FPS to what your account allows.</p>
+            <table>
+                <tr><th>Ceiling</th><th>Baseline</th><th>Upgrade</th></tr>
+                <tr><td>Resolution</td><td>1920x1080</td><td>1440p and 4K (2160p) available in the dashboard <a href="/dashboard/subscription">Subscription</a> tab</td></tr>
+                <tr><td>Framerate</td><td>60 fps</td><td>120 fps and 240 fps available in the Subscription tab</td></tr>
+            </table>
+            <p>Publishing above your account's ceiling terminates the stream; drop the output resolution or FPS in OBS and reconnect.</p>
+
+            <h2>6. Going live</h2>
+            <ul>
+                <li>Set your title and category in the dashboard Stream Manager tab (or via the <a href="#public-api">Public API</a>).</li>
+                <li>Check your scene: correct sources visible, audio meters moving, no muted mic.</li>
+                <li>Press Start Streaming in OBS and watch the status bar: green square, stable bitrate, 0 dropped frames.</li>
+                <li>Open your channel page in a browser tab and confirm video and audio.</li>
+                <li>Your channel appears on the front page automatically while you are live.</li>
+            </ul>
+            <div class="wiki-guide">
+                <video controls preload="none" src="/static/guides/obs-first-stream.mp4"></video>
+            </div>
+
+            <h2>Common failures</h2>
+            <table>
+                <tr><th>Symptom</th><th>Cause and fix</th></tr>
+                <tr><td>Disconnected right after Start Streaming</td><td>The stream key was rotated and OBS still has the old one; copy the current key from the Stream tab. Also caused by a declared bitrate above 10000 kbps.</td></tr>
+                <tr><td>OBS shows connected but the channel stays offline</td><td>Wrong Server URL, usually after a region change; re-copy the RTMP URL from the Stream tab.</td></tr>
+                <tr><td>Stream drops when a second device connects</td><td>A new publish with the same key takes over the running stream; stop the other encoder.</td></tr>
+                <tr><td>Stream rejected with an encoder error</td><td>HEVC or AV1 video, or non-AAC audio; switch to H.264 + AAC.</td></tr>
+                <tr><td>Stream killed at higher resolution or FPS</td><td>Output exceeds your account ceiling; lower it or upgrade in the Subscription tab.</td></tr>
+                <tr><td>Viewers report high delay</td><td>Keyframe interval not set to 2 s, or the encoder is overloaded (check dropped frames in the OBS status bar).</td></tr>
             </table>
         </section>
 

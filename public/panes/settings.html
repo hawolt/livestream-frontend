@@ -55,6 +55,18 @@
         </p>
         <div id="st-bot-body"></div>
 
+        <div class="section-title" style="margin-top:28px">API Tokens</div>
+        <p style="color:var(--muted);font-size:13px;margin:0 0 12px">
+            Tokens for the public developer API. Send one as <code>Authorization: Bearer &lt;token&gt;</code> on every request; each token is shown in full exactly once, right after you create it.
+        </p>
+        <form id="settings-api-token-form" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:0 0 12px">
+            <input id="st-api-token-label" type="text" maxlength="64" autocomplete="off" placeholder="Label, e.g. stream deck" style="flex:1;min-width:180px" />
+            <button type="submit" class="btn btn-primary" id="btn-api-token-create">Create token</button>
+            <span id="st-api-token-status" style="font-size:13px"></span>
+        </form>
+        <div id="st-api-token-created" style="display:none"></div>
+        <div id="st-api-tokens-body"></div>
+
         <div class="section-title" style="margin-top:28px">Username</div>
         <p style="color:var(--muted);font-size:13px;margin:0 0 12px" id="st-username-hint">You can change your username once every 30 days. Changing only the capitalization is always allowed.</p>
         <form id="settings-username-form">

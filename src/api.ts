@@ -14,6 +14,22 @@ export interface AccountSettings {
     liveNotify?: boolean;
 }
 
+export interface ApiTokenInfo {
+    id: number;
+    label: string;
+    prefix: string;
+    createdAt: number;
+    lastUsedAt: number | null;
+}
+
+export interface ApiTokenCreated {
+    id: number;
+    token: string;
+    label: string;
+    prefix: string;
+    createdAt: number;
+}
+
 export interface BillingTier {
     key: string;
     label: string;

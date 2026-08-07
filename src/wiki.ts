@@ -4,6 +4,16 @@ void initSiteNav(null);
 
 for (const el of Array.from(document.querySelectorAll("[data-fill=host]"))) el.textContent = location.host;
 
+for (const video of Array.from(document.querySelectorAll<HTMLVideoElement>(".wiki-guide video"))) {
+    const guide = video.closest<HTMLElement>(".wiki-guide");
+    if (!guide) continue;
+    const hide = () => guide.remove();
+    video.addEventListener("error", hide, { once: true });
+    fetch(video.getAttribute("src") ?? "", { method: "HEAD" }).then((res) => {
+        if (!res.ok) hide();
+    }, hide);
+}
+
 const sections = Array.from(document.querySelectorAll<HTMLElement>("#wiki-content section[data-topic]"));
 const topicsNav = document.getElementById("wiki-topics");
 

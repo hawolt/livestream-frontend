@@ -17,12 +17,12 @@ describe("fmtDate", () => {
 });
 
 describe("fmtTime", () => {
-    test("formats local hours and minutes", () => {
-        expect(fmtTime(new Date(2024, 2, 5, 10, 20, 30))).toBe("10:20");
+    test("formats local hours, minutes and seconds", () => {
+        expect(fmtTime(new Date(2024, 2, 5, 10, 20, 30))).toBe("10:20:30");
     });
 
-    test("pads single-digit hours and minutes", () => {
-        expect(fmtTime(new Date(2026, 0, 15, 4, 5))).toBe("04:05");
+    test("pads single-digit hours, minutes and seconds", () => {
+        expect(fmtTime(new Date(2026, 0, 15, 4, 5))).toBe("04:05:00");
     });
 
     test("returns a dash for missing input", () => {

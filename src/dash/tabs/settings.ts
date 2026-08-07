@@ -1,4 +1,4 @@
-import type { AccountSettings } from "../../api.ts";
+import type { AccountSettings, ApiTokenCreated, ApiTokenInfo } from "../../api.ts";
 import { copyText } from "../../clipboard.ts";
 import { $ } from "../dom.ts";
 import { authFetch, getMe, setToken } from "../session.ts";
@@ -183,6 +183,137 @@ function renderBotCard(token: string | null): void {
     el.append(row, help);
 }
 
+function formatTokenDate(millis: number | null): string {
+    return typeof millis === "number" ? new Date(millis).toLocaleDateString() : "never";
+}
+
+function renderApiTokens(tokens: ApiTokenInfo[]): void {
+    const el = document.getElementById("st-api-tokens-body");
+    if (!el) return;
+    el.replaceChildren();
+    if (tokens.length === 0) {
+        const empty = document.createElement("div");
+        empty.style.cssText = "font-size:13px;color:var(--muted)";
+        empty.textContent = "No API tokens yet.";
+        el.append(empty);
+        return;
+    }
+    for (const token of tokens) {
+        const row = document.createElement("div");
+        row.style.cssText = "display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:6px 0;border-top:1px solid var(--border)";
+        const code = document.createElement("code");
+        code.style.cssText = "font-size:11px";
+        code.textContent = `${token.prefix}…`;
+        const label = document.createElement("span");
+        label.style.cssText = "font-size:13px;flex:1;min-width:120px";
+        label.textContent = token.label || "(no label)";
+        const dates = document.createElement("span");
+        dates.style.cssText = "font-size:12px;color:var(--muted)";
+        dates.textContent = `created ${formatTokenDate(token.createdAt)}, last used ${formatTokenDate(token.lastUsedAt)}`;
+        const deleteBtn = document.createElement("button");
+        deleteBtn.className = "btn btn-sm btn-danger";
+        deleteBtn.textContent = "Delete";
+        deleteBtn.addEventListener("click", () => void deleteApiToken(token, deleteBtn));
+        row.append(code, label, dates, deleteBtn);
+        el.append(row);
+    }
+}
+
+async function loadApiTokens(generation = activationGeneration): Promise<void> {
+    if (!isCurrentActivation(generation)) return;
+    const operation = beginOperation("api-tokens-load");
+    try {
+        const res = await authFetch<{ tokens: ApiTokenInfo[] }>("/api/settings/api-tokens");
+        if (isCurrentOperation(operation)) renderApiTokens(res.tokens);
+    } catch (e) {
+        if (!isCurrentOperation(operation)) return;
+        const el = document.getElementById("st-api-tokens-body");
+        if (el) {
+            el.replaceChildren();
+            const err = document.createElement("div");
+            err.style.cssText = "font-size:13px;color:var(--red)";
+            err.textContent = e instanceof Error ? e.message : String(e);
+            el.append(err);
+        }
+    }
+}
+
+function renderCreatedApiToken(created: ApiTokenCreated): void {
+    const el = document.getElementById("st-api-token-created");
+    if (!el) return;
+    el.replaceChildren();
+    el.style.cssText = "display:block;border:1px solid #854d0e;border-radius:6px;padding:10px;margin:0 0 12px";
+    const warning = document.createElement("div");
+    warning.style.cssText = "font-size:13px;color:#fbbf24;margin-bottom:8px";
+    warning.textContent = "Copy this token now, it will not be shown again.";
+    const row = document.createElement("div");
+    row.style.cssText = "display:flex;align-items:center;gap:8px;flex-wrap:wrap";
+    const code = document.createElement("code");
+    code.style.cssText = "font-size:11px;word-break:break-all";
+    code.textContent = created.token;
+    const copyBtn = document.createElement("button");
+    copyBtn.className = "btn btn-sm";
+    copyBtn.textContent = "Copy";
+    copyBtn.addEventListener("click", () => {
+        void copyText(created.token).then(copied => {
+            copyBtn.textContent = copied ? "Copied" : "Failed";
+            setTimeout(() => { copyBtn.textContent = "Copy"; }, 1200);
+        });
+    });
+    const dismissBtn = document.createElement("button");
+    dismissBtn.className = "btn btn-sm";
+    dismissBtn.textContent = "Dismiss";
+    dismissBtn.addEventListener("click", () => {
+        el.replaceChildren();
+        el.style.cssText = "display:none";
+    });
+    row.append(code, copyBtn, dismissBtn);
+    el.append(warning, row);
+}
+
+async function createApiToken(): Promise<void> {
+    const btn = document.getElementById("btn-api-token-create") as HTMLButtonElement | null;
+    const labelInput = document.getElementById("st-api-token-label") as HTMLInputElement | null;
+    const status = document.getElementById("st-api-token-status");
+    const operation = beginOperation("api-token-create");
+    if (btn) btn.disabled = true;
+    try {
+        const created = await authFetch<ApiTokenCreated>("/api/settings/api-tokens", {
+            method: "POST",
+            body: JSON.stringify({ label: labelInput?.value.trim() ?? "" }),
+        });
+        if (isCurrentOperation(operation)) {
+            if (labelInput) labelInput.value = "";
+            if (status) status.textContent = "";
+            renderCreatedApiToken(created);
+        }
+        void loadApiTokens(operation.generation);
+    } catch (e) {
+        if (isCurrentOperation(operation) && status) {
+            status.textContent = e instanceof Error ? e.message : String(e);
+            status.style.color = "var(--red)";
+        }
+    } finally {
+        if (isCurrentOperation(operation) && btn) btn.disabled = false;
+    }
+}
+
+async function deleteApiToken(token: ApiTokenInfo, btn: HTMLButtonElement): Promise<void> {
+    const name = token.label ? `"${token.label}"` : `${token.prefix}…`;
+    if (!confirm(`Delete API token ${name}? Requests using it stop working immediately.`)) return;
+    const operation = beginOperation("api-token-delete");
+    btn.disabled = true;
+    try {
+        await authFetch(`/api/settings/api-tokens/${token.id}`, { method: "DELETE" });
+        void loadApiTokens(operation.generation);
+    } catch (e) {
+        if (isCurrentOperation(operation)) {
+            alert("Failed: " + (e instanceof Error ? e.message : String(e)));
+            btn.disabled = false;
+        }
+    }
+}
+
 async function rotateBotToken(btn: HTMLButtonElement, confirmFirst: boolean): Promise<void> {
     if (confirmFirst && !confirm("Rotate the bot token? Connected bots are disconnected within about 90 seconds and the old token stops working.")) return;
     const operation = beginOperation("bot-token");
@@ -298,6 +429,11 @@ export function init(): void {
             saved.textContent = err instanceof Error ? err.message : String(err);
             saved.style.color = "var(--red)";
         }
+    });
+
+    document.getElementById("settings-api-token-form")?.addEventListener("submit", (e) => {
+        e.preventDefault();
+        void createApiToken();
     });
 
     document.getElementById("st-chat-color")?.addEventListener("input", syncColorPreview);
@@ -439,7 +575,10 @@ export function activate(): void {
     if (resend) resend.disabled = false;
     if (liveNotify) liveNotify.disabled = false;
     document.querySelectorAll<HTMLButtonElement>("#st-bot-body button").forEach(button => { button.disabled = false; });
+    const createTokenBtn = document.getElementById("btn-api-token-create") as HTMLButtonElement | null;
+    if (createTokenBtn) createTokenBtn.disabled = false;
     void loadSettings(generation);
+    void loadApiTokens(generation);
 }
 
 export function deactivate(): void {
