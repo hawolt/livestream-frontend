@@ -7,6 +7,7 @@ import {
 } from "./dash/session.ts";
 import { closeDismissibleSurface, openDismissibleSurface } from "./dismissible-surface.ts";
 import { motionScrollBehavior } from "./motion.ts";
+import { studioBaseUrl, studioTabUrl } from "./dash/studio.ts";
 
 const TAB_LOADERS: Record<string, () => Promise<TabModule>> = {
     stream:           () => import("./dash/tabs/stream.ts"),
@@ -32,7 +33,7 @@ let activationSeq = 0;
 let refreshRevision = 0;
 let sidebarToggleLabel: HTMLElement | null = null;
 let closeSidebarMenu: ((restoreFocus?: boolean) => void) | null = null;
-let studioUrl: string | null = null;
+let studioTabs: TabInfo[] = [];
 let burgerGroupId = 0;
 
 const DASH_SIDE_LIST_ID = "dash-side-list";
@@ -44,17 +45,14 @@ function tabFromLocation(): string | null {
     return hash || null;
 }
 
-function studioDashboardUrl(tabs: TabInfo[]): string | null {
-    if (!tabs.some(tab => !TAB_LOADERS[tab.id])) return null;
-    const baseDomain = location.hostname.replace(/^(live|admin|staff)\./, "");
-    const port = location.port ? `:${location.port}` : "";
-    return `https://studio.${baseDomain}${port}/dashboard`;
+function studioOnlyTabs(tabs: TabInfo[]): TabInfo[] {
+    return tabs.filter(tab => !TAB_LOADERS[tab.id]);
 }
 
-function navigationSnapshot(tabs: TabInfo[], studio: string | null): string {
+function navigationSnapshot(tabs: TabInfo[], studio: TabInfo[]): string {
     return JSON.stringify({
         tabs: tabs.map(tab => ({ id: tab.id, label: tab.label, pane: tab.pane, group: tab.group ?? null })),
-        studio,
+        studio: studio.map(tab => ({ id: tab.id, label: tab.label })),
     });
 }
 
@@ -243,13 +241,13 @@ async function refreshTabs(): Promise<void> {
     if (revision !== refreshRevision) return;
     setMe(refreshed);
     const tabs = (refreshed.tabs ?? []).filter(t => TAB_LOADERS[t.id]);
-    const nextStudioUrl = studioDashboardUrl(refreshed.tabs ?? []);
-    if (navigationSnapshot(tabs, nextStudioUrl) === navigationSnapshot(allTabs, studioUrl)) return;
+    const nextStudioTabs = studioOnlyTabs(refreshed.tabs ?? []);
+    if (navigationSnapshot(tabs, nextStudioTabs) === navigationSnapshot(allTabs, studioTabs)) return;
     const previousCurrentInfo = currentTab ? tabById.get(currentTab) : undefined;
     const currentPaneChanged = !!currentTab && tabs.some(tab => tab.id === currentTab && tab.pane !== previousCurrentInfo?.pane);
     const reloadTab = currentPaneChanged ? currentTab : null;
     activationSeq += 1;
-    studioUrl = nextStudioUrl;
+    studioTabs = nextStudioTabs;
     allTabs = tabs;
     tabById.clear();
     for (const t of tabs) tabById.set(t.id, t);
@@ -309,21 +307,35 @@ function buildSidebar(tabs: TabInfo[]): void {
     }
     for (const t of ungrouped) appendSidebarLink(list, t);
 
-    if (studioUrl) {
+    if (studioTabs.length) {
         if (showHeaders) {
             const header = document.createElement("div");
             header.className = "dash-side-group";
             header.textContent = "Studio";
             list.appendChild(header);
         }
-        list.appendChild(makeStudioLink("dash-side-link"));
+        for (const t of studioTabs) list.appendChild(makeStudioTabLink(t));
     }
+}
+
+function makeStudioTabLink(t: TabInfo): HTMLAnchorElement {
+    const a = document.createElement("a");
+    a.className = "dash-side-link studio";
+    a.href = studioTabUrl(t.id);
+    const label = document.createElement("span");
+    label.textContent = t.label;
+    const chip = document.createElement("span");
+    chip.className = "dash-side-chip";
+    chip.textContent = "Studio";
+    chip.setAttribute("aria-hidden", "true");
+    a.append(label, chip);
+    return a;
 }
 
 function makeStudioLink(className: string): HTMLAnchorElement {
     const a = document.createElement("a");
     a.className = className;
-    a.href = studioUrl ?? "";
+    a.href = `${studioBaseUrl()}/dashboard`;
     a.textContent = "Open Studio";
     return a;
 }
@@ -343,7 +355,7 @@ function buildBurgerTabItems(close: () => void): HTMLElement[] {
     const distinctGroups = new Set(allTabs.map(t => t.group ?? "__none__"));
     if (distinctGroups.size < 2) {
         const items: HTMLElement[] = allTabs.map(t => makeBurgerTab(t, close));
-        if (studioUrl) items.push(makeStudioLink("site-account-item"));
+        if (studioTabs.length) items.push(makeStudioLink("site-account-item"));
         return items;
     }
 
@@ -402,7 +414,7 @@ function buildBurgerTabItems(close: () => void): HTMLElement[] {
         section.append(header, list);
         out.push(section);
     }
-    if (studioUrl) out.push(makeStudioLink("site-account-item"));
+    if (studioTabs.length) out.push(makeStudioLink("site-account-item"));
     return out;
 }
 
@@ -480,7 +492,7 @@ function showSessionProblem(state: "forbidden" | "unavailable"): void {
     });
 
     const tabs = (me.tabs ?? []).filter(t => TAB_LOADERS[t.id]);
-    studioUrl = studioDashboardUrl(me.tabs ?? []);
+    studioTabs = studioOnlyTabs(me.tabs ?? []);
     allTabs = tabs;
     for (const t of tabs) tabById.set(t.id, t);
     buildSidebar(tabs);

@@ -358,6 +358,27 @@
 }
 .dash-side-link.active:hover { background: var(--accent-pale); }
 
+.dash-side-link.studio {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    color: #7a7a7a;
+}
+.dash-side-link.studio:hover { color: var(--text); }
+
+.dash-side-chip {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: #6a6a6a;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    padding: 1px 7px;
+    flex-shrink: 0;
+}
+
 #panes {
     flex: 1;
     min-width: 0;
