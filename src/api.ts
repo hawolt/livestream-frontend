@@ -128,6 +128,27 @@ export interface LiveInfo {
     ticketCurrency?: string | null;
     ticketDays?: number;
     maxImageBytes?: number;
+    maxHeight?: number;
+    maxFps?: number;
+}
+
+export interface BillingAddon {
+    key: string;
+    label: string;
+    price: string;
+    note?: string;
+    active: boolean;
+    family?: string | null;
+    rank?: number | null;
+    upgrade?: boolean;
+    downgrade?: boolean;
+}
+
+export interface BillingAddons {
+    enabled: boolean;
+    addons: BillingAddon[];
+    currency?: string;
+    priceInterval?: string;
 }
 
 export interface LiveChannelInfo {

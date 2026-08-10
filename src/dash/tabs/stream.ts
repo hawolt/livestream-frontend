@@ -1,13 +1,104 @@
-import type { LiveInfo, RegionOption } from "../../api.ts";
+import type { BillingAddon, BillingAddons, LiveInfo, RegionOption } from "../../api.ts";
 import { copyText } from "../../clipboard.ts";
 import { esc, maskSecret } from "../format.ts";
 import { openModal } from "../modal.ts";
 import { loadRegions } from "../regions.ts";
 import { authFetch } from "../session.ts";
+import { studioTabUrl } from "../studio.ts";
 import { formatTicketPrice, parseTicketPrice, TICKET_MAX_CENTS, TICKET_MIN_CENTS } from "../../ticket-price.ts";
 
 let liveCache: LiveInfo | null = null;
 let regions: RegionOption[] = [];
+let addonsCache: BillingAddons | null = null;
+
+const STREAM_CARD_ADDONS = new Set(["thumbnail", "private", "ticketing"]);
+const STUDIO_ADDONS = new Set(["irl", "remoteobs", "restream_plus", "restream_slot"]);
+
+const ADDON_NOTE_FALLBACK: Record<string, string> = {
+    transcode: "Gives your viewers quality options, so slow connections drop resolution instead of buffering.",
+    fps_120: "Publish at up to 120 FPS with a raised bitrate ceiling.",
+    fps_240: "Publish at up to 240 FPS with a raised bitrate ceiling.",
+    res_2k: "Publish at up to 1440p with a raised bitrate ceiling.",
+    res_4k: "Publish at up to 2160p with a raised bitrate ceiling.",
+};
+
+const CURRENCY_SYMBOLS: Record<string, string> = { EUR: "€", USD: "$", GBP: "£" };
+
+function addonPriceText(addon: BillingAddon): string {
+    const price = (addon.price ?? "").trim();
+    if (!price) return "";
+    const currency = (addonsCache?.currency ?? "").trim().toUpperCase();
+    const symbol = CURRENCY_SYMBOLS[currency] ?? currency;
+    const amount = symbol && /^[\d.,\s]+$/.test(price) ? `${price} ${symbol}` : price;
+    const interval = (addonsCache?.priceInterval ?? "").trim();
+    return interval ? `${amount} / ${interval}` : amount;
+}
+
+function lockedAddon(key: string): BillingAddon | null {
+    if (!addonsCache?.enabled) return null;
+    const addon = addonsCache.addons.find(a => a.key === key);
+    if (!addon || addon.active || addon.downgrade) return null;
+    return addon;
+}
+
+function lockTagHtml(addon: BillingAddon): string {
+    const price = addonPriceText(addon);
+    return `<div class="lock-tag">${price ? `Addon · ${esc(price)}` : "Addon"}</div>`;
+}
+
+function lockActionsHtml(): string {
+    return `<div class="card-actions"><a class="btn btn-sm" href="${esc(studioTabUrl("upgrades"))}">See Upgrades</a></div>`;
+}
+
+function applyCardLock(bodyId: string, locked: boolean): void {
+    document.getElementById(bodyId)?.closest(".card")?.classList.toggle("locked", locked);
+}
+
+function renderLockedAddonCards(): void {
+    const grid = document.querySelector("#pane-stream .card-grid-2");
+    if (!grid) return;
+    grid.querySelectorAll("[data-locked-addon]").forEach(el => el.remove());
+    if (!addonsCache?.enabled) return;
+    for (const addon of addonsCache.addons) {
+        if (addon.active || addon.downgrade) continue;
+        if (STREAM_CARD_ADDONS.has(addon.key) || STUDIO_ADDONS.has(addon.key)) continue;
+        const note = (addon.note ?? "").trim() || ADDON_NOTE_FALLBACK[addon.key] || "";
+        const card = document.createElement("div");
+        card.className = "card locked";
+        card.dataset["lockedAddon"] = addon.key;
+        card.innerHTML = `
+            <div class="section-title">${esc(addon.label)}</div>
+            ${lockTagHtml(addon)}
+            ${note ? `<p style="font-size:13px;color:var(--muted);margin:8px 0 0">${esc(note)}</p>` : ""}
+            ${lockActionsHtml()}`;
+        grid.appendChild(card);
+    }
+}
+
+function formatCeiling(): string {
+    const height = liveCache?.maxHeight;
+    const fps = liveCache?.maxFps;
+    if (typeof height !== "number" || height <= 0) return "";
+    return typeof fps === "number" && fps > 0 ? `${height}p${fps}` : `${height}p`;
+}
+
+function renderStrip(): void {
+    const el = document.getElementById("live-strip");
+    if (!el || !liveCache) return;
+    const stats: { label: string; value: string }[] = [];
+    if (liveCache.regionLabel) stats.push({ label: "Region", value: liveCache.regionLabel });
+    const ceiling = formatCeiling();
+    if (ceiling) stats.push({ label: "Ceiling", value: ceiling });
+    if (!stats.length) {
+        el.replaceChildren();
+        return;
+    }
+    el.innerHTML = `<div class="dash-strip">${stats.map(s => `
+        <div class="dash-stat">
+            <div class="dash-stat-label">${esc(s.label)}</div>
+            <div class="dash-stat-value">${esc(s.value)}</div>
+        </div>`).join("")}</div>`;
+}
 
 async function loadLive(): Promise<void> {
     const ids = ["live-ingest-body", "live-playback-body", "live-channel-body", "live-thumbnail-body", "live-private-body", "live-ticket-body", "live-webhook-body"];
@@ -16,8 +107,11 @@ async function loadLive(): Promise<void> {
         if (el) el.textContent = "Loading...";
     }
     try {
+        const addonsPromise = authFetch<BillingAddons>("/api/billing/addons").catch(() => null);
         regions = await loadRegions();
         liveCache = await authFetch<LiveInfo>("/api/live");
+        addonsCache = await addonsPromise;
+        renderStrip();
         renderIngest();
         renderPlayback();
         renderChannel();
@@ -25,6 +119,7 @@ async function loadLive(): Promise<void> {
         renderPrivate();
         renderTicket();
         renderWebhooks();
+        renderLockedAddonCards();
     } catch (e) {
         for (const id of ids) {
             const el = document.getElementById(id);
@@ -107,6 +202,7 @@ function renderIngest(): void {
                 method: "POST",
                 body: JSON.stringify({ region: next }),
             });
+            renderStrip();
             renderIngest();
             renderPlayback();
         } catch (err) {
@@ -140,12 +236,12 @@ function renderPlayback(): void {
         ${server ? fieldRowEm("Playback URL", url, "live-playback-url", true)
                  : `<div style="font-size:13px;color:var(--red)">Live ingest host is not configured on the server.</div>`}
         ${hlsUrl ? fieldRowEm("HLS playlist", hlsUrl, "live-hls-url", false) : ""}
-        <div style="margin-top:12px">
-            <button class="btn" id="btn-live-playback-rotate">Rotate Playback Key</button>
-        </div>
         <div style="font-size:12px;color:var(--muted);margin-top:10px">
             In OBS, add a Media Source, uncheck "Local File", paste the URL, and lower "Network Buffering" for the least delay.
             The HLS playlist plays in VLC, mpv or any HLS player while you are live; it is public, unlike the playback URL.
+        </div>
+        <div class="card-actions">
+            <button class="btn" id="btn-live-playback-rotate">Rotate Playback Key</button>
         </div>`;
     if (server) wireField("live-playback-url", url, true);
     if (hlsUrl) wireField("live-hls-url", hlsUrl, false);
@@ -223,6 +319,12 @@ function renderThumbnail(): void {
     const el = document.getElementById("live-thumbnail-body");
     if (!el || !liveCache) return;
     const allowed = liveCache.thumbnailAllowed === true;
+    const lock = !allowed && !liveCache.hasThumbnail ? lockedAddon("thumbnail") : null;
+    applyCardLock("live-thumbnail-body", lock !== null);
+    if (lock) {
+        el.innerHTML = `${lockTagHtml(lock)}${lockActionsHtml()}`;
+        return;
+    }
     const version = liveCache.thumbnailVersion;
     const previewUrl = liveCache.hasThumbnail && liveCache.usernameOk
         ? `/api/live/thumbnail/${encodeURIComponent(liveCache.username.toLowerCase())}?v=${version ?? 0}`
@@ -231,12 +333,12 @@ function renderThumbnail(): void {
         ${allowed ? "" : `<p style="color:var(--muted);font-size:13px;margin:0 0 12px">A subscription is required to upload a custom thumbnail. <a href="/dashboard/subscription" data-switch-tab="subscription">See subscription plans</a>.</p>`}
         ${previewUrl ? `<img id="live-thumb-preview" src="${esc(previewUrl)}" alt="Stream thumbnail" style="display:block;width:100%;max-width:320px;aspect-ratio:16/9;object-fit:cover;border:1px solid var(--border);border-radius:6px;margin-bottom:10px">` : ""}
         <input id="live-thumb-file" type="file" accept="image/png,image/jpeg" hidden>
-        <div style="display:flex;gap:6px;flex-wrap:wrap">
+        <div style="font-size:12px;color:var(--muted)">JPG or PNG, 16:9 recommended, up to ${thumbnailKib()} KiB and 2560x1440.</div>
+        <div id="live-thumb-error" style="color:var(--red);font-size:13px;margin-top:6px"></div>
+        <div class="card-actions">
             <button class="btn btn-primary" id="live-thumb-upload" ${allowed ? "" : "disabled"}>${liveCache.hasThumbnail ? "Replace" : "Upload"}</button>
             ${liveCache.hasThumbnail ? `<button class="btn" id="live-thumb-remove">Remove</button>` : ""}
-        </div>
-        <div style="font-size:12px;color:var(--muted);margin-top:8px">JPG or PNG, 16:9 recommended, up to ${thumbnailKib()} KiB and 2560x1440.</div>
-        <div id="live-thumb-error" style="color:var(--red);font-size:13px;margin-top:6px"></div>`;
+        </div>`;
     const fileInput = document.getElementById("live-thumb-file") as HTMLInputElement;
     const uploadBtn = document.getElementById("live-thumb-upload") as HTMLButtonElement;
     const errEl = document.getElementById("live-thumb-error")!;
@@ -289,6 +391,12 @@ function renderPrivate(): void {
     if (!el || !liveCache) return;
     const allowed = liveCache.privateAllowed === true;
     const active = liveCache.passwordProtected === true;
+    const lock = !allowed && !active ? lockedAddon("private") : null;
+    applyCardLock("live-private-body", lock !== null);
+    if (lock) {
+        el.innerHTML = `${lockTagHtml(lock)}${lockActionsHtml()}`;
+        return;
+    }
     el.innerHTML = `
         ${allowed || active ? "" : `<p style="color:var(--muted);font-size:13px;margin:0 0 12px">A subscription is required to make your stream private. <a href="/dashboard/subscription" data-switch-tab="subscription">See subscription plans</a>.</p>`}
         ${active ? `<div style="font-size:13px;color:var(--success);margin-bottom:10px">Password protection is on. Your channel is hidden from Browse.</div>` : ""}
@@ -338,6 +446,12 @@ function renderTicket(): void {
     const active = priceCents !== null && priceCents > 0;
     const days = liveCache.ticketDays ?? 30;
     const currentValue = active ? (priceCents / 100).toFixed(2) : "";
+    const lock = !allowed && !active ? lockedAddon("ticketing") : null;
+    applyCardLock("live-ticket-body", lock !== null);
+    if (lock) {
+        el.innerHTML = `${lockTagHtml(lock)}${lockActionsHtml()}`;
+        return;
+    }
     el.innerHTML = `
         ${allowed || active ? "" : `<p style="color:var(--muted);font-size:13px;margin:0 0 12px">A subscription is required to sell tickets. <a href="/dashboard/subscription" data-switch-tab="subscription">See subscription plans</a>.</p>`}
         ${active ? `<div style="font-size:13px;color:var(--success);margin-bottom:10px">Tickets are on at ${esc(formatTicketPrice(priceCents!, liveCache.ticketCurrency))}. Your channel is hidden from Browse.</div>` : ""}
@@ -433,18 +547,15 @@ function renderWebhooks(): void {
             <label class="span2"><span>Stream end URL</span><input id="live-wh-end" type="text" maxlength="512" placeholder="https://example.com/hooks/stream-end" value="${esc(liveCache.webhookEndUrl)}"></label>
         </div>
         <div id="live-wh-error" style="color:var(--red);font-size:13px;margin-top:8px"></div>
-        <div style="margin-top:12px;display:flex;gap:6px">
-            <button class="btn btn-primary" id="btn-live-wh-save">Save Webhooks</button>
-            <button class="btn" id="btn-live-wh-integration">Integration</button>
-        </div>
-        ${hasSecret ? `
-        ${fieldRow("Signing secret", liveCache.webhookSecret, "live-wh-secret", true)}
-        <div style="margin-top:12px">
-            <button class="btn" id="btn-live-wh-rotate">Rotate Secret</button>
-        </div>` : `
+        ${hasSecret ? fieldRow("Signing secret", liveCache.webhookSecret, "live-wh-secret", true) : `
         <div style="font-size:12px;color:var(--muted);margin-top:10px">
             A signing secret is generated when you first save a webhook URL.
-        </div>`}`;
+        </div>`}
+        <div class="card-actions">
+            <button class="btn btn-primary" id="btn-live-wh-save">Save Webhooks</button>
+            <button class="btn" id="btn-live-wh-integration">Integration</button>
+            ${hasSecret ? `<button class="btn" id="btn-live-wh-rotate">Rotate Secret</button>` : ""}
+        </div>`;
     if (hasSecret) {
         wireField("live-wh-secret", liveCache.webhookSecret, true);
         document.getElementById("btn-live-wh-rotate")?.addEventListener("click", async () => {
