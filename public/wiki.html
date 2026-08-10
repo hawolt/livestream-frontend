@@ -34,7 +34,10 @@
         }
         .wiki-side-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .1em; color: var(--dim); margin-bottom: 10px; }
         .wiki-side a { display: flex; align-items: center; justify-content: flex-start; padding: 8px 10px; border-radius: 6px; color: var(--muted); font-size: 13px; text-decoration: none; text-align: left; }
+        .wiki-side a::before { content: "\00b7"; color: var(--dim); margin-right: 8px; }
         .wiki-side a:hover { color: var(--text); background: var(--surface); }
+        .wiki-side a:hover::before { color: var(--muted); }
+        .wiki-side a.active::before { color: var(--green); }
         .wiki-side a.active { color: var(--green); background: var(--surface); font-weight: 600; }
         .wiki-content { flex: 1; min-width: 0; }
         .wiki-content section[data-topic] { display: none; }
@@ -66,6 +69,7 @@
             .wiki-side { position: static; flex: none; width: 100%; }
             .wiki-side-title { display: none; }
             #wiki-topics { display: flex; flex-wrap: wrap; gap: 4px; }
+            .wiki-side a::before { display: none; }
         }
     </style>
 </head>
