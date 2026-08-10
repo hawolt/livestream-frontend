@@ -1,6 +1,6 @@
 import { API_BASE } from "./api.ts";
 import { sessionTokenMetadata } from "./session-token.ts";
-import { buildSignedIn, buildSignedOut } from "./nav/account-menu.ts";
+import { buildSignedIn, buildSignedOut, buildViewMenu } from "./nav/account-menu.ts";
 import { buildBurger } from "./nav/burger.ts";
 import { wireDropdown } from "./nav/dropdown.ts";
 
@@ -85,8 +85,6 @@ const GITHUB_ICON = `<svg viewBox="0 0 24 24" width="18" height="18" fill="curre
 
 const X_ICON = `<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>`;
 
-const SETTINGS_ICON = `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>`;
-
 const SOCIAL_LINKS: Array<[string, string, string]> = [
     ["Discord", "https://discord.gg/BfWqPZvEDv", DISCORD_ICON],
     ["X", "https://x.com/itzonapp", X_ICON],
@@ -124,42 +122,6 @@ function buildMoreMenu(): HTMLElement {
     }
 
     wrap.append(btn, panel);
-    wireDropdown(wrap, btn, panel);
-    return wrap;
-}
-
-function buildViewSettings(controls: HTMLButtonElement[]): HTMLElement {
-    const wrap = document.createElement("div");
-    wrap.className = "site-nav-controls site-account";
-
-    const btn = document.createElement("button");
-    btn.type = "button";
-    btn.className = "site-account-btn";
-    btn.setAttribute("aria-label", "View settings");
-    btn.title = "View settings";
-    btn.innerHTML = SETTINGS_ICON;
-
-    const panel = document.createElement("div");
-    panel.className = "site-account-panel";
-    panel.hidden = true;
-
-    const hidden = document.createElement("div");
-    hidden.className = "site-control-store";
-    hidden.hidden = true;
-
-    for (const ctrl of controls) {
-        hidden.appendChild(ctrl);
-        const item = document.createElement("button");
-        item.type = "button";
-        item.className = "site-account-item";
-        const sync = () => { item.textContent = ctrl.title || ctrl.textContent || ""; };
-        sync();
-        new MutationObserver(sync).observe(ctrl, { attributes: true, attributeFilter: ["title"] });
-        item.addEventListener("click", () => { ctrl.click(); });
-        panel.appendChild(item);
-    }
-
-    wrap.append(btn, panel, hidden);
     wireDropdown(wrap, btn, panel);
     return wrap;
 }
@@ -228,7 +190,13 @@ export async function initSiteNav(
         if (el instanceof HTMLButtonElement) controlButtons.push(el);
         else right.appendChild(el);
     }
-    if (controlButtons.length) right.appendChild(buildViewSettings(controlButtons));
+    if (controlButtons.length) {
+        const store = document.createElement("div");
+        store.className = "site-control-store";
+        store.hidden = true;
+        for (const ctrl of controlButtons) store.appendChild(ctrl);
+        right.appendChild(store);
+    }
 
     for (const a of buildSocialLinks()) right.appendChild(a);
 
@@ -244,6 +212,9 @@ export async function initSiteNav(
     const signedIn = !!info && info.kind === "user" && typeof info.username === "string";
     if (signedIn && knownSession === undefined) storeSessionToken(info as SessionInfo, tokenBeforeRequest);
     if (knownSession === undefined) startSessionRenewal();
-    right.appendChild(signedIn ? buildSignedIn(info as SessionInfo) : buildSignedOut());
+    right.appendChild(signedIn
+        ? buildSignedIn(info as SessionInfo, controlButtons)
+        : buildSignedOut());
+    if (!signedIn && controlButtons.length) right.appendChild(buildViewMenu(controlButtons));
     right.appendChild(buildBurger(signedIn ? (info as SessionInfo) : null, pageControls));
 }
