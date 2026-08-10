@@ -313,7 +313,7 @@
 }
 
 .dash-side {
-    width: 200px;
+    width: 244px;
     flex-shrink: 0;
     border-right: 1px solid var(--border);
     padding: 12px 0;
@@ -340,8 +340,10 @@
 }
 
 .dash-side-link {
-    display: block;
-    padding: 9px 20px 9px 22px;
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    padding: 9px 14px 9px 22px;
     font-size: 14px;
     font-weight: 600;
     color: #b8b8b8;
@@ -350,33 +352,46 @@
     white-space: nowrap;
     transition: background .15s, color .15s, border-color .15s;
 }
+.dash-side-link::before {
+    content: "";
+    flex: 0 0 11px;
+    width: 11px;
+    height: 11px;
+    border: 1px solid #4a4a4a;
+    border-radius: 2px;
+    transition: border-color .15s, background .15s;
+}
+.dash-side-label {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
 .dash-side-link:hover { color: var(--text); text-decoration: none; background: rgba(255, 255, 255, .05); }
+.dash-side-link:hover::before { border-color: #6f6f6f; }
 .dash-side-link.active {
     color: var(--accent);
     background: var(--accent-pale);
     border-left-color: var(--accent);
 }
+.dash-side-link.active::before { border-color: var(--accent); background: rgba(74, 222, 128, .18); }
 .dash-side-link.active:hover { background: var(--accent-pale); }
 
-.dash-side-link.studio {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 8px;
-    color: #7a7a7a;
-}
+.dash-side-link.studio { color: #7a7a7a; }
+.dash-side-link.studio::before { border-color: #3a3a3a; }
 .dash-side-link.studio:hover { color: var(--text); }
 
 .dash-side-chip {
-    font-size: 9px;
-    font-weight: 700;
-    letter-spacing: .08em;
-    text-transform: uppercase;
-    color: #6a6a6a;
-    border: 1px solid var(--border);
-    border-radius: 999px;
-    padding: 1px 7px;
     flex-shrink: 0;
+    font-size: 8.5px;
+    font-weight: 700;
+    letter-spacing: .07em;
+    text-transform: uppercase;
+    color: var(--amber);
+    border: 1px solid rgba(224, 179, 65, .45);
+    background: rgba(224, 179, 65, .07);
+    border-radius: 3px;
+    padding: 1px 5px;
 }
 
 #panes {

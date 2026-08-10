@@ -137,7 +137,10 @@ function appendSidebarLink(list: HTMLElement, t: TabInfo): void {
     link.className = "dash-side-link";
     link.href = `/dashboard/${t.id}`;
     link.dataset["tab"] = t.id;
-    link.textContent = t.label;
+    const label = document.createElement("span");
+    label.className = "dash-side-label";
+    label.textContent = t.label;
+    link.appendChild(label);
     link.addEventListener("click", (e) => {
         e.preventDefault();
         void activateTab(t.id);
@@ -311,7 +314,7 @@ function buildSidebar(tabs: TabInfo[]): void {
         if (showHeaders) {
             const header = document.createElement("div");
             header.className = "dash-side-group";
-            header.textContent = "Studio";
+            header.textContent = "In Studio";
             list.appendChild(header);
         }
         for (const t of studioTabs) list.appendChild(makeStudioTabLink(t));
@@ -323,6 +326,7 @@ function makeStudioTabLink(t: TabInfo): HTMLAnchorElement {
     a.className = "dash-side-link studio";
     a.href = studioTabUrl(t.id);
     const label = document.createElement("span");
+    label.className = "dash-side-label";
     label.textContent = t.label;
     const chip = document.createElement("span");
     chip.className = "dash-side-chip";

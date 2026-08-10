@@ -302,6 +302,7 @@ a.btn:hover { text-decoration: none; }
 .card.locked { border-style: dashed; border-color: rgba(224,179,65,.45); background: rgba(224,179,65,.045); }
 .card.locked .section-title { color: var(--amber); }
 .lock-tag { font-size: 10px; letter-spacing: .07em; text-transform: uppercase; color: var(--amber); }
+.card.locked .card-actions .btn { flex: 1; justify-content: center; }
 @media (max-width: 840px) {
     .card-grid, .card-grid-2 { grid-template-columns: 1fr; }
     .span-2, .span-3 { grid-column: span 1; }
