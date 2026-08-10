@@ -81,6 +81,13 @@
     align-items: center;
     gap: 8px;
 }
+.site-auth-cluster .btn {
+    height: 32px;
+    padding: 0 12px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
 
 .site-account {
     position: relative;
