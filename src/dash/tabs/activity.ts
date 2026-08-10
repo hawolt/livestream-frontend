@@ -59,8 +59,8 @@ function renderFollowerCount(): void {
 function eventRowHtml(e: FollowEvent): string {
     const at = dateOf(e.at);
     return `<div class="kv-row">
-        <span class="kv-k"><b style="color:var(--text)">${esc(e.username)}</b> followed</span>
-        <span class="kv-v" style="white-space:nowrap">${fmtTime(at)} ${fmtDate(at)}</span>
+        <span class="kv-k" style="min-width:0;overflow-wrap:anywhere"><b style="color:var(--text)">${esc(e.username)}</b> followed</span>
+        <span class="kv-v" style="white-space:nowrap;flex-shrink:0">${fmtTime(at)} ${fmtDate(at)}</span>
     </div>`;
 }
 
