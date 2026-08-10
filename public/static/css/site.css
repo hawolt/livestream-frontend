@@ -564,7 +564,7 @@ body.rail-collapsed .live-channel-rail { width: 57px; }
     gap: 8px;
     height: 48px;
     flex: 0 0 48px;
-    padding: 0 8px 0 14px;
+    padding: 0 8px 0 24px;
     border-bottom: 1px solid var(--border);
 }
 .live-channel-rail-title {
@@ -618,7 +618,7 @@ body.rail-collapsed .live-channel-rail { width: 57px; }
     align-items: center;
     gap: 9px;
     min-height: 44px;
-    padding: 4px 10px 4px 11px;
+    padding: 4px 10px 4px 21px;
     border-left: 3px solid transparent;
     color: var(--text);
     text-decoration: none;
@@ -703,7 +703,7 @@ body.rail-collapsed .live-channel-rail { width: 57px; }
 .live-channel-status[hidden] { display: none; }
 .live-channel-section-label {
     display: block;
-    padding: 8px 12px 3px;
+    padding: 8px 12px 3px 24px;
     color: var(--dim);
     font-size: 10px;
     font-weight: 700;
@@ -720,7 +720,7 @@ body.rail-collapsed .live-channel-rail .live-channel-rail-head { justify-content
 body.rail-collapsed .live-channel-rail .live-channel-item {
     grid-template-columns: 38px;
     gap: 0;
-    padding: 4px 8px;
+    padding: 4px 8px 4px 5px;
 }
 body.rail-collapsed .live-channel-rail .live-channel-section-divider { margin: 5px 8px; }
 @media (max-width: 1180px) {
