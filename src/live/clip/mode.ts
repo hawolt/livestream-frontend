@@ -27,7 +27,7 @@ import type { ClipRoute } from "./route.ts";
 import { ctx } from "../player/context.ts";
 import type { LiveChannelInfo } from "../../api.ts";
 import { streamLanguageLabel } from "../../stream-languages.ts";
-import { loadAds, renderAdSlot } from "../../ads.ts";
+import { startAdRotation } from "../../ads.ts";
 import { setCaptchaAnchor, warmCaptcha } from "../../captcha.ts";
 import { startChat } from "../../live-chat.ts";
 import { openLoginModal, wireLoginModal } from "../login-modal.ts";
@@ -209,10 +209,7 @@ export async function bootClipMode(route: ClipRoute): Promise<void> {
     startChannelRail();
     setCaptchaAnchor(chatEl);
     warmCaptcha();
-    void loadAds("chat").then(ads => {
-        renderAdSlot(chatFeatureSlotEl, ads);
-        chatFeatureSlotEl.classList.toggle("feature-filled", ads.length > 0);
-    });
+    startAdRotation(chatFeatureSlotEl, "chat");
     void loadProfile(route.channel).then(profile => {
         if (profile) clipArtUrl = offlineArtUrl(profile);
         if (!posterEl.classList.contains("hidden")) applyClipArt(true);

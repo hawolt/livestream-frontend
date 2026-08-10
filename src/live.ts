@@ -2,7 +2,7 @@ import { resumeChat, startChat, suspendChat } from "./live-chat.ts";
 import { type LiveChannelInfo } from "./api.ts";
 import { initSiteNav } from "./nav.ts";
 import { setCaptchaAnchor, warmCaptcha } from "./captcha.ts";
-import { loadAds, renderAdSlot } from "./ads.ts";
+import { startAdRotation } from "./ads.ts";
 import { streamLanguageLabel } from "./stream-languages.ts";
 import {
     browseMiniUsername,
@@ -108,11 +108,7 @@ async function boot(): Promise<void> {
         startChannelRail();
         setCaptchaAnchor(chatEl);
         warmCaptcha();
-        void loadAds("chat").then(ads => {
-            if (document.body.classList.contains("is-vertical")) return;
-            renderAdSlot(chatFeatureSlotEl, ads);
-            chatFeatureSlotEl.classList.toggle("feature-filled", ads.length > 0);
-        });
+        startAdRotation(chatFeatureSlotEl, "chat", () => document.body.classList.contains("is-vertical"));
     }
 
     let title = "";

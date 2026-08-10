@@ -44,3 +44,34 @@ export function renderAdSlot(container: HTMLElement, ads: AdSpot[]): void {
     a.appendChild(label);
     container.appendChild(a);
 }
+
+const AD_ROTATE_MS = 45000;
+
+export function startAdRotation(container: HTMLElement, slot: string, skip?: () => boolean): () => void {
+    let stopped = false;
+    let lastAt = 0;
+
+    async function cycle(): Promise<void> {
+        if (stopped || document.visibilityState === "hidden") return;
+        if (skip?.()) return;
+        const ads = await loadAds(slot);
+        if (stopped || !container.isConnected) return;
+        renderAdSlot(container, ads);
+        container.classList.toggle("feature-filled", ads.length > 0);
+        lastAt = Date.now();
+    }
+
+    function onVisibility(): void {
+        if (document.visibilityState !== "visible") return;
+        if (Date.now() - lastAt >= AD_ROTATE_MS) void cycle();
+    }
+
+    void cycle();
+    const timer = window.setInterval(() => void cycle(), AD_ROTATE_MS);
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => {
+        stopped = true;
+        window.clearInterval(timer);
+        document.removeEventListener("visibilitychange", onVisibility);
+    };
+}
