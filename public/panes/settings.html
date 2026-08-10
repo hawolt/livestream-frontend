@@ -14,97 +14,111 @@
             <span id="resend-result" style="font-size:13px"></span>
         </div>
     </div>
-    <div class="card settings-card">
-        <div class="section-title">Account</div>
-        <form id="settings-account-form">
-            <div class="form-grid">
-                <label class="span2"><span>Account Email</span><input id="st-email" type="email" placeholder="used for system notifications" /></label>
-                <label class="span2"><span>Current Password</span><input id="st-email-password" type="password" autocomplete="current-password" /></label>
-            </div>
-            <div style="color:var(--muted);font-size:13px;margin-top:8px">Changing this address marks it unverified and automatically sends a fresh verification link to the new address. Your current password is required, and the old address is notified of the change.</div>
-            <div style="margin-top:16px;display:flex;align-items:center;gap:12px">
-                <button type="submit" class="btn btn-primary">Save</button>
-                <span id="st-saved" style="font-size:13px;color:var(--success)"></span>
-            </div>
-        </form>
+    <div class="card-grid">
+        <div class="card">
+            <div class="section-title">Email</div>
+            <form id="settings-account-form">
+                <div class="form-grid">
+                    <label class="span2"><span>Account Email</span><input id="st-email" type="email" placeholder="used for system notifications" /></label>
+                    <label class="span2"><span>Current Password</span><input id="st-email-password" type="password" autocomplete="current-password" /></label>
+                </div>
+                <div style="color:var(--muted);font-size:12px;margin-top:8px">A new address is unverified until you follow the link we send it.</div>
+                <div class="card-actions">
+                    <button type="submit" class="btn btn-primary">Save</button>
+                    <span id="st-saved" style="font-size:13px;color:var(--success);align-self:center"></span>
+                </div>
+            </form>
+        </div>
 
-        <div class="section-title" style="margin-top:28px">Chat Appearance</div>
-        <form id="settings-color-form">
-            <p style="color:var(--muted);font-size:13px;margin:0 0 12px">Pick the color your username shows in chat. Very dark colors are rejected so it stays readable.</p>
-            <p id="st-color-locked" style="display:none;color:var(--muted);font-size:13px;margin:0 0 12px">A subscription is required to set a custom chat color. <a href="/dashboard/subscription" data-switch-tab="subscription">See subscription plans</a>.</p>
-            <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
-                <input id="st-chat-color" type="color" value="#4ade80" aria-label="Chat username color" style="width:48px;height:34px;padding:0;border:1px solid var(--border);border-radius:6px;background:none;cursor:pointer" />
-                <span id="st-color-preview" style="font-weight:700">username</span>
-                <button type="submit" class="btn btn-primary" id="btn-color-save">Save color</button>
-                <button type="button" class="btn" id="btn-color-reset">Reset to default</button>
-                <span id="st-color-saved" style="font-size:13px"></span>
-            </div>
-        </form>
+        <div class="card">
+            <div class="section-title">Username</div>
+            <p style="color:var(--muted);font-size:12px;margin:0 0 10px" id="st-username-hint">Changeable once every 30 days. Capitalization changes are always allowed.</p>
+            <form id="settings-username-form">
+                <div class="form-grid">
+                    <label class="span2"><span>Current Username</span><input id="st-username-current" type="text" disabled /></label>
+                    <label class="span2"><span>New Username</span><input id="st-username-new" type="text" autocomplete="off" placeholder="3-32 characters" /></label>
+                    <label class="span2"><span>Current Password</span><input id="st-username-password" type="password" autocomplete="current-password" /></label>
+                </div>
+                <div class="card-actions">
+                    <button type="submit" class="btn btn-primary" id="btn-username-save">Save</button>
+                    <span id="st-username-saved" style="font-size:13px;align-self:center"></span>
+                </div>
+            </form>
+        </div>
 
-        <div class="section-title" style="margin-top:28px">Notifications</div>
-        <p style="color:var(--muted);font-size:13px;margin:0 0 12px">Get an email when a channel you follow goes live. You can also turn this off for a single channel from that channel's page.</p>
-        <label style="display:flex;align-items:center;gap:10px;cursor:pointer">
-            <input id="st-live-notify" type="checkbox" style="width:16px;height:16px;cursor:pointer" />
-            <span>Email me when channels I follow go live</span>
-            <span id="st-live-notify-saved" style="font-size:13px;color:var(--success)"></span>
-        </label>
+        <div class="card">
+            <div class="section-title">Password</div>
+            <form id="settings-password-form">
+                <div class="form-grid">
+                    <label class="span2"><span>Current Password</span><input id="st-pw-current" type="password" autocomplete="current-password" /></label>
+                    <label class="span2"><span>New Password</span><input id="st-pw-new" type="password" autocomplete="new-password" /></label>
+                    <label class="span2"><span>Confirm New Password</span><input id="st-pw-confirm" type="password" autocomplete="new-password" /></label>
+                </div>
+                <div class="card-actions">
+                    <button type="submit" class="btn btn-primary">Change Password</button>
+                    <span id="st-pw-saved" style="font-size:13px;color:var(--success);align-self:center"></span>
+                </div>
+            </form>
+        </div>
 
-        <div class="section-title" style="margin-top:28px">Chat Bot</div>
-        <p style="color:var(--muted);font-size:13px;margin:0 0 12px">
-            Connect a chat bot with a long-lived token. The bot chats as this account and never expires; rotating it invalidates the old token within about 90 seconds.
-        </p>
-        <div id="st-bot-body"></div>
+        <div class="card">
+            <div class="section-title">Chat Appearance</div>
+            <form id="settings-color-form">
+                <p style="color:var(--muted);font-size:12px;margin:0 0 10px">Your username colour in chat. Very dark colours are rejected.</p>
+                <p id="st-color-locked" style="display:none;color:var(--muted);font-size:12px;margin:0 0 10px">A subscription is required. <a href="/dashboard/subscription" data-switch-tab="subscription">See plans</a>.</p>
+                <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+                    <input id="st-chat-color" type="color" value="#4ade80" aria-label="Chat username color" style="width:48px;height:34px;padding:0;border:1px solid var(--border);border-radius:6px;background:none;cursor:pointer" />
+                    <span id="st-color-preview" style="font-weight:700">username</span>
+                    <span id="st-color-saved" style="font-size:13px"></span>
+                </div>
+                <div class="card-actions">
+                    <button type="submit" class="btn btn-primary" id="btn-color-save">Save colour</button>
+                    <button type="button" class="btn" id="btn-color-reset">Reset</button>
+                </div>
+            </form>
+        </div>
 
-        <div class="section-title" style="margin-top:28px">API Tokens</div>
-        <p style="color:var(--muted);font-size:13px;margin:0 0 12px">
-            Tokens for the public developer API. Each token carries only the scopes you pick here, never expires until you delete it, and is shown in full exactly once, right after you create it. Send one as <code>Authorization: Bearer &lt;token&gt;</code> on every request.
-        </p>
-        <form id="settings-api-token-form" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:0 0 12px">
-            <input id="st-api-token-label" type="text" maxlength="64" autocomplete="off" placeholder="Label, e.g. stream deck" style="flex:1;min-width:180px" />
-            <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer">
-                <input id="st-api-scope-read" type="checkbox" checked style="width:14px;height:14px;cursor:pointer" /> Read
+        <div class="card">
+            <div class="section-title">Chat Bot</div>
+            <p style="color:var(--muted);font-size:12px;margin:0 0 10px">A long-lived token that chats as this account. Rotating it invalidates the old one within about 90 seconds.</p>
+            <div id="st-bot-body"></div>
+        </div>
+
+        <div class="card">
+            <div class="section-title">Notifications</div>
+            <p style="color:var(--muted);font-size:12px;margin:0 0 10px">You can also turn this off per channel from that channel's page.</p>
+            <label style="display:flex;align-items:center;gap:10px;cursor:pointer">
+                <input id="st-live-notify" type="checkbox" style="width:16px;height:16px;cursor:pointer" />
+                <span>Email me when channels I follow go live</span>
+                <span id="st-live-notify-saved" style="font-size:13px;color:var(--success)"></span>
             </label>
-            <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer">
-                <input id="st-api-scope-write" type="checkbox" style="width:14px;height:14px;cursor:pointer" /> Write
-            </label>
-            <button type="submit" class="btn btn-primary" id="btn-api-token-create">Create token</button>
-            <span id="st-api-token-status" style="font-size:13px"></span>
-        </form>
-        <p style="color:var(--muted);font-size:12px;margin:0 0 12px">Read covers channel info, followers and categories; Write covers stream info updates. At least one is required. Changing or resetting your password deletes every API token and connected app below, so you have to create new ones afterwards.</p>
-        <div id="st-api-token-created" style="display:none"></div>
-        <div id="st-api-tokens-body"></div>
+        </div>
 
-        <div class="section-title" style="margin-top:28px">Connected Apps</div>
-        <p style="color:var(--muted);font-size:13px;margin:0 0 12px">
-            Apps you signed into with your itzon account. Revoking one immediately invalidates every token it holds; the app has to ask for your approval again.
-        </p>
-        <div id="st-oauth-grants-body"></div>
+        <div class="card span-2">
+            <div class="section-title">API Tokens</div>
+            <p style="color:var(--muted);font-size:12px;margin:0 0 10px">
+                For the public developer API. Shown in full exactly once, right after you create it. Send as <code>Authorization: Bearer &lt;token&gt;</code>.
+            </p>
+            <form id="settings-api-token-form" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:0 0 10px">
+                <input id="st-api-token-label" type="text" maxlength="64" autocomplete="off" placeholder="Label, e.g. stream deck" style="flex:1;min-width:160px" />
+                <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer">
+                    <input id="st-api-scope-read" type="checkbox" checked style="width:14px;height:14px;cursor:pointer" /> Read
+                </label>
+                <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer">
+                    <input id="st-api-scope-write" type="checkbox" style="width:14px;height:14px;cursor:pointer" /> Write
+                </label>
+                <button type="submit" class="btn btn-primary" id="btn-api-token-create" style="flex:0 0 auto">Create token</button>
+                <span id="st-api-token-status" style="font-size:13px"></span>
+            </form>
+            <p style="color:var(--muted);font-size:12px;margin:0 0 10px">Read covers channel info, followers and categories; Write covers stream info updates. A password change deletes every token and connected app.</p>
+            <div id="st-api-token-created" style="display:none"></div>
+            <div id="st-api-tokens-body"></div>
+        </div>
 
-        <div class="section-title" style="margin-top:28px">Username</div>
-        <p style="color:var(--muted);font-size:13px;margin:0 0 12px" id="st-username-hint">You can change your username once every 30 days. Changing only the capitalization is always allowed.</p>
-        <form id="settings-username-form">
-            <div class="form-grid">
-                <label class="span2"><span>Current Username</span><input id="st-username-current" type="text" disabled /></label>
-                <label class="span2"><span>New Username</span><input id="st-username-new" type="text" autocomplete="off" placeholder="3-32 characters, letters, digits, - and _" /></label>
-                <label class="span2"><span>Current Password</span><input id="st-username-password" type="password" autocomplete="current-password" /></label>
-            </div>
-            <div style="margin-top:16px;display:flex;align-items:center;gap:12px">
-                <button type="submit" class="btn btn-primary" id="btn-username-save">Save</button>
-                <span id="st-username-saved" style="font-size:13px"></span>
-            </div>
-        </form>
-
-        <div class="section-title" style="margin-top:28px">Change Password</div>
-        <form id="settings-password-form">
-            <div class="form-grid">
-                <label class="span2"><span>Current Password</span><input id="st-pw-current" type="password" autocomplete="current-password" /></label>
-                <label class="span2"><span>New Password</span><input id="st-pw-new" type="password" autocomplete="new-password" /></label>
-                <label class="span2"><span>Confirm New Password</span><input id="st-pw-confirm" type="password" autocomplete="new-password" /></label>
-            </div>
-            <div style="margin-top:16px;display:flex;align-items:center;gap:12px">
-                <button type="submit" class="btn btn-primary">Change Password</button>
-                <span id="st-pw-saved" style="font-size:13px;color:var(--success)"></span>
-            </div>
-        </form>
+        <div class="card span-2">
+            <div class="section-title">Connected Apps</div>
+            <p style="color:var(--muted);font-size:12px;margin:0 0 10px">Apps you signed into with your itzon account. Revoking one invalidates every token it holds.</p>
+            <div id="st-oauth-grants-body"></div>
+        </div>
     </div>
 </div>

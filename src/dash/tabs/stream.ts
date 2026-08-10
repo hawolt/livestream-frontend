@@ -1,5 +1,6 @@
 import type { BillingAddon, BillingAddons, LiveInfo, RegionOption } from "../../api.ts";
 import { copyText } from "../../clipboard.ts";
+import { fieldRow, wireField } from "../fields.ts";
 import { esc, maskSecret } from "../format.ts";
 import { openModal } from "../modal.ts";
 import { loadRegions } from "../regions.ts";
@@ -101,7 +102,7 @@ function renderStrip(): void {
 }
 
 async function loadLive(): Promise<void> {
-    const ids = ["live-ingest-body", "live-playback-body", "live-channel-body", "live-thumbnail-body", "live-private-body", "live-ticket-body", "live-webhook-body"];
+    const ids = ["live-ingest-body", "live-playback-body", "live-channel-body", "live-thumbnail-body", "live-private-body", "live-ticket-body"];
     for (const id of ids) {
         const el = document.getElementById(id);
         if (el) el.textContent = "Loading...";
@@ -118,7 +119,6 @@ async function loadLive(): Promise<void> {
         renderThumbnail();
         renderPrivate();
         renderTicket();
-        renderWebhooks();
         renderLockedAddonCards();
     } catch (e) {
         for (const id of ids) {
@@ -126,37 +126,6 @@ async function loadLive(): Promise<void> {
             if (el) el.textContent = String(e);
         }
     }
-}
-
-function fieldRow(label: string, value: string, id: string, secret: boolean): string {
-    const shown = secret ? maskSecret(value) : value;
-    return `
-        <div style="margin-top:8px">
-            <label style="font-size:12px;color:var(--muted)">${label}</label>
-            <div style="display:flex;gap:6px;align-items:center">
-                <code id="${id}" style="font-size:11px;word-break:break-all;flex:1">${esc(shown)}</code>
-                ${secret ? `<button class="btn btn-sm" id="${id}-reveal">Reveal</button>` : ""}
-                <button class="btn btn-sm" id="${id}-copy">Copy</button>
-            </div>
-        </div>`;
-}
-
-function wireField(id: string, value: string, secret: boolean): void {
-    document.getElementById(`${id}-copy`)?.addEventListener("click", () => {
-        const btn = document.getElementById(`${id}-copy`)!;
-        void copyText(value).then(copied => {
-            btn.textContent = copied ? "Copied" : "Failed";
-            setTimeout(() => { btn.textContent = "Copy"; }, 1200);
-        });
-    });
-    if (!secret) return;
-    document.getElementById(`${id}-reveal`)?.addEventListener("click", () => {
-        const btn = document.getElementById(`${id}-reveal`)!;
-        const code = document.getElementById(id)!;
-        const hidden = btn.textContent === "Reveal";
-        code.textContent = hidden ? value : maskSecret(value);
-        btn.textContent = hidden ? "Hide" : "Reveal";
-    });
 }
 
 function fieldRowEm(label: string, value: string, id: string, secret: boolean, extra = ""): string {
@@ -235,16 +204,20 @@ function renderPlayback(): void {
     el.innerHTML = `
         ${server ? fieldRowEm("Playback URL", url, "live-playback-url", true)
                  : `<div style="font-size:13px;color:var(--red)">Live ingest host is not configured on the server.</div>`}
-        ${hlsUrl ? fieldRowEm("HLS playlist", hlsUrl, "live-hls-url", false) : ""}
-        <div style="font-size:12px;color:var(--muted);margin-top:10px">
-            In OBS, add a Media Source, uncheck "Local File", paste the URL, and lower "Network Buffering" for the least delay.
-            The HLS playlist plays in VLC, mpv or any HLS player while you are live; it is public, unlike the playback URL.
-        </div>
-        <div class="card-actions">
-            <button class="btn" id="btn-live-playback-rotate">Rotate Playback Key</button>
+        <div class="card-actions" style="flex-direction:column">
+            ${hlsUrl ? `<button class="btn" id="btn-live-hls-copy" style="width:100%">Copy HLS Playlist URL</button>` : ""}
+            <button class="btn" id="btn-live-playback-rotate" style="width:100%">Rotate Playback Key</button>
         </div>`;
     if (server) wireField("live-playback-url", url, true);
-    if (hlsUrl) wireField("live-hls-url", hlsUrl, false);
+    if (hlsUrl) {
+        document.getElementById("btn-live-hls-copy")?.addEventListener("click", () => {
+            const btn = document.getElementById("btn-live-hls-copy")!;
+            void copyText(hlsUrl).then(copied => {
+                btn.textContent = copied ? "Copied" : "Copy failed";
+                setTimeout(() => { btn.textContent = "Copy HLS Playlist URL"; }, 1200);
+            });
+        });
+    }
     document.getElementById("btn-live-playback-rotate")?.addEventListener("click", async () => {
         if (!confirm("Rotate the playback key? The current playback URL stops working immediately.")) return;
         const btn = document.getElementById("btn-live-playback-rotate") as HTMLButtonElement;
@@ -285,8 +258,8 @@ function renderChannel(): void {
                 Borrow another channel's 7TV emote set by entering a Twitch username
             </div>
             <div style="display:flex;gap:8px;align-items:center">
-                <input id="live-emote-twitch" type="text" placeholder="twitch username" value="${esc(liveCache.emoteTwitch ?? "")}" style="width:220px;max-width:240px;flex:none" autocomplete="off" spellcheck="false" />
-                <button class="btn btn-primary" id="live-emote-save">Save</button>
+                <input id="live-emote-twitch" type="text" placeholder="twitch username" value="${esc(liveCache.emoteTwitch ?? "")}" style="flex:1;min-width:0" autocomplete="off" spellcheck="false" />
+                <button class="btn btn-primary" id="live-emote-save" style="flex:0 0 auto">Save</button>
             </div>
             <div id="live-emote-status" style="font-size:12px;min-height:16px;margin-top:6px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></div>
         </div>`;
@@ -494,109 +467,6 @@ function renderTicket(): void {
     });
 }
 
-function openWebhookIntegrationModal(): void {
-    if (!liveCache) return;
-    const payload = `POST <your URL>
-Content-Type: application/json
-X-Live-Signature: sha256=<HMAC-SHA256 of the body with your secret>
-X-Live-Event-Id: <stable id, identical across retries>
-
-{
-  "event": "stream.end",
-  "event_id": "5e884898da280471",
-  "username": "${liveCache.username}",
-  "timestamp": 1767139200,
-  "started_at": 1767135600,
-  "duration_seconds": 3600,
-  "bytes_in": 2147483648
-}`;
-    openModal("Webhook Integration", `
-        <div class="card" style="margin:0 0 12px 0;padding:12px">
-            <div style="font-size:13px;font-weight:600;margin-bottom:6px">Delivery</div>
-            <div style="font-size:12px;color:var(--muted);line-height:1.6">
-                Each event is a JSON <code>POST</code> to your URL. A failed delivery is retried up to 3 times
-                with the same event id, so de-duplicate on the <code>X-Live-Event-Id</code> header.
-                An encoder reconnect fires an end and a start in quick succession; debounce on timestamps if needed.
-            </div>
-        </div>
-        <div class="card" style="margin:0 0 12px 0;padding:12px">
-            <div style="font-size:13px;font-weight:600;margin-bottom:6px">Signature</div>
-            <div style="font-size:12px;color:var(--muted);line-height:1.6">
-                Every delivery is signed with your secret:
-                <code>X-Live-Signature: sha256=HMAC-SHA256(body, secret)</code>.
-                Recompute the HMAC over the raw request body and compare it to the header before trusting the payload.
-            </div>
-        </div>
-        <div class="card" style="margin:0 0 12px 0;padding:12px">
-            <div style="font-size:13px;font-weight:600;margin-bottom:6px">Payload example</div>
-            <pre style="font-size:11px;background:var(--surface2);padding:8px;border-radius:3px;margin:0 0 8px 0;white-space:pre-wrap;word-break:break-all">${esc(payload)}</pre>
-            <div style="font-size:12px;color:var(--muted);line-height:1.6">
-                <code>stream.start</code> events omit <code>duration_seconds</code> and <code>bytes_in</code>.
-            </div>
-        </div>
-    `, `<button class="btn" onclick="closeModal()">Close</button>`);
-}
-
-function renderWebhooks(): void {
-    const el = document.getElementById("live-webhook-body");
-    if (!el || !liveCache) return;
-    const hasSecret = liveCache.webhookSecret !== "";
-    el.innerHTML = `
-        <div class="form-grid">
-            <label class="span2"><span>Stream start URL <span style="color:var(--muted);font-size:12px">(http/https, empty disables)</span></span><input id="live-wh-start" type="text" maxlength="512" placeholder="https://example.com/hooks/stream-start" value="${esc(liveCache.webhookStartUrl)}"></label>
-            <label class="span2"><span>Stream end URL</span><input id="live-wh-end" type="text" maxlength="512" placeholder="https://example.com/hooks/stream-end" value="${esc(liveCache.webhookEndUrl)}"></label>
-        </div>
-        <div id="live-wh-error" style="color:var(--red);font-size:13px;margin-top:8px"></div>
-        ${hasSecret ? fieldRow("Signing secret", liveCache.webhookSecret, "live-wh-secret", true) : `
-        <div style="font-size:12px;color:var(--muted);margin-top:10px">
-            A signing secret is generated when you first save a webhook URL.
-        </div>`}
-        <div class="card-actions">
-            <button class="btn btn-primary" id="btn-live-wh-save">Save Webhooks</button>
-            <button class="btn" id="btn-live-wh-integration">Integration</button>
-            ${hasSecret ? `<button class="btn" id="btn-live-wh-rotate">Rotate Secret</button>` : ""}
-        </div>`;
-    if (hasSecret) {
-        wireField("live-wh-secret", liveCache.webhookSecret, true);
-        document.getElementById("btn-live-wh-rotate")?.addEventListener("click", async () => {
-            if (!confirm("Rotate the webhook signing secret? Deliveries signed with the old secret stop validating immediately.")) return;
-            const btn = document.getElementById("btn-live-wh-rotate") as HTMLButtonElement;
-            btn.disabled = true;
-            try {
-                liveCache = await authFetch<LiveInfo>("/api/live/webhooks/rotate-secret", { method: "POST" });
-                renderWebhooks();
-            } catch (e) {
-                alert("Rotate failed: " + (e instanceof Error ? e.message : String(e)));
-                btn.disabled = false;
-            }
-        });
-    }
-    document.getElementById("btn-live-wh-integration")?.addEventListener("click", openWebhookIntegrationModal);
-    document.getElementById("btn-live-wh-save")?.addEventListener("click", async () => {
-        const btn = document.getElementById("btn-live-wh-save") as HTMLButtonElement;
-        const errEl = document.getElementById("live-wh-error")!;
-        const startUrl = (document.getElementById("live-wh-start") as HTMLInputElement).value.trim();
-        const endUrl   = (document.getElementById("live-wh-end") as HTMLInputElement).value.trim();
-        errEl.textContent = "";
-        for (const url of [startUrl, endUrl]) {
-            if (url && !/^https?:\/\//.test(url)) {
-                errEl.textContent = "Webhook URLs must start with http:// or https://";
-                return;
-            }
-        }
-        btn.disabled = true;
-        try {
-            liveCache = await authFetch<LiveInfo>("/api/live/webhooks", {
-                method: "PUT",
-                body: JSON.stringify({ startUrl, endUrl }),
-            });
-            renderWebhooks();
-        } catch (e) {
-            errEl.textContent = e instanceof Error ? e.message : String(e);
-            btn.disabled = false;
-        }
-    });
-}
 
 export function init(): void {}
 
