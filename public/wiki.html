@@ -23,6 +23,15 @@
     <style>
         .wiki-page { max-width: 1060px; margin: 0 auto; padding: 40px 24px 120px; display: flex; gap: 40px; align-items: flex-start; }
         .wiki-side { flex: 0 0 200px; position: sticky; top: 72px; }
+        #wiki-topics {
+            display: block;
+            height: auto;
+            position: static;
+            overflow: visible;
+            background: none;
+            border-bottom: 0;
+            z-index: auto;
+        }
         .wiki-side-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .1em; color: var(--dim); margin-bottom: 10px; }
         .wiki-side a { display: flex; align-items: center; justify-content: center; padding: 8px 10px; border-radius: 6px; color: var(--muted); font-size: 13px; text-decoration: none; text-align: center; }
         .wiki-side a:hover { color: var(--text); background: var(--surface); }
@@ -54,8 +63,9 @@
         .wiki-guide video { display: block; width: 100%; max-width: 640px; background: #000; border: 1px solid var(--border); border-radius: 10px; }
         @media (max-width: 760px) {
             .wiki-page { flex-direction: column; gap: 20px; }
-            .wiki-side { position: static; flex: none; width: 100%; display: flex; flex-wrap: wrap; gap: 4px; }
+            .wiki-side { position: static; flex: none; width: 100%; }
             .wiki-side-title { display: none; }
+            #wiki-topics { display: flex; flex-wrap: wrap; gap: 4px; }
         }
     </style>
 </head>
