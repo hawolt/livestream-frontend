@@ -97,10 +97,10 @@
         }
         .svc-row:last-child { border-bottom: none; }
         .svc-head {
-            display: flex;
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) auto auto;
             align-items: center;
             gap: 12px;
-            flex-wrap: wrap;
         }
         .svc-bars {
             display: flex;
@@ -204,14 +204,19 @@
             padding: 0 6px;
         }
         .svc-meta {
-            display: flex;
+            display: grid;
+            grid-template-columns: 102px 74px 74px 92px;
+            column-gap: 14px;
             align-items: center;
-            gap: 14px;
-            flex-wrap: wrap;
             font-size: 12px;
         }
+        .svc-meta-entry {
+            text-align: right;
+            white-space: nowrap;
+            font-variant-numeric: tabular-nums;
+        }
         .svc-meta-key { color: var(--dim); margin-right: 4px; }
-        .svc-meta-value { color: var(--text); font-variant-numeric: tabular-nums; }
+        .svc-meta-value { color: var(--text); }
         .svc-chip {
             font-size: 11px;
             font-weight: 600;
@@ -220,15 +225,27 @@
             border-radius: 4px;
             padding: 2px 8px;
             white-space: nowrap;
+            min-width: 104px;
+            text-align: center;
         }
         .svc-chip.operational { color: var(--green); background: rgba(74, 222, 128, .12); }
         .svc-chip.degraded { color: var(--yellow); background: rgba(251, 191, 36, .12); }
         .svc-chip.down { color: var(--red); background: rgba(248, 113, 113, .12); }
         .svc-chip.unknown { color: var(--dim); background: rgba(136, 136, 136, .12); }
         .status-error { color: var(--dim); padding: 16px; }
+        @media (max-width: 720px) {
+            .svc-head { grid-template-columns: minmax(0, 1fr) auto; }
+            .svc-name { grid-row: 1; grid-column: 1; }
+            .svc-chip { grid-row: 1; grid-column: 2; min-width: 0; }
+            .svc-meta {
+                grid-row: 2;
+                grid-column: 1 / -1;
+                grid-template-columns: repeat(4, minmax(0, 1fr));
+            }
+            .svc-meta-entry { text-align: left; }
+            .svc-meta-key { display: block; margin-right: 0; }
+        }
         @media (max-width: 560px) {
-            .svc-head { align-items: flex-start; }
-            .svc-meta { width: 100%; }
             .svc-bar { min-width: 1px; }
         }
     </style>

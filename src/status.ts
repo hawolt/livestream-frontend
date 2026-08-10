@@ -60,6 +60,7 @@ function el(tag: string, cls: string, text?: string): HTMLElement {
 
 function metaEntry(key: string, value: string): HTMLElement {
     const entry = el("span", "svc-meta-entry");
+    if (value === "") return entry;
     entry.appendChild(el("span", "svc-meta-key", key));
     entry.appendChild(el("span", "svc-meta-value", value));
     return entry;
@@ -86,12 +87,10 @@ function serviceRow(service: OverviewService, nowMs: number): HTMLElement {
     if (service.region) name.appendChild(el("span", "svc-region", service.region));
     head.appendChild(name);
     const meta = el("div", "svc-meta");
-    const latency = formatLatency(service.latencyMs);
-    if (latency) meta.appendChild(metaEntry("latency", latency));
+    meta.appendChild(metaEntry("latency", formatLatency(service.latencyMs)));
     meta.appendChild(metaEntry("24h", formatUptime(service.uptime24h)));
     meta.appendChild(metaEntry("90d", formatUptime(service.uptime90d)));
-    const changed = relativeTime(service.lastChange, nowMs);
-    if (changed) meta.appendChild(metaEntry("since", changed));
+    meta.appendChild(metaEntry("since", relativeTime(service.lastChange, nowMs)));
     head.appendChild(meta);
     head.appendChild(el("span", `svc-chip ${service.status}`, statusLabel(service.status)));
     row.appendChild(head);
