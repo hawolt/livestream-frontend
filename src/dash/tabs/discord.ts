@@ -23,11 +23,11 @@ function renderDiscord(): void {
             <label class="span2"><span>Discord webhook URL <span style="color:var(--muted);font-size:12px">(empty disables)</span></span><input id="live-discord-url" type="text" maxlength="512" placeholder="https://discord.com/api/webhooks/..." value="${esc(liveCache.discordWebhookUrl)}"></label>
         </div>
         <div id="live-discord-error" style="color:var(--red);font-size:13px;margin-top:8px"></div>
-        <div style="margin-top:12px;display:flex;gap:6px">
-            <button class="btn btn-primary" id="btn-live-discord-save">Save</button>
-        </div>
         <div style="font-size:12px;color:var(--muted);margin-top:10px">
             In Discord: Server Settings &rarr; Integrations &rarr; Webhooks &rarr; New Webhook, then Copy Webhook URL.
+        </div>
+        <div class="card-actions">
+            <button class="btn btn-primary" id="btn-live-discord-save">Save</button>
         </div>`;
     document.getElementById("btn-live-discord-save")?.addEventListener("click", async () => {
         const btn = document.getElementById("btn-live-discord-save") as HTMLButtonElement;

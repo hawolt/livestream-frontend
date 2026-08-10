@@ -58,9 +58,9 @@ function renderFollowerCount(): void {
 
 function eventRowHtml(e: FollowEvent): string {
     const at = dateOf(e.at);
-    return `<div style="display:flex;justify-content:space-between;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border)">
-        <span><b>${esc(e.username)}</b> followed</span>
-        <span style="font-size:11px;color:var(--muted);white-space:nowrap;font-family:var(--font-mono)">${fmtTime(at)} ${fmtDate(at)}</span>
+    return `<div class="kv-row">
+        <span class="kv-k"><b style="color:var(--text)">${esc(e.username)}</b> followed</span>
+        <span class="kv-v" style="white-space:nowrap">${fmtTime(at)} ${fmtDate(at)}</span>
     </div>`;
 }
 
@@ -200,7 +200,7 @@ function renderInfo(): void {
             Shown with your stream on the channel page and explorer. Categories are also used to group streams.
         </div>
         <div id="live-info-error" style="color:var(--red);font-size:13px;margin-top:8px"></div>
-        <div style="margin-top:12px;display:flex;align-items:center;gap:12px">
+        <div class="card-actions" style="align-items:center">
             <button class="btn btn-primary" id="btn-live-info-save">Save Stream Info</button>
             <span id="live-info-saved" style="font-size:13px;color:var(--success)"></span>
         </div>`;
