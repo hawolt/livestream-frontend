@@ -6,17 +6,16 @@ import { openModal } from "../modal.ts";
 import { loadRegions } from "../regions.ts";
 import { authFetch } from "../session.ts";
 import { studioTabUrl } from "../studio.ts";
-import { formatTicketPrice, parseTicketPrice, TICKET_MAX_CENTS, TICKET_MIN_CENTS } from "../../ticket-price.ts";
 
 let liveCache: LiveInfo | null = null;
 let regions: RegionOption[] = [];
 let addonsCache: BillingAddons | null = null;
 
-const STREAM_CARD_ADDONS = new Set(["thumbnail", "private", "ticketing"]);
+const STREAM_CARD_ADDONS = new Set(["thumbnail", "private"]);
 const STUDIO_ADDONS = new Set(["irl", "remoteobs", "restream_plus", "restream_slot"]);
 
 const ADDON_NOTE_FALLBACK: Record<string, string> = {
-    transcode: "Gives your viewers quality options, so slow connections drop resolution instead of buffering.",
+    transcode: "Transcode a 720p and 360p version of your stream.",
     fps_120: "Publish at up to 120 FPS with a raised bitrate ceiling.",
     fps_240: "Publish at up to 240 FPS with a raised bitrate ceiling.",
     res_2k: "Publish at up to 1440p with a raised bitrate ceiling.",
@@ -102,7 +101,7 @@ function renderStrip(): void {
 }
 
 async function loadLive(): Promise<void> {
-    const ids = ["live-ingest-body", "live-playback-body", "live-channel-body", "live-thumbnail-body", "live-private-body", "live-ticket-body"];
+    const ids = ["live-ingest-body", "live-playback-body", "live-channel-body", "live-thumbnail-body", "live-private-body"];
     for (const id of ids) {
         const el = document.getElementById(id);
         if (el) el.textContent = "Loading...";
@@ -118,7 +117,6 @@ async function loadLive(): Promise<void> {
         renderChannel();
         renderThumbnail();
         renderPrivate();
-        renderTicket();
         renderLockedAddonCards();
     } catch (e) {
         for (const id of ids) {
@@ -204,8 +202,11 @@ function renderPlayback(): void {
     el.innerHTML = `
         ${server ? fieldRowEm("Playback URL", url, "live-playback-url", true)
                  : `<div style="font-size:13px;color:var(--red)">Live ingest host is not configured on the server.</div>`}
-        <div class="card-actions" style="flex-direction:column">
-            ${hlsUrl ? `<button class="btn" id="btn-live-hls-copy" style="width:100%">Copy HLS Playlist URL</button>` : ""}
+        ${hlsUrl ? `<div style="margin-top:8px">
+            <label style="font-size:12px;color:var(--muted)">HLS playlist</label>
+            <button class="btn" id="btn-live-hls-copy" style="width:100%;margin-top:4px">Copy HLS Playlist URL</button>
+        </div>` : ""}
+        <div class="card-actions">
             <button class="btn" id="btn-live-playback-rotate" style="width:100%">Rotate Playback Key</button>
         </div>`;
     if (server) wireField("live-playback-url", url, true);
@@ -408,62 +409,6 @@ function renderPrivate(): void {
     document.getElementById("live-private-off")?.addEventListener("click", () => {
         if (!confirm("Disable password protection? Your channel becomes public and shows on Browse again.")) return;
         void save("");
-    });
-}
-
-function renderTicket(): void {
-    const el = document.getElementById("live-ticket-body");
-    if (!el || !liveCache) return;
-    const allowed = liveCache.ticketingAllowed === true;
-    const priceCents = typeof liveCache.ticketPriceCents === "number" ? liveCache.ticketPriceCents : null;
-    const active = priceCents !== null && priceCents > 0;
-    const days = liveCache.ticketDays ?? 30;
-    const currentValue = active ? (priceCents / 100).toFixed(2) : "";
-    const lock = !allowed && !active ? lockedAddon("ticketing") : null;
-    applyCardLock("live-ticket-body", lock !== null);
-    if (lock) {
-        el.innerHTML = `${lockTagHtml(lock)}${lockActionsHtml()}`;
-        return;
-    }
-    el.innerHTML = `
-        ${allowed || active ? "" : `<p style="color:var(--muted);font-size:13px;margin:0 0 12px">A subscription is required to sell tickets. <a href="/dashboard/subscription" data-switch-tab="subscription">See subscription plans</a>.</p>`}
-        ${active ? `<div style="font-size:13px;color:var(--success);margin-bottom:10px">Tickets are on at ${esc(formatTicketPrice(priceCents!, liveCache.ticketCurrency))}. Your channel is hidden from Browse.</div>` : ""}
-        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-            <input id="live-ticket-price" type="text" inputmode="decimal" placeholder="${active ? "New ticket price" : "Ticket price"}" value="${esc(currentValue)}" style="width:160px;max-width:200px;flex:none" ${allowed ? "" : "disabled"}>
-            <button class="btn btn-primary" id="live-ticket-save" ${allowed ? "" : "disabled"}>${active ? "Change" : "Enable"}</button>
-            ${active ? `<button class="btn" id="live-ticket-off">Disable</button>` : ""}
-        </div>
-        <div style="font-size:12px;color:var(--muted);margin-top:8px">
-            ${esc((TICKET_MIN_CENTS / 100).toFixed(2))} to ${esc((TICKET_MAX_CENTS / 100).toFixed(0))} per ticket. A ticket lasts ${esc(String(days))} days and the buyer can renew it.
-            Chat locks within a minute of a change; video applies from the next stream start.
-        </div>
-        <div id="live-ticket-error" style="color:var(--red);font-size:13px;margin-top:6px"></div>`;
-    const input = document.getElementById("live-ticket-price") as HTMLInputElement;
-    const errEl = document.getElementById("live-ticket-error")!;
-    const save = async (cents: number | null): Promise<void> => {
-        errEl.textContent = "";
-        try {
-            const res = await authFetch<LiveInfo>("/api/live/ticket", {
-                method: "PUT",
-                body: JSON.stringify({ priceCents: cents }),
-            });
-            liveCache = { ...liveCache!, ...res };
-            renderTicket();
-        } catch (e) {
-            errEl.textContent = e instanceof Error ? e.message : String(e);
-        }
-    };
-    document.getElementById("live-ticket-save")?.addEventListener("click", () => {
-        const cents = parseTicketPrice(input.value);
-        if (cents === null) {
-            errEl.textContent = `Enter a price between ${(TICKET_MIN_CENTS / 100).toFixed(2)} and ${(TICKET_MAX_CENTS / 100).toFixed(0)}.`;
-            return;
-        }
-        void save(cents);
-    });
-    document.getElementById("live-ticket-off")?.addEventListener("click", () => {
-        if (!confirm("Stop selling tickets? Your channel becomes public again unless a password is set. Tickets already sold stay valid until they expire.")) return;
-        void save(null);
     });
 }
 
