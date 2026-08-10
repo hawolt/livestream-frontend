@@ -165,7 +165,9 @@ function passButtonLabel(prefix: string): string {
 
 function passCtaHtml(tier: BillingTier): string {
     if (!tier.passAvailable) return "";
-    const price = tier.passPrice ? `<div class="sub-pass-price">${priceHtml(tier.passPrice)}</div>` : "";
+    const price = tier.passPrice
+        ? `<div class="sub-pass-price">${amountHtml(tier.passPrice, cache?.currency ?? "")}</div>`
+        : "";
     return `<div class="sub-pass-cta">
         <button class="btn" data-sub-pass-tier="${esc(tier.key)}">${esc(passButtonLabel("Buy"))}</button>
         ${price}
