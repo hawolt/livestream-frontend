@@ -15,6 +15,7 @@ export const roles = new Map<string, Role>();
 export const vips = new Set<string>();
 export const subscribers = new Set<string>();
 export const subscriberBadges = new Map<string, string>();
+export const colors = new Map<string, string>();
 export const unverified = new Set<string>();
 export const knownMembers = new Set<string>();
 

@@ -1,13 +1,14 @@
 import { expect, test } from "bun:test";
 import { parse } from "../src/chat-overlay/irc.ts";
 
-test("parses a tagged PRIVMSG and keeps only the msgid tag", () => {
+test("parses a tagged PRIVMSG and keeps the msgid and color tags", () => {
     const line = parse("@msgid=abc-123;+reply=xyz-9;color=#ff0000 :alice!user@host PRIVMSG #chan :hello there");
     expect(line).toEqual({
         nick: "alice",
         command: "PRIVMSG",
         params: ["#chan", "hello there"],
         msgid: "abc-123",
+        color: "#ff0000",
     });
 });
 
@@ -57,4 +58,15 @@ test("keeps the full prefix as nick when there is no bang", () => {
 test("omits msgid when the tag block has no msgid key", () => {
     const line = parse("@color=#ff0000 :alice!u@h PRIVMSG #chan :hi");
     expect(line?.msgid).toBeUndefined();
+});
+
+test("exposes the color tag so the overlay can honour a custom chat colour", () => {
+    const line = parse("@msgid=abc;color=#ff8800 :bob!u@h PRIVMSG #chan :hello");
+    expect(line?.color).toBe("#ff8800");
+    expect(line?.msgid).toBe("abc");
+});
+
+test("leaves color undefined when absent and empty when cleared", () => {
+    expect(parse("@msgid=x :bob!u@h PRIVMSG #chan :hi")?.color).toBeUndefined();
+    expect(parse("@color= :bob!u@h PRIVMSG #chan :hi")?.color).toBe("");
 });

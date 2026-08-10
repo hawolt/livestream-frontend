@@ -290,6 +290,14 @@ function handle(line: IrcLine): void {
             }
             return;
         }
+        case "SUBBADGE": {
+            if (line.params[0]?.toLowerCase() !== ctx.channel) return;
+            const who = line.params[1];
+            if (!who) return;
+            subscriberBadges.set(who.toLowerCase(), sanitizeSubscriberBadgeName(line.params[2]));
+            if (ctx.userlistOpen) renderUserlist();
+            return;
+        }
         case "PIN": {
             if (line.params[0]?.toLowerCase() !== ctx.channel) return;
             const id = line.params[1] ?? "";

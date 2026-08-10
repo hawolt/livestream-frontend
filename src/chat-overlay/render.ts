@@ -1,6 +1,8 @@
 import { hashColor } from "../chat/text.ts";
 import { sanitizeSubscriberBadgeName, subscriberBadgeAssetPath, subscriberBadgeTitle } from "../chat/badges.ts";
-import { MAX_MESSAGES, RENDERED_BODY_CLASS, ctx, emotes, isOwner, msgsEl, roles, subscriberBadges, subscribers, unverified, vips } from "./context.ts";
+import { MAX_MESSAGES, RENDERED_BODY_CLASS, colors, ctx, emotes, isOwner, msgsEl, roles, subscriberBadges, subscribers, unverified, vips } from "./context.ts";
+
+const SAFE_COLOR = /^#[0-9a-fA-F]{3,8}$/;
 
 type BadgeName = "op" | "staff" | "bot" | "mod" | "vip" | "regular" | "unverified";
 
@@ -125,7 +127,13 @@ export function addMessage(from: string, text: string, msgid?: string): void {
     const who = document.createElement("span");
     who.className = "nick";
     who.textContent = from;
-    who.style.color = hashColor(from);
+    who.style.color = nickColor(from);
     line.append(who, document.createTextNode(": "), buildRenderedBody(text));
     append(line);
+}
+
+function nickColor(from: string): string {
+    const chosen = colors.get(from.toLowerCase());
+    if (chosen && SAFE_COLOR.test(chosen)) return chosen;
+    return hashColor(from);
 }
