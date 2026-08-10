@@ -14,13 +14,15 @@ import {
     historySummary,
     noteText,
     parseHistory,
+    HISTORY_WINDOWS,
     type History,
     type HistoryIncident,
 } from "./status/history.ts";
 
 const REFRESH_MS = 30000;
 const HISTORY_REFRESH_MS = 300000;
-const HISTORY_DAYS = 90;
+const WINDOW_STORAGE_KEY = "status_window";
+const DEFAULT_WINDOW_MINUTES = 24 * 60;
 const INCIDENT_LIMIT = 20;
 
 const bannerEl = document.getElementById("status-banner") as HTMLElement;
@@ -35,6 +37,17 @@ let loading = false;
 let loadingHistory = false;
 let overview: Overview | null = null;
 let history: History | null = null;
+let windowMinutes = storedWindowMinutes();
+
+function storedWindowMinutes(): number {
+    try {
+        const raw = localStorage.getItem(WINDOW_STORAGE_KEY);
+        const parsed = raw ? Number(raw) : NaN;
+        if (HISTORY_WINDOWS.some((entry) => entry.minutes === parsed)) return parsed;
+    } catch {
+    }
+    return DEFAULT_WINDOW_MINUTES;
+}
 
 function el(tag: string, cls: string, text?: string): HTMLElement {
     const node = document.createElement(tag);
@@ -55,7 +68,7 @@ function historyStrip(serviceId: string, nowMs: number): HTMLElement | null {
     const check = history.checks.find((entry) => entry.id === serviceId);
     if (!check) return null;
     const strip = el("div", "svc-bars");
-    for (const bar of buildStrip(check.days, history.days || HISTORY_DAYS, nowMs)) {
+    for (const bar of buildStrip(check.buckets, history.bucketMinutes, nowMs)) {
         const node = el("span", `svc-bar ${bar.level}`);
         node.title = bar.title;
         strip.appendChild(node);
@@ -122,6 +135,7 @@ function render(): void {
     bannerEl.textContent = banner.label;
     groupsEl.textContent = "";
     const nowMs = Date.now();
+    groupsEl.appendChild(windowSelector());
     for (const group of overview.groups) {
         const card = el("section", "status-card");
         card.appendChild(el("h2", "status-card-title", group.label));
@@ -132,9 +146,34 @@ function render(): void {
     }
     if (history) {
         groupsEl.appendChild(el("p", "status-history-note",
-            historySummary(history.firstSampleAt, history.days || HISTORY_DAYS, nowMs)));
+            historySummary(history.firstSampleAt, history.windowMinutes, history.bucketMinutes, nowMs)));
     }
     renderIncidents();
+}
+
+function windowSelector(): HTMLElement {
+    const bar = el("div", "status-window");
+    bar.appendChild(el("span", "status-window-label", "History"));
+    for (const entry of HISTORY_WINDOWS) {
+        const active = entry.minutes === windowMinutes;
+        const button = el("button", `status-window-option${active ? " active" : ""}`, entry.label);
+        button.setAttribute("type", "button");
+        if (active) button.setAttribute("aria-current", "true");
+        button.addEventListener("click", () => {
+            if (entry.minutes === windowMinutes) return;
+            windowMinutes = entry.minutes;
+            try {
+                localStorage.setItem(WINDOW_STORAGE_KEY, String(entry.minutes));
+            } catch {
+            }
+            history = null;
+            lastHistoryAt = 0;
+            render();
+            void refreshHistory();
+        });
+        bar.appendChild(button);
+    }
+    return bar;
 }
 
 function renderError(): void {
@@ -177,7 +216,7 @@ async function refreshHistory(): Promise<void> {
     if (loadingHistory) return;
     loadingHistory = true;
     try {
-        const res = await fetch(`/api/status/history?days=${HISTORY_DAYS}`, { cache: "no-store" });
+        const res = await fetch(`/api/status/history?window=${windowMinutes}`, { cache: "no-store" });
         if (!res.ok) return;
         const parsed = parseHistory(await res.json());
         if (!parsed) return;

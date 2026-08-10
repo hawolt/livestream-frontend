@@ -119,6 +119,38 @@
         .svc-bar.up { background: var(--green); }
         .svc-bar.warn { background: var(--yellow); }
         .svc-bar.down { background: var(--red); }
+        .status-window {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin: 0 2px 14px;
+            flex-wrap: wrap;
+        }
+        .status-window-label {
+            color: var(--dim);
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: .06em;
+        }
+        .status-window-option {
+            font: inherit;
+            font-size: 12px;
+            color: var(--dim);
+            background: #171717;
+            border: 1px solid #2a2a2a;
+            border-radius: 999px;
+            padding: 5px 12px;
+            cursor: pointer;
+        }
+        .status-window-option:hover { color: var(--fg); }
+        .status-window-option.active {
+            color: var(--fg);
+            border-color: var(--green);
+        }
+        .status-window-option:focus-visible {
+            outline: 2px solid var(--green);
+            outline-offset: 2px;
+        }
         .status-history-note {
             color: var(--dim);
             font-size: 12px;

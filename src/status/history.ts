@@ -1,5 +1,5 @@
 export interface HistoryBucket {
-    day: string;
+    start: string;
     ok: number;
     total: number;
     uptime: number | null;
@@ -11,7 +11,7 @@ export interface HistoryCheck {
     label: string;
     group: string;
     region: string | null;
-    days: HistoryBucket[];
+    buckets: HistoryBucket[];
 }
 
 export interface HistoryIncident {
@@ -27,16 +27,31 @@ export interface HistoryIncident {
 
 export interface History {
     generatedAt: string;
-    days: number;
+    windowMinutes: number;
+    bucketMinutes: number;
     firstSampleAt: string | null;
     checks: HistoryCheck[];
     incidents: HistoryIncident[];
 }
 
+export interface HistoryWindow {
+    id: string;
+    label: string;
+    minutes: number;
+}
+
+export const HISTORY_WINDOWS: HistoryWindow[] = [
+    { id: "24h", label: "24 hours", minutes: 24 * 60 },
+    { id: "7d", label: "7 days", minutes: 7 * 24 * 60 },
+    { id: "90d", label: "90 days", minutes: 90 * 24 * 60 },
+];
+
+export const HISTORY_BARS = 90;
+
 export type BarLevel = "none" | "up" | "warn" | "down";
 
 export interface DayBar {
-    day: string;
+    startMs: number;
     level: BarLevel;
     uptime: number | null;
     title: string;
@@ -46,7 +61,6 @@ export const MAX_NOTE_CHARS = 280;
 
 const UP_THRESHOLD = 99.5;
 const WARN_THRESHOLD = 97;
-const DAY_MS = 86_400_000;
 
 function optionalNumber(value: unknown): number | null {
     return typeof value === "number" && Number.isFinite(value) ? value : null;
@@ -83,49 +97,75 @@ export function noteText(note: string | null): string {
     return trimmed.length > MAX_NOTE_CHARS ? trimmed.slice(0, MAX_NOTE_CHARS) : trimmed;
 }
 
-export function utcDayKey(ms: number): string {
-    return new Date(ms).toISOString().slice(0, 10);
+export function bucketStarts(bucketMinutes: number, bars: number, nowMs: number): number[] {
+    const size = Math.max(1, bucketMinutes) * 60_000;
+    const current = Math.floor(nowMs / size) * size;
+    const starts: number[] = [];
+    for (let i = bars - 1; i >= 0; i--) starts.push(current - i * size);
+    return starts;
 }
 
-export function dayKeys(days: number, nowMs: number): string[] {
-    const keys: string[] = [];
-    for (let i = days - 1; i >= 0; i--) keys.push(utcDayKey(nowMs - i * DAY_MS));
-    return keys;
+export function bucketLabel(startMs: number, bucketMinutes: number): string {
+    const date = new Date(startMs);
+    if (bucketMinutes >= 1440) return date.toISOString().slice(0, 10);
+    const day = date.toISOString().slice(5, 10);
+    const time = date.toISOString().slice(11, 16);
+    return `${day} ${time} UTC`;
 }
 
-export function bucketTitle(day: string, bucket: HistoryBucket | undefined): string {
-    if (!bucket || bucket.uptime === null) return `${day}: no data`;
+export function bucketTitle(startMs: number, bucketMinutes: number, bucket: HistoryBucket | undefined): string {
+    const label = bucketLabel(startMs, bucketMinutes);
+    if (!bucket || bucket.uptime === null) return `${label}: no data`;
     const uptime = `${Number(bucket.uptime.toFixed(2))}% uptime`;
-    if (bucket.downMinutes <= 0) return `${day}: ${uptime}`;
-    return `${day}: ${uptime}, ${bucket.downMinutes} min down`;
+    if (bucket.downMinutes <= 0) return `${label}: ${uptime}`;
+    return `${label}: ${uptime}, ${bucket.downMinutes} min down`;
 }
 
-export function buildStrip(buckets: HistoryBucket[], days: number, nowMs: number): DayBar[] {
-    const byDay = new Map<string, HistoryBucket>();
-    for (const bucket of buckets) byDay.set(bucket.day, bucket);
-    return dayKeys(days, nowMs).map((day) => {
-        const bucket = byDay.get(day);
+export function buildStrip(buckets: HistoryBucket[], bucketMinutes: number, nowMs: number,
+                           bars: number = HISTORY_BARS): DayBar[] {
+    const size = Math.max(1, bucketMinutes) * 60_000;
+    const byStart = new Map<number, HistoryBucket>();
+    for (const bucket of buckets) {
+        const parsed = Date.parse(bucket.start);
+        if (!Number.isFinite(parsed)) continue;
+        byStart.set(Math.floor(parsed / size) * size, bucket);
+    }
+    return bucketStarts(bucketMinutes, bars, nowMs).map((startMs) => {
+        const bucket = byStart.get(startMs);
         const uptime = bucket ? bucket.uptime : null;
-        return { day, level: barLevel(uptime), uptime, title: bucketTitle(day, bucket) };
+        return { startMs, level: barLevel(uptime), uptime, title: bucketTitle(startMs, bucketMinutes, bucket) };
     });
 }
 
-export function historySummary(firstSampleAt: string | null, days: number, nowMs: number): string {
+export function windowLabel(windowMinutes: number): string {
+    const found = HISTORY_WINDOWS.find((entry) => entry.minutes === windowMinutes);
+    if (found) return found.label;
+    if (windowMinutes >= 1440) return `${Math.round(windowMinutes / 1440)} days`;
+    return `${Math.round(windowMinutes / 60)} hours`;
+}
+
+export function historySummary(firstSampleAt: string | null, windowMinutes: number, bucketMinutes: number,
+                               nowMs: number): string {
+    const span = windowLabel(windowMinutes);
+    const each = bucketMinutes >= 1440
+        ? `${Math.round(bucketMinutes / 1440)} day`
+        : `${bucketMinutes} minute`;
     if (!firstSampleAt) return "No uptime history recorded yet";
     const started = Date.parse(firstSampleAt);
     if (!Number.isFinite(started)) return "No uptime history recorded yet";
-    const covered = Math.max(0, Math.floor((nowMs - started) / DAY_MS));
-    if (covered < 1) return `Uptime history since today, showing ${days} days`;
-    if (covered < days) return `Uptime history covers ${covered} of the last ${days} days`;
-    return `Uptime history for the last ${days} days`;
+    const coveredMinutes = Math.max(0, Math.floor((nowMs - started) / 60_000));
+    if (coveredMinutes < windowMinutes) {
+        return `Uptime history covers ${windowLabel(coveredMinutes)} of the last ${span}, one bar per ${each}`;
+    }
+    return `Uptime history for the last ${span}, one bar per ${each}`;
 }
 
 function parseBucket(data: unknown): HistoryBucket | null {
     if (typeof data !== "object" || data === null) return null;
     const raw = data as Record<string, unknown>;
-    if (typeof raw.day !== "string") return null;
+    if (typeof raw.start !== "string") return null;
     return {
-        day: raw.day,
+        start: raw.start,
         ok: numberOr(raw.ok, 0),
         total: numberOr(raw.total, 0),
         uptime: optionalNumber(raw.uptime),
@@ -137,11 +177,11 @@ function parseCheck(data: unknown): HistoryCheck | null {
     if (typeof data !== "object" || data === null) return null;
     const raw = data as Record<string, unknown>;
     if (typeof raw.id !== "string" || typeof raw.label !== "string") return null;
-    const days: HistoryBucket[] = [];
-    if (Array.isArray(raw.days)) {
-        for (const entry of raw.days) {
+    const buckets: HistoryBucket[] = [];
+    if (Array.isArray(raw.buckets)) {
+        for (const entry of raw.buckets) {
             const bucket = parseBucket(entry);
-            if (bucket) days.push(bucket);
+            if (bucket) buckets.push(bucket);
         }
     }
     return {
@@ -149,7 +189,7 @@ function parseCheck(data: unknown): HistoryCheck | null {
         label: raw.label,
         group: typeof raw.group === "string" ? raw.group : "",
         region: optionalString(raw.region),
-        days,
+        buckets,
     };
 }
 
@@ -187,7 +227,8 @@ export function parseHistory(data: unknown): History | null {
     }
     return {
         generatedAt: typeof raw.generatedAt === "string" ? raw.generatedAt : "",
-        days: numberOr(raw.days, 90),
+        windowMinutes: numberOr(raw.windowMinutes, 90 * 24 * 60),
+        bucketMinutes: numberOr(raw.bucketMinutes, 1440),
         firstSampleAt: optionalString(raw.firstSampleAt),
         checks,
         incidents,

@@ -1,21 +1,23 @@
 import { describe, expect, test } from "bun:test";
 import {
     barLevel,
+    bucketStarts,
     bucketTitle,
     buildStrip,
-    dayKeys,
     formatDuration,
     historySummary,
     noteText,
     parseHistory,
-    utcDayKey,
+    windowLabel,
     type HistoryBucket,
 } from "../src/status/history.ts";
 
 const NOW = Date.parse("2026-08-07T12:00:00Z");
 
-function bucket(day: string, total: number, ok: number): HistoryBucket {
-    return { day, ok, total, uptime: total > 0 ? (100 * ok) / total : null, downMinutes: total - ok };
+const DAY = 1440;
+
+function bucket(start: string, total: number, ok: number): HistoryBucket {
+    return { start, ok, total, uptime: total > 0 ? (100 * ok) / total : null, downMinutes: total - ok };
 }
 
 describe("barLevel", () => {
@@ -30,20 +32,35 @@ describe("barLevel", () => {
     });
 });
 
-describe("dayKeys", () => {
-    test("returns UTC days oldest first ending today", () => {
-        expect(dayKeys(3, NOW)).toEqual(["2026-08-05", "2026-08-06", "2026-08-07"]);
-        expect(dayKeys(1, NOW)).toEqual(["2026-08-07"]);
-        expect(dayKeys(90, NOW).length).toBe(90);
-        expect(utcDayKey(NOW)).toBe("2026-08-07");
+describe("bucketStarts", () => {
+    test("returns bucket starts oldest first ending at the current bucket", () => {
+        const daily = bucketStarts(DAY, 3, NOW).map((ms) => new Date(ms).toISOString());
+        expect(daily).toEqual([
+            "2026-08-05T00:00:00.000Z",
+            "2026-08-06T00:00:00.000Z",
+            "2026-08-07T00:00:00.000Z",
+        ]);
+        expect(bucketStarts(DAY, 90, NOW).length).toBe(90);
+    });
+
+    test("aligns sixteen minute buckets to the clock", () => {
+        const starts = bucketStarts(16, 3, Date.parse("2026-08-07T12:05:00Z"));
+        expect(starts.map((ms) => new Date(ms).toISOString())).toEqual([
+            "2026-08-07T11:28:00.000Z",
+            "2026-08-07T11:44:00.000Z",
+            "2026-08-07T12:00:00.000Z",
+        ]);
     });
 });
 
 describe("buildStrip", () => {
     test("fills every day and leaves gaps without data", () => {
-        const strip = buildStrip([bucket("2026-08-06", 1440, 1440), bucket("2026-08-07", 720, 700)], 3, NOW);
+        const strip = buildStrip(
+            [bucket("2026-08-06T00:00:00Z", 1440, 1440), bucket("2026-08-07T00:00:00Z", 720, 700)],
+            DAY, NOW, 3);
 
-        expect(strip.map((bar) => bar.day)).toEqual(["2026-08-05", "2026-08-06", "2026-08-07"]);
+        expect(strip.map((bar) => new Date(bar.startMs).toISOString().slice(0, 10)))
+            .toEqual(["2026-08-05", "2026-08-06", "2026-08-07"]);
         expect(strip.map((bar) => bar.level)).toEqual(["none", "up", "warn"]);
         expect(strip[0].uptime).toBeNull();
         expect(strip[0].title).toBe("2026-08-05: no data");
@@ -52,14 +69,14 @@ describe("buildStrip", () => {
     });
 
     test("ignores buckets outside the window", () => {
-        const strip = buildStrip([bucket("2020-01-01", 100, 100)], 2, NOW);
+        const strip = buildStrip([bucket("2020-01-01T00:00:00Z", 100, 100)], DAY, NOW, 2);
 
         expect(strip.length).toBe(2);
         expect(strip.every((bar) => bar.level === "none")).toBe(true);
     });
 
     test("a fully down day is red", () => {
-        const strip = buildStrip([bucket("2026-08-07", 720, 0)], 1, NOW);
+        const strip = buildStrip([bucket("2026-08-07T00:00:00Z", 720, 0)], DAY, NOW, 1);
 
         expect(strip[0].level).toBe("down");
         expect(strip[0].title).toBe("2026-08-07: 0% uptime, 720 min down");
@@ -68,7 +85,12 @@ describe("buildStrip", () => {
 
 describe("bucketTitle", () => {
     test("renders a missing bucket as no data", () => {
-        expect(bucketTitle("2026-08-07", undefined)).toBe("2026-08-07: no data");
+        expect(bucketTitle(Date.parse("2026-08-07T00:00:00Z"), DAY, undefined)).toBe("2026-08-07: no data");
+    });
+
+    test("shows the time of day for sub daily buckets", () => {
+        expect(bucketTitle(Date.parse("2026-08-07T11:44:00Z"), 16, undefined))
+            .toBe("08-07 11:44 UTC: no data");
     });
 });
 
@@ -94,12 +116,26 @@ describe("noteText", () => {
 });
 
 describe("historySummary", () => {
-    test("says how much history actually exists", () => {
-        expect(historySummary(null, 90, NOW)).toBe("No uptime history recorded yet");
-        expect(historySummary("nonsense", 90, NOW)).toBe("No uptime history recorded yet");
-        expect(historySummary("2026-08-07T09:00:00Z", 90, NOW)).toBe("Uptime history since today, showing 90 days");
-        expect(historySummary("2026-07-08T12:00:00Z", 90, NOW)).toBe("Uptime history covers 30 of the last 90 days");
-        expect(historySummary("2026-01-01T00:00:00Z", 90, NOW)).toBe("Uptime history for the last 90 days");
+    test("says how much history actually exists and how wide a bar is", () => {
+        expect(historySummary(null, 90 * DAY, DAY, NOW)).toBe("No uptime history recorded yet");
+        expect(historySummary("nonsense", 90 * DAY, DAY, NOW)).toBe("No uptime history recorded yet");
+        expect(historySummary("2026-01-01T00:00:00Z", 90 * DAY, DAY, NOW))
+            .toBe("Uptime history for the last 90 days, one bar per 1 day");
+        expect(historySummary("2026-08-06T12:00:00Z", DAY, 16, NOW))
+            .toBe("Uptime history for the last 24 hours, one bar per 16 minute");
+    });
+
+    test("says when the window is longer than the recorded history", () => {
+        expect(historySummary("2026-08-07T09:00:00Z", DAY, 16, NOW))
+            .toBe("Uptime history covers 3 hours of the last 24 hours, one bar per 16 minute");
+    });
+});
+
+describe("windowLabel", () => {
+    test("names the known windows", () => {
+        expect(windowLabel(DAY)).toBe("24 hours");
+        expect(windowLabel(7 * DAY)).toBe("7 days");
+        expect(windowLabel(90 * DAY)).toBe("90 days");
     });
 });
 
@@ -107,21 +143,22 @@ describe("parseHistory", () => {
     test("parses the documented payload", () => {
         const parsed = parseHistory({
             generatedAt: "2026-08-07T12:00:00Z",
-            days: 90,
+            windowMinutes: 1440,
+            bucketMinutes: 16,
             firstSampleAt: "2026-06-01T00:00:00Z",
             checks: [
                 {
                     id: "app",
                     label: "Core API",
                     group: "Platform",
-                    days: [{ day: "2026-08-07", ok: 700, total: 720, uptime: 97.22, downMinutes: 20 }],
+                    buckets: [{ start: "2026-08-07T11:52:00Z", ok: 700, total: 720, uptime: 97.22, downMinutes: 20 }],
                 },
                 {
                     id: "live-eu",
                     label: "Streaming",
                     group: "Media Europe",
                     region: "Europe",
-                    days: [],
+                    buckets: [],
                 },
             ],
             incidents: [
@@ -139,10 +176,11 @@ describe("parseHistory", () => {
         });
 
         expect(parsed).not.toBeNull();
-        expect(parsed!.days).toBe(90);
+        expect(parsed!.windowMinutes).toBe(1440);
+        expect(parsed!.bucketMinutes).toBe(16);
         expect(parsed!.firstSampleAt).toBe("2026-06-01T00:00:00Z");
         expect(parsed!.checks.length).toBe(2);
-        expect(parsed!.checks[0].days[0].downMinutes).toBe(20);
+        expect(parsed!.checks[0].buckets[0].downMinutes).toBe(20);
         expect(parsed!.checks[0].region).toBeNull();
         expect(parsed!.checks[1].region).toBe("Europe");
         expect(parsed!.incidents[0].note).toBe("media host reboot");
@@ -157,8 +195,9 @@ describe("parseHistory", () => {
 
         expect(parsed).not.toBeNull();
         expect(parsed!.checks.length).toBe(1);
-        expect(parsed!.checks[0].days).toEqual([]);
-        expect(parsed!.days).toBe(90);
+        expect(parsed!.checks[0].buckets).toEqual([]);
+        expect(parsed!.windowMinutes).toBe(129600);
+        expect(parsed!.bucketMinutes).toBe(1440);
         expect(parsed!.firstSampleAt).toBeNull();
         expect(parsed!.incidents.length).toBe(1);
         expect(parsed!.incidents[0].resolved).toBe(false);
