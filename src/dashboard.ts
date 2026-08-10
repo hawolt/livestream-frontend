@@ -21,6 +21,7 @@ const TAB_LOADERS: Record<string, () => Promise<TabModule>> = {
     "stream-summary": () => import("./dash/tabs/stream-summary.ts"),
     activity:         () => import("./dash/tabs/activity.ts"),
     settings:         () => import("./dash/tabs/settings.ts"),
+    integration:      () => import("./dash/tabs/integration.ts"),
     "channel-profile": () => import("./dash/tabs/profile.ts"),
     clips:            () => import("./dash/tabs/clips.ts"),
     subscription:     () => import("./dash/tabs/subscription.ts"),

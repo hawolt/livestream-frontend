@@ -79,12 +79,6 @@
         </div>
 
         <div class="card">
-            <div class="section-title">Chat Bot</div>
-            <p style="color:var(--muted);font-size:12px;margin:0 0 10px">A long-lived token that chats as this account. Rotating it invalidates the old one within about 90 seconds.</p>
-            <div id="st-bot-body"></div>
-        </div>
-
-        <div class="card">
             <div class="section-title">Notifications</div>
             <p style="color:var(--muted);font-size:12px;margin:0 0 10px">You can also turn this off per channel from that channel's page.</p>
             <label style="display:flex;align-items:center;gap:10px;cursor:pointer">
@@ -94,31 +88,5 @@
             </label>
         </div>
 
-        <div class="card span-2">
-            <div class="section-title">API Tokens</div>
-            <p style="color:var(--muted);font-size:12px;margin:0 0 10px">
-                For the public developer API. Shown in full exactly once, right after you create it. Send as <code>Authorization: Bearer &lt;token&gt;</code>.
-            </p>
-            <form id="settings-api-token-form" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:0 0 10px">
-                <input id="st-api-token-label" type="text" maxlength="64" autocomplete="off" placeholder="Label, e.g. stream deck" style="flex:1;min-width:160px" />
-                <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer">
-                    <input id="st-api-scope-read" type="checkbox" checked style="width:14px;height:14px;cursor:pointer" /> Read
-                </label>
-                <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer">
-                    <input id="st-api-scope-write" type="checkbox" style="width:14px;height:14px;cursor:pointer" /> Write
-                </label>
-                <button type="submit" class="btn btn-primary" id="btn-api-token-create" style="flex:0 0 auto">Create token</button>
-                <span id="st-api-token-status" style="font-size:13px"></span>
-            </form>
-            <p style="color:var(--muted);font-size:12px;margin:0 0 10px">Read covers channel info, followers and categories; Write covers stream info updates. A password change deletes every token and connected app.</p>
-            <div id="st-api-token-created" style="display:none"></div>
-            <div id="st-api-tokens-body"></div>
-        </div>
-
-        <div class="card span-2">
-            <div class="section-title">Connected Apps</div>
-            <p style="color:var(--muted);font-size:12px;margin:0 0 10px">Apps you signed into with your itzon account. Revoking one invalidates every token it holds.</p>
-            <div id="st-oauth-grants-body"></div>
-        </div>
     </div>
 </div>
