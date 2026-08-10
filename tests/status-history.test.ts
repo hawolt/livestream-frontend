@@ -3,6 +3,7 @@ import {
     barLevel,
     bucketStarts,
     bucketTitle,
+    historyLagsCurrentBucket,
     buildStrip,
     formatDuration,
     historySummary,
@@ -208,5 +209,28 @@ describe("parseHistory", () => {
         expect(parseHistory(null)).toBeNull();
         expect(parseHistory({})).toBeNull();
         expect(parseHistory("nope")).toBeNull();
+    });
+});
+
+describe("historyLagsCurrentBucket", () => {
+    const base = {
+        generatedAt: "2026-08-07T12:00:00Z",
+        windowMinutes: 1440,
+        bucketMinutes: 16,
+        firstSampleAt: "2026-08-07T09:00:00Z",
+        incidents: [],
+    };
+
+    test("is true once the clock enters a bucket the payload does not cover", () => {
+        const history = {
+            ...base,
+            checks: [{ id: "app", label: "Core API", group: "", region: null, buckets: [bucket("2026-08-07T11:44:00Z", 16, 16)] }],
+        };
+        expect(historyLagsCurrentBucket(history, Date.parse("2026-08-07T11:50:00Z"))).toBe(false);
+        expect(historyLagsCurrentBucket(history, Date.parse("2026-08-07T12:01:00Z"))).toBe(true);
+    });
+
+    test("is true when there is no history at all", () => {
+        expect(historyLagsCurrentBucket(null, NOW)).toBe(true);
     });
 });

@@ -137,6 +137,24 @@ export function buildStrip(buckets: HistoryBucket[], bucketMinutes: number, nowM
     });
 }
 
+export function newestBucketStart(history: History): number {
+    let newest = 0;
+    for (const check of history.checks) {
+        for (const bucket of check.buckets) {
+            const parsed = Date.parse(bucket.start);
+            if (Number.isFinite(parsed) && parsed > newest) newest = parsed;
+        }
+    }
+    return newest;
+}
+
+export function historyLagsCurrentBucket(history: History | null, nowMs: number): boolean {
+    if (!history) return true;
+    const size = Math.max(1, history.bucketMinutes) * 60_000;
+    const current = Math.floor(nowMs / size) * size;
+    return newestBucketStart(history) < current;
+}
+
 export function windowLabel(windowMinutes: number): string {
     const found = HISTORY_WINDOWS.find((entry) => entry.minutes === windowMinutes);
     if (found) return found.label;

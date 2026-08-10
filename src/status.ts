@@ -11,6 +11,7 @@ import {
 import {
     buildStrip,
     formatDuration,
+    historyLagsCurrentBucket,
     historySummary,
     noteText,
     parseHistory,
@@ -21,6 +22,7 @@ import {
 
 const REFRESH_MS = 30000;
 const HISTORY_REFRESH_MS = 300000;
+const HISTORY_CATCHUP_MS = 60000;
 const WINDOW_STORAGE_KEY = "status_window";
 const DEFAULT_WINDOW_MINUTES = 24 * 60;
 const INCIDENT_LIMIT = 20;
@@ -233,6 +235,10 @@ async function refreshHistory(): Promise<void> {
 window.setInterval(() => {
     if (document.visibilityState === "hidden") return;
     void refresh();
+    if (historyLagsCurrentBucket(history, Date.now())
+        && Date.now() - lastHistoryAt >= HISTORY_CATCHUP_MS) {
+        void refreshHistory();
+    }
 }, REFRESH_MS);
 
 window.setInterval(() => {
