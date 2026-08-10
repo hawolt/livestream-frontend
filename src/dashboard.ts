@@ -8,7 +8,6 @@ import {
 import { closeDismissibleSurface, openDismissibleSurface } from "./dismissible-surface.ts";
 import { motionScrollBehavior } from "./motion.ts";
 import { studioBaseUrl, studioTabUrl } from "./dash/studio.ts";
-import { initCardGridLayout, scheduleCardGridLayout } from "./dash/masonry.ts";
 
 const TAB_LOADERS: Record<string, () => Promise<TabModule>> = {
     stream:           () => import("./dash/tabs/stream.ts"),
@@ -132,7 +131,6 @@ async function activateTab(tab: string, pushState = true): Promise<void> {
     if (pushState) history.pushState(null, "", `/dashboard/${tab}`);
     $$(".tab-pane").forEach(p => p.classList.toggle("active", p.id === `pane-${tab}`));
     mod.activate();
-    scheduleCardGridLayout();
 }
 
 function appendSidebarLink(list: HTMLElement, t: TabInfo): void {
@@ -517,7 +515,6 @@ function showSessionProblem(state: "forbidden" | "unavailable"): void {
     });
 
     $("dash-side").removeAttribute("hidden");
-    initCardGridLayout();
 
     const requested = tabFromLocation();
     const landing = requested && tabById.has(requested) ? requested : tabs[0]?.id;

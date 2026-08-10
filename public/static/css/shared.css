@@ -304,6 +304,8 @@ a.btn:hover { text-decoration: none; }
 .lock-tag { font-size: 10px; letter-spacing: .07em; text-transform: uppercase; color: var(--amber); }
 .card.locked .card-actions .btn { flex: 1; justify-content: center; }
 .card.locked .btn:hover { border-color: var(--amber); color: var(--amber); }
+.grid-heading { margin: 18px 0 10px; font-size: 11px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: #5f5f5f; }
+.card-grid + .grid-heading { margin-top: 22px; }
 @media (max-width: 840px) {
     .card-grid, .card-grid-2 { grid-template-columns: 1fr; }
     .span-2, .span-3 { grid-column: span 1; }

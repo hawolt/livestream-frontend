@@ -50,12 +50,23 @@ function lockActionsHtml(): string {
     return `<div class="card-actions"><a class="btn btn-sm" href="${esc(studioTabUrl("upgrades"))}">See Upgrades</a></div>`;
 }
 
-function applyCardLock(bodyId: string, locked: boolean): void {
-    document.getElementById(bodyId)?.closest(".card")?.classList.toggle("locked", locked);
+function applyCardLock(bodyId: string, addon: BillingAddon | null): void {
+    const card = document.getElementById(bodyId)?.closest(".card");
+    if (!card) return;
+    card.classList.toggle("locked", addon !== null);
+    card.querySelector(":scope > .lock-tag")?.remove();
+    if (!addon) return;
+    const title = card.querySelector(":scope > .section-title");
+    if (!title) return;
+    const tag = document.createElement("div");
+    tag.className = "lock-tag";
+    const price = addonPriceText(addon);
+    tag.textContent = price ? `Addon · ${price}` : "Addon";
+    title.insertAdjacentElement("afterend", tag);
 }
 
 function renderLockedAddonCards(): void {
-    const grid = document.querySelector("#pane-stream .card-grid-2");
+    const grid = document.getElementById("stream-upgrade-grid");
     if (!grid) return;
     grid.querySelectorAll("[data-locked-addon]").forEach(el => el.remove());
     if (!addonsCache?.enabled) return;
@@ -294,9 +305,9 @@ function renderThumbnail(): void {
     if (!el || !liveCache) return;
     const allowed = liveCache.thumbnailAllowed === true;
     const lock = !allowed && !liveCache.hasThumbnail ? lockedAddon("thumbnail") : null;
-    applyCardLock("live-thumbnail-body", lock !== null);
+    applyCardLock("live-thumbnail-body", lock);
     if (lock) {
-        el.innerHTML = `${lockTagHtml(lock)}${lockActionsHtml()}`;
+        el.innerHTML = lockActionsHtml();
         return;
     }
     const version = liveCache.thumbnailVersion;
@@ -366,9 +377,9 @@ function renderPrivate(): void {
     const allowed = liveCache.privateAllowed === true;
     const active = liveCache.passwordProtected === true;
     const lock = !allowed && !active ? lockedAddon("private") : null;
-    applyCardLock("live-private-body", lock !== null);
+    applyCardLock("live-private-body", lock);
     if (lock) {
-        el.innerHTML = `${lockTagHtml(lock)}${lockActionsHtml()}`;
+        el.innerHTML = lockActionsHtml();
         return;
     }
     el.innerHTML = `
