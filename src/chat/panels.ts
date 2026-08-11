@@ -40,7 +40,11 @@ export function renderUserlist(): void {
         names.sort((a, b) => a.localeCompare(b));
         const header = document.createElement("div");
         header.className = "live-chat-userlist-group";
-        header.textContent = `${g.label} (${names.length})`;
+        header.textContent = g.label;
+        const groupCount = document.createElement("span");
+        groupCount.className = "live-chat-userlist-count";
+        groupCount.textContent = `(${names.length})`;
+        header.appendChild(groupCount);
         userlistBodyEl.appendChild(header);
         for (const name of names) {
             total++;
@@ -56,7 +60,13 @@ export function renderUserlist(): void {
         }
     }
     const title = document.getElementById("live-chat-userlist-title");
-    if (title) title.textContent = `Viewers (${total})`;
+    if (title) {
+        title.textContent = "Viewers ";
+        const titleCount = document.createElement("span");
+        titleCount.className = "live-chat-userlist-count";
+        titleCount.textContent = `(${total})`;
+        title.appendChild(titleCount);
+    }
     if (!total) {
         const empty = document.createElement("div");
         empty.className = "live-chat-userlist-group";

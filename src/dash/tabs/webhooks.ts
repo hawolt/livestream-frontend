@@ -73,7 +73,7 @@ function renderWebhooks(): void {
     const hasSecret = liveCache.webhookSecret !== "";
     el.innerHTML = `
         <div class="form-grid">
-            <label class="span2"><span>Stream start URL <span style="color:var(--muted);font-size:12px">(http/https, empty disables)</span></span><input id="live-wh-start" type="text" maxlength="512" placeholder="https://example.com/hooks/stream-start" value="${esc(liveCache.webhookStartUrl)}"></label>
+            <label class="span2"><span>Stream start URL <span class="form-hint">(http/https, empty disables)</span></span><input id="live-wh-start" type="text" maxlength="512" placeholder="https://example.com/hooks/stream-start" value="${esc(liveCache.webhookStartUrl)}"></label>
             <label class="span2"><span>Stream end URL</span><input id="live-wh-end" type="text" maxlength="512" placeholder="https://example.com/hooks/stream-end" value="${esc(liveCache.webhookEndUrl)}"></label>
         </div>
         <div id="live-wh-error" style="color:var(--red);font-size:13px;margin-top:8px"></div>

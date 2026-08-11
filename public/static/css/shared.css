@@ -549,6 +549,13 @@ label > span {
     letter-spacing: .08em;
 }
 
+.form-hint {
+    font-weight: 400;
+    color: var(--muted);
+    text-transform: none;
+    letter-spacing: 0;
+}
+
 nav {
     background: var(--surface);
     border-bottom: 1px solid var(--border);

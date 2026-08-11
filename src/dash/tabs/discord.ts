@@ -20,7 +20,7 @@ function renderDiscord(): void {
     if (!el || !liveCache) return;
     el.innerHTML = `
         <div class="form-grid">
-            <label class="span2"><span>Discord webhook URL <span style="color:var(--muted);font-size:12px">(empty disables)</span></span><input id="live-discord-url" type="text" maxlength="512" placeholder="https://discord.com/api/webhooks/..." value="${esc(liveCache.discordWebhookUrl)}"></label>
+            <label class="span2"><span>Discord webhook URL <span class="form-hint">(empty disables)</span></span><input id="live-discord-url" type="text" maxlength="512" placeholder="https://discord.com/api/webhooks/..." value="${esc(liveCache.discordWebhookUrl)}"></label>
         </div>
         <div id="live-discord-error" style="color:var(--red);font-size:13px;margin-top:8px"></div>
         <div style="font-size:12px;color:var(--muted);margin-top:10px">
