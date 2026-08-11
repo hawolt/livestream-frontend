@@ -1,6 +1,7 @@
 import { readLocalStorage } from "../../storage.ts";
 import { QUALITY_AUTO, QUALITY_SOURCE } from "../../quality.ts";
 import { PRUNE_KEEP_S, QUALITY_STORAGE_KEY } from "../constants.ts";
+import type { AdoptedTransport } from "./adoption.ts";
 
 export type PlayerState = "offline" | "connecting" | "buffering" | "playing" | "reconnecting";
 
@@ -16,6 +17,7 @@ export const ctx = {
     transportKind: "none" as "ws" | "hls" | "none",
 
     ws: null as WebSocket | null,
+    adopt: null as AdoptedTransport | null,
     mediaSource: null as MediaSource | null,
     sourceBuffer: null as SourceBuffer | null,
     appendQueue: [] as ArrayBuffer[],

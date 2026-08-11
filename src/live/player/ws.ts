@@ -1,4 +1,5 @@
-import { ctx, isCurrent } from "./context.ts";
+import { ctx, isCurrent, track } from "./context.ts";
+import type { AdoptedTransport } from "./adoption.ts";
 import { captchaChallengeActive, captchaQuery } from "../../captcha.ts";
 import {
     QUALITY_SOURCE,
@@ -10,7 +11,8 @@ import {
 import { ensureViewerId } from "../../player-shared/viewer-id.ts";
 import { applyQualityList, renderQualityMenu } from "../quality-menu.ts";
 import { setStreamDimensions, setStreamFps, setStreamStart, updateQuality } from "../stream-info.ts";
-import { attachMediaSource, pump } from "./mse.ts";
+import { attachMediaSource, pruneBuffer, pump } from "./mse.ts";
+import { startChase } from "./chase.ts";
 import { attachVideoFailureListeners } from "./health.ts";
 import { fullTeardown, goOffline, nextRetryDelay, restartAfterFailure, scheduleRestart, setPoster, setState } from "./lifecycle.ts";
 import { mediaWsUrl as sharedMediaWsUrl } from "../../player-shared/ws-url.ts";
@@ -65,6 +67,60 @@ export function handleWSClose(g: number, ev: CloseEvent, direct = false, joined 
         setState("reconnecting");
         scheduleRestart(nextRetryDelay(), g);
     }
+}
+
+export function adoptWSTransport(g: number, a: AdoptedTransport): void {
+    attachVideoFailureListeners(g);
+    ctx.ws = a.sock;
+    ctx.mediaSource = a.mediaSource;
+    ctx.sourceBuffer = a.sourceBuffer;
+    ctx.appendQueue = a.queue;
+    ctx.activeQuality = QUALITY_SOURCE;
+    ctx.requestedQuality = QUALITY_SOURCE;
+    renderQualityMenu();
+    const sb = a.sourceBuffer;
+    const onUpdateEnd = (): void => {
+        if (!isCurrent(g)) return;
+        pruneBuffer();
+        pump(g);
+    };
+    sb.addEventListener("updateend", onUpdateEnd);
+    track(() => sb.removeEventListener("updateend", onUpdateEnd));
+    a.sock.onmessage = (ev) => {
+        if (!isCurrent(g)) return;
+        if (typeof ev.data === "string") {
+            let msg: any = {};
+            try {
+                msg = JSON.parse(ev.data);
+            } catch {}
+            if (isQualityOnlyFrame(msg)) {
+                const list = parseQualitiesFrame(msg);
+                if (list && list.length) applyQualityList(list);
+            }
+            return;
+        }
+        ctx.lastMediaArrivalAt = Date.now();
+        ctx.appendQueue.push(ev.data as ArrayBuffer);
+        pump(g);
+    };
+    a.sock.onclose = (ev) => {
+        if (!isCurrent(g)) return;
+        handleWSClose(g, ev, false, true);
+    };
+    a.sock.onerror = () => {
+        if (!isCurrent(g)) return;
+        try {
+            a.sock.close();
+        } catch {}
+    };
+    if (a.started > 0) setStreamStart(a.started);
+    if (a.fps > 0) setStreamFps(a.fps);
+    if (a.width > 0 && a.height > 0) setStreamDimensions(a.width, a.height);
+    updateQuality();
+    ctx.lastMediaArrivalAt = Date.now();
+    setState("playing");
+    startChase(g);
+    pump(g);
 }
 
 export function startWSTransport(g: number): void {

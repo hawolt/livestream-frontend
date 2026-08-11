@@ -147,6 +147,15 @@ export function connectViewcount(): void {
     };
 }
 
+export function rewatchViewcount(): void {
+    if (!viewcountStarted || viewcountSuspended) return;
+    clearViewcountRetryTimer();
+    const previous = viewcountSock;
+    viewcountSock = null;
+    previous?.close();
+    connectViewcount();
+}
+
 export function suspendViewcount(): void {
     if (!viewcountStarted) return;
     viewcountSuspended = true;

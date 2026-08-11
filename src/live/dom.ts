@@ -11,7 +11,10 @@ export const sepEl = document.getElementById("live-sep") as HTMLElement;
 export const badgeEl = document.getElementById("live-badge") as HTMLElement;
 export const posterEl = document.getElementById("live-poster") as HTMLElement;
 export const stageEl = document.getElementById("live-stage") as HTMLElement;
-export const video = document.getElementById("live-video") as HTMLVideoElement;
+export let video = document.getElementById("live-video") as HTMLVideoElement;
+export function setVideoElement(el: HTMLVideoElement): void {
+    video = el;
+}
 export const titleBar = document.getElementById("live-info-bar") as HTMLElement;
 export const titleEl = document.getElementById("live-title-text") as HTMLElement;
 export const categoryEl = document.getElementById("live-category") as HTMLAnchorElement;

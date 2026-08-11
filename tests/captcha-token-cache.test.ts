@@ -185,3 +185,43 @@ describe("captchaQuery", () => {
         expect(await mod.captchaQuery()).toBe(`&t=${encodeURIComponent("tok with space")}`);
     });
 });
+
+describe("freshCaptchaQuery", () => {
+    test("mints a new token even when a cached token is still valid", async () => {
+        let tokenCount = 0;
+        mockFetch({
+            "/captcha/config": () => okJson({ enabled: true, challenge: false, sitekey: "" }),
+            "/captcha/token": () => {
+                tokenCount++;
+                return okJson({ token: `tok-${tokenCount}`, ttl: 1800 });
+            },
+        });
+
+        const mod = await freshCaptchaModule();
+        expect(await mod.getCaptchaToken()).toBe("tok-1");
+        expect(await mod.freshCaptchaQuery()).toBe("&t=tok-2");
+        expect(tokenCount).toBe(2);
+    });
+
+    test("returns an empty query when captcha is disabled", async () => {
+        const calls = mockFetch({
+            "/captcha/config": () => okJson({ enabled: false, challenge: false, sitekey: "" }),
+        });
+
+        const mod = await freshCaptchaModule();
+        expect(await mod.freshCaptchaQuery()).toBe("");
+        expect(calls.length).toBe(1);
+        expect(mod.captchaRequired()).toBe(false);
+    });
+
+    test("reports captcha required and an empty query when the fresh mint fails", async () => {
+        mockFetch({
+            "/captcha/config": () => okJson({ enabled: true, challenge: false, sitekey: "" }),
+            "/captcha/token": () => failResponse(500),
+        });
+
+        const mod = await freshCaptchaModule();
+        expect(await mod.freshCaptchaQuery()).toBe("");
+        expect(mod.captchaRequired()).toBe(true);
+    });
+});

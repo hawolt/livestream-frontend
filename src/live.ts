@@ -3,22 +3,15 @@ import { type LiveChannelInfo } from "./api.ts";
 import { initSiteNav } from "./nav.ts";
 import { setCaptchaAnchor, warmCaptcha } from "./captcha.ts";
 import { startAdRotation } from "./ads.ts";
-import { streamLanguageLabel } from "./stream-languages.ts";
 import {
     browseMiniUsername,
     btnChatToggle,
     btnLayoutToggle,
-    categoryEl,
-    categorySepEl,
     chatFeatureSlotEl,
     chatEl,
-    languageEl,
-    languageSepEl,
     nameEl,
     page,
-    sepEl,
     titleBar,
-    titleEl,
     viewersHeaderEl,
 } from "./live/dom.ts";
 import { ctx } from "./live/player/context.ts";
@@ -35,6 +28,8 @@ import { openProfileFromUser } from "./chat/panels.ts";
 import { parseClipRoute } from "./live/clip/route.ts";
 import { bootClipMode } from "./live/clip/mode.ts";
 import { promptStreamPassword } from "./live/stream-pass-gate.ts";
+import { applyChannelChrome } from "./live/channel-chrome.ts";
+import { installRaidHandover } from "./live/raid-handover.ts";
 
 const chatPopout = new URLSearchParams(location.search).get("chat") === "popout";
 let bootGeneration = 0;
@@ -88,6 +83,7 @@ async function boot(): Promise<void> {
         } else {
             wireControls();
             syncLayout();
+            installRaidHandover();
             void initSiteNav(null, [viewersHeaderEl, btnLayoutToggle, btnChatToggle]);
         }
     }
@@ -211,20 +207,7 @@ async function boot(): Promise<void> {
             if (profile && generation === bootGeneration) setOfflineArt(offlineArtUrl(profile));
         });
     }
-    titleEl.textContent = title;
-    const hasCategory = !!category;
-    const languageLabel = streamLanguageLabel(language);
-    const hasLanguage = languageLabel !== null;
-    sepEl.classList.toggle("hidden", !title && !hasCategory && !hasLanguage);
-    categoryEl.textContent = category;
-    if (categoryId !== null) categoryEl.href = `/?category=${categoryId}`;
-    else categoryEl.removeAttribute("href");
-    categoryEl.classList.toggle("hidden", !hasCategory);
-    categorySepEl.classList.toggle("hidden", !title || !hasCategory);
-    languageEl.textContent = languageLabel ?? "";
-    languageEl.classList.toggle("hidden", !hasLanguage);
-    languageSepEl.classList.toggle("hidden", !hasLanguage || (!title && !hasCategory));
-    languageEl.title = languageLabel ? `Stream language: ${languageLabel}` : "";
+    applyChannelChrome({ title, category, categoryId, language });
 
     wireLoginModal();
     startChat(ctx.username, emoteTwitchId, () => openLoginModal("chat"));

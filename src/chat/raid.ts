@@ -4,6 +4,18 @@ let deadline = 0;
 let timer: number | null = null;
 let currentTarget = "";
 
+export interface RaidHandover {
+    begin(target: string): void;
+    cancel(): void;
+    join(target: string): boolean;
+}
+
+let handover: RaidHandover | null = null;
+
+export function setRaidHandover(h: RaidHandover | null): void {
+    handover = h;
+}
+
 function bannerEl(): HTMLElement | null {
     return document.getElementById("live-raid-banner");
 }
@@ -26,8 +38,13 @@ function stopTimer(): void {
 
 function joinRaid(): void {
     const target = currentTarget;
-    hideRaidBanner();
-    if (target) window.location.assign(`/${target}`);
+    stopTimer();
+    currentTarget = "";
+    const el = bannerEl();
+    if (el) el.hidden = true;
+    if (!target) return;
+    if (handover && handover.join(target)) return;
+    window.location.assign(`/${target}`);
 }
 
 function tick(): void {
@@ -54,11 +71,13 @@ export function showRaidBanner(target: string, seconds: number): void {
     el.hidden = false;
     stopTimer();
     timer = window.setInterval(tick, TICK_MS);
+    handover?.begin(target);
 }
 
 export function hideRaidBanner(): void {
     stopTimer();
     currentTarget = "";
+    handover?.cancel();
     const el = bannerEl();
     if (el) el.hidden = true;
 }

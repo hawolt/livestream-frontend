@@ -123,15 +123,47 @@ function toggleClickPause(): void {
     }
 }
 
-function wireVideoClickToPause(): void {
-    video.addEventListener("pointerdown", (ev) => {
-        pendingPauseTap = ev.pointerType === "mouse" ? true : stageEl.classList.contains("controls-visible");
-    });
-    video.addEventListener("click", (ev) => {
-        if (ev.target !== video) return;
-        if (!pendingPauseTap) return;
-        toggleClickPause();
-    });
+function onVideoPointerDown(ev: PointerEvent): void {
+    pendingPauseTap = ev.pointerType === "mouse" ? true : stageEl.classList.contains("controls-visible");
+}
+
+function onVideoClickPause(ev: MouseEvent): void {
+    if (ev.target !== video) return;
+    if (!pendingPauseTap) return;
+    toggleClickPause();
+}
+
+function snapToEdgeOnPlay(): void {
+    if (ctx.transportKind === "ws" && ctx.lastMediaArrivalAt > 0 && Date.now() - ctx.lastMediaArrivalAt > HEALTH_STALE_MS) {
+        healthRestart("resume-stale");
+        return;
+    }
+    if (ctx.transportKind === "ws" && ctx.behindLive) return;
+    const edge = bufferedEnd();
+    if (edge > 0) {
+        video.currentTime = Math.max(0, edge - START_BEHIND_S);
+    }
+}
+
+function trackPlaybackProgress(): void {
+    if (Math.abs(video.currentTime - ctx.lastObservedTime) > 0.01) {
+        ctx.lastObservedTime = video.currentTime;
+        ctx.lastProgressAt = Date.now();
+    }
+}
+
+export function attachVideoElementListeners(el: HTMLVideoElement): void {
+    el.addEventListener("loadedmetadata", fitChat);
+    el.addEventListener("webkitbeginfullscreen", onFullscreenChange);
+    el.addEventListener("webkitendfullscreen", onFullscreenChange);
+    el.addEventListener("play", updatePlayIcon);
+    el.addEventListener("pause", updatePlayIcon);
+    el.addEventListener("play", snapToEdgeOnPlay);
+    el.addEventListener("resize", updateQuality);
+    el.addEventListener("loadedmetadata", updateQuality);
+    el.addEventListener("timeupdate", trackPlaybackProgress);
+    el.addEventListener("pointerdown", onVideoPointerDown);
+    el.addEventListener("click", onVideoClickPause);
 }
 
 let controlsHideTimer: number | null = null;
@@ -317,30 +349,11 @@ export function wireControls(): void {
     btnClip.title = "Clip";
     wireClipButton();
     wireSeekBar();
-    wireVideoClickToPause();
     wireQualityMenu();
     renderQualityMenu();
 
-    video.addEventListener("play", () => {
-        if (ctx.transportKind === "ws" && ctx.lastMediaArrivalAt > 0 && Date.now() - ctx.lastMediaArrivalAt > HEALTH_STALE_MS) {
-            healthRestart("resume-stale");
-            return;
-        }
-        if (ctx.transportKind === "ws" && ctx.behindLive) return;
-        const edge = bufferedEnd();
-        if (edge > 0) {
-            video.currentTime = Math.max(0, edge - START_BEHIND_S);
-        }
-    });
-    video.addEventListener("resize", updateQuality);
-    video.addEventListener("loadedmetadata", updateQuality);
+    attachVideoElementListeners(video);
     startFpsMeter();
-    video.addEventListener("timeupdate", () => {
-        if (Math.abs(video.currentTime - ctx.lastObservedTime) > 0.01) {
-            ctx.lastObservedTime = video.currentTime;
-            ctx.lastProgressAt = Date.now();
-        }
-    });
 
     wireKeyboardShortcuts();
 

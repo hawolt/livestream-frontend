@@ -7,7 +7,7 @@ import { stopHLSBeacon, startHLSTransport } from "./hls.ts";
 import { clearWaitingTimer, healthCheck, startHealthTimer, stopHealthTimer } from "./health.ts";
 import { resetStreamInfo, setViewers } from "../stream-info.ts";
 import { renderQualityMenu } from "../quality-menu.ts";
-import { startWSTransport } from "./ws.ts";
+import { adoptWSTransport, startWSTransport } from "./ws.ts";
 import { resetSeekDrag } from "../seekbar.ts";
 import { applyDefaultProfileVisibility } from "../../chat/panels.ts";
 
@@ -225,6 +225,18 @@ export function beginTransport(): void {
     startHealthTimer();
     clearRetryTimer();
     const g = nextGen();
+    const adoption = ctx.adopt;
+    if (adoption && ctx.transportKind === "ws") {
+        ctx.adopt = null;
+        ctx.lastStateChangeAt = Date.now();
+        ctx.lastMediaArrivalAt = Date.now();
+        ctx.lastProgressAt = Date.now();
+        ctx.lastObservedTime = video.currentTime;
+        ctx.startedOnce = true;
+        adoptWSTransport(g, adoption);
+        return;
+    }
+    ctx.adopt = null;
     fullTeardown();
     ctx.lastStateChangeAt = Date.now();
     ctx.lastMediaArrivalAt = Date.now();
