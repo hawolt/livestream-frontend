@@ -16,6 +16,7 @@ import { send } from "./connection.ts";
 import { addMessage, clearReply, updateReplyBar } from "./messages.ts";
 import { hideSuggest } from "./suggest.ts";
 import { closeDismissibleSurface, openDismissibleSurface } from "../dismissible-surface.ts";
+import { normalizedCommandWord } from "./text.ts";
 
 export const MAX_TEXT = 400;
 
@@ -189,7 +190,7 @@ export function submit(): void {
     const text = inputEl.value.replace(/[\r\n]/g, " ").trim().slice(0, MAX_TEXT);
     if (!text || !ctx.joined) return;
     const r = ctx.replyTo;
-    const cmdWord = text.startsWith(".") ? text.split(" ")[0]!.toLowerCase() : "";
+    const cmdWord = normalizedCommandWord(text);
     const isWhisper = cmdWord === ".whisper" || cmdWord === ".w";
     const serverHandles = isWhisper || (cmdWord !== "" && hasModRole());
     const tag = r && !isWhisper ? `@+reply=${r.msgid} ` : "";

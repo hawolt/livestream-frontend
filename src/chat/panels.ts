@@ -88,7 +88,7 @@ const HELP_COMMANDS: { group: string; badge?: BadgeName; items: [string, string]
         items: [
             ["@name", "Mention someone - Tab to autocomplete, keep pressing Tab to cycle."],
             [":emote", "Insert a 7TV emote - Tab to autocomplete, keep pressing Tab to cycle."],
-            [".whisper <user> <msg>", "Send a private message (alias .w)."],
+            ["/whisper <user> <msg>", "Send a private message (alias /w). Commands also work with a . prefix."],
             ["Reply", "Hover a message and click ↩ to reply to it."],
         ],
     },
@@ -96,19 +96,19 @@ const HELP_COMMANDS: { group: string; badge?: BadgeName; items: [string, string]
         group: "Moderators & above",
         badge: "mod",
         items: [
-            [".ban <user>", "Ban a user from the channel."],
-            [".timeout <user> <min>", "Temporarily ban (1–10080 minutes)."],
-            [".unban <user>", "Lift a ban."],
-            [".pin <id> / .unpin", "Pin/unpin a message (use the 📌 hover action)."],
-            [".delete <id>", "Delete a message (use the ✕ hover action)."],
+            ["/ban <user>", "Ban a user from the channel."],
+            ["/timeout <user> <min>", "Temporarily ban (1-10080 minutes)."],
+            ["/unban <user>", "Lift a ban."],
+            ["/pin <id> / /unpin", "Pin/unpin a message (use the 📌 hover action)."],
+            ["/delete <id>", "Delete a message (use the ✕ hover action)."],
         ],
     },
     {
         group: "Channel owner",
         badge: "op",
         items: [
-            [".mod / .unmod <user>", "Grant or remove a moderator."],
-            [".vip / .unvip <user>", "Grant or remove VIP."],
+            ["/mod / /unmod <user>", "Grant or remove a moderator."],
+            ["/vip / /unvip <user>", "Grant or remove VIP."],
         ],
     },
 ];

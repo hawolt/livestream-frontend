@@ -62,3 +62,9 @@ export function hashColor(from: string): string {
     for (let i = 0; i < from.length; i++) h = (h * 31 + from.charCodeAt(i)) % 360;
     return `hsl(${h}, 65%, 68%)`;
 }
+
+export function normalizedCommandWord(text: string): string {
+    if (!text.startsWith(".") && !text.startsWith("/")) return "";
+    const word = text.split(" ")[0]!.toLowerCase();
+    return word.startsWith("/") ? "." + word.slice(1) : word;
+}
