@@ -39,10 +39,25 @@
                 </label>
                 <div class="ov-span-2">
                     <input id="fa-sound-file" type="file" accept=".mp3,.ogg,.wav,audio/mpeg,audio/ogg,audio/wav" style="display:none">
-                    <button class="btn btn-sm" id="fa-sound-upload" type="button">Upload sound</button>
-                    <button class="btn btn-sm" id="fa-sound-remove" type="button">Remove</button>
-                    <span id="fa-sound-status" style="font-size:13px;margin-left:8px"></span>
-                    <div class="hint">mp3, ogg or wav, up to 2 MB. The same sound plays in the Stream Activity tab while it is open.</div>
+                    <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+                        <span style="min-width:64px">Default</span>
+                        <button class="btn btn-sm" id="fa-sound-upload-default" type="button">Upload</button>
+                        <button class="btn btn-sm" id="fa-sound-remove-default" type="button">Remove</button>
+                        <span id="fa-sound-status-default" style="font-size:13px"></span>
+                    </div>
+                    <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+                        <span style="min-width:64px">Follow</span>
+                        <button class="btn btn-sm" id="fa-sound-upload-follow" type="button">Upload</button>
+                        <button class="btn btn-sm" id="fa-sound-remove-follow" type="button">Remove</button>
+                        <span id="fa-sound-status-follow" style="font-size:13px"></span>
+                    </div>
+                    <div style="display:flex;align-items:center;gap:8px">
+                        <span style="min-width:64px">Raid</span>
+                        <button class="btn btn-sm" id="fa-sound-upload-raid" type="button">Upload</button>
+                        <button class="btn btn-sm" id="fa-sound-remove-raid" type="button">Remove</button>
+                        <span id="fa-sound-status-raid" style="font-size:13px"></span>
+                    </div>
+                    <div class="hint">mp3, ogg or wav, up to 2 MB per sound. Follow and Raid fall back to the Default sound when unset. The Default sound also plays in the Stream Activity tab while it is open.</div>
                 </div>
             </div>
 
@@ -60,9 +75,10 @@
                     <div class="hint">Invalidates the current overlay URL.</div>
                 </div>
                 <div>
-                    <button class="btn btn-sm" id="fa-test-btn" type="button">Send test alert</button>
+                    <button class="btn btn-sm" id="fa-test-follow-btn" type="button">Test follow</button>
+                    <button class="btn btn-sm" id="fa-test-raid-btn" type="button">Test raid</button>
                     <span id="fa-test-status" style="font-size:13px;margin-left:8px"></span>
-                    <div class="hint">Fires a TEST_USER follow alert on your connected overlay.</div>
+                    <div class="hint">Fires a TEST_USER alert of that type on your connected overlay.</div>
                 </div>
             </div>
         </div>

@@ -284,7 +284,7 @@ function playFollowSound(): void {
     if (!alertAudio) {
         const me = getMe()?.username;
         if (!me) return;
-        alertAudio = new Audio(`/api/live/alert-sound/${encodeURIComponent(me.toLowerCase())}`);
+        alertAudio = new Audio(`/api/live/alert-sound/${encodeURIComponent(me.toLowerCase())}/follow`);
         alertAudio.onerror = () => {
             alertAudioFailed = true;
         };

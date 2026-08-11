@@ -2,6 +2,7 @@ import type { AccountSettings } from "../../api.ts";
 import { maskSecret } from "../format.ts";
 import { authFetch } from "../session.ts";
 import { PREVIEW_DEBOUNCE_MS, el, username, setBackdrop, wireCopy } from "../overlay-shared.ts";
+import { soundSlotEndpoints, slotHasOwnSound, type AlertSoundSlot } from "../alert-sound-slots.ts";
 
 let followPreviewTimer: number | null = null;
 let followToken: string | null = null;
@@ -28,66 +29,70 @@ function buildFollowParams(): URLSearchParams {
     return params;
 }
 
-let hasSound = false;
+let pendingUploadSlot: AlertSoundSlot | null = null;
 
-function setHasSound(value: boolean): void {
-    hasSound = value;
-    el<HTMLButtonElement>("fa-sound-remove").disabled = !value;
-}
-
-function soundStatus(text: string, color: string): void {
-    const status = el("fa-sound-status");
+function soundStatus(slot: AlertSoundSlot, text: string, color: string): void {
+    const status = el(`fa-sound-status-${slot}`);
     status.textContent = text;
     status.style.color = color;
 }
 
+function setSlotHasSound(slot: AlertSoundSlot, value: boolean): void {
+    el<HTMLButtonElement>(`fa-sound-remove-${slot}`).disabled = !value;
+}
+
 async function refreshSoundStatus(generation: number): Promise<void> {
-    try {
-        const res = await fetch(`/api/live/alert-sound/${encodeURIComponent(username())}?v=${Date.now()}`, { method: "HEAD" });
-        if (!isCurrentActivation(generation)) return;
-        setHasSound(res.ok);
-        soundStatus(res.ok ? "Custom sound uploaded." : "No sound uploaded yet.", "var(--muted)");
-    } catch {
-        if (!isCurrentActivation(generation)) return;
-        soundStatus("", "var(--muted)");
+    for (const ep of soundSlotEndpoints(username())) {
+        try {
+            const res = await fetch(`${ep.head}?v=${Date.now()}`, { method: "HEAD" });
+            if (!isCurrentActivation(generation)) return;
+            const own = slotHasOwnSound(ep.slot, res.ok, res.headers.get("X-Alert-Sound-Source"));
+            setSlotHasSound(ep.slot, own);
+            soundStatus(ep.slot, own ? "Uploaded." : (ep.slot === "default" ? "No sound uploaded." : "Using default."), "var(--muted)");
+        } catch {
+            if (!isCurrentActivation(generation)) return;
+            soundStatus(ep.slot, "", "var(--muted)");
+        }
     }
 }
 
-async function uploadSound(file: File): Promise<void> {
+async function uploadSound(slot: AlertSoundSlot, file: File): Promise<void> {
     const generation = activationGeneration;
     if (file.size > 2 * 1024 * 1024) {
-        soundStatus("Sound exceeds the 2 MB limit", "var(--red)");
+        soundStatus(slot, "Sound exceeds the 2 MB limit", "var(--red)");
         return;
     }
-    soundStatus("Uploading...", "var(--muted)");
+    soundStatus(slot, "Uploading...", "var(--muted)");
+    const ep = soundSlotEndpoints(username()).find(e => e.slot === slot)!;
     try {
         const bytes = await file.arrayBuffer();
-        await authFetch<{ ok: boolean }>("/api/profile/me/alert-sound", {
+        await authFetch<{ ok: boolean }>(ep.upload, {
             method: "POST",
             headers: { "Content-Type": file.type || "application/octet-stream" },
             body: bytes,
         });
         if (!isCurrentActivation(generation)) return;
-        setHasSound(true);
-        soundStatus("Sound uploaded.", "var(--success)");
+        setSlotHasSound(slot, true);
+        soundStatus(slot, "Uploaded.", "var(--success)");
         scheduleFollowPreview();
     } catch (e) {
         if (!isCurrentActivation(generation)) return;
-        soundStatus(e instanceof Error ? e.message : "Upload failed", "var(--red)");
+        soundStatus(slot, e instanceof Error ? e.message : "Upload failed", "var(--red)");
     }
 }
 
-async function removeSound(): Promise<void> {
+async function removeSound(slot: AlertSoundSlot): Promise<void> {
     const generation = activationGeneration;
+    const ep = soundSlotEndpoints(username()).find(e => e.slot === slot)!;
     try {
-        await authFetch<{ ok: boolean }>("/api/profile/me/alert-sound", { method: "DELETE" });
+        await authFetch<{ ok: boolean }>(ep.remove, { method: "DELETE" });
         if (!isCurrentActivation(generation)) return;
-        setHasSound(false);
-        soundStatus("Sound removed. Refresh any open overlay page to silence it.", "var(--muted)");
+        setSlotHasSound(slot, false);
+        soundStatus(slot, "Removed. Refresh any open overlay page.", "var(--muted)");
         scheduleFollowPreview();
     } catch {
         if (!isCurrentActivation(generation)) return;
-        soundStatus("Failed to remove sound", "var(--red)");
+        soundStatus(slot, "Failed to remove sound", "var(--red)");
     }
 }
 
@@ -156,15 +161,19 @@ async function loadFollowToken(generation: number): Promise<void> {
     updateFollowUrl();
 }
 
-async function sendTestAlert(): Promise<void> {
-    const btn = el<HTMLButtonElement>("fa-test-btn");
+async function sendTestAlert(type: "follow" | "raid"): Promise<void> {
+    const buttons = [el<HTMLButtonElement>("fa-test-follow-btn"), el<HTMLButtonElement>("fa-test-raid-btn")];
     const status = el("fa-test-status");
     const generation = activationGeneration;
     const revision = ++testRevision;
-    btn.disabled = true;
+    for (const btn of buttons) btn.disabled = true;
     status.textContent = "";
     try {
-        await authFetch<void>("/api/follows/test", { method: "POST" });
+        await authFetch<void>("/api/alerts/test", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ type }),
+        });
         if (!isCurrentActivation(generation) || revision !== testRevision) return;
         status.textContent = "Test alert sent";
         status.style.color = "var(--success)";
@@ -175,7 +184,9 @@ async function sendTestAlert(): Promise<void> {
         status.style.color = code === 429 ? "var(--muted)" : "var(--red)";
     }
     window.setTimeout(() => {
-        if (isCurrentActivation(generation) && revision === testRevision) btn.disabled = false;
+        if (isCurrentActivation(generation) && revision === testRevision) {
+            for (const btn of buttons) btn.disabled = false;
+        }
     }, 2000);
     window.setTimeout(() => {
         if (isCurrentActivation(generation) && revision === testRevision) status.textContent = "";
@@ -219,16 +230,24 @@ export function init(): void {
         updateFollowUrl();
     });
     el("fa-token-btn").addEventListener("click", () => void rotateFollowToken());
-    el("fa-test-btn").addEventListener("click", () => void sendTestAlert());
+    el("fa-test-follow-btn").addEventListener("click", () => void sendTestAlert("follow"));
+    el("fa-test-raid-btn").addEventListener("click", () => void sendTestAlert("raid"));
 
-    el("fa-sound-upload").addEventListener("click", () => el<HTMLInputElement>("fa-sound-file").click());
+    for (const slot of ["default", "follow", "raid"] as const) {
+        el(`fa-sound-upload-${slot}`).addEventListener("click", () => {
+            pendingUploadSlot = slot;
+            el<HTMLInputElement>("fa-sound-file").click();
+        });
+        el(`fa-sound-remove-${slot}`).addEventListener("click", () => void removeSound(slot));
+    }
     el("fa-sound-file").addEventListener("change", () => {
         const input = el<HTMLInputElement>("fa-sound-file");
         const file = input.files?.[0];
+        const slot = pendingUploadSlot;
         input.value = "";
-        if (file) void uploadSound(file);
+        pendingUploadSlot = null;
+        if (file && slot) void uploadSound(slot, file);
     });
-    el("fa-sound-remove").addEventListener("click", () => void removeSound());
 
     for (const id of ["fa-size", "fa-duration", "fa-sound", "fa-volume"]) {
         el(id).addEventListener("input", onFollowChange);
@@ -239,7 +258,8 @@ export function activate(): void {
     active = true;
     const generation = ++activationGeneration;
     testRevision += 1;
-    el<HTMLButtonElement>("fa-test-btn").disabled = false;
+    el<HTMLButtonElement>("fa-test-follow-btn").disabled = false;
+    el<HTMLButtonElement>("fa-test-raid-btn").disabled = false;
     el("fa-test-status").textContent = "";
     setBackdrop("fa-preview-frame", "fa-bg-checker", "fa-bg-dark", "checker");
     revealed = false;

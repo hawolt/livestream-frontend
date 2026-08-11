@@ -20,7 +20,7 @@ let demoMode = false;
 let durationMs = DEFAULT_DURATION_MS;
 let soundEnabled = true;
 let soundVolume = 1;
-let audio: HTMLAudioElement | null = null;
+const audioByKind = new Map<AlertEvent["kind"], HTMLAudioElement>();
 let soundUnlockPrompted = false;
 let sock: WebSocket | null = null;
 let retryTimer: number | null = null;
@@ -76,7 +76,7 @@ function showNext(): void {
     showing = true;
     const card = buildCard(next);
     stageEl.replaceChildren(card);
-    playAlertSound();
+    playAlertSound(next.kind);
     let watchdog: number | null = window.setTimeout(() => {
         watchdog = null;
         card.remove();
@@ -173,7 +173,8 @@ function startDemo(): void {
     window.setInterval(step, DEMO_INTERVAL_MS);
 }
 
-function playAlertSound(): void {
+function playAlertSound(kind: AlertEvent["kind"]): void {
+    const audio = audioByKind.get(kind);
     if (!audio) return;
     try {
         audio.currentTime = 0;
@@ -193,33 +194,38 @@ function promptSoundUnlock(): void {
     const unlock = (): void => {
         document.removeEventListener("pointerdown", unlock);
         hint.remove();
-        if (!audio) return;
-        void audio.play().then(() => {
-            audio?.pause();
-            try {
-                if (audio) audio.currentTime = 0;
-            } catch {}
-        }).catch(() => {});
+        for (const audio of audioByKind.values()) {
+            void audio.play().then(() => {
+                audio.pause();
+                try {
+                    audio.currentTime = 0;
+                } catch {}
+            }).catch(() => {});
+        }
     };
     document.addEventListener("pointerdown", unlock);
 }
 
-function setupSound(username: string): void {
+const SOUND_KINDS: AlertEvent["kind"][] = ["follow", "raid"];
+
+function setupSounds(username: string): void {
     if (!soundEnabled || soundVolume <= 0) return;
-    const el = new Audio(`/api/live/alert-sound/${encodeURIComponent(username)}`);
-    el.preload = "auto";
-    el.volume = soundVolume;
-    el.onerror = () => {
-        audio = null;
-    };
-    audio = el;
+    for (const kind of SOUND_KINDS) {
+        const el = new Audio(`/api/live/alert-sound/${encodeURIComponent(username)}/${kind}`);
+        el.preload = "auto";
+        el.volume = soundVolume;
+        el.onerror = () => {
+            audioByKind.delete(kind);
+        };
+        audioByKind.set(kind, el);
+    }
 }
 
 function boot(): void {
     const m = location.pathname.match(/^\/alerts\/([A-Za-z0-9_-]{3,32})\/?$/);
     if (!m) return;
     parseParams();
-    setupSound(m[1]!.toLowerCase());
+    setupSounds(m[1]!.toLowerCase());
     if (demoMode) {
         startDemo();
         return;
