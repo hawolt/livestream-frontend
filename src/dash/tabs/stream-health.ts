@@ -39,7 +39,7 @@ async function initStreamHealthTab(activation: number): Promise<void> {
             document.getElementById("sh-loading")?.remove();
             iframe.style.display = "";
         }, { once: true });
-        iframe.src = `/details#k=${encodeURIComponent(live.keyHash)}&n=${encodeURIComponent(live.username)}&viewerEgress=1`;
+        iframe.src = `/details#k=${encodeURIComponent(live.keyHash)}&n=${encodeURIComponent(live.username)}&viewerEgress=1&sessions=1`;
         container.appendChild(iframe);
     } catch {
         if (activation === shActivation) showNoData();
