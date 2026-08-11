@@ -23,7 +23,8 @@ import { loadProfile, offlineArtUrl } from "./profile-card.ts";
 import { canUseNativeHLS } from "./live/player/hls.ts";
 import { openLoginModal, wireLoginModal } from "./live/login-modal.ts";
 import { initFollow } from "./live/follow.ts";
-import { connectViewcount, resumeViewcount, suspendViewcount } from "./live/stream-info.ts";
+import { connectViewcount, enableWatchAuth, resumeViewcount, suspendViewcount } from "./live/stream-info.ts";
+import { initPointsChip } from "./live/points.ts";
 import { openProfileFromUser } from "./chat/panels.ts";
 import { parseClipRoute } from "./live/clip/route.ts";
 import { bootClipMode } from "./live/clip/mode.ts";
@@ -219,6 +220,8 @@ async function boot(): Promise<void> {
     }
 
     void initFollow();
+    enableWatchAuth();
+    initPointsChip(ctx.username);
     connectViewcount();
     nameEl.addEventListener("click", () => openProfileFromUser());
 

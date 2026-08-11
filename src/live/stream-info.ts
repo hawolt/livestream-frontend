@@ -2,6 +2,8 @@ import { uptimeEl, video, viewersCountEl, viewersEl, viewersHeaderCountEl, viewe
 import { ctx } from "./player/context.ts";
 import { formatUptime } from "./format.ts";
 import { VIEWCOUNT_RETRY_MS } from "./constants.ts";
+import { API_BASE } from "../api.ts";
+import { onPointsFrame } from "./points.ts";
 
 export function updateInfoBar(): void {}
 
@@ -109,6 +111,26 @@ function scheduleViewcountRetry(): void {
     }, VIEWCOUNT_RETRY_MS);
 }
 
+let watchAuthEnabled = false;
+
+export function enableWatchAuth(): void {
+    watchAuthEnabled = true;
+}
+
+async function fetchWatchToken(): Promise<string> {
+    if (!watchAuthEnabled) return "";
+    try {
+        const res = await fetch(`${API_BASE}/auth/session`, { credentials: "include" });
+        if (!res.ok) return "";
+        const info: unknown = await res.json();
+        const record = info as { kind?: unknown; token?: unknown } | null;
+        if (!record || record.kind !== "user") return "";
+        return typeof record.token === "string" ? record.token : "";
+    } catch {
+        return "";
+    }
+}
+
 export function connectViewcount(): void {
     viewcountStarted = true;
     if (viewcountSuspended) return;
@@ -120,7 +142,10 @@ export function connectViewcount(): void {
 
     s.onopen = () => {
         if (viewcountSock !== s) return;
-        s.send(JSON.stringify({ watch: ctx.username }));
+        void fetchWatchToken().then((tok) => {
+            if (viewcountSock !== s || s.readyState !== WebSocket.OPEN) return;
+            s.send(JSON.stringify(tok ? { watch: ctx.username, token: tok } : { watch: ctx.username }));
+        });
     };
 
     s.onmessage = (ev) => {
@@ -133,6 +158,9 @@ export function connectViewcount(): void {
         }
         if (msg.type === "viewcount" && typeof msg.viewers === "number") {
             setViewers(msg.viewers > 0 ? msg.viewers : null);
+        } else if (msg.type === "points" && typeof msg.channel === "string"
+                && typeof msg.gained === "number" && typeof msg.balance === "number") {
+            onPointsFrame(msg.channel, msg.gained, msg.balance);
         }
     };
 

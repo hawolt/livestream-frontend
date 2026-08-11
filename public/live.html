@@ -646,6 +646,20 @@
             flex-shrink: 0;
         }
         .live-chat-head span { font-size: 13px; font-weight: 700; color: var(--text); }
+        .live-chat-points {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            margin-left: 8px;
+            margin-right: auto;
+            padding: 2px 8px;
+            border: 1px solid var(--border);
+            border-radius: 999px;
+            color: var(--muted);
+        }
+        .live-chat-points[hidden] { display: none; }
+        .live-chat-points svg { width: 12px; height: 12px; }
+        .live-chat-head .live-chat-points span { font-size: 11px; font-weight: 600; color: var(--text); }
         .live-chat-head-actions {
             position: relative;
             display: flex;
@@ -1689,6 +1703,7 @@
             <div id="live-chat-feature"></div>
             <div class="live-chat-head" id="live-chat-head">
                 <span>Chat</span>
+                <span id="live-chat-points" class="live-chat-points" hidden title="Your channel points"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v10M9.5 9.5h3.75a1.75 1.75 0 0 1 0 3.5H9.5"/></svg><span id="live-chat-points-value"></span></span>
                 <div class="live-chat-head-actions" id="live-chat-head-actions">
                     <button id="btn-chat-more" type="button" title="More chat options" aria-label="More chat options" aria-haspopup="true" aria-expanded="false" aria-controls="live-chat-overflow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg></button>
                     <div class="live-chat-overflow" id="live-chat-overflow" hidden>
