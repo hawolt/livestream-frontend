@@ -1,4 +1,4 @@
-import type { BillingAddon, BillingAddons, LiveInfo, RegionOption } from "../../api.ts";
+import type { BillingAddon, BillingAddons, LiveInfo, RaidSettings, RegionOption } from "../../api.ts";
 import { copyText } from "../../clipboard.ts";
 import { fieldRow, wireField } from "../fields.ts";
 import { esc, maskSecret } from "../format.ts";
@@ -112,7 +112,7 @@ function renderStrip(): void {
 }
 
 async function loadLive(): Promise<void> {
-    const ids = ["live-ingest-body", "live-playback-body", "live-channel-body", "live-thumbnail-body", "live-private-body"];
+    const ids = ["live-ingest-body", "live-playback-body", "live-channel-body", "live-raid-settings-body", "live-thumbnail-body", "live-private-body"];
     for (const id of ids) {
         const el = document.getElementById(id);
         if (el) el.textContent = "Loading...";
@@ -126,6 +126,7 @@ async function loadLive(): Promise<void> {
         renderIngest();
         renderPlayback();
         renderChannel();
+        renderRaidSettings();
         renderThumbnail();
         renderPrivate();
         renderLockedAddonCards();
@@ -367,6 +368,55 @@ function renderThumbnail(): void {
             renderThumbnail();
         } catch (e) {
             errEl.textContent = e instanceof Error ? e.message : String(e);
+        }
+    });
+}
+
+const RAID_MIN_VIEWERS_MAX = 10000;
+
+function renderRaidSettings(): void {
+    const el = document.getElementById("live-raid-settings-body");
+    if (!el || !liveCache) return;
+    const enabled = liveCache.raidsEnabled ?? true;
+    const minViewers = liveCache.raidMinViewers ?? 0;
+    el.innerHTML = `
+        <label style="display:flex;gap:8px;align-items:center;font-size:13px;cursor:pointer">
+            <input id="live-raid-enabled" type="checkbox"${enabled ? " checked" : ""}>
+            <span>Accept incoming raids</span>
+        </label>
+        <div style="margin-top:10px">
+            <label style="font-size:12px;color:var(--text)" for="live-raid-min">Minimum viewers to raid me</label>
+            <input id="live-raid-min" type="number" min="0" max="${RAID_MIN_VIEWERS_MAX}" step="1" value="${minViewers}" style="display:block;width:120px;margin-top:4px">
+            <div style="font-size:11px;color:var(--muted);margin-top:4px">Raids from channels with fewer viewers are refused. 0 accepts any size.</div>
+        </div>
+        <div class="card-actions">
+            <button class="btn btn-primary" id="live-raid-settings-save">Save</button>
+        </div>
+        <div id="live-raid-settings-status" style="font-size:12px;min-height:16px;margin-top:6px"></div>`;
+    document.getElementById("live-raid-settings-save")?.addEventListener("click", async () => {
+        const checkbox = document.getElementById("live-raid-enabled") as HTMLInputElement;
+        const minInput = document.getElementById("live-raid-min") as HTMLInputElement;
+        const status = document.getElementById("live-raid-settings-status")!;
+        const rawMin = Number(minInput.value);
+        const min = Number.isFinite(rawMin) && rawMin > 0 ? Math.min(Math.floor(rawMin), RAID_MIN_VIEWERS_MAX) : 0;
+        status.textContent = "Saving...";
+        status.style.color = "var(--muted)";
+        try {
+            const res = await authFetch<RaidSettings>("/api/live/raid-settings", {
+                method: "PUT",
+                body: JSON.stringify({ enabled: checkbox.checked, minViewers: min }),
+            });
+            if (liveCache) {
+                liveCache.raidsEnabled = res.enabled;
+                liveCache.raidMinViewers = res.minViewers;
+            }
+            checkbox.checked = res.enabled;
+            minInput.value = String(res.minViewers);
+            status.textContent = "Saved.";
+            status.style.color = "var(--success)";
+        } catch (e) {
+            status.textContent = e instanceof Error ? e.message : String(e);
+            status.style.color = "var(--red)";
         }
     });
 }

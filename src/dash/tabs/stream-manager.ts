@@ -108,9 +108,119 @@ function renderBans(): void {
     });
 }
 
+interface RaidResponse {
+    target: string;
+    seconds: number;
+    viewers: number;
+}
+
+let raidTimer: number | null = null;
+let raidDeadline = 0;
+let raidActive: { target: string; viewers: number } | null = null;
+
+function stopRaidTimer(): void {
+    if (raidTimer !== null) {
+        window.clearInterval(raidTimer);
+        raidTimer = null;
+    }
+}
+
+function raidSecondsLeft(): number {
+    return Math.max(0, Math.ceil((raidDeadline - Date.now()) / 1000));
+}
+
+function renderRaidIdle(note = "", noteColor = "var(--muted)"): void {
+    stopRaidTimer();
+    raidActive = null;
+    const el = document.getElementById("raid-box-body");
+    if (!el) return;
+    el.innerHTML = `
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+            <input id="raid-target" type="text" placeholder="channel to raid" maxlength="32" autocomplete="off" spellcheck="false" style="width:220px;max-width:240px;flex:none">
+            <button class="btn btn-primary" id="raid-start">Raid</button>
+        </div>
+        <div id="raid-status" style="font-size:13px;min-height:16px;margin-top:6px;color:${noteColor}">${esc(note)}</div>`;
+    const input = document.getElementById("raid-target") as HTMLInputElement;
+    const btn = document.getElementById("raid-start") as HTMLButtonElement;
+    const status = document.getElementById("raid-status")!;
+    const start = async (): Promise<void> => {
+        const target = input.value.trim();
+        if (!target) return;
+        btn.disabled = true;
+        input.disabled = true;
+        status.style.color = "var(--muted)";
+        status.textContent = "Starting raid...";
+        try {
+            const res = await authFetch<RaidResponse>("/api/live/raid", {
+                method: "POST",
+                body: JSON.stringify({ target }),
+            });
+            renderRaidActive(res.target, res.seconds, res.viewers);
+        } catch (e) {
+            btn.disabled = false;
+            input.disabled = false;
+            status.style.color = "var(--red)";
+            status.textContent = e instanceof Error ? e.message : String(e);
+        }
+    };
+    btn.addEventListener("click", () => void start());
+    input.addEventListener("keydown", ev => {
+        if (ev.key === "Enter") void start();
+    });
+}
+
+function renderRaidActive(target: string, seconds: number, viewers: number): void {
+    const el = document.getElementById("raid-box-body");
+    if (!el) return;
+    raidActive = { target, viewers };
+    raidDeadline = Date.now() + seconds * 1000;
+    el.innerHTML = `
+        <div style="font-size:13px;margin-bottom:10px">
+            Raiding <b>${esc(target)}</b> with ${viewers} viewer${viewers === 1 ? "" : "s"} in <span id="raid-count">${seconds}</span>s
+        </div>
+        <button class="btn btn-danger" id="raid-cancel">Cancel</button>
+        <div id="raid-status" style="font-size:13px;min-height:16px;margin-top:6px"></div>`;
+    const cancelBtn = document.getElementById("raid-cancel") as HTMLButtonElement;
+    const status = document.getElementById("raid-status")!;
+    cancelBtn.addEventListener("click", async () => {
+        cancelBtn.disabled = true;
+        try {
+            await authFetch("/api/live/raid", { method: "DELETE" });
+            renderRaidIdle("Raid cancelled.");
+        } catch (e) {
+            cancelBtn.disabled = false;
+            status.style.color = "var(--red)";
+            status.textContent = e instanceof Error ? e.message : String(e);
+        }
+    });
+    stopRaidTimer();
+    raidTimer = window.setInterval(() => {
+        const left = raidSecondsLeft();
+        if (left <= 0) {
+            renderRaidIdle("Raid sent. Your viewers are on their way.", "var(--success)");
+            return;
+        }
+        const count = document.getElementById("raid-count");
+        if (count) count.textContent = String(left);
+    }, 250);
+}
+
+function renderRaid(): void {
+    if (raidActive && raidSecondsLeft() > 0) {
+        renderRaidActive(raidActive.target, raidSecondsLeft(), raidActive.viewers);
+    } else {
+        renderRaidIdle();
+    }
+}
+
 export function init(): void {}
 
 export function activate(): void {
+    renderRaid();
     void loadMods();
     void loadBans();
+}
+
+export function deactivate(): void {
+    stopRaidTimer();
 }

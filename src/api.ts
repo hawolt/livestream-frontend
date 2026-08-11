@@ -130,6 +130,13 @@ export interface LiveInfo {
     maxImageBytes?: number;
     maxHeight?: number;
     maxFps?: number;
+    raidsEnabled?: boolean;
+    raidMinViewers?: number;
+}
+
+export interface RaidSettings {
+    enabled: boolean;
+    minViewers: number;
 }
 
 export interface BillingAddon {
