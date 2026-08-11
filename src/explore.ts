@@ -1,5 +1,6 @@
 import { createChannelRail } from "./channel-rail.ts";
 import { initSiteNav } from "./nav.ts";
+import { reportVisit } from "./visit-beacon.ts";
 import { ctx, isFramed, NO_CATEGORY_LABEL, type CategorySelector, type ViewState } from "./explore/context.ts";
 import {
     backBtn,
@@ -81,7 +82,10 @@ function canonicalBootUrl(): string | null {
 async function boot(): Promise<void> {
     if (isFramed) document.body.classList.add("explore-framed");
     page.hidden = false;
-    if (!isFramed) void initSiteNav("browse");
+    if (!isFramed) {
+        void initSiteNav("browse");
+        reportVisit("explore");
+    }
     const reportRailWidth = (): void => {
         window.parent.postMessage({ type: "itzon:rail-width", width: railEl.getBoundingClientRect().width }, location.origin);
     };

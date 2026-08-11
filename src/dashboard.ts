@@ -1,4 +1,5 @@
 import { initSiteNav, setBurgerExtra } from "./nav.ts";
+import { reportVisit } from "./visit-beacon.ts";
 import { $, $$ } from "./dash/dom.ts";
 import "./dash/modal.ts";
 import {
@@ -525,6 +526,7 @@ function showSessionProblem(state: "forbidden" | "unavailable"): void {
     }
     setMe(me);
     startSessionRenewal();
+    reportVisit("dashboard");
     void initSiteNav("dashboard", [], {
         kind: me.kind,
         username: me.username,

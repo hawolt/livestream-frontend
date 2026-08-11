@@ -1,6 +1,7 @@
 import { resumeChat, startChat, suspendChat } from "./live-chat.ts";
 import { type LiveChannelInfo } from "./api.ts";
 import { initSiteNav } from "./nav.ts";
+import { reportVisit } from "./visit-beacon.ts";
 import { setCaptchaAnchor, warmCaptcha } from "./captcha.ts";
 import { startAdRotation } from "./ads.ts";
 import {
@@ -33,6 +34,7 @@ import { applyChannelChrome } from "./live/channel-chrome.ts";
 import { installRaidHandover } from "./live/raid-handover.ts";
 
 const chatPopout = new URLSearchParams(location.search).get("chat") === "popout";
+reportVisit(parseClipRoute(location.pathname) ? "other" : "channel");
 let bootGeneration = 0;
 let bootRequest: AbortController | null = null;
 let shellWired = false;
