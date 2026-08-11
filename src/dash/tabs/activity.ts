@@ -2,7 +2,7 @@ import type { LiveInfo, LiveCategory } from "../../api.ts";
 import { STREAM_LANGUAGE_OPTIONS, type StreamLanguageCode } from "../../stream-languages.ts";
 import { esc, fmtDate, fmtTime } from "../format.ts";
 import { authFetch, getMe, token } from "../session.ts";
-import { countNewLiveEvents, eventTypeClass, followEventKey, mergeFollowEvents, type FollowEvent } from "../activity-events.ts";
+import { countNewLiveEvents, eventTypeClass, followEventKey, mergeFollowEvents, viewerCountLabel, type FollowEvent } from "../activity-events.ts";
 
 interface RecentFollowsResponse {
     events: FollowEvent[];
@@ -19,6 +19,7 @@ let concealed = sessionStorage.getItem(CONCEAL_KEY) === "1";
 let events: FollowEvent[] = [];
 let followerCount: number | null = null;
 let viewerCount: number | null = null;
+let viewerLive: boolean | null = null;
 let chatLoaded = false;
 
 let liveCache: LiveInfo | null = null;
@@ -41,13 +42,7 @@ function renderViewerChip(): void {
         return;
     }
     hintEl.textContent = "Click to hide";
-    if (viewerCount === null) {
-        countEl.textContent = "-";
-    } else if (viewerCount === 0) {
-        countEl.textContent = "Offline";
-    } else {
-        countEl.textContent = String(viewerCount);
-    }
+    countEl.textContent = viewerCountLabel(viewerCount, viewerLive);
 }
 
 function renderFollowerCount(): void {
@@ -139,6 +134,7 @@ function connectEvents(generation: number): void {
             username?: string;
             at?: number;
             viewers?: number;
+            live?: boolean;
             test?: boolean;
         };
         try {
@@ -159,6 +155,7 @@ function connectEvents(generation: number): void {
             }
         } else if (msg.type === "viewcount" && typeof msg.viewers === "number") {
             viewerCount = msg.viewers;
+            viewerLive = typeof msg.live === "boolean" ? msg.live : null;
             renderViewerChip();
         } else if (msg.type === "error") {
             ws.close();
