@@ -1,4 +1,5 @@
 import { ctx, NO_CATEGORY_LABEL, type CategorySelector, type ExploreStream } from "./context.ts";
+import { compareCategoryCards } from "./category-sort.ts";
 import { drillEl, drillTitleEl } from "./dom.ts";
 import { hideEmpty, renderStreamList, setGridChildren, setGridPortrait, showEmpty, viewersIcon } from "./stream-cards.ts";
 import { urlFor } from "./url-state.ts";
@@ -78,7 +79,7 @@ function renderCategoryGrid(): void {
         return;
     }
     hideEmpty();
-    cards.sort((a, b) => b.viewers - a.viewers);
+    cards.sort(compareCategoryCards);
     setGridChildren(cards.map(categoryCardEl));
 }
 
