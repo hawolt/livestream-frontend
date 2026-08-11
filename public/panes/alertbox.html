@@ -29,7 +29,8 @@
                     <span>Text color</span>
                     <input id="fa-style-text" type="color" value="#ffffff">
                 </label>
-                <label>
+                <div class="ov-span-2 fa-style-numbers">
+<label>
                     <span>Background opacity</span>
                     <div class="stepper">
                         <button type="button" class="stepper-btn" data-step="-1" aria-label="Decrease">&minus;</button>
@@ -77,6 +78,7 @@
                         <button type="button" class="stepper-btn" data-step="1" aria-label="Increase">+</button>
                     </div>
                 </label>
+                </div>
                 <div class="ov-span-2">
                     <label>
                         <span>Follow text</span>
@@ -137,36 +139,36 @@
                 </div>
             </div>
 
-            <div class="ov-section">Use it</div>
-            <div class="ov-url-row">
-                <code id="fa-url"></code>
-                <button class="btn btn-sm" id="fa-url-reveal" type="button">Reveal</button>
-                <button class="btn btn-sm" id="fa-url-copy" type="button">Copy</button>
-            </div>
-            <div class="hint">The token is hidden by default so it does not leak if you share your screen. Copy always copies the full URL.</div>
+        </div>
 
-            <div class="ov-grid" style="margin-top:16px">
-                <div>
+        <div class="fa-side-col">
+            <div class="card">
+                <div class="section-title">Preview</div>
+                <div class="ov-preview-toolbar">
+                    <button class="btn btn-sm btn-primary" id="fa-bg-checker" type="button">Checkerboard</button>
+                    <button class="btn btn-sm" id="fa-bg-dark" type="button">Dark</button>
+                </div>
+                <div class="ov-preview-frame bg-checker" id="fa-preview-frame">
+                    <iframe id="fa-preview-iframe" title="Follow alert preview"></iframe>
+                </div>
+                <div class="fa-preview-actions">
+                    <button class="btn btn-sm" id="fa-test-follow-btn" type="button">Test follow</button>
+                    <button class="btn btn-sm" id="fa-test-raid-btn" type="button">Test raid</button>
+                    <span id="fa-test-status" style="font-size:13px"></span>
+                </div>
+            </div>
+            <div class="card">
+                <div class="section-title">Use it</div>
+                <div class="ov-url-row">
+                    <code id="fa-url"></code>
+                    <button class="btn btn-sm" id="fa-url-reveal" type="button">Reveal</button>
+                    <button class="btn btn-sm" id="fa-url-copy" type="button">Copy</button>
+                </div>
+                <div class="hint">The token is hidden by default so it does not leak if you share your screen. Copy always copies the full URL.</div>
+                <div style="margin-top:16px">
                     <button class="btn btn-sm" id="fa-token-btn" type="button">Rotate token</button>
                     <div class="hint">Invalidates the current overlay URL.</div>
                 </div>
-                <div>
-                    <button class="btn btn-sm" id="fa-test-follow-btn" type="button">Test follow</button>
-                    <button class="btn btn-sm" id="fa-test-raid-btn" type="button">Test raid</button>
-                    <span id="fa-test-status" style="font-size:13px;margin-left:8px"></span>
-                    <div class="hint">Fires a TEST_USER alert of that type on your connected overlay.</div>
-                </div>
-            </div>
-        </div>
-
-        <div class="card">
-            <div class="section-title">Preview</div>
-            <div class="ov-preview-toolbar">
-                <button class="btn btn-sm btn-primary" id="fa-bg-checker" type="button">Checkerboard</button>
-                <button class="btn btn-sm" id="fa-bg-dark" type="button">Dark</button>
-            </div>
-            <div class="ov-preview-frame bg-checker" id="fa-preview-frame">
-                <iframe id="fa-preview-iframe" title="Follow alert preview"></iframe>
             </div>
         </div>
     </div>

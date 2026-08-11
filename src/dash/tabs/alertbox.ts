@@ -95,6 +95,14 @@ async function removeSound(slot: AlertSoundSlot): Promise<void> {
 }
 
 let previewNonce = 0;
+let stylePreviewTimer: number | null = null;
+const STYLE_PREVIEW_DELAY_MS = 250;
+const STYLE_FIELD_IDS = [
+    "fa-style-preset", "fa-style-accent", "fa-style-bg", "fa-style-text",
+    "fa-style-bgopacity", "fa-style-fontsize", "fa-style-scale",
+    "fa-style-duration", "fa-style-fadein", "fa-style-fadeout",
+    "fa-style-tpl-follow", "fa-style-tpl-raid",
+];
 
 function styleForm(): AlertStyle {
     return parseAlertStyle({
@@ -178,9 +186,24 @@ function reloadPreview(): void {
     if (!active) return;
     const params = buildFollowParams();
     params.set("demo", "1");
+    params.set("style", JSON.stringify(styleForm()));
     previewNonce += 1;
     params.set("r", String(previewNonce));
     el<HTMLIFrameElement>("fa-preview-iframe").src = `/alerts/${username()}?${params.toString()}`;
+}
+
+function schedulePreviewStyle(): void {
+    if (stylePreviewTimer !== null) window.clearTimeout(stylePreviewTimer);
+    stylePreviewTimer = window.setTimeout(() => {
+        stylePreviewTimer = null;
+        reloadPreview();
+    }, STYLE_PREVIEW_DELAY_MS);
+}
+
+function previewAlert(kind: "follow" | "raid"): void {
+    if (!active) return;
+    el<HTMLIFrameElement>("fa-preview-iframe").contentWindow
+        ?.postMessage({ type: "preview-alert", kind }, location.origin);
 }
 
 function followUrl(): string {
@@ -262,6 +285,7 @@ async function sendTestAlert(type: "follow" | "raid"): Promise<void> {
             body: JSON.stringify({ type }),
         });
         if (!isCurrentActivation(generation) || revision !== testRevision) return;
+        previewAlert(type);
         status.textContent = "Test alert sent";
         status.style.color = "var(--success)";
     } catch (e) {
@@ -350,6 +374,11 @@ export function init(): void {
     el("fa-style-save").addEventListener("click", () => void saveAlertStyle());
     el("fa-style-tpl-follow").addEventListener("input", updateTemplateCounts);
     el("fa-style-tpl-raid").addEventListener("input", updateTemplateCounts);
+    for (const id of STYLE_FIELD_IDS) {
+        const field = el(id);
+        field.addEventListener("input", schedulePreviewStyle);
+        field.addEventListener("change", schedulePreviewStyle);
+    }
 }
 
 export function activate(): void {
@@ -372,6 +401,10 @@ export function activate(): void {
 export function deactivate(): void {
     active = false;
     activationGeneration += 1;
+    if (stylePreviewTimer !== null) {
+        window.clearTimeout(stylePreviewTimer);
+        stylePreviewTimer = null;
+    }
     testRevision += 1;
     if (followPreviewTimer !== null) {
         window.clearTimeout(followPreviewTimer);

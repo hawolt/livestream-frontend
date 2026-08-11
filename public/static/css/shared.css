@@ -430,6 +430,15 @@ a.btn:hover { text-decoration: none; }
     align-items: start;
 }
 .ov-grid .ov-span-2 { grid-column: 1 / -1; }
+.fa-style-numbers {
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 10px;
+}
+@media (max-width: 1400px) { .fa-style-numbers { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (max-width: 640px) { .fa-style-numbers { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.fa-side-col { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.fa-preview-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
 @media (max-width: 640px) { .ov-grid { grid-template-columns: 1fr; } }
 
 .ov-section {

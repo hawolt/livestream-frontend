@@ -18,6 +18,7 @@ interface AlertEvent {
 
 let token = "";
 let demoMode = false;
+let previewStyleRaw = "";
 let durationMs = DEFAULT_DURATION_MS;
 let hasStoredStyle = false;
 let effectiveStyle: AlertStyle = DEFAULT_ALERT_STYLE;
@@ -40,6 +41,7 @@ function parseParams(): void {
     if (Number.isFinite(durationSec) && durationSec > 0) overrides.durationMs = durationSec * 1000;
     durationMs = overrides.durationMs ?? DEFAULT_DURATION_MS;
     demoMode = qs.get("demo") === "1";
+    previewStyleRaw = demoMode ? (qs.get("style") ?? "") : "";
     soundEnabled = qs.get("sound") !== "0";
     const rawVolume = qs.get("volume");
     if (rawVolume !== null) {
@@ -63,6 +65,14 @@ function applyStyle(style: AlertStyle): void {
 
 async function loadStyle(username: string): Promise<void> {
     let style = DEFAULT_ALERT_STYLE;
+    if (previewStyleRaw) {
+        try {
+            style = parseAlertStyle(JSON.parse(previewStyleRaw));
+            hasStoredStyle = true;
+            applyStyle(applyOverrides(style, overrides));
+            return;
+        } catch {}
+    }
     try {
         const res = await fetch(`/api/live/alert-style/${encodeURIComponent(username)}`);
         if (res.ok) {
@@ -203,6 +213,13 @@ function startDemo(): void {
     };
     step();
     window.setInterval(step, DEMO_INTERVAL_MS);
+    window.addEventListener("message", (ev: MessageEvent) => {
+        if (ev.origin !== location.origin) return;
+        const data = ev.data as { type?: string; kind?: string } | null;
+        if (!data || data.type !== "preview-alert") return;
+        const kind = data.kind === "raid" ? "raid" : "follow";
+        enqueueAlert({ kind, username: "TEST_USER", viewers: kind === "raid" ? 42 : 0 });
+    });
 }
 
 function playAlertSound(kind: AlertEvent["kind"]): void {
