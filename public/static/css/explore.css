@@ -67,17 +67,35 @@ body.explore-framed .explore-shell .live-channel-rail {
 .explore-drill.hidden { display: none; }
 
 .explore-back {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
     border: 1px solid var(--border);
     background: var(--surface);
-    color: var(--text);
+    color: var(--muted);
     font-family: inherit;
     font-size: 13px;
-    padding: 6px 12px;
-    border-radius: var(--radius);
+    font-weight: 600;
+    line-height: 1;
+    padding: 7px 14px 7px 10px;
+    border-radius: 999px;
     cursor: pointer;
+    white-space: nowrap;
+    transition: border-color .15s, color .15s;
+}
+
+.explore-back svg {
+    width: 14px;
+    height: 14px;
+    flex-shrink: 0;
 }
 
 .explore-back:hover { border-color: var(--accent); color: var(--accent); }
+
+.explore-back:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+}
 
 .explore-drill-title {
     font-size: 15px;
