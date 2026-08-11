@@ -7,6 +7,7 @@ import { parse, type IrcLine } from "./irc.ts";
 import {
     addHiddenMessage,
     addMessage,
+    addRaidIncoming,
     addSystem,
     addWhisper,
     findMessageEl,
@@ -30,6 +31,8 @@ import {
 } from "./members.ts";
 import { sanitizeSubscriberBadgeName } from "./badges.ts";
 import { addPin, clearPins, dismissedPins, removePin } from "./pins.ts";
+import { hideRaidBanner, showRaidBanner } from "./raid.ts";
+import { parseRaidIncoming, parseRaidStart } from "./raid-wire.ts";
 import { renderUserlist, setHelp, setSettings, setUserlist } from "./panels.ts";
 import { getChatWssBase } from "./ws-config.ts";
 import { toWsOrigin } from "../player-shared/ws-url.ts";
@@ -309,6 +312,23 @@ function handle(line: IrcLine): void {
             const id = line.params[1];
             if (id) removePin(id);
             else clearPins();
+            return;
+        }
+        case "RAID": {
+            if (line.params[0]?.toLowerCase() !== ctx.channel) return;
+            const raid = parseRaidStart(line.params[1], line.params[2]);
+            if (raid) showRaidBanner(raid.target, raid.seconds);
+            return;
+        }
+        case "RAIDCANCEL": {
+            if (line.params[0]?.toLowerCase() !== ctx.channel) return;
+            hideRaidBanner();
+            return;
+        }
+        case "RAIDINCOMING": {
+            if (line.params[0]?.toLowerCase() !== ctx.channel) return;
+            const incoming = parseRaidIncoming(line.params[1], line.params[2]);
+            if (incoming) addRaidIncoming(incoming.raider, incoming.viewers);
             return;
         }
         case "NOTICE": {

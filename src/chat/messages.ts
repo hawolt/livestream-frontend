@@ -35,6 +35,18 @@ export function addSystem(text: string): void {
     append(line);
 }
 
+export function addRaidIncoming(raider: string, viewers: number): void {
+    const line = document.createElement("div");
+    line.className = "live-chat-sys live-chat-raid";
+    const who = document.createElement("b");
+    who.textContent = raider;
+    const tail = viewers > 0
+        ? ` is raiding with ${viewers} viewer${viewers === 1 ? "" : "s"}`
+        : " is raiding";
+    line.append(who, document.createTextNode(tail));
+    append(line);
+}
+
 export function findMessageEl(msgid: string): HTMLElement | null {
     return msgsEl.querySelector(`.live-chat-msg[data-msgid="${cssEsc(msgid)}"]`);
 }
