@@ -19,6 +19,13 @@ function isCurrentActivation(generation: number): boolean {
     return active && generation === activationGeneration;
 }
 
+function buildPreviewParams(): URLSearchParams {
+    const params = buildFollowParams();
+    params.set("demo", "1");
+    if (previewMuted) params.set("sound", "0");
+    return params;
+}
+
 function buildFollowParams(): URLSearchParams {
     const params = new URLSearchParams();
     if (!el<HTMLInputElement>("fa-sound").checked) params.set("sound", "0");
@@ -96,6 +103,7 @@ async function removeSound(slot: AlertSoundSlot): Promise<void> {
 
 let previewNonce = 0;
 let stylePreviewTimer: number | null = null;
+let previewMuted = false;
 const STYLE_PREVIEW_DELAY_MS = 250;
 const STYLE_FIELD_IDS = [
     "fa-style-preset", "fa-style-accent", "fa-style-bg", "fa-style-text",
@@ -184,8 +192,7 @@ async function saveAlertStyle(): Promise<void> {
 
 function reloadPreview(): void {
     if (!active) return;
-    const params = buildFollowParams();
-    params.set("demo", "1");
+    const params = buildPreviewParams();
     params.set("style", JSON.stringify(styleForm()));
     previewNonce += 1;
     params.set("r", String(previewNonce));
@@ -198,6 +205,12 @@ function schedulePreviewStyle(): void {
         stylePreviewTimer = null;
         reloadPreview();
     }, STYLE_PREVIEW_DELAY_MS);
+}
+
+function applyPreviewMuteButton(): void {
+    const btn = el<HTMLButtonElement>("fa-preview-mute");
+    btn.textContent = previewMuted ? "Unmute preview" : "Mute preview";
+    btn.setAttribute("aria-pressed", previewMuted ? "true" : "false");
 }
 
 function previewAlert(kind: "follow" | "raid"): void {
@@ -234,8 +247,7 @@ function updateFollowUrl(): void {
 function updateFollowPreview(): void {
     followPreviewTimer = null;
     if (!active) return;
-    const params = buildFollowParams();
-    params.set("demo", "1");
+    const params = buildPreviewParams();
     el<HTMLIFrameElement>("fa-preview-iframe").src = `/alerts/${username()}?${params.toString()}`;
 }
 
@@ -371,6 +383,11 @@ export function init(): void {
     for (const id of ["fa-sound", "fa-volume"]) {
         el(id).addEventListener("input", onFollowChange);
     }
+    el("fa-preview-mute").addEventListener("click", () => {
+        previewMuted = !previewMuted;
+        applyPreviewMuteButton();
+        reloadPreview();
+    });
     el("fa-style-save").addEventListener("click", () => void saveAlertStyle());
     el("fa-style-tpl-follow").addEventListener("input", updateTemplateCounts);
     el("fa-style-tpl-raid").addEventListener("input", updateTemplateCounts);
@@ -389,6 +406,7 @@ export function activate(): void {
     el<HTMLButtonElement>("fa-test-raid-btn").disabled = false;
     el("fa-test-status").textContent = "";
     setBackdrop("fa-preview-frame", "fa-bg-checker", "fa-bg-dark", "checker");
+    applyPreviewMuteButton();
     revealed = false;
     el<HTMLButtonElement>("fa-url-reveal").textContent = "Reveal";
     updateFollowUrl();
