@@ -2,7 +2,7 @@ import type { LiveInfo, LiveCategory } from "../../api.ts";
 import { STREAM_LANGUAGE_OPTIONS, type StreamLanguageCode } from "../../stream-languages.ts";
 import { esc, fmtDate, fmtTime } from "../format.ts";
 import { authFetch, getMe, token } from "../session.ts";
-import { countNewLiveEvents, followEventKey, mergeFollowEvents, type FollowEvent } from "../activity-events.ts";
+import { countNewLiveEvents, eventTypeClass, followEventKey, mergeFollowEvents, type FollowEvent } from "../activity-events.ts";
 
 interface RecentFollowsResponse {
     events: FollowEvent[];
@@ -56,22 +56,39 @@ function renderFollowerCount(): void {
     el.textContent = followerCount === null ? "-" : String(followerCount);
 }
 
-function eventRowHtml(e: FollowEvent): string {
+function buildEventRow(e: FollowEvent): HTMLElement {
     const at = dateOf(e.at);
-    return `<div class="kv-row">
-        <span class="kv-k" style="min-width:0;overflow-wrap:anywhere"><b style="color:var(--text)">${esc(e.username)}</b> followed</span>
-        <span class="kv-v" style="white-space:nowrap;flex-shrink:0">${fmtTime(at)} ${fmtDate(at)}</span>
-    </div>`;
+    const row = document.createElement("div");
+    row.className = "act-ev";
+    const type = document.createElement("span");
+    type.className = eventTypeClass(e.type);
+    type.textContent = e.type.toUpperCase();
+    const text = document.createElement("span");
+    text.className = "act-ev-text";
+    text.textContent = e.username;
+    text.title = e.username;
+    const time = document.createElement("span");
+    time.className = "act-ev-time";
+    time.textContent = `${fmtTime(at)} ${fmtDate(at)}`;
+    row.append(type, text, time);
+    return row;
+}
+
+function buildEventsNote(message: string): HTMLElement {
+    const note = document.createElement("div");
+    note.className = "act-ev-empty";
+    note.textContent = message;
+    return note;
 }
 
 function renderEvents(): void {
     const body = document.getElementById("act-events-body");
     if (!body) return;
     if (!events.length) {
-        body.innerHTML = `<div style="color:var(--muted);padding:10px 0">No follows yet.</div>`;
+        body.replaceChildren(buildEventsNote("No follows yet."));
         return;
     }
-    body.innerHTML = events.map(eventRowHtml).join("");
+    body.replaceChildren(...events.map(buildEventRow));
 }
 
 function addEvent(e: FollowEvent): boolean {
@@ -101,7 +118,7 @@ async function loadRecentFollows(generation: number): Promise<void> {
         liveEvents.clear();
         if (events.length) return;
         const body = document.getElementById("act-events-body");
-        if (body) body.innerHTML = `<div style="color:var(--muted);padding:10px 0">Could not load recent activity.</div>`;
+        if (body) body.replaceChildren(buildEventsNote("Could not load recent activity."));
     }
 }
 

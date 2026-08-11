@@ -5,6 +5,13 @@
         #pane-activity .section-title { margin: 8px 0 10px }
         #pane-activity .card > .section-title:first-child { margin-top: 0 }
         #pane-activity .form-grid { gap: 8px 16px }
+        #pane-activity .act-ev { display: grid; grid-template-columns: 84px minmax(0, 1fr) auto; gap: 10px; align-items: baseline; padding: 5px 0; border-bottom: 1px solid rgba(46, 46, 46, .5); font-size: 12.5px }
+        #pane-activity .act-ev:last-child { border-bottom: 0 }
+        #pane-activity .act-ev-type { justify-self: start; font-size: 10px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; white-space: nowrap; color: var(--dim); border: 1px solid var(--border); border-radius: 3px; padding: 1px 6px; max-width: 84px; overflow: hidden; text-overflow: ellipsis }
+        #pane-activity .act-ev-type-follow { color: var(--accent); border-color: rgba(74, 222, 128, .35) }
+        #pane-activity .act-ev-text { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text); font-weight: 600 }
+        #pane-activity .act-ev-time { white-space: nowrap; text-align: right; color: var(--text); font-variant-numeric: tabular-nums }
+        #pane-activity .act-ev-empty { color: var(--muted); padding: 10px 0 }
         #pane-activity #live-info-error { margin-top: 4px !important }
         #pane-activity #live-info-body > div:nth-child(2) { margin-top: 4px !important }
         #pane-activity .act-main-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(280px, 400px); gap: 10px; align-items: stretch }
