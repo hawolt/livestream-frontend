@@ -1,4 +1,5 @@
 import { scrubOverlayToken } from "./url-secrets.ts";
+import { DEFAULT_ALERT_STYLE, applyOverrides, cssVarsFor, parseAlertStyle, substituteTemplate, type AlertStyle, type OverlayOverrides } from "./alerts/style.ts";
 
 const stageEl = document.getElementById("alert-stage") as HTMLElement;
 
@@ -18,6 +19,9 @@ interface AlertEvent {
 let token = "";
 let demoMode = false;
 let durationMs = DEFAULT_DURATION_MS;
+let hasStoredStyle = false;
+let effectiveStyle: AlertStyle = DEFAULT_ALERT_STYLE;
+const overrides: OverlayOverrides = {};
 let soundEnabled = true;
 let soundVolume = 1;
 const audioByKind = new Map<AlertEvent["kind"], HTMLAudioElement>();
@@ -30,9 +34,11 @@ const queue: AlertEvent[] = [];
 function parseParams(): void {
     const qs = new URLSearchParams(location.search);
     const size = qs.get("size");
-    if (size === "s" || size === "l") document.body.dataset.size = size;
+    if (size === "s") overrides.fontSizePx = 16;
+    if (size === "l") overrides.fontSizePx = 30;
     const durationSec = Number(qs.get("duration"));
-    durationMs = Number.isFinite(durationSec) && durationSec > 0 ? durationSec * 1000 : DEFAULT_DURATION_MS;
+    if (Number.isFinite(durationSec) && durationSec > 0) overrides.durationMs = durationSec * 1000;
+    durationMs = overrides.durationMs ?? DEFAULT_DURATION_MS;
     demoMode = qs.get("demo") === "1";
     soundEnabled = qs.get("sound") !== "0";
     const rawVolume = qs.get("volume");
@@ -45,7 +51,33 @@ function parseParams(): void {
     if (scrubbed.replacement) history.replaceState(history.state, "", scrubbed.replacement);
 }
 
+function applyStyle(style: AlertStyle): void {
+    effectiveStyle = style;
+    durationMs = style.durationMs;
+    const vars = cssVarsFor(style);
+    for (const key of Object.keys(vars)) {
+        stageEl.style.setProperty(key, vars[key]!);
+    }
+    stageEl.dataset.preset = style.preset;
+}
+
+async function loadStyle(username: string): Promise<void> {
+    let style = DEFAULT_ALERT_STYLE;
+    try {
+        const res = await fetch(`/api/live/alert-style/${encodeURIComponent(username)}`);
+        if (res.ok) {
+            style = parseAlertStyle(await res.json());
+            hasStoredStyle = true;
+        }
+    } catch {}
+    applyStyle(applyOverrides(style, overrides));
+}
+
 function captionText(ev: AlertEvent): string {
+    if (hasStoredStyle) {
+        const tpl = ev.kind === "raid" ? effectiveStyle.template.raid : effectiveStyle.template.follow;
+        return substituteTemplate(tpl, ev.username, ev.viewers);
+    }
     if (ev.kind === "raid") {
         return ev.viewers > 0
             ? `just raided with ${ev.viewers} viewer${ev.viewers === 1 ? "" : "s"}!`
@@ -225,6 +257,7 @@ function boot(): void {
     const m = location.pathname.match(/^\/alerts\/([A-Za-z0-9_-]{3,32})\/?$/);
     if (!m) return;
     parseParams();
+    void loadStyle(m[1]!.toLowerCase());
     setupSounds(m[1]!.toLowerCase());
     if (demoMode) {
         startDemo();

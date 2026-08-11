@@ -17,8 +17,6 @@
             font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             font-size: 22px;
         }
-        body[data-size="s"] { font-size: 16px; }
-        body[data-size="l"] { font-size: 30px; }
 
         #alert-stage {
             position: absolute;
@@ -27,16 +25,29 @@
             align-items: center;
             justify-content: center;
             pointer-events: none;
+            --alert-accent: #ffd76a;
+            --alert-bg-rgb: 20, 18, 30;
+            --alert-bg-opacity: .85;
+            --alert-text: #fff;
+            --alert-font-size: 22px;
+            --alert-fade-in: .5s;
+            --alert-fade-out: .35s;
         }
 
         .alert-card {
-            background: rgba(20, 18, 30, .85);
+            background: rgba(var(--alert-bg-rgb), var(--alert-bg-opacity));
             border: 1px solid rgba(255, 255, 255, .15);
-            border-radius: 16px;
-            padding: 18px 32px;
-            color: #fff;
+            border-radius: .73em;
+            padding: .82em 1.45em;
+            color: var(--alert-text);
             text-align: center;
             box-shadow: 0 10px 28px rgba(0, 0, 0, .5);
+            font-size: var(--alert-font-size);
+        }
+
+        .alert-card-raid {
+            border-color: var(--alert-accent);
+            box-shadow: 0 10px 28px rgba(0, 0, 0, .5), 0 0 14px rgba(255, 255, 255, .12);
         }
 
         .alert-name {
@@ -51,7 +62,28 @@
             font-weight: 600;
             letter-spacing: .04em;
             text-transform: uppercase;
-            color: #ffd76a;
+            color: var(--alert-accent);
+        }
+
+        #alert-stage[data-preset="minimal"] .alert-card {
+            background: transparent;
+            border: none;
+            box-shadow: none;
+        }
+        #alert-stage[data-preset="minimal"] .alert-name,
+        #alert-stage[data-preset="minimal"] .alert-caption {
+            text-shadow: 0 1px 4px rgba(0, 0, 0, .95);
+        }
+
+        #alert-stage[data-preset="banner"] {
+            align-items: flex-start;
+        }
+        #alert-stage[data-preset="banner"] .alert-card {
+            width: 100%;
+            border-radius: 0;
+            border-left: none;
+            border-right: none;
+            border-top: none;
         }
 
         @keyframes alert-in {
@@ -63,8 +95,8 @@
             from { opacity: 1; transform: translateY(0) scale(1); }
             to { opacity: 0; transform: translateY(-28px) scale(.85); }
         }
-        .alert-card.enter { animation: alert-in .5s cubic-bezier(.34, 1.56, .64, 1) forwards; }
-        .alert-card.exit { animation: alert-out .35s ease-in forwards; }
+        .alert-card.enter { animation: alert-in var(--alert-fade-in) cubic-bezier(.34, 1.56, .64, 1) forwards; }
+        .alert-card.exit { animation: alert-out var(--alert-fade-out) ease-in forwards; }
         @media (prefers-reduced-motion: reduce) {
             .alert-card.enter,
             .alert-card.exit { animation-duration: .01ms; animation-timing-function: linear; }

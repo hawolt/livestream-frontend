@@ -3,6 +3,7 @@ import { maskSecret } from "../format.ts";
 import { authFetch } from "../session.ts";
 import { PREVIEW_DEBOUNCE_MS, el, username, setBackdrop, wireCopy } from "../overlay-shared.ts";
 import { soundSlotEndpoints, slotHasOwnSound, type AlertSoundSlot } from "../alert-sound-slots.ts";
+import { DEFAULT_ALERT_STYLE, parseAlertStyle, type AlertStyle } from "../../alerts/style.ts";
 
 let followPreviewTimer: number | null = null;
 let followToken: string | null = null;
@@ -19,10 +20,6 @@ function isCurrentActivation(generation: number): boolean {
 
 function buildFollowParams(): URLSearchParams {
     const params = new URLSearchParams();
-    const size = el<HTMLSelectElement>("fa-size").value;
-    if (size !== "m") params.set("size", size);
-    const duration = Number(el<HTMLInputElement>("fa-duration").value);
-    if (Number.isFinite(duration) && duration > 0 && duration !== 5) params.set("duration", String(duration));
     if (!el<HTMLInputElement>("fa-sound").checked) params.set("sound", "0");
     const volume = Number(el<HTMLInputElement>("fa-volume").value);
     if (Number.isFinite(volume) && volume >= 0 && volume < 100) params.set("volume", String(Math.round(volume)));
@@ -94,6 +91,95 @@ async function removeSound(slot: AlertSoundSlot): Promise<void> {
         if (!isCurrentActivation(generation)) return;
         soundStatus(slot, "Failed to remove sound", "var(--red)");
     }
+}
+
+let previewNonce = 0;
+
+function styleForm(): AlertStyle {
+    return parseAlertStyle({
+        preset: el<HTMLSelectElement>("fa-style-preset").value,
+        accent: el<HTMLInputElement>("fa-style-accent").value,
+        bg: el<HTMLInputElement>("fa-style-bg").value,
+        textColor: el<HTMLInputElement>("fa-style-text").value,
+        bgOpacity: Number(el<HTMLInputElement>("fa-style-bgopacity").value),
+        fontSizePx: Number(el<HTMLInputElement>("fa-style-fontsize").value),
+        cardScale: Number(el<HTMLInputElement>("fa-style-scale").value),
+        durationMs: Number(el<HTMLInputElement>("fa-style-duration").value),
+        fadeInMs: Number(el<HTMLInputElement>("fa-style-fadein").value),
+        fadeOutMs: Number(el<HTMLInputElement>("fa-style-fadeout").value),
+        template: {
+            follow: el<HTMLInputElement>("fa-style-tpl-follow").value,
+            raid: el<HTMLInputElement>("fa-style-tpl-raid").value,
+        },
+    });
+}
+
+function fillStyleForm(style: AlertStyle): void {
+    el<HTMLSelectElement>("fa-style-preset").value = style.preset;
+    el<HTMLInputElement>("fa-style-accent").value = style.accent;
+    el<HTMLInputElement>("fa-style-bg").value = style.bg;
+    el<HTMLInputElement>("fa-style-text").value = style.textColor;
+    el<HTMLInputElement>("fa-style-bgopacity").value = String(style.bgOpacity);
+    el<HTMLInputElement>("fa-style-fontsize").value = String(style.fontSizePx);
+    el<HTMLInputElement>("fa-style-scale").value = String(style.cardScale);
+    el<HTMLInputElement>("fa-style-duration").value = String(style.durationMs);
+    el<HTMLInputElement>("fa-style-fadein").value = String(style.fadeInMs);
+    el<HTMLInputElement>("fa-style-fadeout").value = String(style.fadeOutMs);
+    el<HTMLInputElement>("fa-style-tpl-follow").value = style.template.follow;
+    el<HTMLInputElement>("fa-style-tpl-raid").value = style.template.raid;
+    updateTemplateCounts();
+}
+
+function updateTemplateCounts(): void {
+    el("fa-style-tpl-follow-count").textContent = String(el<HTMLInputElement>("fa-style-tpl-follow").value.length);
+    el("fa-style-tpl-raid-count").textContent = String(el<HTMLInputElement>("fa-style-tpl-raid").value.length);
+}
+
+function styleStatus(text: string, color: string): void {
+    const status = el("fa-style-status");
+    status.textContent = text;
+    status.style.color = color;
+}
+
+async function loadAlertStyle(generation: number): Promise<void> {
+    let style = DEFAULT_ALERT_STYLE;
+    try {
+        const raw = await authFetch<unknown>("/api/profile/me/alert-style");
+        style = parseAlertStyle(raw);
+    } catch {}
+    if (!isCurrentActivation(generation)) return;
+    fillStyleForm(style);
+}
+
+async function saveAlertStyle(): Promise<void> {
+    const generation = activationGeneration;
+    const btn = el<HTMLButtonElement>("fa-style-save");
+    btn.disabled = true;
+    styleStatus("Saving...", "var(--muted)");
+    try {
+        const stored = await authFetch<unknown>("/api/profile/me/alert-style", {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(styleForm()),
+        });
+        if (!isCurrentActivation(generation)) return;
+        fillStyleForm(parseAlertStyle(stored));
+        styleStatus("Saved.", "var(--success)");
+        reloadPreview();
+    } catch (e) {
+        if (!isCurrentActivation(generation)) return;
+        styleStatus(e instanceof Error ? e.message : "Failed to save", "var(--red)");
+    }
+    if (isCurrentActivation(generation)) btn.disabled = false;
+}
+
+function reloadPreview(): void {
+    if (!active) return;
+    const params = buildFollowParams();
+    params.set("demo", "1");
+    previewNonce += 1;
+    params.set("r", String(previewNonce));
+    el<HTMLIFrameElement>("fa-preview-iframe").src = `/alerts/${username()}?${params.toString()}`;
 }
 
 function followUrl(): string {
@@ -249,9 +335,12 @@ export function init(): void {
         if (file && slot) void uploadSound(slot, file);
     });
 
-    for (const id of ["fa-size", "fa-duration", "fa-sound", "fa-volume"]) {
+    for (const id of ["fa-sound", "fa-volume"]) {
         el(id).addEventListener("input", onFollowChange);
     }
+    el("fa-style-save").addEventListener("click", () => void saveAlertStyle());
+    el("fa-style-tpl-follow").addEventListener("input", updateTemplateCounts);
+    el("fa-style-tpl-raid").addEventListener("input", updateTemplateCounts);
 }
 
 export function activate(): void {
@@ -268,6 +357,7 @@ export function activate(): void {
     updateFollowPreview();
     void loadFollowToken(generation);
     void refreshSoundStatus(generation);
+    void loadAlertStyle(generation);
 }
 
 export function deactivate(): void {

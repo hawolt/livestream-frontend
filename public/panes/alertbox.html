@@ -9,19 +9,67 @@
             <div class="ov-section">Appearance</div>
             <div class="ov-grid">
                 <label>
-                    <span>Size</span>
-                    <select id="fa-size">
-                        <option value="s">Small</option>
-                        <option value="m" selected>Medium</option>
-                        <option value="l">Large</option>
+                    <span>Style preset</span>
+                    <select id="fa-style-preset">
+                        <option value="classic" selected>Classic card</option>
+                        <option value="minimal">Minimal text</option>
+                        <option value="banner">Full-width banner</option>
                     </select>
-                    <div class="hint">Text size of the alert card.</div>
+                    <div class="hint">Base structure of the alert.</div>
                 </label>
                 <label>
-                    <span>Duration</span>
-                    <input id="fa-duration" type="number" min="1" max="120" value="5">
-                    <div class="hint">Seconds an alert stays on screen.</div>
+                    <span>Accent color</span>
+                    <input id="fa-style-accent" type="color" value="#ffd76a">
                 </label>
+                <label>
+                    <span>Background color</span>
+                    <input id="fa-style-bg" type="color" value="#14121e">
+                </label>
+                <label>
+                    <span>Text color</span>
+                    <input id="fa-style-text" type="color" value="#ffffff">
+                </label>
+                <label>
+                    <span>Background opacity</span>
+                    <input id="fa-style-bgopacity" type="number" min="0" max="1" step="0.05" value="0.85">
+                </label>
+                <label>
+                    <span>Font size (px)</span>
+                    <input id="fa-style-fontsize" type="number" min="10" max="96" value="22">
+                </label>
+                <label>
+                    <span>Card scale</span>
+                    <input id="fa-style-scale" type="number" min="0.5" max="2" step="0.1" value="1">
+                </label>
+                <label>
+                    <span>Duration (ms)</span>
+                    <input id="fa-style-duration" type="number" min="1000" max="30000" step="500" value="5000">
+                </label>
+                <label>
+                    <span>Fade in (ms)</span>
+                    <input id="fa-style-fadein" type="number" min="0" max="5000" step="50" value="500">
+                </label>
+                <label>
+                    <span>Fade out (ms)</span>
+                    <input id="fa-style-fadeout" type="number" min="0" max="5000" step="50" value="350">
+                </label>
+                <div class="ov-span-2">
+                    <label>
+                        <span>Follow text</span>
+                        <input id="fa-style-tpl-follow" type="text" maxlength="120" value="just followed!">
+                        <div class="hint"><span id="fa-style-tpl-follow-count">14</span>/120. Placeholders: {name}</div>
+                    </label>
+                    <label>
+                        <span>Raid text</span>
+                        <input id="fa-style-tpl-raid" type="text" maxlength="120" value="just raided with {viewers} viewers!">
+                        <div class="hint"><span id="fa-style-tpl-raid-count">35</span>/120. Placeholders: {name}, {viewers}</div>
+                    </label>
+                </div>
+                <div class="ov-span-2">
+                    <button class="btn btn-sm btn-primary" id="fa-style-save" type="button">Save appearance</button>
+                    <span id="fa-style-status" style="font-size:13px;margin-left:8px"></span>
+                    <div class="hint">Saved to your channel, applies to the overlay URL without changing it.</div>
+                </div>
             </div>
 
             <div class="ov-section">Sound</div>
