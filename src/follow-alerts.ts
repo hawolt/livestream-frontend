@@ -9,9 +9,10 @@ const EXIT_ANIMATION_NAME = "alert-out";
 const ENTER_ANIMATION_NAME = "alert-in";
 const ALERT_WATCHDOG_MARGIN_MS = 1000;
 
-interface FollowEvent {
+interface AlertEvent {
+    kind: "follow" | "raid";
     username: string;
-    at: number;
+    viewers: number;
 }
 
 let token = "";
@@ -24,7 +25,7 @@ let soundUnlockPrompted = false;
 let sock: WebSocket | null = null;
 let retryTimer: number | null = null;
 let showing = false;
-const queue: FollowEvent[] = [];
+const queue: AlertEvent[] = [];
 
 function parseParams(): void {
     const qs = new URLSearchParams(location.search);
@@ -44,15 +45,24 @@ function parseParams(): void {
     if (scrubbed.replacement) history.replaceState(history.state, "", scrubbed.replacement);
 }
 
-function buildCard(username: string): HTMLDivElement {
+function captionText(ev: AlertEvent): string {
+    if (ev.kind === "raid") {
+        return ev.viewers > 0
+            ? `just raided with ${ev.viewers} viewer${ev.viewers === 1 ? "" : "s"}!`
+            : "just raided!";
+    }
+    return "just followed!";
+}
+
+function buildCard(ev: AlertEvent): HTMLDivElement {
     const card = document.createElement("div");
-    card.className = "alert-card enter";
+    card.className = ev.kind === "raid" ? "alert-card alert-card-raid enter" : "alert-card enter";
     const name = document.createElement("div");
     name.className = "alert-name";
-    name.textContent = username;
+    name.textContent = ev.username;
     const caption = document.createElement("div");
     caption.className = "alert-caption";
-    caption.textContent = "just followed!";
+    caption.textContent = captionText(ev);
     card.append(name, caption);
     return card;
 }
@@ -64,7 +74,7 @@ function showNext(): void {
         return;
     }
     showing = true;
-    const card = buildCard(next.username);
+    const card = buildCard(next);
     stageEl.replaceChildren(card);
     playAlertSound();
     let watchdog: number | null = window.setTimeout(() => {
@@ -91,8 +101,8 @@ function showNext(): void {
     });
 }
 
-function enqueueFollow(username: string): void {
-    queue.push({ username, at: Math.floor(Date.now() / 1000) });
+function enqueueAlert(ev: AlertEvent): void {
+    queue.push(ev);
     if (!showing) showNext();
 }
 
@@ -126,7 +136,12 @@ function connect(): void {
         if (!msg || typeof msg !== "object") return;
         const data = msg as Record<string, unknown>;
         if (data.type === "follow" && typeof data.username === "string") {
-            enqueueFollow(data.username);
+            enqueueAlert({ kind: "follow", username: data.username, viewers: 0 });
+        } else if (data.type === "raid" && typeof data.from === "string") {
+            const viewers = typeof data.viewers === "number" && Number.isFinite(data.viewers)
+                ? Math.max(0, Math.floor(data.viewers))
+                : 0;
+            enqueueAlert({ kind: "raid", username: data.from, viewers });
         }
     };
     s.onclose = (ev) => {
@@ -149,7 +164,9 @@ const DEMO_INTERVAL_MS = 3000;
 function startDemo(): void {
     let i = 0;
     const step = (): void => {
-        enqueueFollow(DEMO_NAMES[i % DEMO_NAMES.length]!);
+        const username = DEMO_NAMES[i % DEMO_NAMES.length]!;
+        if (i % 5 === 4) enqueueAlert({ kind: "raid", username, viewers: 12 + (i % 40) });
+        else enqueueAlert({ kind: "follow", username, viewers: 0 });
         i++;
     };
     step();
