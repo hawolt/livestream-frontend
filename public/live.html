@@ -384,10 +384,13 @@
             gap: 4px;
             font-family: var(--font-mono);
             font-size: 13px;
+            line-height: 1;
             color: #e5e5e5;
             font-variant-numeric: tabular-nums;
             white-space: nowrap;
             padding: 3px 10px;
+            min-height: 28px;
+            box-sizing: border-box;
             border: 1px solid var(--border);
             border-radius: 4px;
             background: var(--bg);
@@ -434,9 +437,15 @@
         .live-follow { display: inline-flex; align-items: center; gap: 8px; }
         .live-follow[hidden] { display: none; }
         .live-follow-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
             font-size: 12px;
             font-weight: 700;
+            line-height: 1;
             padding: 5px 12px;
+            min-height: 28px;
+            box-sizing: border-box;
             border-radius: 6px;
             border: 1px solid var(--accent);
             background: var(--accent);
@@ -587,10 +596,13 @@
             align-items: center;
             gap: 6px;
             font-size: 13px;
+            line-height: 1;
             color: #e5e5e5;
             font-variant-numeric: tabular-nums;
             white-space: nowrap;
             padding: 3px 10px;
+            min-height: 28px;
+            box-sizing: border-box;
             border: 1px solid var(--border);
             border-radius: 4px;
             background: rgba(255, 255, 255, .05);
