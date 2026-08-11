@@ -103,7 +103,8 @@ function renderInfoBar(): void {
     titleEl.textContent = clipTitle;
     sepEl.classList.toggle("hidden", !hasClipTitle && !hasCategory && !hasLanguage);
     categoryEl.textContent = channelChrome.category;
-    if (channelChrome.categoryId !== null) categoryEl.href = `/?category=${channelChrome.categoryId}`;
+    if (channelChrome.categoryId !== null && hasCategory) categoryEl.href = `/category/${encodeURIComponent(channelChrome.category)}`;
+    else if (channelChrome.categoryId !== null) categoryEl.href = `/?category=${channelChrome.categoryId}`;
     else categoryEl.removeAttribute("href");
     categoryEl.classList.toggle("hidden", !hasCategory);
     categorySepEl.classList.toggle("hidden", !hasClipTitle || !hasCategory);

@@ -1,14 +1,43 @@
 import type { CategorySelector, Mode, ViewState } from "./context.ts";
 
-export function urlFor(mode: Mode, catId: CategorySelector): string {
-    if (mode === "categories" && (catId === "none" || typeof catId === "number")) {
-        return `/?category=${catId}`;
+export const NO_CATEGORY_LABEL = "No category";
+
+export function urlFor(mode: Mode, catId: CategorySelector, name?: string): string {
+    if (mode === "categories") {
+        if ((catId === "none" || typeof catId === "number") && typeof name === "string" && name.trim() !== "") {
+            return `/category/${encodeURIComponent(name.trim())}`;
+        }
+        return "/categories";
     }
-    if (mode === "categories" && catId === null) return "/?view=categories";
     return "/";
 }
 
-export function parseViewState(search: string): ViewState {
+export function resolveCategoryName(name: string, categories: { id: number; name: string }[]): number | "none" | null {
+    const needle = name.trim().toLowerCase();
+    if (needle === "") return null;
+    if (needle === NO_CATEGORY_LABEL.toLowerCase()) return "none";
+    const match = categories.find(c => c.name.toLowerCase() === needle);
+    return match === undefined ? null : match.id;
+}
+
+function parsePath(pathname: string): ViewState | null {
+    const path = pathname.replace(/\/+$/, "");
+    if (path === "/categories" || path === "/category") return { mode: "categories", categoryId: null };
+    if (path.startsWith("/category/")) {
+        const raw = path.slice("/category/".length);
+        if (raw === "") return { mode: "categories", categoryId: null };
+        try {
+            return { mode: "categories", categoryId: null, categoryName: decodeURIComponent(raw) };
+        } catch {
+            return { mode: "categories", categoryId: null };
+        }
+    }
+    return null;
+}
+
+export function parseViewState(pathname: string, search: string): ViewState {
+    const fromPath = parsePath(pathname);
+    if (fromPath !== null) return fromPath;
     const params = new URLSearchParams(search);
     const raw = params.get("category");
     if (raw === null) {
@@ -21,5 +50,5 @@ export function parseViewState(search: string): ViewState {
 }
 
 export function stateFromLocation(): ViewState {
-    return parseViewState(location.search);
+    return parseViewState(location.pathname, location.search);
 }

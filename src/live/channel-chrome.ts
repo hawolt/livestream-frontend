@@ -15,7 +15,8 @@ export function applyChannelChrome(c: ChannelChrome): void {
     const hasLanguage = languageLabel !== null;
     sepEl.classList.toggle("hidden", !c.title && !hasCategory && !hasLanguage);
     categoryEl.textContent = c.category;
-    if (c.categoryId !== null) categoryEl.href = `/?category=${c.categoryId}`;
+    if (c.categoryId !== null && hasCategory) categoryEl.href = `/category/${encodeURIComponent(c.category)}`;
+    else if (c.categoryId !== null) categoryEl.href = `/?category=${c.categoryId}`;
     else categoryEl.removeAttribute("href");
     categoryEl.classList.toggle("hidden", !hasCategory);
     categorySepEl.classList.toggle("hidden", !c.title || !hasCategory);

@@ -1,6 +1,6 @@
 import { createChannelRail } from "./channel-rail.ts";
 import { initSiteNav } from "./nav.ts";
-import { ctx, isFramed, type CategorySelector, type ViewState } from "./explore/context.ts";
+import { ctx, isFramed, NO_CATEGORY_LABEL, type CategorySelector, type ViewState } from "./explore/context.ts";
 import {
     backBtn,
     gridEl,
@@ -15,9 +15,9 @@ import {
     railToggleGlyphEl,
 } from "./explore/dom.ts";
 import { loadExplore } from "./explore/poll.ts";
-import { applyState, navigate } from "./explore/render.ts";
+import { applyState, navigate, render } from "./explore/render.ts";
 import { updateModeButtons } from "./explore/stream-cards.ts";
-import { stateFromLocation, urlFor } from "./explore/url-state.ts";
+import { resolveCategoryName, stateFromLocation, urlFor } from "./explore/url-state.ts";
 
 const MANUAL_REFRESH_THROTTLE_MS = 10000;
 let lastManualRefresh = 0;
@@ -58,7 +58,7 @@ gridEl.addEventListener("click", (e) => {
     refreshOnNavigation();
     const raw = anchor.dataset["categoryId"] ?? "";
     const categoryId: CategorySelector = raw === "none" ? "none" : (/^\d+$/.test(raw) ? Number(raw) : "invalid");
-    navigate({ mode: "categories", categoryId });
+    navigate({ mode: "categories", categoryId, categoryName: anchor.dataset["categoryName"] });
 });
 
 window.addEventListener("popstate", (e) => {
@@ -66,6 +66,17 @@ window.addEventListener("popstate", (e) => {
     const state = (e.state as ViewState | null) ?? stateFromLocation();
     applyState(state);
 });
+
+function canonicalBootUrl(): string | null {
+    const sel = ctx.drillCategoryId;
+    if (ctx.mode !== "categories") return "/";
+    if (sel === null) return "/categories";
+    if (sel === "none") return urlFor("categories", "none", NO_CATEGORY_LABEL);
+    if (sel === "invalid") return null;
+    const cat = ctx.categories.find(c => c.id === sel);
+    if (cat === undefined) return null;
+    return urlFor("categories", sel, cat.name);
+}
 
 async function boot(): Promise<void> {
     if (isFramed) document.body.classList.add("explore-framed");
@@ -109,10 +120,22 @@ async function boot(): Promise<void> {
     }
     const initial = stateFromLocation();
     ctx.mode = initial.mode;
-    ctx.drillCategoryId = initial.categoryId;
-    history.replaceState(initial, "", urlFor(initial.mode, initial.categoryId));
+    ctx.drillCategoryId = initial.categoryName === undefined ? initial.categoryId : null;
     updateModeButtons();
     await loadExplore();
+    let keepUrl = false;
+    if (initial.categoryName !== undefined) {
+        const resolved = resolveCategoryName(initial.categoryName, ctx.categories);
+        ctx.drillCategoryId = resolved;
+        keepUrl = resolved === null;
+        render();
+    }
+    if (!keepUrl) {
+        const canonical = canonicalBootUrl();
+        if (canonical !== null) {
+            history.replaceState({ mode: ctx.mode, categoryId: ctx.drillCategoryId }, "", canonical);
+        }
+    }
 }
 
 void boot();

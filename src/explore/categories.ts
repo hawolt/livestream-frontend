@@ -15,8 +15,9 @@ interface CategoryCardData {
 function categoryCardEl(data: CategoryCardData): HTMLAnchorElement {
     const a = document.createElement("a");
     a.className = "explore-card explore-category-card";
-    a.href = urlFor("categories", data.id);
+    a.href = urlFor("categories", data.id, data.name);
     a.dataset["categoryId"] = String(data.id);
+    a.dataset["categoryName"] = data.name;
 
     const thumb = document.createElement("div");
     thumb.className = "explore-thumb explore-category-thumb";

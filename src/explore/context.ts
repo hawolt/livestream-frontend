@@ -23,9 +23,10 @@ export interface ExploreCategory {
 export interface ViewState {
     mode: Mode;
     categoryId: CategorySelector;
+    categoryName?: string;
 }
 
-export const NO_CATEGORY_LABEL = "No category";
+export { NO_CATEGORY_LABEL } from "./url-state.ts";
 
 export const isFramed = window.self !== window.top || new URLSearchParams(location.search).get("framed") === "1";
 
