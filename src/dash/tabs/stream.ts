@@ -6,6 +6,7 @@ import { openModal } from "../modal.ts";
 import { loadRegions } from "../regions.ts";
 import { authFetch } from "../session.ts";
 import { studioTabUrl } from "../studio.ts";
+import { wireStepper } from "../stepper.ts";
 
 let liveCache: LiveInfo | null = null;
 let regions: RegionOption[] = [];
@@ -386,13 +387,18 @@ function renderRaidSettings(): void {
         </label>
         <div style="margin-top:10px">
             <label style="font-size:12px;color:var(--text)" for="live-raid-min">Minimum viewers to raid me</label>
-            <input id="live-raid-min" type="number" min="0" max="${RAID_MIN_VIEWERS_MAX}" step="1" value="${minViewers}" style="display:block;width:120px;margin-top:4px">
+            <div class="stepper" style="width:140px;margin-top:4px">
+                <button type="button" class="stepper-btn" data-step="-1" aria-label="Decrease">&minus;</button>
+                <input id="live-raid-min" type="number" min="0" max="${RAID_MIN_VIEWERS_MAX}" step="1" value="${minViewers}">
+                <button type="button" class="stepper-btn" data-step="1" aria-label="Increase">+</button>
+            </div>
             <div style="font-size:11px;color:var(--muted);margin-top:4px">Raids from channels with fewer viewers are refused. 0 accepts any size.</div>
         </div>
         <div class="card-actions">
             <button class="btn btn-primary" id="live-raid-settings-save">Save</button>
         </div>
         <div id="live-raid-settings-status" style="font-size:12px;min-height:16px;margin-top:6px"></div>`;
+    wireStepper(document.getElementById("live-raid-min") as HTMLInputElement);
     document.getElementById("live-raid-settings-save")?.addEventListener("click", async () => {
         const checkbox = document.getElementById("live-raid-enabled") as HTMLInputElement;
         const minInput = document.getElementById("live-raid-min") as HTMLInputElement;

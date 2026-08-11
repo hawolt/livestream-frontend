@@ -54,7 +54,11 @@
                 </label>
                 <label class="ov-span-2">
                     <span>Fade</span>
-                    <input id="mc-fade" type="number" min="0" max="600" value="0">
+                    <div class="stepper">
+                        <button type="button" class="stepper-btn" data-step="-1" aria-label="Decrease">&minus;</button>
+                        <input id="mc-fade" type="number" min="0" max="600" value="0">
+                        <button type="button" class="stepper-btn" data-step="1" aria-label="Increase">+</button>
+                    </div>
                     <div class="hint">Seconds before a message disappears. 0 = never.</div>
                 </label>
                 <label class="ov-toggle">

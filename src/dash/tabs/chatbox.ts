@@ -1,4 +1,5 @@
 import { PREVIEW_DEBOUNCE_MS, el, username, setBackdrop, wireCopy } from "../overlay-shared.ts";
+import { wireStepper } from "../stepper.ts";
 
 let previewTimer: number | null = null;
 
@@ -42,6 +43,8 @@ export function init(): void {
     el("ov-bg-checker").addEventListener("click", () => setBackdrop("ov-preview-frame", "ov-bg-checker", "ov-bg-dark", "checker"));
     el("ov-bg-dark").addEventListener("click", () => setBackdrop("ov-preview-frame", "ov-bg-checker", "ov-bg-dark", "dark"));
     wireCopy("ov-url-copy", () => el("ov-url").textContent ?? "");
+
+    wireStepper(el<HTMLInputElement>("ov-fade"));
 
     for (const id of ["ov-size", "ov-fade", "ov-badges", "ov-emotes", "ov-bg", "ov-shadow", "ov-align"]) {
         el(id).addEventListener("input", onChange);

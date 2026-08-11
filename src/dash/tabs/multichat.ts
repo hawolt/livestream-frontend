@@ -1,4 +1,5 @@
 import { PREVIEW_DEBOUNCE_MS, el, username, setBackdrop, wireCopy } from "../overlay-shared.ts";
+import { wireStepper } from "../stepper.ts";
 
 const STORAGE_KEY = "multichat_sources";
 
@@ -99,6 +100,8 @@ export function init(): void {
     el<HTMLButtonElement>("mc-open").addEventListener("click", () => {
         window.open(currentUrl(), "_blank", "noopener,width=420,height=720");
     });
+
+    wireStepper(el<HTMLInputElement>("mc-fade"));
 
     for (const id of ["mc-twitch", "mc-youtube", "mc-ytvideo", "mc-kick", "mc-tiktok", "mc-mode", "mc-size", "mc-fade", "mc-icons", "mc-badges", "mc-emotes", "mc-linebg", "mc-shadow"]) {
         el(id).addEventListener("input", onChange);
