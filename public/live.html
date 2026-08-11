@@ -894,6 +894,22 @@
         .live-chat-notice + .live-chat-notice { border-top: 1px solid var(--border); }
         .live-chat-notice-raid { background: rgba(74,222,128,.10); }
         .live-chat-notice-raid b { color: var(--accent); }
+        .live-chat-notice-raid-body {
+            display: flex;
+            flex-direction: column;
+            gap: 1px;
+            font-size: 13px;
+            overflow-wrap: normal;
+            cursor: default;
+        }
+        .live-chat-notice-raid-line {
+            display: block;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .live-chat-notice-raid-meta { color: var(--muted); }
+        .live-chat-notice-raid-num { font-variant-numeric: tabular-nums; }
         .live-chat-notice-actions { display: flex; gap: 6px; flex-shrink: 0; }
         .live-chat-notice-btn {
             padding: 4px 10px;

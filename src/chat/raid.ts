@@ -11,6 +11,7 @@ let raiderCount = 0;
 let stayed = false;
 let countdownEl: HTMLElement | null = null;
 let countEl: HTMLElement | null = null;
+let countWordEl: HTMLElement | null = null;
 
 export interface RaidHandover {
     begin(target: string): void;
@@ -42,12 +43,14 @@ function reset(): void {
     stayed = false;
     countdownEl = null;
     countEl = null;
+    countWordEl = null;
     removeNotice("raid");
 }
 
 function renderLive(): void {
     if (countdownEl) countdownEl.textContent = String(remainingSeconds());
     if (countEl) countEl.textContent = String(raiderCount);
+    if (countWordEl) countWordEl.textContent = raiderCount === 1 ? " viewer" : " viewers";
 }
 
 function transfer(): void {
@@ -82,24 +85,33 @@ function onJoin(): void {
 function buildRaidNotice(root: HTMLDivElement): void {
     root.classList.add("live-chat-notice-raid");
     const body = document.createElement("span");
-    body.className = "live-chat-pin-body";
+    body.className = "live-chat-pin-body live-chat-notice-raid-body";
+    const headline = document.createElement("span");
+    headline.className = "live-chat-notice-raid-line";
     const name = document.createElement("b");
     name.textContent = currentTarget;
+    headline.append(document.createTextNode("Raiding "), name);
+    const meta = document.createElement("span");
+    meta.className = "live-chat-notice-raid-line live-chat-notice-raid-meta";
     const cd = document.createElement("span");
+    cd.className = "live-chat-notice-raid-num";
     cd.textContent = String(remainingSeconds());
     const cnt = document.createElement("span");
+    cnt.className = "live-chat-notice-raid-num";
     cnt.textContent = String(raiderCount);
+    const cntWord = document.createElement("span");
+    cntWord.textContent = raiderCount === 1 ? " viewer" : " viewers";
     countdownEl = cd;
     countEl = cnt;
-    body.append(
-        document.createTextNode("Raiding "),
-        name,
-        document.createTextNode(" in "),
+    countWordEl = cntWord;
+    meta.append(
+        document.createTextNode("in "),
         cd,
         document.createTextNode("s with "),
         cnt,
-        document.createTextNode(" raiders"),
+        cntWord,
     );
+    body.append(headline, meta);
     const actions = document.createElement("span");
     actions.className = "live-chat-notice-actions";
     const join = document.createElement("button");
