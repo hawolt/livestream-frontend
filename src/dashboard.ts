@@ -217,7 +217,6 @@ function connectDashboardEvents(): void {
         if (msg.type === "subscription") {
             window.dispatchEvent(new CustomEvent("subscription-changed"));
             void refreshTabs();
-            void refreshSubscriptionUpsell();
         }
     };
     ws.onclose = () => {
@@ -225,38 +224,6 @@ function connectDashboardEvents(): void {
         eventsSocket = null;
         window.setTimeout(connectDashboardEvents, EVENTS_RECONNECT_MS);
     };
-}
-
-let upsellCard: HTMLAnchorElement | null = null;
-
-function buildSubscriptionUpsell(side: HTMLElement): void {
-    const card = document.createElement("a");
-    card.className = "dash-side-upsell";
-    card.href = "/dashboard/subscription";
-    card.hidden = true;
-    const title = document.createElement("b");
-    title.textContent = "Cosmetic subscription";
-    const text = document.createElement("span");
-    text.textContent = "Chat badge, name color, no ads. Support the site.";
-    card.append(title, text);
-    side.appendChild(card);
-    upsellCard = card;
-    void refreshSubscriptionUpsell();
-}
-
-async function refreshSubscriptionUpsell(): Promise<void> {
-    const card = upsellCard;
-    if (!card) return;
-    if (!tabById.has("subscription")) {
-        card.hidden = true;
-        return;
-    }
-    try {
-        const tiers = await authFetch<{ enabled: boolean; current: unknown }>("/api/billing/tiers");
-        card.hidden = !tiers.enabled || !!tiers.current;
-    } catch {
-        card.hidden = true;
-    }
 }
 
 async function refreshTabs(): Promise<void> {
@@ -325,7 +292,6 @@ function buildSidebar(tabs: TabInfo[]): void {
     list.className = "dash-side-list";
     list.id = DASH_SIDE_LIST_ID;
     side.appendChild(list);
-    buildSubscriptionUpsell(side);
 
     const distinctGroups = new Set(tabs.map(t => t.group ?? "__none__"));
     const showHeaders = distinctGroups.size >= 2;

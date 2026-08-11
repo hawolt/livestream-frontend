@@ -1304,19 +1304,3 @@ html.live-host .live-chat-actions button:focus-visible {
     }
 }
 
-.dash-side-upsell {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    margin: 10px;
-    padding: 10px 12px;
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    background: rgba(74,222,128,.06);
-    color: var(--text);
-    text-decoration: none;
-    font-size: 12.5px;
-}
-.dash-side-upsell b { color: var(--accent); font-size: 13px; }
-.dash-side-upsell:hover { border-color: var(--accent); }
-.dash-side-upsell[hidden] { display: none; }
