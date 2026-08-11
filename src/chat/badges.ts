@@ -1,5 +1,6 @@
 import { isOwner } from "./context.ts";
 import { roles, subscriberBadges, subscribers, unverified, vips } from "./members.ts";
+import { attachBadgeUpsell } from "./badge-upsell.ts";
 
 export type BadgeName = "op" | "staff" | "bot" | "mod" | "vip" | "regular" | "unverified";
 export const BADGE_TITLE: Record<BadgeName, string> = {
@@ -47,6 +48,7 @@ export function makeSubscriberBadge(key: string): HTMLImageElement {
             img.title = BADGE_TITLE.regular;
         }, { once: true });
     }
+    attachBadgeUpsell(img);
     return img;
 }
 

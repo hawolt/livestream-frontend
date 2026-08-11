@@ -11,6 +11,7 @@ import { renderPins } from "./pins.ts";
 import { openProfileFromUser } from "./panels.ts";
 import { shouldPingForMention } from "./mention-ping.ts";
 import { playMentionPing } from "./ping-sound.ts";
+import { recordChatMessageForAds } from "./chat-ad.ts";
 
 export const MAX_MESSAGES = 200;
 const SCROLL_SLACK_PX = 40;
@@ -197,6 +198,7 @@ export function addMessage(
         playMentionPing();
     }
     append(line);
+    recordChatMessageForAds();
 }
 
 export function redactMessageEl(el: HTMLElement): void {
