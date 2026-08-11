@@ -548,59 +548,6 @@
         }
         .live-clip-watch-live:hover { filter: brightness(1.08); }
         .live-clip-watch-live[hidden] { display: none; }
-        .live-raid-banner {
-            position: absolute;
-            top: 16px;
-            left: 50%;
-            transform: translateX(-50%);
-            z-index: 6;
-            display: flex;
-            align-items: center;
-            gap: 14px;
-            background: rgba(0,0,0,.75);
-            border: 1px solid var(--border);
-            border-radius: 6px;
-            padding: 10px 16px;
-            max-width: calc(100% - 32px);
-            box-shadow: 0 2px 8px rgba(0,0,0,.45);
-        }
-        .live-raid-banner[hidden] { display: none; }
-        .live-raid-banner-text {
-            font-size: 14px;
-            color: var(--text);
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-        .live-raid-banner-text b { color: var(--accent); }
-        .live-raid-banner-actions { display: flex; gap: 8px; flex-shrink: 0; }
-        .live-raid-join {
-            padding: 7px 14px;
-            border-radius: 3px;
-            border: none;
-            background: var(--accent);
-            color: #000;
-            font-weight: 700;
-            font-size: 13px;
-            white-space: nowrap;
-            cursor: pointer;
-        }
-        .live-raid-join:hover { filter: brightness(1.08); }
-        .live-raid-stay {
-            padding: 7px 14px;
-            border-radius: 3px;
-            background: rgba(0,0,0,.65);
-            color: var(--text);
-            border: 1px solid var(--border);
-            font-weight: 600;
-            font-size: 13px;
-            white-space: nowrap;
-            cursor: pointer;
-        }
-        .live-raid-stay:hover { border-color: var(--accent); }
-        @media (max-width: 600px) {
-            .live-raid-banner { flex-direction: column; gap: 8px; padding: 10px 12px; }
-        }
         .live-clip-unmute {
             position: absolute;
             top: 16px;
@@ -902,6 +849,36 @@
         }
         .live-chat-pin-close:hover { color: var(--text); }
         .live-chat-pin-close[hidden] { display: none; }
+        .live-chat-notices {
+            flex-shrink: 0;
+            max-height: 40%;
+            overflow-y: auto;
+            border-bottom: 1px solid var(--border);
+        }
+        .live-chat-notices[hidden] { display: none; }
+        .live-chat-notice { background: rgba(255,255,255,.04); }
+        .live-chat-notice + .live-chat-notice { border-top: 1px solid var(--border); }
+        .live-chat-notice-raid { background: rgba(74,222,128,.10); }
+        .live-chat-notice-raid b { color: var(--accent); }
+        .live-chat-notice-actions { display: flex; gap: 6px; flex-shrink: 0; }
+        .live-chat-notice-btn {
+            padding: 4px 10px;
+            border-radius: 3px;
+            border: 1px solid var(--border);
+            background: rgba(0,0,0,.35);
+            color: var(--text);
+            font-weight: 600;
+            font-size: 12px;
+            cursor: pointer;
+        }
+        .live-chat-notice-btn:hover { border-color: var(--accent); }
+        .live-chat-notice-btn-primary {
+            background: var(--accent);
+            border-color: var(--accent);
+            color: #000;
+            font-weight: 700;
+        }
+        .live-chat-notice-btn-primary:hover { filter: brightness(1.08); }
 
         .live-chat-userlist {
             position: absolute;
@@ -1208,6 +1185,16 @@
             padding-left: 6px;
         }
         .live-chat-sys.live-chat-raid b { color: var(--accent); }
+        .live-chat-sys.live-chat-sys-hl {
+            font-style: normal;
+            font-size: 13px;
+            color: var(--text);
+            background: rgba(74,222,128,.12);
+            border-radius: 4px;
+            padding: 4px 8px;
+            margin: 2px 0;
+        }
+        .live-chat-sys.live-chat-sys-hl b { color: var(--accent); }
 
         .live-chat-foot {
             position: relative;
@@ -1601,13 +1588,6 @@
                     <button id="browse-mini-close" class="browse-mini-close" type="button" aria-label="Close mini player">&times;</button>
                 </div>
                 <a id="live-clip-watch-live" class="live-clip-watch-live" href="#" hidden>Watch live now</a>
-                <div id="live-raid-banner" class="live-raid-banner" hidden>
-                    <div class="live-raid-banner-text">Raiding <b id="live-raid-target"></b> in <span id="live-raid-count"></span>s</div>
-                    <div class="live-raid-banner-actions">
-                        <button type="button" id="live-raid-join" class="live-raid-join">Join now</button>
-                        <button type="button" id="live-raid-stay" class="live-raid-stay">Stay here</button>
-                    </div>
-                </div>
                 <button type="button" id="live-clip-unmute" class="live-clip-unmute" hidden>
                     <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><line x1="23" y1="9" x2="17" y2="15"></line><line x1="17" y1="9" x2="23" y2="15"></line></svg>
                     <span>Click to unmute</span>
@@ -1674,6 +1654,7 @@
                     <button id="btn-chat-collapse" type="button" title="Collapse chat" aria-label="Collapse chat">&times;</button>
                 </div>
             </div>
+            <div id="live-chat-notices" class="live-chat-notices" hidden></div>
             <div id="live-chat-pinned" class="live-chat-pinned" hidden></div>
             <div id="live-chat-userlist" class="live-chat-userlist" hidden>
                 <div class="live-chat-userlist-head">

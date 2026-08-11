@@ -35,9 +35,16 @@ export function addSystem(text: string): void {
     append(line);
 }
 
+export function addSystemHighlight(text: string): void {
+    const line = document.createElement("div");
+    line.className = "live-chat-sys live-chat-sys-hl";
+    line.textContent = text;
+    append(line);
+}
+
 export function addRaidIncoming(raider: string, viewers: number): void {
     const line = document.createElement("div");
-    line.className = "live-chat-sys live-chat-raid";
+    line.className = "live-chat-sys live-chat-sys-hl live-chat-raid";
     const who = document.createElement("b");
     who.textContent = raider;
     const tail = viewers > 0

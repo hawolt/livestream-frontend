@@ -192,7 +192,8 @@ export function submit(): void {
     const r = ctx.replyTo;
     const cmdWord = normalizedCommandWord(text);
     const isWhisper = cmdWord === ".whisper" || cmdWord === ".w";
-    const serverHandles = isWhisper || (cmdWord !== "" && hasModRole());
+    const isRaidCmd = cmdWord === ".raidjoin" || cmdWord === ".raidstay";
+    const serverHandles = isWhisper || isRaidCmd || (cmdWord !== "" && hasModRole());
     const tag = r && !isWhisper ? `@+reply=${r.msgid} ` : "";
     send(`${tag}PRIVMSG ${ctx.channel} :${text}`);
     if (!ctx.capEcho && !serverHandles) addMessage(ctx.nick, text, undefined, r?.msgid);

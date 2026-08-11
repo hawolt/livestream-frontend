@@ -9,6 +9,7 @@ import {
     addMessage,
     addRaidIncoming,
     addSystem,
+    addSystemHighlight,
     addWhisper,
     findMessageEl,
     redactMessageEl,
@@ -31,8 +32,8 @@ import {
 } from "./members.ts";
 import { sanitizeSubscriberBadgeName } from "./badges.ts";
 import { addPin, clearPins, dismissedPins, removePin } from "./pins.ts";
-import { hideRaidBanner, showRaidBanner } from "./raid.ts";
-import { parseRaidIncoming, parseRaidStart } from "./raid-wire.ts";
+import { hideRaidBanner, raidGo, showRaidStart, updateRaidCount } from "./raid.ts";
+import { parseRaidCount, parseRaidIncoming, parseRaidStart, parseRaidTarget } from "./raid-wire.ts";
 import { renderUserlist, setHelp, setSettings, setUserlist } from "./panels.ts";
 import { getChatWssBase } from "./ws-config.ts";
 import { toWsOrigin } from "../player-shared/ws-url.ts";
@@ -316,13 +317,31 @@ function handle(line: IrcLine): void {
         }
         case "RAID": {
             if (line.params[0]?.toLowerCase() !== ctx.channel) return;
-            const raid = parseRaidStart(line.params[1], line.params[2]);
-            if (raid) showRaidBanner(raid.target, raid.seconds);
+            const raid = parseRaidStart(line.params[1], line.params[2], line.params[3]);
+            if (raid) showRaidStart(raid.target, raid.seconds, raid.count);
             return;
         }
         case "RAIDCANCEL": {
             if (line.params[0]?.toLowerCase() !== ctx.channel) return;
             hideRaidBanner();
+            return;
+        }
+        case "RAIDCOUNT": {
+            if (line.params[0]?.toLowerCase() !== ctx.channel) return;
+            const n = parseRaidCount(line.params[1]);
+            if (n !== null) updateRaidCount(n);
+            return;
+        }
+        case "RAIDGO": {
+            if (line.params[0]?.toLowerCase() !== ctx.channel) return;
+            const target = parseRaidTarget(line.params[1]);
+            if (target) raidGo(target);
+            return;
+        }
+        case "SYSMSG": {
+            if (line.params[0]?.toLowerCase() !== ctx.channel) return;
+            const text = line.params[line.params.length - 1];
+            if (text) addSystemHighlight(text);
             return;
         }
         case "RAIDINCOMING": {
