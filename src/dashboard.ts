@@ -137,7 +137,7 @@ async function activateTab(tab: string, pushState = true): Promise<void> {
 
 function appendSidebarLink(list: HTMLElement, t: TabInfo): void {
     const link = document.createElement("a");
-    link.className = "dash-side-link";
+    link.className = t.id === "subscription" ? "dash-side-link dash-side-link-accent" : "dash-side-link";
     link.href = `/dashboard/${t.id}`;
     link.dataset["tab"] = t.id;
     const label = document.createElement("span");
