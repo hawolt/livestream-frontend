@@ -445,9 +445,10 @@ a.btn:hover { text-decoration: none; }
 .ov-section:first-child { margin-top: 0; padding-top: 0; border-top: none; }
 
 .ov-toggle { display: flex; align-items: flex-start; gap: 8px; }
-.ov-toggle input { margin-top: 3px; flex-shrink: 0; }
+.ov-toggle input { margin-top: 0; flex-shrink: 0; }
 .ov-toggle > span {
     display: block;
+    line-height: 16px;
     font-size: 13px;
     font-weight: 400;
     text-transform: none;
@@ -455,7 +456,8 @@ a.btn:hover { text-decoration: none; }
     color: inherit;
     margin-bottom: 0;
 }
-.ov-toggle .ov-toggle-name { font-size: 13px; font-weight: 600; display: block; }
+.ov-toggle .ov-toggle-name { font-size: 13px; font-weight: 600; display: block; line-height: 16px; }
+.ov-toggle .hint { line-height: 1.45; }
 
 .ov-url-row { display: flex; gap: 6px; align-items: center; }
 .ov-url-row code { font-size: 11px; word-break: break-all; flex: 1; }
@@ -547,6 +549,16 @@ input[type="range"].ov-range::-moz-range-track {
 .ov-preview-frame.bg-dark { background: #0a0a0a; }
 .ov-preview-frame iframe { width: 100%; height: 100%; border: none; display: block; }
 @media (max-width: 900px) { .ov-preview-frame { width: 100%; height: 420px; } }
+
+label:not(.ov-toggle):has(> input[type="checkbox"]) > span {
+    display: inline;
+    font-size: inherit;
+    font-weight: inherit;
+    color: inherit;
+    margin-bottom: 0;
+    text-transform: none;
+    letter-spacing: normal;
+}
 
 label > span {
     display: block;
