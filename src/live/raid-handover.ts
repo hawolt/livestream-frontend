@@ -8,6 +8,7 @@ import { resetStreamInfo, rewatchViewcount } from "./stream-info.ts";
 import { attachVideoElementListeners, updatePlayIcon, updateVolumeUI } from "./controls.ts";
 import { applyChannelChrome } from "./channel-chrome.ts";
 import { startChat } from "../live-chat.ts";
+import { msgsEl } from "../chat/dom.ts";
 import { openLoginModal } from "./login-modal.ts";
 import { initFollow } from "./follow.ts";
 import { loadProfile, offlineArtUrl } from "../profile-card.ts";
@@ -62,6 +63,7 @@ function repointPage(channel: PrewarmChannel): void {
     document.title = ctx.displayUsername;
     browseMiniUsername.textContent = ctx.displayUsername;
     applyChannelChrome(channel);
+    msgsEl.replaceChildren();
     startChat(channel.target, channel.emoteTwitchId, () => openLoginModal("chat"));
     void initFollow();
     rewatchViewcount();

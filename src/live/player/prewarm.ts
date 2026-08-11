@@ -1,4 +1,5 @@
 import { stageEl } from "../dom.ts";
+import { START_BEHIND_S } from "../constants.ts";
 import { captchaRequired, freshCaptchaQuery } from "../../captcha.ts";
 import { ensureViewerId } from "../../player-shared/viewer-id.ts";
 import { chooseTransportBase } from "../../player-shared/transport-fallback.ts";
@@ -43,6 +44,7 @@ interface PrewarmSession {
     height: number;
     initAppended: boolean;
     fragmentsAppended: number;
+    seeked: boolean;
     onUpdateEnd: (() => void) | null;
     onCanPlay: (() => void) | null;
     released: boolean;
@@ -80,6 +82,7 @@ export function startPrewarm(target: string): void {
         height: 0,
         initAppended: false,
         fragmentsAppended: 0,
+        seeked: false,
         onUpdateEnd: null,
         onCanPlay: null,
         released: false,
@@ -293,6 +296,13 @@ function attachPrewarmMediaSource(s: PrewarmSession, codecs: string): void {
             if (session !== s || sessionDead(s)) return;
             if (!s.initAppended) s.initAppended = true;
             else s.fragmentsAppended += 1;
+            const b = s.videoEl.buffered;
+            if (!s.seeked && b.length) {
+                s.seeked = true;
+                const start = b.start(0);
+                const end = b.end(b.length - 1);
+                s.videoEl.currentTime = Math.max(start, end - START_BEHIND_S);
+            }
             void s.videoEl.play().catch(() => {});
             refreshReadiness(s);
             prewarmPump(s);

@@ -14,7 +14,7 @@ import { setStreamDimensions, setStreamFps, setStreamStart, updateQuality } from
 import { attachMediaSource, pruneBuffer, pump } from "./mse.ts";
 import { startChase } from "./chase.ts";
 import { attachVideoFailureListeners } from "./health.ts";
-import { fullTeardown, goOffline, nextRetryDelay, restartAfterFailure, scheduleRestart, setPoster, setState } from "./lifecycle.ts";
+import { fullTeardown, goOffline, nextRetryDelay, renderPlayerUI, restartAfterFailure, scheduleRestart, setPoster, setState } from "./lifecycle.ts";
 import { mediaWsUrl as sharedMediaWsUrl } from "../../player-shared/ws-url.ts";
 import { chooseTransportBase, markDirectFailed, shouldMarkDirectFailed } from "../../player-shared/transport-fallback.ts";
 
@@ -119,6 +119,7 @@ export function adoptWSTransport(g: number, a: AdoptedTransport): void {
     updateQuality();
     ctx.lastMediaArrivalAt = Date.now();
     setState("playing");
+    renderPlayerUI();
     startChase(g);
     pump(g);
 }
