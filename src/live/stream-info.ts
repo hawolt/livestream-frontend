@@ -157,7 +157,7 @@ export function connectViewcount(): void {
             return;
         }
         if (msg.type === "viewcount" && typeof msg.viewers === "number") {
-            setViewers(msg.viewers > 0 ? msg.viewers : null);
+            setViewers(msg.viewers);
         } else if (msg.type === "points" && typeof msg.channel === "string"
                 && typeof msg.gained === "number" && typeof msg.balance === "number") {
             onPointsFrame(msg.channel, msg.gained, msg.balance);
