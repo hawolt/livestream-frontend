@@ -4,6 +4,7 @@ import { authFetch } from "../session.ts";
 import { PREVIEW_DEBOUNCE_MS, el, username, setBackdrop, wireCopy } from "../overlay-shared.ts";
 import { soundSlotEndpoints, slotHasOwnSound, type AlertSoundSlot } from "../alert-sound-slots.ts";
 import { DEFAULT_ALERT_STYLE, parseAlertStyle, type AlertStyle } from "../../alerts/style.ts";
+import { wireStepper } from "../stepper.ts";
 
 let followPreviewTimer: number | null = null;
 let followToken: string | null = null;
@@ -334,6 +335,14 @@ export function init(): void {
         pendingUploadSlot = null;
         if (file && slot) void uploadSound(slot, file);
     });
+
+    wireStepper(el<HTMLInputElement>("fa-volume"));
+    wireStepper(el<HTMLInputElement>("fa-style-bgopacity"));
+    wireStepper(el<HTMLInputElement>("fa-style-fontsize"));
+    wireStepper(el<HTMLInputElement>("fa-style-scale"));
+    wireStepper(el<HTMLInputElement>("fa-style-duration"));
+    wireStepper(el<HTMLInputElement>("fa-style-fadein"));
+    wireStepper(el<HTMLInputElement>("fa-style-fadeout"));
 
     for (const id of ["fa-sound", "fa-volume"]) {
         el(id).addEventListener("input", onFollowChange);

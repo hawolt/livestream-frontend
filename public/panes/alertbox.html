@@ -31,27 +31,51 @@
                 </label>
                 <label>
                     <span>Background opacity</span>
-                    <input id="fa-style-bgopacity" type="number" min="0" max="1" step="0.05" value="0.85">
+                    <div class="stepper">
+                        <button type="button" class="stepper-btn" data-step="-1" aria-label="Decrease">&minus;</button>
+                        <input id="fa-style-bgopacity" type="number" min="0" max="1" step="0.05" value="0.85">
+                        <button type="button" class="stepper-btn" data-step="1" aria-label="Increase">+</button>
+                    </div>
                 </label>
                 <label>
                     <span>Font size (px)</span>
-                    <input id="fa-style-fontsize" type="number" min="10" max="96" value="22">
+                    <div class="stepper">
+                        <button type="button" class="stepper-btn" data-step="-1" aria-label="Decrease">&minus;</button>
+                        <input id="fa-style-fontsize" type="number" min="10" max="96" value="22">
+                        <button type="button" class="stepper-btn" data-step="1" aria-label="Increase">+</button>
+                    </div>
                 </label>
                 <label>
                     <span>Card scale</span>
-                    <input id="fa-style-scale" type="number" min="0.5" max="2" step="0.1" value="1">
+                    <div class="stepper">
+                        <button type="button" class="stepper-btn" data-step="-1" aria-label="Decrease">&minus;</button>
+                        <input id="fa-style-scale" type="number" min="0.5" max="2" step="0.1" value="1">
+                        <button type="button" class="stepper-btn" data-step="1" aria-label="Increase">+</button>
+                    </div>
                 </label>
                 <label>
                     <span>Duration (ms)</span>
-                    <input id="fa-style-duration" type="number" min="1000" max="30000" step="500" value="5000">
+                    <div class="stepper">
+                        <button type="button" class="stepper-btn" data-step="-1" aria-label="Decrease">&minus;</button>
+                        <input id="fa-style-duration" type="number" min="1000" max="30000" step="500" value="5000">
+                        <button type="button" class="stepper-btn" data-step="1" aria-label="Increase">+</button>
+                    </div>
                 </label>
                 <label>
                     <span>Fade in (ms)</span>
-                    <input id="fa-style-fadein" type="number" min="0" max="5000" step="50" value="500">
+                    <div class="stepper">
+                        <button type="button" class="stepper-btn" data-step="-1" aria-label="Decrease">&minus;</button>
+                        <input id="fa-style-fadein" type="number" min="0" max="5000" step="50" value="500">
+                        <button type="button" class="stepper-btn" data-step="1" aria-label="Increase">+</button>
+                    </div>
                 </label>
                 <label>
                     <span>Fade out (ms)</span>
-                    <input id="fa-style-fadeout" type="number" min="0" max="5000" step="50" value="350">
+                    <div class="stepper">
+                        <button type="button" class="stepper-btn" data-step="-1" aria-label="Decrease">&minus;</button>
+                        <input id="fa-style-fadeout" type="number" min="0" max="5000" step="50" value="350">
+                        <button type="button" class="stepper-btn" data-step="1" aria-label="Increase">+</button>
+                    </div>
                 </label>
                 <div class="ov-span-2">
                     <label>
@@ -83,7 +107,11 @@
                 </label>
                 <label>
                     <span>Volume</span>
-                    <input id="fa-volume" type="number" min="0" max="100" value="100">
+                    <div class="stepper">
+                        <button type="button" class="stepper-btn" data-step="-1" aria-label="Decrease">&minus;</button>
+                        <input id="fa-volume" type="number" min="0" max="100" value="100">
+                        <button type="button" class="stepper-btn" data-step="1" aria-label="Increase">+</button>
+                    </div>
                 </label>
                 <div class="ov-span-2">
                     <input id="fa-sound-file" type="file" accept=".mp3,.ogg,.wav,audio/mpeg,audio/ogg,audio/wav" style="display:none">
