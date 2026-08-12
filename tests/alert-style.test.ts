@@ -109,11 +109,13 @@ describe("tokenizeTemplate", () => {
         ]);
     });
 
-    test("substitutes viewers inside text parts and honours name position", () => {
+    test("emits viewers as its own token and honours name position", () => {
         expect(tokenizeTemplate("raided by {name} with {viewers}!", "Ann", 12)).toEqual([
             { kind: "text", value: "raided by " },
             { kind: "name", value: "Ann" },
-            { kind: "text", value: " with 12!" },
+            { kind: "text", value: " with " },
+            { kind: "viewers", value: "12" },
+            { kind: "text", value: "!" },
         ]);
     });
 

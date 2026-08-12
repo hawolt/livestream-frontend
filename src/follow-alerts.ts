@@ -117,6 +117,11 @@ function buildCard(ev: AlertEvent): HTMLDivElement {
                 span.className = "alert-name-inline";
                 span.textContent = token.value;
                 body.appendChild(span);
+            } else if (token.kind === "viewers") {
+                const span = document.createElement("span");
+                span.className = "alert-viewers-inline";
+                span.textContent = token.value;
+                body.appendChild(span);
             } else {
                 body.appendChild(document.createTextNode(token.value));
             }

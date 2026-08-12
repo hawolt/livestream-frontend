@@ -118,18 +118,21 @@ export function substituteTemplate(tpl: string, name: string, viewers: number): 
 export type TemplateToken =
     | { kind: "text"; value: string }
     | { kind: "name"; value: string }
+    | { kind: "viewers"; value: string }
     | { kind: "break" };
 
 export function tokenizeTemplate(tpl: string, name: string, viewers: number): TemplateToken[] {
     const tokens: TemplateToken[] = [];
-    const parts = tpl.split(/(\{name\}|\{linebreak\})/g);
+    const parts = tpl.split(/(\{name\}|\{viewers\}|\{linebreak\})/g);
     for (const part of parts) {
         if (part === "{name}") {
             tokens.push({ kind: "name", value: name });
+        } else if (part === "{viewers}") {
+            tokens.push({ kind: "viewers", value: String(viewers) });
         } else if (part === "{linebreak}") {
             tokens.push({ kind: "break" });
         } else if (part !== "") {
-            tokens.push({ kind: "text", value: part.split("{viewers}").join(String(viewers)) });
+            tokens.push({ kind: "text", value: part });
         }
     }
     return tokens;

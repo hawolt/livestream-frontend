@@ -56,7 +56,6 @@
             font-weight: 800;
             text-shadow: 0 1px 3px rgba(0, 0, 0, .9);
         }
-        .alert-body { line-height: 1.25; }
 
         .alert-caption {
             margin-top: 4px;
@@ -66,6 +65,16 @@
             text-transform: uppercase;
             color: var(--alert-accent);
         }
+
+        .alert-body {
+            line-height: 1.25;
+            color: var(--alert-text);
+        }
+        .alert-name-inline,
+        .alert-viewers-inline {
+            color: var(--alert-accent);
+        }
+        .alert-viewers-inline { font-weight: 800; }
 
         #alert-stage[data-preset="minimal"] .alert-card {
             background: transparent;
