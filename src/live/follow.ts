@@ -5,17 +5,24 @@ import { openLoginModal } from "./login-modal.ts";
 
 let followLoggedIn = false;
 let followOwn = false;
+let followKnown = false;
 let following = false;
 let followNotify = false;
 let followWired = false;
 let followRefreshRevision = 0;
 let followError: string | null = null;
 
+const FOLLOW_SESSION_RETRY_MS = 5000;
+
 export function canAutoFollow(): boolean {
     return followLoggedIn && !followOwn && !following;
 }
 
 export function renderFollow(): void {
+    if (!followKnown) {
+        followWrapEl.hidden = true;
+        return;
+    }
     followWrapEl.hidden = false;
     if (followOwn) {
         followBtnEl.hidden = true;
@@ -96,14 +103,28 @@ export async function initFollow(): Promise<void> {
     let kind = "";
     let nextFollowing = false;
     let nextNotify = false;
+    let sessionFailed = false;
     try {
         const s = await fetch(`${API_BASE}/auth/session`, { credentials: "include" });
         if (s.ok) {
             const j = await s.json();
             me = String(j.username ?? "").toLowerCase();
             kind = String(j.kind ?? "");
+        } else if (s.status !== 401) {
+            sessionFailed = true;
         }
-    } catch {}
+    } catch {
+        sessionFailed = true;
+    }
+    if (sessionFailed) {
+        if (revision !== followRefreshRevision) return;
+        followKnown = false;
+        renderFollow();
+        window.setTimeout(() => {
+            if (revision === followRefreshRevision) void initFollow();
+        }, FOLLOW_SESSION_RETRY_MS);
+        return;
+    }
     const nextLoggedIn = me !== "";
     const nextOwn = nextLoggedIn && (kind !== "user" || me === ctx.username.toLowerCase());
     if (nextLoggedIn && !nextOwn) {
@@ -117,6 +138,7 @@ export async function initFollow(): Promise<void> {
         } catch {}
     }
     if (revision !== followRefreshRevision) return;
+    followKnown = true;
     followLoggedIn = nextLoggedIn;
     followOwn = nextOwn;
     following = nextFollowing;
