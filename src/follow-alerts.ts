@@ -1,5 +1,5 @@
 import { scrubOverlayToken } from "./url-secrets.ts";
-import { DEFAULT_ALERT_STYLE, applyOverrides, cssVarsFor, parseAlertStyle, substituteTemplate, type AlertStyle, type OverlayOverrides } from "./alerts/style.ts";
+import { DEFAULT_ALERT_STYLE, applyOverrides, cssVarsFor, parseAlertStyle, substituteTemplate, templateHasName, tokenizeTemplate, type AlertStyle, type OverlayOverrides } from "./alerts/style.ts";
 
 const stageEl = document.getElementById("alert-stage") as HTMLElement;
 
@@ -98,9 +98,32 @@ function captionText(ev: AlertEvent): string {
     return "just followed!";
 }
 
+function currentTemplate(ev: AlertEvent): string {
+    return ev.kind === "raid" ? effectiveStyle.template.raid : effectiveStyle.template.follow;
+}
+
 function buildCard(ev: AlertEvent): HTMLDivElement {
     const card = document.createElement("div");
     card.className = ev.kind === "raid" ? "alert-card alert-card-raid enter" : "alert-card enter";
+    const template = currentTemplate(ev);
+    if (hasStoredStyle && templateHasName(template)) {
+        const body = document.createElement("div");
+        body.className = "alert-caption alert-body";
+        for (const token of tokenizeTemplate(template, ev.username, ev.viewers)) {
+            if (token.kind === "break") {
+                body.appendChild(document.createElement("br"));
+            } else if (token.kind === "name") {
+                const span = document.createElement("span");
+                span.className = "alert-name-inline";
+                span.textContent = token.value;
+                body.appendChild(span);
+            } else {
+                body.appendChild(document.createTextNode(token.value));
+            }
+        }
+        card.append(body);
+        return card;
+    }
     const name = document.createElement("div");
     name.className = "alert-name";
     name.textContent = ev.username;

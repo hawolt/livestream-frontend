@@ -5,8 +5,7 @@ import {
     cssVarsFor,
     hexToRgbTriplet,
     parseAlertStyle,
-    substituteTemplate,
-} from "../src/alerts/style.ts";
+    substituteTemplate, tokenizeTemplate, templateHasName } from "../src/alerts/style.ts";
 
 describe("parseAlertStyle", () => {
     test("returns defaults for null, undefined, non-objects and {}", () => {
@@ -42,8 +41,8 @@ describe("parseAlertStyle", () => {
     });
 
     test("falls back on empty and over-long templates", () => {
-        expect(parseAlertStyle({ template: { follow: "" } }).template.follow).toBe("just followed!");
-        expect(parseAlertStyle({ template: { follow: "x".repeat(121) } }).template.follow).toBe("just followed!");
+        expect(parseAlertStyle({ template: { follow: "" } }).template.follow).toBe("{name}{linebreak}just followed!");
+        expect(parseAlertStyle({ template: { follow: "x".repeat(121) } }).template.follow).toBe("{name}{linebreak}just followed!");
         expect(parseAlertStyle({ template: { follow: "x".repeat(120) } }).template.follow).toBe("x".repeat(120));
     });
 });
@@ -98,5 +97,28 @@ describe("substituteTemplate", () => {
 
     test("output is a plain string even for HTML-looking input", () => {
         expect(substituteTemplate("<b>{name}</b>", "<i>x</i>", 0)).toBe("<b><i>x</i></b>");
+    });
+});
+
+describe("tokenizeTemplate", () => {
+    test("splits a template into name, break and text parts", () => {
+        expect(tokenizeTemplate("{name}{linebreak}just followed!", "Bob", 0)).toEqual([
+            { kind: "name", value: "Bob" },
+            { kind: "break" },
+            { kind: "text", value: "just followed!" },
+        ]);
+    });
+
+    test("substitutes viewers inside text parts and honours name position", () => {
+        expect(tokenizeTemplate("raided by {name} with {viewers}!", "Ann", 12)).toEqual([
+            { kind: "text", value: "raided by " },
+            { kind: "name", value: "Ann" },
+            { kind: "text", value: " with 12!" },
+        ]);
+    });
+
+    test("a template without a name placeholder yields no name token", () => {
+        expect(templateHasName("just followed!")).toBe(false);
+        expect(templateHasName("{name} followed")).toBe(true);
     });
 });

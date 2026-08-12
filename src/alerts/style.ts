@@ -28,7 +28,7 @@ export const DEFAULT_ALERT_STYLE: AlertStyle = {
     durationMs: 5000,
     fadeInMs: 500,
     fadeOutMs: 350,
-    template: { follow: "just followed!", raid: "just raided with {viewers} viewers!" },
+    template: { follow: "{name}{linebreak}just followed!", raid: "{name}{linebreak}just raided with {viewers} viewers!" },
 };
 
 const PRESETS: readonly AlertPreset[] = ["classic", "minimal", "banner"];
@@ -110,5 +110,31 @@ export function cssVarsFor(style: AlertStyle): Record<string, string> {
 }
 
 export function substituteTemplate(tpl: string, name: string, viewers: number): string {
-    return tpl.split("{name}").join(name).split("{viewers}").join(String(viewers));
+    return tpl.split("{name}").join(name)
+        .split("{viewers}").join(String(viewers))
+        .split("{linebreak}").join("\n");
+}
+
+export type TemplateToken =
+    | { kind: "text"; value: string }
+    | { kind: "name"; value: string }
+    | { kind: "break" };
+
+export function tokenizeTemplate(tpl: string, name: string, viewers: number): TemplateToken[] {
+    const tokens: TemplateToken[] = [];
+    const parts = tpl.split(/(\{name\}|\{linebreak\})/g);
+    for (const part of parts) {
+        if (part === "{name}") {
+            tokens.push({ kind: "name", value: name });
+        } else if (part === "{linebreak}") {
+            tokens.push({ kind: "break" });
+        } else if (part !== "") {
+            tokens.push({ kind: "text", value: part.split("{viewers}").join(String(viewers)) });
+        }
+    }
+    return tokens;
+}
+
+export function templateHasName(tpl: string): boolean {
+    return tpl.includes("{name}");
 }
