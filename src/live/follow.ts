@@ -103,7 +103,7 @@ export async function initFollow(): Promise<void> {
         }
     } catch {}
     const nextLoggedIn = me !== "";
-    const nextOwn = nextLoggedIn && me === ctx.username;
+    const nextOwn = nextLoggedIn && me === ctx.username.toLowerCase();
     if (nextLoggedIn && !nextOwn) {
         try {
             const st = await fetch(`${API_BASE}/follows/status?username=${encodeURIComponent(ctx.username)}`, { credentials: "include" });

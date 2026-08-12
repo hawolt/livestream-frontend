@@ -40,7 +40,7 @@ function performHandover(result: PrewarmResult): void {
     void videoEl.play().catch(() => {});
     updatePlayIcon();
     updateVolumeUI();
-    ctx.username = channel.target;
+    ctx.username = channel.target.toLowerCase();
     ctx.displayUsername = channel.displayUsername;
     ctx.mediaBase = channel.mediaBase;
     ctx.wssBase = channel.wssBase;
