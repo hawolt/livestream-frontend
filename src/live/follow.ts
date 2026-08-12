@@ -93,6 +93,7 @@ function wireFollow(): void {
 export async function initFollow(): Promise<void> {
     const revision = ++followRefreshRevision;
     let me = "";
+    let kind = "";
     let nextFollowing = false;
     let nextNotify = false;
     try {
@@ -100,10 +101,11 @@ export async function initFollow(): Promise<void> {
         if (s.ok) {
             const j = await s.json();
             me = String(j.username ?? "").toLowerCase();
+            kind = String(j.kind ?? "");
         }
     } catch {}
     const nextLoggedIn = me !== "";
-    const nextOwn = nextLoggedIn && me === ctx.username.toLowerCase();
+    const nextOwn = nextLoggedIn && (kind !== "user" || me === ctx.username.toLowerCase());
     if (nextLoggedIn && !nextOwn) {
         try {
             const st = await fetch(`${API_BASE}/follows/status?username=${encodeURIComponent(ctx.username)}`, { credentials: "include" });
