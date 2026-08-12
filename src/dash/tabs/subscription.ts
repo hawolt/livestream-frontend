@@ -40,10 +40,16 @@ const PERK_FIELD: Record<string, keyof BillingPerks> = {
     animated_avatar: "animatedAvatar",
 };
 
-const WATCH_PERKS: Record<string, string> = {
-    watch_2k: "Watch streams up to 1440p and 120 FPS",
-    watch_4k: "Watch everything up to 4K and 240 FPS",
+const WATCH_PERK_LINES: Record<string, string[]> = {
+    watch_2k: ["Watch up to 120 FPS", "Watch in 2K"],
+    watch_4k: ["Watch up to 240 FPS", "Watch in 4K"],
 };
+
+function badgeTitle(token: string): string {
+    return token.slice("badge_".length).split("_")
+        .map(word => word ? word[0]!.toUpperCase() + word.slice(1) : word)
+        .join(" ");
+}
 
 function perkLabel(token: string): string {
     switch (token) {
@@ -53,15 +59,19 @@ function perkLabel(token: string): string {
         case "large_uploads": return "Profile images up to 1 MiB";
         case "animated_avatar": return "Animated GIF profile images";
         default:
-            if (WATCH_PERKS[token]) return WATCH_PERKS[token];
-            return token.startsWith("badge_") ? "Exclusive badge in chat" : token;
+            return token.startsWith("badge_") ? `Exclusive ${badgeTitle(token)} badge` : token;
     }
+}
+
+function perkLines(token: string): string[] {
+    const watch = WATCH_PERK_LINES[token];
+    return watch ? watch : [perkLabel(token)];
 }
 
 function perkTokens(perks: BillingPerks | undefined): string[] {
     if (!perks) return [];
     if (Array.isArray(perks.order) && perks.order.length) {
-        return perks.order.filter(t => PERK_FIELD[t] !== undefined || t.startsWith("badge_") || WATCH_PERKS[t] !== undefined);
+        return perks.order.filter(t => PERK_FIELD[t] !== undefined || t.startsWith("badge_") || WATCH_PERK_LINES[t] !== undefined);
     }
     return FALLBACK_ORDER.filter(t => perks[PERK_FIELD[t]!] === true);
 }
@@ -194,7 +204,10 @@ function tierCard(tier: BillingTier, index: number, tiers: BillingTier[], tokenL
         const prev = tokenLists[index - 1]!;
         const prevSet = new Set(prev);
         const covers = (t: string): boolean =>
-            tokens.includes(t) || (t === "badge" && tokens.some(x => x.startsWith("badge_")));
+            tokens.includes(t)
+            || (t === "badge" && tokens.some(x => x.startsWith("badge_")))
+            || (t.startsWith("badge_") && tokens.some(x => x.startsWith("badge_")))
+            || (t === "watch_2k" && tokens.includes("watch_4k"));
         if (prev.length && prev.every(covers)) {
             const delta = tokens.filter(t => !prevSet.has(t));
             inherit = `<p class="sub-inherit">Everything in ${esc(tiers[index - 1]!.label)}${delta.length ? ", plus:" : ""}</p>`;
@@ -202,7 +215,7 @@ function tierCard(tier: BillingTier, index: number, tiers: BillingTier[], tokenL
         }
     }
     const perksHtml = shown.length
-        ? `<ul class="sub-perks">${shown.map(t => `<li>${esc(perkLabel(t))}</li>`).join("")}</ul>`
+        ? `<ul class="sub-perks">${shown.flatMap(t => perkLines(t)).map(line => `<li>${esc(line)}</li>`).join("")}</ul>`
         : "";
     const flag = isCurrent
         ? `<span class="sub-flag">YOUR PLAN</span>`
