@@ -2,7 +2,7 @@ import type { AccountSettings } from "../../api.ts";
 import { maskSecret } from "../format.ts";
 import { authFetch } from "../session.ts";
 import { PREVIEW_DEBOUNCE_MS, el, username, setBackdrop, wireCopy } from "../overlay-shared.ts";
-import { soundSlotEndpoints, slotHasOwnSound, type AlertSoundSlot } from "../alert-sound-slots.ts";
+import { SOUND_SLOTS, soundSlotEndpoints, type AlertSoundSlot } from "../alert-sound-slots.ts";
 import { DEFAULT_ALERT_STYLE, parseAlertStyle, type AlertStyle } from "../../alerts/style.ts";
 import { wireStepper } from "../stepper.ts";
 
@@ -51,19 +51,17 @@ function setSlotHasSound(slot: AlertSoundSlot, value: boolean): void {
 }
 
 async function refreshSoundStatus(generation: number): Promise<void> {
-    const owner = username();
-    if (!owner || owner === "demo") return;
-    for (const ep of soundSlotEndpoints(owner)) {
-        try {
-            const res = await fetch(`${ep.head}?v=${Date.now()}`, { method: "HEAD" });
-            if (!isCurrentActivation(generation)) return;
-            const own = slotHasOwnSound(ep.slot, res.ok, res.headers.get("X-Alert-Sound-Source"));
-            setSlotHasSound(ep.slot, own);
-            soundStatus(ep.slot, own ? "Uploaded." : (ep.slot === "default" ? "Using the built in sound." : "Using default."), "var(--muted)");
-        } catch {
-            if (!isCurrentActivation(generation)) return;
-            soundStatus(ep.slot, "", "var(--muted)");
-        }
+    let owned: Record<string, boolean>;
+    try {
+        owned = await authFetch<Record<string, boolean>>("/api/profile/me/alert-sounds");
+    } catch {
+        return;
+    }
+    if (!isCurrentActivation(generation)) return;
+    for (const slot of SOUND_SLOTS) {
+        const own = owned[slot] === true;
+        setSlotHasSound(slot, own);
+        soundStatus(slot, own ? "Uploaded." : (slot === "default" ? "Using the built in sound." : "Using default."), "var(--muted)");
     }
 }
 
@@ -74,7 +72,7 @@ async function uploadSound(slot: AlertSoundSlot, file: File): Promise<void> {
         return;
     }
     soundStatus(slot, "Uploading...", "var(--muted)");
-    const ep = soundSlotEndpoints(username()).find(e => e.slot === slot)!;
+    const ep = soundSlotEndpoints().find(e => e.slot === slot)!;
     try {
         const bytes = await file.arrayBuffer();
         await authFetch<{ ok: boolean }>(ep.upload, {
@@ -95,7 +93,7 @@ async function uploadSound(slot: AlertSoundSlot, file: File): Promise<void> {
 
 async function removeSound(slot: AlertSoundSlot): Promise<void> {
     const generation = activationGeneration;
-    const ep = soundSlotEndpoints(username()).find(e => e.slot === slot)!;
+    const ep = soundSlotEndpoints().find(e => e.slot === slot)!;
     try {
         await authFetch<{ ok: boolean }>(ep.remove, { method: "DELETE" });
         if (!isCurrentActivation(generation)) return;
