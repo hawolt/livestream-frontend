@@ -97,6 +97,48 @@
         }
         .alert-card.enter { animation: alert-in var(--alert-fade-in) cubic-bezier(.34, 1.56, .64, 1) forwards; }
         .alert-card.exit { animation: alert-out var(--alert-fade-out) ease-in forwards; }
+
+        @keyframes alert-in-slide {
+            from { opacity: 0; transform: translateX(-40px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+        @keyframes alert-out-slide {
+            from { opacity: 1; transform: translateX(0); }
+            to { opacity: 0; transform: translateX(40px); }
+        }
+        @keyframes alert-in-fade {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        @keyframes alert-out-fade {
+            from { opacity: 1; }
+            to { opacity: 0; }
+        }
+        @keyframes alert-in-drop {
+            0% { opacity: 0; transform: translateY(-60px); }
+            70% { opacity: 1; transform: translateY(6px); }
+            100% { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes alert-out-drop {
+            from { opacity: 1; transform: translateY(0); }
+            to { opacity: 0; transform: translateY(60px); }
+        }
+        @keyframes alert-in-zoom {
+            from { opacity: 0; transform: scale(.4); }
+            to { opacity: 1; transform: scale(1); }
+        }
+        @keyframes alert-out-zoom {
+            from { opacity: 1; transform: scale(1); }
+            to { opacity: 0; transform: scale(.4); }
+        }
+        #alert-stage[data-animation="slide"] .alert-card.enter { animation-name: alert-in-slide; animation-timing-function: cubic-bezier(.22, .61, .36, 1); }
+        #alert-stage[data-animation="slide"] .alert-card.exit { animation-name: alert-out-slide; }
+        #alert-stage[data-animation="fade"] .alert-card.enter { animation-name: alert-in-fade; animation-timing-function: ease-out; }
+        #alert-stage[data-animation="fade"] .alert-card.exit { animation-name: alert-out-fade; }
+        #alert-stage[data-animation="drop"] .alert-card.enter { animation-name: alert-in-drop; }
+        #alert-stage[data-animation="drop"] .alert-card.exit { animation-name: alert-out-drop; }
+        #alert-stage[data-animation="zoom"] .alert-card.enter { animation-name: alert-in-zoom; animation-timing-function: cubic-bezier(.34, 1.56, .64, 1); }
+        #alert-stage[data-animation="zoom"] .alert-card.exit { animation-name: alert-out-zoom; }
         @media (prefers-reduced-motion: reduce) {
             .alert-card.enter,
             .alert-card.exit { animation-duration: .01ms; animation-timing-function: linear; }

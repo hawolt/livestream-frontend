@@ -36,6 +36,17 @@
                     <div class="hint">Base structure of the alert.</div>
                 </label>
                 <label>
+                    <span>Animation</span>
+                    <select id="fa-style-animation">
+                        <option value="pop" selected>Pop</option>
+                        <option value="slide">Slide in</option>
+                        <option value="fade">Fade</option>
+                        <option value="drop">Drop down</option>
+                        <option value="zoom">Zoom</option>
+                    </select>
+                    <div class="hint">How the alert enters and leaves.</div>
+                </label>
+                <label>
                     <span>Accent color</span>
                     <input id="fa-style-accent" type="color" value="#ffd76a">
                 </label>
@@ -128,7 +139,7 @@
                 <label>
                     <span>Volume</span>
                     <div class="fa-volume-row">
-                        <input id="fa-volume" class="ov-range" type="range" min="0" max="100" step="5" value="100">
+                        <input id="fa-volume" class="ov-range" type="range" min="0" max="100" step="1" value="100">
                         <span id="fa-volume-value">100</span>
                     </div>
                 </label>
@@ -152,7 +163,7 @@
                         <button class="btn btn-sm" id="fa-sound-remove-raid" type="button">Remove</button>
                         <span id="fa-sound-status-raid" style="font-size:13px"></span>
                     </div>
-                    <div class="hint">mp3, ogg or wav, up to 2 MB per sound. Follow and Raid fall back to the Default sound when unset. The Default sound also plays in the Stream Activity tab while it is open.</div>
+                    <div class="hint">mp3, ogg or wav, up to 2 MB per sound. Follow and Raid fall back to the Default sound when unset, and Default falls back to the built in sound. The Default sound also plays in the Stream Activity tab while it is open.</div>
                 </div>
             </div>
 

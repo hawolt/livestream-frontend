@@ -1,7 +1,9 @@
 export type AlertPreset = "classic" | "minimal" | "banner";
+export type AlertAnimation = "pop" | "slide" | "fade" | "drop" | "zoom";
 
 export interface AlertStyle {
     preset: AlertPreset;
+    animation: AlertAnimation;
     accent: string;
     bg: string;
     bgOpacity: number;
@@ -16,6 +18,7 @@ export interface AlertStyle {
 
 export const DEFAULT_ALERT_STYLE: AlertStyle = {
     preset: "classic",
+    animation: "pop",
     accent: "#ffd76a",
     bg: "#14121e",
     bgOpacity: 0.85,
@@ -29,6 +32,7 @@ export const DEFAULT_ALERT_STYLE: AlertStyle = {
 };
 
 const PRESETS: readonly AlertPreset[] = ["classic", "minimal", "banner"];
+const ANIMATIONS: readonly AlertAnimation[] = ["pop", "slide", "fade", "drop", "zoom"];
 const COLOR_RE = /^#[0-9a-fA-F]{6}$/;
 
 function clampNum(value: unknown, fallback: number, min: number, max: number): number {
@@ -52,8 +56,10 @@ export function parseAlertStyle(raw: unknown): AlertStyle {
     const o = raw as Record<string, unknown>;
     const t = (o.template && typeof o.template === "object" ? o.template : {}) as Record<string, unknown>;
     const preset = PRESETS.includes(o.preset as AlertPreset) ? o.preset as AlertPreset : d.preset;
+    const animation = ANIMATIONS.includes(o.animation as AlertAnimation) ? o.animation as AlertAnimation : d.animation;
     return {
         preset,
+        animation,
         accent: color(o.accent, d.accent),
         bg: color(o.bg, d.bg),
         bgOpacity: clampNum(o.bgOpacity, d.bgOpacity, 0, 1),

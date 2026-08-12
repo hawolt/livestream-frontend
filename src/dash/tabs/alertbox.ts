@@ -55,7 +55,7 @@ async function refreshSoundStatus(generation: number): Promise<void> {
             if (!isCurrentActivation(generation)) return;
             const own = slotHasOwnSound(ep.slot, res.ok, res.headers.get("X-Alert-Sound-Source"));
             setSlotHasSound(ep.slot, own);
-            soundStatus(ep.slot, own ? "Uploaded." : (ep.slot === "default" ? "No sound uploaded." : "Using default."), "var(--muted)");
+            soundStatus(ep.slot, own ? "Uploaded." : (ep.slot === "default" ? "Using the built in sound." : "Using default."), "var(--muted)");
         } catch {
             if (!isCurrentActivation(generation)) return;
             soundStatus(ep.slot, "", "var(--muted)");
@@ -111,7 +111,7 @@ let stylePreviewTimer: number | null = null;
 let previewMuted = false;
 const STYLE_PREVIEW_DELAY_MS = 250;
 const STYLE_FIELD_IDS = [
-    "fa-style-preset", "fa-style-accent", "fa-style-bg", "fa-style-text",
+    "fa-style-preset", "fa-style-animation", "fa-style-accent", "fa-style-bg", "fa-style-text",
     "fa-style-bgopacity", "fa-style-fontsize", "fa-style-scale",
     "fa-style-duration", "fa-style-fadein", "fa-style-fadeout",
     "fa-style-tpl-follow", "fa-style-tpl-raid",
@@ -120,6 +120,7 @@ const STYLE_FIELD_IDS = [
 function styleForm(): AlertStyle {
     return parseAlertStyle({
         preset: el<HTMLSelectElement>("fa-style-preset").value,
+        animation: el<HTMLSelectElement>("fa-style-animation").value,
         accent: el<HTMLInputElement>("fa-style-accent").value,
         bg: el<HTMLInputElement>("fa-style-bg").value,
         textColor: el<HTMLInputElement>("fa-style-text").value,
@@ -138,6 +139,7 @@ function styleForm(): AlertStyle {
 
 function fillStyleForm(style: AlertStyle): void {
     el<HTMLSelectElement>("fa-style-preset").value = style.preset;
+    el<HTMLSelectElement>("fa-style-animation").value = style.animation;
     el<HTMLInputElement>("fa-style-accent").value = style.accent;
     el<HTMLInputElement>("fa-style-bg").value = style.bg;
     el<HTMLInputElement>("fa-style-text").value = style.textColor;

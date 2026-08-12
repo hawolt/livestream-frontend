@@ -264,6 +264,7 @@ function renderInfo(): void {
 const SOUND_PREF_KEY = "activity_sound";
 const SOUND_VOLUME_KEY = "activity_sound_volume";
 const SHOW_TIME_KEY = "activity_show_time";
+const DEFAULT_ALERT_SOUND_URL = "/static/sounds/default_alert.mp3";
 const SOUND_MIN_GAP_MS = 1500;
 let alertAudio: HTMLAudioElement | null = null;
 let alertAudioFailed = false;
@@ -313,7 +314,14 @@ function playFollowSound(): void {
         if (!me) return;
         alertAudio = new Audio(`/api/live/alert-sound/${encodeURIComponent(me.toLowerCase())}/follow`);
         alertAudio.onerror = () => {
-            alertAudioFailed = true;
+            const audio = alertAudio;
+            if (!audio) return;
+            if (audio.src.endsWith(DEFAULT_ALERT_SOUND_URL)) {
+                alertAudioFailed = true;
+                return;
+            }
+            audio.src = DEFAULT_ALERT_SOUND_URL;
+            audio.load();
         };
     }
     alertAudio.volume = volume / 100;

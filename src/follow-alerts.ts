@@ -19,6 +19,7 @@ interface AlertEvent {
 let token = "";
 let demoMode = false;
 let previewStyleRaw = "";
+const DEFAULT_ALERT_SOUND_URL = "/static/sounds/default_alert.mp3";
 let durationMs = DEFAULT_DURATION_MS;
 let hasStoredStyle = false;
 let effectiveStyle: AlertStyle = DEFAULT_ALERT_STYLE;
@@ -61,6 +62,7 @@ function applyStyle(style: AlertStyle): void {
         stageEl.style.setProperty(key, vars[key]!);
     }
     stageEl.dataset.preset = style.preset;
+    stageEl.dataset.animation = style.animation;
 }
 
 async function loadStyle(username: string): Promise<void> {
@@ -264,7 +266,12 @@ function setupSounds(username: string): void {
         el.preload = "auto";
         el.volume = soundVolume;
         el.onerror = () => {
-            audioByKind.delete(kind);
+            if (el.src.endsWith(DEFAULT_ALERT_SOUND_URL)) {
+                audioByKind.delete(kind);
+                return;
+            }
+            el.src = DEFAULT_ALERT_SOUND_URL;
+            el.load();
         };
         audioByKind.set(kind, el);
     }
