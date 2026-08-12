@@ -47,7 +47,7 @@ const WATCH_PERK_LINES: Record<string, string[]> = {
 
 function badgeTitle(token: string): string {
     return token.slice("badge_".length).split("_")
-        .map(word => word ? word[0]!.toUpperCase() + word.slice(1) : word)
+        .map(word => word === "vip" ? "VIP" : word ? word[0]!.toUpperCase() + word.slice(1) : word)
         .join(" ");
 }
 
