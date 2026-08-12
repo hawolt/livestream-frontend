@@ -37,8 +37,7 @@ export function openQualityUpsell(): void {
     if (!panel) return;
     const info = document.getElementById("live-quality-lock-info");
     if (info) {
-        info.textContent = `This stream plays at ${ctx.lockedStreamLabel || "a higher quality"}. `
-            + "Baron unlocks up to 1440p and 120 FPS, King unlocks everything.";
+        info.textContent = `This stream plays at ${ctx.lockedStreamLabel || "a higher quality"}`;
     }
     if (!dismissWired) {
         dismissWired = true;
@@ -54,6 +53,6 @@ export function closeQualityUpsell(): void {
 }
 
 export function enterQualityLockedTerminal(): void {
-    enterTerminal(`This stream plays at ${ctx.lockedStreamLabel || "a higher quality"} - subscribe to watch`);
+    enterTerminal("");
     openQualityUpsell();
 }
