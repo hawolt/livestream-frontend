@@ -40,6 +40,11 @@ const PERK_FIELD: Record<string, keyof BillingPerks> = {
     animated_avatar: "animatedAvatar",
 };
 
+const WATCH_PERKS: Record<string, string> = {
+    watch_2k: "Watch streams up to 1440p and 120 FPS",
+    watch_4k: "Watch everything up to 4K and 240 FPS",
+};
+
 function perkLabel(token: string): string {
     switch (token) {
         case "badge": return "Regular badge in chat";
@@ -47,14 +52,16 @@ function perkLabel(token: string): string {
         case "ads_off": return "No ads";
         case "large_uploads": return "Profile images up to 1 MiB";
         case "animated_avatar": return "Animated GIF profile images";
-        default: return token.startsWith("badge_") ? "Exclusive badge in chat" : token;
+        default:
+            if (WATCH_PERKS[token]) return WATCH_PERKS[token];
+            return token.startsWith("badge_") ? "Exclusive badge in chat" : token;
     }
 }
 
 function perkTokens(perks: BillingPerks | undefined): string[] {
     if (!perks) return [];
     if (Array.isArray(perks.order) && perks.order.length) {
-        return perks.order.filter(t => PERK_FIELD[t] !== undefined || t.startsWith("badge_"));
+        return perks.order.filter(t => PERK_FIELD[t] !== undefined || t.startsWith("badge_") || WATCH_PERKS[t] !== undefined);
     }
     return FALLBACK_ORDER.filter(t => perks[PERK_FIELD[t]!] === true);
 }
