@@ -2,7 +2,7 @@ import type { LiveInfo, LiveCategory } from "../../api.ts";
 import { STREAM_LANGUAGE_OPTIONS, type StreamLanguageCode } from "../../stream-languages.ts";
 import { esc, fmtDate, fmtTime } from "../format.ts";
 import { authFetch, getMe, token } from "../session.ts";
-import { countNewLiveEvents, eventTypeClass, followEventKey, mergeFollowEvents, viewerCountLabel, type FollowEvent } from "../activity-events.ts";
+import { countNewLiveEvents, eventTypeClass, followEventKey, mergeFollowEvents, rejectEventLabel, viewerCountLabel, type FollowEvent } from "../activity-events.ts";
 
 interface RecentFollowsResponse {
     events: FollowEvent[];
@@ -57,14 +57,27 @@ function buildEventRow(e: FollowEvent): HTMLElement {
     row.className = "act-ev";
     const type = document.createElement("span");
     type.className = eventTypeClass(e.type);
-    type.textContent = e.type.toUpperCase();
+    type.textContent = e.type === "reject" ? "STREAM" : e.type.toUpperCase();
     const text = document.createElement("span");
     text.className = "act-ev-text";
-    const label = e.type === "raid" && typeof e.viewers === "number"
-        ? `${e.username} with ${e.viewers} ${e.viewers === 1 ? "viewer" : "viewers"}`
-        : e.username;
+    let label = e.username;
+    if (e.type === "raid" && typeof e.viewers === "number") {
+        label = `${e.username} with ${e.viewers} ${e.viewers === 1 ? "viewer" : "viewers"}`;
+    } else if (e.type === "reject") {
+        label = rejectEventLabel(e);
+    }
     text.textContent = label;
     text.title = label;
+    if (e.type === "reject") {
+        text.appendChild(document.createTextNode(" "));
+        const link = document.createElement("a");
+        link.href = "/wiki#obs";
+        link.target = "_blank";
+        link.rel = "noopener";
+        link.className = "act-ev-link";
+        link.textContent = "Stream limits";
+        text.appendChild(link);
+    }
     const time = document.createElement("span");
     time.className = "act-ev-time";
     time.textContent = `${fmtTime(at)} ${fmtDate(at)}`;

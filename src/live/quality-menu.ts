@@ -1,6 +1,7 @@
 import { qualityBtn, qualityPopupEl, qualitySelectEl } from "./dom.ts";
 import { ctx } from "./player/context.ts";
-import { qualityLabel, resolveNextQuality } from "../quality.ts";
+import { allowedSubset, qualityLabel, resolveNextQuality } from "../quality.ts";
+import { openQualityUpsell, qualityPadlock } from "./quality-upsell.ts";
 import { QUALITY_STORAGE_KEY } from "./constants.ts";
 import { writeLocalStorage } from "../storage.ts";
 import { beginTransport } from "./player/lifecycle.ts";
@@ -18,16 +19,24 @@ export function renderQualityPopupItems(): void {
         const item = document.createElement("button");
         item.type = "button";
         item.className = "live-quality-item";
-        const active = value === ctx.qualityPreference;
+        const locked = ctx.lockedQualities.includes(value);
+        const active = !locked && value === ctx.qualityPreference;
         item.classList.toggle("active", active);
+        item.classList.toggle("locked", locked);
         item.setAttribute("aria-pressed", String(active));
         const labelEl = document.createElement("span");
         labelEl.textContent = label;
-        const checkEl = document.createElement("span");
-        checkEl.className = "live-quality-check";
-        checkEl.textContent = "✓";
-        item.append(labelEl, checkEl);
-        item.addEventListener("click", () => selectQuality(value));
+        item.appendChild(labelEl);
+        if (locked) {
+            item.appendChild(qualityPadlock());
+            item.addEventListener("click", () => openQualityUpsell());
+        } else {
+            const checkEl = document.createElement("span");
+            checkEl.className = "live-quality-check";
+            checkEl.textContent = "✓";
+            item.appendChild(checkEl);
+            item.addEventListener("click", () => selectQuality(value));
+        }
         qualityPopupEl.appendChild(item);
     }
 }
@@ -74,7 +83,8 @@ export function applyQualityList(list: string[]): boolean {
     ctx.qualityLadderKnown = true;
     renderQualityMenu();
     if (ctx.transportKind !== "ws" || ctx.terminal || ctx.state === "offline") return false;
-    const next = resolveNextQuality(ctx.qualityPreference, ctx.qualityLadder, ctx.qualityLadderKnown, ctx.activeQuality);
+    const next = resolveNextQuality(ctx.qualityPreference,
+        allowedSubset(ctx.qualityLadder, ctx.lockedQualities), ctx.qualityLadderKnown, ctx.activeQuality);
     if (next === ctx.requestedQuality) return false;
     beginTransport();
     return true;

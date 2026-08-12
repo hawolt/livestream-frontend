@@ -4,6 +4,7 @@ import { HLS_BEACON_INTERVAL_MS } from "../constants.ts";
 import { ensureViewerId } from "../../player-shared/viewer-id.ts";
 import { captchaQuery, getCaptchaToken } from "../../captcha.ts";
 import { beginTransport, enterTerminal, fullTeardown, goOffline, resetRetryBackoff, setState } from "./lifecycle.ts";
+import { enterQualityLockedTerminal } from "../quality-upsell.ts";
 import { withCaptchaHint } from "./ws.ts";
 import { attachVideoFailureListeners } from "./health.ts";
 import { renderQualityMenu } from "../quality-menu.ts";
@@ -78,9 +79,26 @@ export function startHLSTransport(g: number): void {
     track(() => video.removeEventListener("ended", onEnded));
 
     setState("buffering");
-    void withCaptchaHint(g, getCaptchaToken()).then(() => {
+    void withCaptchaHint(g, getCaptchaToken()).then(async () => {
         if (!isCurrent(g)) return;
-        video.src = src;
+        let playlist = src;
+        try {
+            const probe = await fetch(src, { credentials: "include" });
+            if (probe.status === 403) {
+                const body: unknown = await probe.json().catch(() => null);
+                if (body && (body as { error?: unknown }).error === "quality-locked") {
+                    const master = `${ctx.mediaBase}/hls/${encodeURIComponent(ctx.username)}/master.m3u8`;
+                    const masterProbe = await fetch(master, { credentials: "include" });
+                    if (masterProbe.status === 403) {
+                        enterQualityLockedTerminal();
+                        return;
+                    }
+                    if (masterProbe.ok) playlist = master;
+                }
+            }
+        } catch {}
+        if (!isCurrent(g)) return;
+        video.src = playlist;
         void video.play().catch(() => {});
         startHLSBeacon(g);
     });

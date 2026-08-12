@@ -35,6 +35,8 @@ export const ctx = {
     qualityPreference: initialQualityPreference as string,
     activeQuality: QUALITY_SOURCE as string,
     requestedQuality: QUALITY_SOURCE as string,
+    lockedQualities: [] as string[],
+    lockedStreamLabel: "",
 
     genCleanup: [] as Array<() => void>,
 

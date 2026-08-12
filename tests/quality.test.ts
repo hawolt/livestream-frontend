@@ -2,13 +2,18 @@ import { expect, test } from "bun:test";
 import {
     QUALITY_AUTO,
     QUALITY_SOURCE,
+    allowedSubset,
     downgradeTarget,
+    highestAllowed,
+    isQualityLockedFrame,
     isQualityOnlyFrame,
     ladderIndex,
+    parseLockedList,
     parseQualitiesFrame,
     qualityLabel,
     qualityWsParam,
     resolveNextQuality,
+    streamQualityText,
     upgradeTarget,
 } from "../src/quality.ts";
 
@@ -65,4 +70,33 @@ test("only appends the q param for a non-source quality", () => {
     expect(qualityWsParam(QUALITY_SOURCE)).toBe("");
     expect(qualityWsParam("")).toBe("");
     expect(qualityWsParam("720p")).toBe("&q=720p");
+});
+
+test("parses the locked list from a join or locked frame", () => {
+    expect(parseLockedList({ locked: ["source", "1080p"] })).toEqual(["source", "1080p"]);
+    expect(parseLockedList({ locked: [] })).toEqual([]);
+    expect(parseLockedList({})).toEqual([]);
+    expect(parseLockedList(null)).toEqual([]);
+    expect(parseLockedList({ locked: ["ok", 5, "  "] })).toEqual(["ok"]);
+});
+
+test("recognizes the quality locked frame", () => {
+    expect(isQualityLockedFrame({ error: "quality-locked", qualities: ["source"] })).toBe(true);
+    expect(isQualityLockedFrame({ error: "other" })).toBe(false);
+    expect(isQualityLockedFrame(null)).toBe(false);
+});
+
+test("picks the highest allowed quality and filters locked entries", () => {
+    expect(highestAllowed(["source", "720p", "360p"], ["source"])).toBe("720p");
+    expect(highestAllowed(["source"], ["source"])).toBeNull();
+    expect(highestAllowed(["source", "720p"], [])).toBe("source");
+    expect(allowedSubset(["source", "720p", "360p"], ["source"])).toEqual(["720p", "360p"]);
+});
+
+test("labels the stream quality for the upsell text", () => {
+    expect(streamQualityText(1920, 1080, 120)).toBe("1080p120");
+    expect(streamQualityText(2560, 1440, 60)).toBe("1440p60");
+    expect(streamQualityText(3840, 2160, 0)).toBe("4K");
+    expect(streamQualityText(1080, 1920, 120)).toBe("1080p120");
+    expect(streamQualityText(0, 0, 0)).toBe("high quality");
 });

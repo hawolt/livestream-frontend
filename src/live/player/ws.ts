@@ -3,11 +3,17 @@ import type { AdoptedTransport } from "./adoption.ts";
 import { captchaChallengeActive, captchaQuery } from "../../captcha.ts";
 import {
     QUALITY_SOURCE,
+    allowedSubset,
+    highestAllowed,
+    isQualityLockedFrame,
     isQualityOnlyFrame,
+    parseLockedList,
     parseQualitiesFrame,
     qualityWsParam,
     resolveNextQuality,
+    streamQualityText,
 } from "../../quality.ts";
+import { enterQualityLockedTerminal } from "../quality-upsell.ts";
 import { ensureViewerId } from "../../player-shared/viewer-id.ts";
 import { applyQualityList, renderQualityMenu } from "../quality-menu.ts";
 import { setStreamDimensions, setStreamFps, setStreamStart, updateQuality } from "../stream-info.ts";
@@ -39,6 +45,22 @@ export function handleWSClose(g: number, ev: CloseEvent, direct = false, joined 
         markDirectFailed(ctx.wssBase);
         setState("reconnecting");
         scheduleRestart(100, g);
+        return;
+    }
+    if (ev.code === 4427) {
+        const next = highestAllowed(ctx.qualityLadder, ctx.lockedQualities);
+        if (next && next !== attemptedQuality) {
+            console.warn("live: quality locked, switching to", next);
+            ctx.qualityPreference = next;
+            ctx.activeQuality = next;
+            ctx.requestedQuality = next;
+            renderQualityMenu();
+            setState("reconnecting");
+            scheduleRestart(100, g);
+            return;
+        }
+        console.warn("live: every quality locked for this viewer");
+        enterQualityLockedTerminal();
         return;
     }
     if (ev.code === 4404) {
@@ -128,7 +150,8 @@ export function startWSTransport(g: number): void {
     attachVideoFailureListeners(g);
     void Promise.all([withCaptchaHint(g, captchaQuery()), ensureViewerId(ctx.mediaBase, ctx.username)]).then(([tq, vid]) => {
         if (!isCurrent(g)) return;
-        ctx.requestedQuality = resolveNextQuality(ctx.qualityPreference, ctx.qualityLadder, ctx.qualityLadderKnown, ctx.activeQuality);
+        ctx.requestedQuality = resolveNextQuality(ctx.qualityPreference,
+            allowedSubset(ctx.qualityLadder, ctx.lockedQualities), ctx.qualityLadderKnown, ctx.activeQuality);
         const qParam = qualityWsParam(ctx.requestedQuality);
         const { base, direct } = chooseTransportBase(ctx.wssBase, ctx.mediaBase);
         let joined = false;
@@ -151,6 +174,20 @@ export function startWSTransport(g: number): void {
                 try {
                     msg = JSON.parse(ev.data);
                 } catch {}
+                if (isQualityLockedFrame(msg)) {
+                    const list = parseQualitiesFrame(msg);
+                    if (list && list.length) {
+                        ctx.qualityLadder = list;
+                        ctx.qualityLadderKnown = true;
+                    }
+                    ctx.lockedQualities = parseLockedList(msg);
+                    ctx.lockedStreamLabel = streamQualityText(
+                        typeof msg.width === "number" ? msg.width : 0,
+                        typeof msg.height === "number" ? msg.height : 0,
+                        typeof msg.fps === "number" ? msg.fps : 0);
+                    joined = true;
+                    return;
+                }
                 if (isQualityOnlyFrame(msg)) {
                     const list = parseQualitiesFrame(msg);
                     if (list && list.length) applyQualityList(list);
@@ -158,6 +195,7 @@ export function startWSTransport(g: number): void {
                 }
                 const codecs = typeof msg.codecs === "string" ? msg.codecs : "";
                 if (!codecs) return;
+                ctx.lockedQualities = parseLockedList(msg);
                 const list = parseQualitiesFrame(msg);
                 if (list && applyQualityList(list)) return;
                 joined = true;

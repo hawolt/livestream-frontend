@@ -375,6 +375,8 @@
         }
         .live-quality-item:hover { background: rgba(255,255,255,.08); }
         .live-quality-item.active { color: var(--accent); }
+        .live-quality-item.locked { color: var(--muted); }
+        .live-quality-lock { flex: none; opacity: .8; }
         .live-quality-check {
             opacity: 0;
             font-size: 11px;
@@ -537,6 +539,18 @@
         .stream-pass-or { color: var(--muted); font-size: 12px; text-align: center; }
         .login-modal-alt { font-size: 13px; color: var(--muted); text-align: center; }
         .login-modal-alt a { color: var(--accent); text-decoration: none; }
+        .quality-upsell-lock { display: flex; justify-content: center; color: var(--accent); }
+        .quality-upsell-text { margin: 0; font-size: 13px; color: var(--muted); line-height: 1.5; }
+        .quality-upsell .login-modal-submit { text-align: center; text-decoration: none; display: block; }
+        .quality-upsell-dismiss {
+            background: none;
+            border: none;
+            color: var(--muted);
+            font-size: 13px;
+            cursor: pointer;
+            padding: 4px;
+        }
+        .quality-upsell-dismiss:hover { color: var(--text); }
         .login-modal-close {
             position: absolute;
             top: 8px;
@@ -1865,6 +1879,6 @@
         <div class="login-modal-alt">No account? <a id="login-modal-signup" href="/register">Create one</a></div>
     </div>
 </div>
-<script src="/live-axm7q85q.js" type="module"></script>
+<script src="/live-578npzfj.js" type="module"></script>
 </body>
 </html>

@@ -61,3 +61,37 @@ export function resolveNextQuality(
 export function qualityWsParam(name: string): string {
     return name && name !== QUALITY_SOURCE ? `&q=${encodeURIComponent(name)}` : "";
 }
+
+export function parseLockedList(value: unknown): string[] {
+    if (!value || typeof value !== "object") return [];
+    const raw = (value as { locked?: unknown }).locked;
+    if (!Array.isArray(raw)) return [];
+    const out: string[] = [];
+    for (const item of raw) {
+        if (typeof item === "string" && item.trim()) out.push(item.trim());
+    }
+    return out;
+}
+
+export function isQualityLockedFrame(value: unknown): boolean {
+    return !!value && typeof value === "object" && (value as { error?: unknown }).error === "quality-locked";
+}
+
+export function highestAllowed(qualities: readonly string[], locked: readonly string[]): string | null {
+    for (const name of qualities) {
+        if (!locked.includes(name)) return name;
+    }
+    return null;
+}
+
+export function allowedSubset(qualities: readonly string[], locked: readonly string[]): string[] {
+    return qualities.filter((name) => !locked.includes(name));
+}
+
+export function streamQualityText(width: number, height: number, fps: number): string {
+    const side = width > 0 && height > 0 ? Math.min(width, height) : Math.max(width, height, 0);
+    const res = side > 1440 ? "4K" : side > 1080 ? "1440p" : side > 0 ? `${side}p` : "";
+    const rate = fps > 0 ? String(Math.round(fps)) : "";
+    if (!res) return "high quality";
+    return rate ? `${res}${rate}` : res;
+}

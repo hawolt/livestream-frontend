@@ -3,6 +3,14 @@ export interface FollowEvent {
     username: string;
     at: number;
     viewers?: number;
+    reason?: string;
+    detail?: string;
+}
+
+export function rejectEventLabel(event: FollowEvent): string {
+    if (event.detail && event.detail.trim()) return event.detail.trim();
+    if (event.reason && event.reason.trim()) return `Stream rejected: ${event.reason.trim()}`;
+    return "Stream rejected";
 }
 
 export function followEventKey(event: FollowEvent): string {
