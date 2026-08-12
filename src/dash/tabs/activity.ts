@@ -101,7 +101,7 @@ function addEvent(e: FollowEvent): boolean {
 
 async function loadRecentFollows(generation: number): Promise<void> {
     try {
-        const res = await authFetch<RecentFollowsResponse>("/api/follows/recent?limit=20");
+        const res = await authFetch<RecentFollowsResponse>("/api/events/recent?limit=20");
         if (eventsDead || generation !== activationGeneration) return;
         const currentLiveEvents = Array.from(liveEvents.values());
         events = mergeFollowEvents(res.events, currentLiveEvents, MAX_EVENTS);
