@@ -16,7 +16,7 @@ const STREAM_CARD_ADDONS = new Set(["thumbnail", "private"]);
 const STUDIO_ADDONS = new Set(["irl", "remoteobs", "restream_plus", "restream_slot"]);
 
 const ADDON_NOTE_FALLBACK: Record<string, string> = {
-    transcode: "Transcode a 720p and 360p version of your stream.",
+    transcode: "Transcode a 360p, 720p, 1080p version of your stream where applicable",
     fps_120: "Publish at up to 120 FPS with a raised bitrate ceiling.",
     fps_240: "Publish at up to 240 FPS with a raised bitrate ceiling.",
     res_2k: "Publish at up to 1440p with a raised bitrate ceiling.",
