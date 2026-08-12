@@ -47,7 +47,9 @@ function setSlotHasSound(slot: AlertSoundSlot, value: boolean): void {
 }
 
 async function refreshSoundStatus(generation: number): Promise<void> {
-    for (const ep of soundSlotEndpoints(username())) {
+    const owner = username();
+    if (!owner || owner === "demo") return;
+    for (const ep of soundSlotEndpoints(owner)) {
         try {
             const res = await fetch(`${ep.head}?v=${Date.now()}`, { method: "HEAD" });
             if (!isCurrentActivation(generation)) return;
@@ -78,7 +80,8 @@ async function uploadSound(slot: AlertSoundSlot, file: File): Promise<void> {
         });
         if (!isCurrentActivation(generation)) return;
         setSlotHasSound(slot, true);
-        soundStatus(slot, "Uploaded.", "var(--success)");
+        await refreshSoundStatus(generation);
+        if (!isCurrentActivation(generation)) return;
         scheduleFollowPreview();
     } catch (e) {
         if (!isCurrentActivation(generation)) return;
@@ -93,7 +96,9 @@ async function removeSound(slot: AlertSoundSlot): Promise<void> {
         await authFetch<{ ok: boolean }>(ep.remove, { method: "DELETE" });
         if (!isCurrentActivation(generation)) return;
         setSlotHasSound(slot, false);
-        soundStatus(slot, "Removed. Refresh any open overlay page.", "var(--muted)");
+        soundStatus(slot, "Removing...", "var(--muted)");
+        await refreshSoundStatus(generation);
+        if (!isCurrentActivation(generation)) return;
         scheduleFollowPreview();
     } catch {
         if (!isCurrentActivation(generation)) return;
@@ -372,7 +377,6 @@ export function init(): void {
         if (file && slot) void uploadSound(slot, file);
     });
 
-    wireStepper(el<HTMLInputElement>("fa-volume"));
     wireStepper(el<HTMLInputElement>("fa-style-bgopacity"));
     wireStepper(el<HTMLInputElement>("fa-style-fontsize"));
     wireStepper(el<HTMLInputElement>("fa-style-scale"));
@@ -391,6 +395,11 @@ export function init(): void {
     el("fa-style-save").addEventListener("click", () => void saveAlertStyle());
     el("fa-style-tpl-follow").addEventListener("input", updateTemplateCounts);
     el("fa-style-tpl-raid").addEventListener("input", updateTemplateCounts);
+    const volumeValue = el("fa-volume-value");
+    const volumeInput = el<HTMLInputElement>("fa-volume");
+    const syncVolumeValue = (): void => { volumeValue.textContent = volumeInput.value; };
+    volumeInput.addEventListener("input", syncVolumeValue);
+    syncVolumeValue();
     for (const id of STYLE_FIELD_IDS) {
         const field = el(id);
         field.addEventListener("input", schedulePreviewStyle);

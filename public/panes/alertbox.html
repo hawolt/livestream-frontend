@@ -1,4 +1,19 @@
 <div id="pane-alertbox" class="tab-pane">
+    <style>
+        #pane-alertbox .ov-layout { grid-template-columns: minmax(0, 1fr) minmax(420px, 34%); align-items: stretch }
+        #pane-alertbox .fa-side-col { min-height: 0 }
+        #pane-alertbox .fa-preview-card { flex: 1; min-height: 0; display: flex; flex-direction: column }
+        #pane-alertbox .fa-preview-card .ov-preview-frame { width: 100%; height: auto; flex: 1; min-height: 220px }
+        #pane-alertbox .fa-preview-actions { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border) }
+        #pane-alertbox #fa-test-status { margin-left: auto; text-align: right }
+        #pane-alertbox .fa-volume-row { display: flex; align-items: center; gap: 10px }
+        #pane-alertbox .fa-volume-row input[type="range"] { flex: 1; min-width: 0 }
+        #pane-alertbox #fa-volume-value { font-variant-numeric: tabular-nums; min-width: 3ch; text-align: right; color: var(--muted); font-size: 12px }
+        @media (min-width: 1101px) {
+            #pane-alertbox .ov-layout { height: calc(100dvh - 92px); min-height: 540px }
+            #pane-alertbox .ov-layout > .card:first-child { overflow-y: auto }
+        }
+    </style>
     <div class="ov-layout">
         <div class="card">
             <div class="section-title">Follow alerts</div>
@@ -109,10 +124,9 @@
                 </label>
                 <label>
                     <span>Volume</span>
-                    <div class="stepper">
-                        <button type="button" class="stepper-btn" data-step="-1" aria-label="Decrease">&minus;</button>
-                        <input id="fa-volume" type="number" min="0" max="100" value="100">
-                        <button type="button" class="stepper-btn" data-step="1" aria-label="Increase">+</button>
+                    <div class="fa-volume-row">
+                        <input id="fa-volume" class="ov-range" type="range" min="0" max="100" step="5" value="100">
+                        <span id="fa-volume-value">100</span>
                     </div>
                 </label>
                 <div class="ov-span-2">
@@ -142,7 +156,7 @@
         </div>
 
         <div class="fa-side-col">
-            <div class="card">
+            <div class="card fa-preview-card">
                 <div class="section-title">Preview</div>
                 <div class="ov-preview-toolbar">
                     <button class="btn btn-sm btn-primary" id="fa-bg-checker" type="button">Checkerboard</button>
