@@ -43,7 +43,11 @@ function soundStatus(slot: AlertSoundSlot, text: string, color: string): void {
 }
 
 function setSlotHasSound(slot: AlertSoundSlot, value: boolean): void {
-    el<HTMLButtonElement>(`fa-sound-remove-${slot}`).disabled = !value;
+    const remove = el<HTMLButtonElement>(`fa-sound-remove-${slot}`);
+    remove.disabled = !value;
+    remove.title = value
+        ? "Remove your uploaded sound"
+        : (slot === "default" ? "The built in sound cannot be removed" : "Nothing uploaded for this slot");
 }
 
 async function refreshSoundStatus(generation: number): Promise<void> {
@@ -409,6 +413,12 @@ export function init(): void {
         previewMuted = !previewMuted;
         applyPreviewMuteButton();
         reloadPreview();
+    });
+    el("fa-style-reset").addEventListener("click", () => {
+        if (!confirm("Reset every appearance option to its default? This replaces the style saved on your channel.")) return;
+        fillStyleForm(DEFAULT_ALERT_STYLE);
+        reloadPreview();
+        void saveAlertStyle();
     });
     el("fa-style-save").addEventListener("click", () => void saveAlertStyle());
     el("fa-style-tpl-follow").addEventListener("input", updateTemplateCounts);
