@@ -2,6 +2,7 @@ export interface FollowEvent {
     type: string;
     username: string;
     at: number;
+    viewers?: number;
 }
 
 export function followEventKey(event: FollowEvent): string {

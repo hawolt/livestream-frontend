@@ -60,8 +60,11 @@ function buildEventRow(e: FollowEvent): HTMLElement {
     type.textContent = e.type.toUpperCase();
     const text = document.createElement("span");
     text.className = "act-ev-text";
-    text.textContent = e.username;
-    text.title = e.username;
+    const label = e.type === "raid" && typeof e.viewers === "number"
+        ? `${e.username} with ${e.viewers} ${e.viewers === 1 ? "viewer" : "viewers"}`
+        : e.username;
+    text.textContent = label;
+    text.title = label;
     const time = document.createElement("span");
     time.className = "act-ev-time";
     time.textContent = `${fmtTime(at)} ${fmtDate(at)}`;
@@ -80,7 +83,7 @@ function renderEvents(): void {
     const body = document.getElementById("act-events-body");
     if (!body) return;
     if (!events.length) {
-        body.replaceChildren(buildEventsNote("No follows yet."));
+        body.replaceChildren(buildEventsNote("No activity yet."));
         return;
     }
     body.replaceChildren(...events.map(buildEventRow));
@@ -132,6 +135,7 @@ function connectEvents(generation: number): void {
         let msg: {
             type: string;
             username?: string;
+            from?: string;
             at?: number;
             viewers?: number;
             live?: boolean;
@@ -153,6 +157,15 @@ function connectEvents(generation: number): void {
                     renderFollowerCount();
                 }
             }
+        } else if (msg.type === "raid" && msg.from && typeof msg.at === "number") {
+            const event: FollowEvent = {
+                type: "raid",
+                username: msg.from,
+                at: msg.at,
+                viewers: typeof msg.viewers === "number" ? msg.viewers : undefined,
+            };
+            if (recentSnapshotPending) liveEvents.set(followEventKey(event), event);
+            if (addEvent(event)) playFollowSound();
         } else if (msg.type === "viewcount" && typeof msg.viewers === "number") {
             viewerCount = msg.viewers;
             viewerLive = typeof msg.live === "boolean" ? msg.live : null;
@@ -250,6 +263,7 @@ function renderInfo(): void {
 
 const SOUND_PREF_KEY = "activity_sound";
 const SOUND_VOLUME_KEY = "activity_sound_volume";
+const SHOW_TIME_KEY = "activity_show_time";
 const SOUND_MIN_GAP_MS = 1500;
 let alertAudio: HTMLAudioElement | null = null;
 let alertAudioFailed = false;
@@ -264,6 +278,19 @@ function soundVolumePct(): number {
     } catch {
         return 100;
     }
+}
+
+function showTimePrefOn(): boolean {
+    try {
+        return localStorage.getItem(SHOW_TIME_KEY) !== "0";
+    } catch {
+        return true;
+    }
+}
+
+function applyTimePref(): void {
+    const pane = document.getElementById("pane-activity");
+    if (pane) pane.classList.toggle("act-hide-time", !showTimePrefOn());
 }
 
 function soundPrefOn(): boolean {
@@ -319,6 +346,16 @@ export function init(): void {
             } catch {}
         });
     }
+    const showTime = document.getElementById("act-show-time") as HTMLInputElement | null;
+    if (showTime) {
+        showTime.checked = showTimePrefOn();
+        showTime.addEventListener("change", () => {
+            try {
+                localStorage.setItem(SHOW_TIME_KEY, showTime.checked ? "1" : "0");
+            } catch {}
+            applyTimePref();
+        });
+    }
     const volumeInput = document.getElementById("act-sound-volume") as HTMLInputElement | null;
     if (volumeInput) {
         volumeInput.value = String(soundVolumePct());
@@ -344,6 +381,7 @@ export function init(): void {
 
 export function activate(): void {
     const generation = ++activationGeneration;
+    applyTimePref();
     alertAudio = null;
     alertAudioFailed = false;
     liveEvents = new Map();

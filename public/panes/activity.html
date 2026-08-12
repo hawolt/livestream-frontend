@@ -14,12 +14,16 @@
         #pane-activity .act-ev-empty { color: var(--muted); padding: 10px 0 }
         #pane-activity #live-info-error { margin-top: 4px !important }
         #pane-activity #live-info-body > div:nth-child(2) { margin-top: 4px !important }
-        #pane-activity .act-main-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(280px, 400px); gap: 10px; align-items: stretch }
+        #pane-activity .act-main-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(420px, 520px); gap: 10px; align-items: stretch }
         #pane-activity .act-right-col { display: flex; flex-direction: column; gap: 10px; min-height: 0; min-width: 0 }
         #pane-activity .act-right-col .dash-strip { margin: 0; flex-shrink: 0 }
         #pane-activity .act-right-col .dash-stat { flex: 1 1 0 }
         #pane-activity #act-viewer-count { white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
         #pane-activity .act-chat-card { flex: 1; min-height: 0; padding: 0; overflow: hidden }
+        #pane-activity .act-info-card { flex: 0 0 auto }
+        #pane-activity .act-ev-type-raid { color: #c084fc; border-color: rgba(192, 132, 252, .40) }
+        #pane-activity.act-hide-time .act-ev-time { display: none }
+        #pane-activity.act-hide-time .act-ev { grid-template-columns: 84px minmax(0, 1fr) }
         @media (min-width: 901px) {
             #pane-activity .act-main-row { height: calc(100dvh - 92px); min-height: 420px }
         }
@@ -31,11 +35,7 @@
     </style>
     <div class="act-main-row">
         <div class="act-left-col" style="display:flex;flex-direction:column;gap:10px">
-            <div class="card" style="flex:4">
-                <div class="section-title">Stream info</div>
-                <div id="live-info-body" style="flex:1;overflow-y:auto;min-height:0">Loading...</div>
-            </div>
-            <div class="card" style="flex:6">
+            <div class="card" style="flex:1">
                 <div class="section-title" style="display:flex;align-items:center;justify-content:space-between;gap:10px">
                     <span>Recent activity</span>
                     <span class="sound-pop-wrap">
@@ -46,6 +46,10 @@
                             <div class="sound-pop-row">
                                 <span>Alert sound</span>
                                 <input type="checkbox" id="act-sound-on">
+                            </div>
+                            <div class="sound-pop-row">
+                                <span>Timestamps</span>
+                                <input type="checkbox" id="act-show-time" checked>
                             </div>
                             <div class="sound-pop-row">
                                 <span>Volume</span>
@@ -67,6 +71,10 @@
                     <div class="dash-stat-label">Followers</div>
                     <div class="dash-stat-value" id="act-follower-count">-</div>
                 </div>
+            </div>
+            <div class="card act-info-card">
+                <div class="section-title">Stream info</div>
+                <div id="live-info-body" style="overflow-y:auto;min-height:0">Loading...</div>
             </div>
             <div class="card act-chat-card">
                 <iframe id="act-chat-iframe" title="Chat" style="width:100%;height:100%;border:0;display:block"></iframe>
