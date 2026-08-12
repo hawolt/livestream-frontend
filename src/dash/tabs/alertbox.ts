@@ -214,7 +214,7 @@ function schedulePreviewStyle(): void {
 
 function applyPreviewMuteButton(): void {
     const btn = el<HTMLButtonElement>("fa-preview-mute");
-    btn.textContent = previewMuted ? "Unmute preview" : "Mute preview";
+    btn.textContent = previewMuted ? "Unmute" : "Mute";
     btn.setAttribute("aria-pressed", previewMuted ? "true" : "false");
 }
 
@@ -387,6 +387,22 @@ export function init(): void {
     for (const id of ["fa-sound", "fa-volume"]) {
         el(id).addEventListener("input", onFollowChange);
     }
+    const testMenu = el("fa-test-menu");
+    const testPop = el("fa-test-pop");
+    testMenu.addEventListener("click", (ev) => {
+        ev.stopPropagation();
+        const open = testPop.classList.toggle("open");
+        testMenu.setAttribute("aria-expanded", open ? "true" : "false");
+        if (open) el("fa-test-status").textContent = "";
+    });
+    document.addEventListener("pointerdown", (ev) => {
+        if (!testPop.classList.contains("open")) return;
+        const wrap = testMenu.parentElement;
+        if (wrap && ev.target instanceof Node && !wrap.contains(ev.target)) {
+            testPop.classList.remove("open");
+            testMenu.setAttribute("aria-expanded", "false");
+        }
+    });
     el("fa-preview-mute").addEventListener("click", () => {
         previewMuted = !previewMuted;
         applyPreviewMuteButton();

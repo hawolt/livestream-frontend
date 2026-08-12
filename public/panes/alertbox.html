@@ -4,8 +4,11 @@
         #pane-alertbox .fa-side-col { min-height: 0 }
         #pane-alertbox .fa-preview-card { flex: 1; min-height: 0; display: flex; flex-direction: column }
         #pane-alertbox .fa-preview-card .ov-preview-frame { width: 100%; height: auto; flex: 1; min-height: 220px }
-        #pane-alertbox .fa-preview-actions { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border) }
-        #pane-alertbox #fa-test-status { margin-left: auto; text-align: right }
+        #pane-alertbox .fa-preview-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap }
+        #pane-alertbox .fa-preview-tools { display: flex; align-items: center; gap: 6px; flex-wrap: wrap }
+        #pane-alertbox .fa-test-pop { width: 170px; padding: 10px; display: none; flex-direction: column; gap: 6px }
+        #pane-alertbox .fa-test-pop.open { display: flex }
+        #pane-alertbox #fa-test-status { font-size: 12px; min-height: 1em }
         #pane-alertbox .fa-volume-row { display: flex; align-items: center; gap: 10px }
         #pane-alertbox .fa-volume-row input[type="range"] { flex: 1; min-width: 0 }
         #pane-alertbox #fa-volume-value { font-variant-numeric: tabular-nums; min-width: 3ch; text-align: right; color: var(--muted); font-size: 12px }
@@ -98,12 +101,12 @@
                     <label>
                         <span>Follow text</span>
                         <input id="fa-style-tpl-follow" type="text" maxlength="120" value="just followed!">
-                        <div class="hint"><span id="fa-style-tpl-follow-count">14</span>/120. Placeholders: {name}</div>
+                        <div class="hint"><span id="fa-style-tpl-follow-count">14</span>/120. The name is shown above this line already. Placeholders: {name}</div>
                     </label>
                     <label>
                         <span>Raid text</span>
                         <input id="fa-style-tpl-raid" type="text" maxlength="120" value="just raided with {viewers} viewers!">
-                        <div class="hint"><span id="fa-style-tpl-raid-count">35</span>/120. Placeholders: {name}, {viewers}</div>
+                        <div class="hint"><span id="fa-style-tpl-raid-count">35</span>/120. The name is shown above this line already. Placeholders: {name}, {viewers}</div>
                     </label>
                 </div>
                 <div class="ov-span-2">
@@ -157,19 +160,24 @@
 
         <div class="fa-side-col">
             <div class="card fa-preview-card">
-                <div class="section-title">Preview</div>
-                <div class="ov-preview-toolbar">
-                    <button class="btn btn-sm btn-primary" id="fa-bg-checker" type="button">Checkerboard</button>
-                    <button class="btn btn-sm" id="fa-bg-dark" type="button">Dark</button>
+                <div class="section-title fa-preview-head">
+                    <span>Preview</span>
+                    <span class="fa-preview-tools">
+                        <button class="btn btn-sm btn-primary" id="fa-bg-checker" type="button">Checkerboard</button>
+                        <button class="btn btn-sm" id="fa-bg-dark" type="button">Dark</button>
+                        <button class="btn btn-sm" id="fa-preview-mute" type="button" aria-pressed="false">Mute</button>
+                        <span class="sound-pop-wrap">
+                            <button class="btn btn-sm" id="fa-test-menu" type="button" aria-haspopup="true" aria-expanded="false">Send test</button>
+                            <div class="sound-pop fa-test-pop" id="fa-test-pop">
+                                <button class="btn btn-sm" id="fa-test-follow-btn" type="button">Follow</button>
+                                <button class="btn btn-sm" id="fa-test-raid-btn" type="button">Raid</button>
+                                <div id="fa-test-status"></div>
+                            </div>
+                        </span>
+                    </span>
                 </div>
                 <div class="ov-preview-frame bg-checker" id="fa-preview-frame">
                     <iframe id="fa-preview-iframe" title="Follow alert preview"></iframe>
-                </div>
-                <div class="fa-preview-actions">
-                    <button class="btn btn-sm" id="fa-test-follow-btn" type="button">Test follow</button>
-                    <button class="btn btn-sm" id="fa-test-raid-btn" type="button">Test raid</button>
-                    <button class="btn btn-sm" id="fa-preview-mute" type="button" aria-pressed="false">Mute preview</button>
-                    <span id="fa-test-status" style="font-size:13px"></span>
                 </div>
             </div>
             <div class="card">
