@@ -48,8 +48,23 @@ function tabFromLocation(): string | null {
     return hash || null;
 }
 
+const STUDIO_LINK_LABELS: Record<string, string> = {
+    setup: "Korea Setup",
+    ingests: "Ingests",
+    "remote-obs": "Remote OBS",
+    restream: "Restream",
+    upgrades: "Upgrades",
+};
+
 function studioOnlyTabs(tabs: TabInfo[]): TabInfo[] {
-    return tabs.filter(tab => !TAB_LOADERS[tab.id]);
+    const out: TabInfo[] = [];
+    for (const tab of tabs) {
+        if (TAB_LOADERS[tab.id]) continue;
+        const label = STUDIO_LINK_LABELS[tab.id];
+        if (!label) continue;
+        out.push({ ...tab, label });
+    }
+    return out;
 }
 
 function navigationSnapshot(tabs: TabInfo[], studio: TabInfo[]): string {
