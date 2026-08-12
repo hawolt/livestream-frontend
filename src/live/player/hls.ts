@@ -4,7 +4,7 @@ import { HLS_BEACON_INTERVAL_MS } from "../constants.ts";
 import { ensureViewerId } from "../../player-shared/viewer-id.ts";
 import { captchaQuery, getCaptchaToken } from "../../captcha.ts";
 import { beginTransport, enterTerminal, fullTeardown, goOffline, resetRetryBackoff, setState } from "./lifecycle.ts";
-import { enterQualityLockedTerminal } from "../quality-upsell.ts";
+import { closeQualityUpsell, enterQualityLockedTerminal } from "../quality-upsell.ts";
 import { withCaptchaHint } from "./ws.ts";
 import { attachVideoFailureListeners } from "./health.ts";
 import { renderQualityMenu } from "../quality-menu.ts";
@@ -58,6 +58,7 @@ export function fallbackFromMSE(g: number): void {
 
 export function startHLSTransport(g: number): void {
     attachVideoFailureListeners(g);
+    closeQualityUpsell();
     const src = `${ctx.mediaBase}/hls/${encodeURIComponent(ctx.username)}/live.m3u8`;
 
     const onPlaying = () => {

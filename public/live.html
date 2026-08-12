@@ -376,7 +376,7 @@
         .live-quality-item:hover { background: rgba(255,255,255,.08); }
         .live-quality-item.active { color: var(--accent); }
         .live-quality-item.locked { color: var(--muted); }
-        .live-quality-lock { flex: none; opacity: .8; }
+        .live-quality-lock-mini { flex: none; opacity: .8; }
         .live-quality-check {
             opacity: 0;
             font-size: 11px;
@@ -539,18 +539,61 @@
         .stream-pass-or { color: var(--muted); font-size: 12px; text-align: center; }
         .login-modal-alt { font-size: 13px; color: var(--muted); text-align: center; }
         .login-modal-alt a { color: var(--accent); text-decoration: none; }
-        .quality-upsell-lock { display: flex; justify-content: center; color: var(--accent); }
-        .quality-upsell-text { margin: 0; font-size: 13px; color: var(--muted); line-height: 1.5; }
-        .quality-upsell .login-modal-submit { text-align: center; text-decoration: none; display: block; }
-        .quality-upsell-dismiss {
+        .live-quality-lock {
+            position: absolute;
+            inset: 0;
+            z-index: 6;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 40px;
+            padding: 24px;
+            background: rgba(0, 0, 0, .6);
+        }
+        .live-quality-lock[hidden] { display: none; }
+        .live-quality-lock-icon { width: 104px; height: 104px; color: var(--accent); flex: none; }
+        .live-quality-lock-body {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 10px;
+            max-width: 440px;
+        }
+        .live-quality-lock-body h2 {
+            margin: 0;
+            font-size: 30px;
+            font-weight: 800;
+            letter-spacing: -.01em;
+            color: var(--text);
+        }
+        #live-quality-lock-info { margin: 0 0 6px; font-size: 14px; color: var(--muted); }
+        .live-quality-lock-actions { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+        .live-quality-lock-cta {
+            display: inline-block;
+            background: var(--accent);
+            color: #06130b;
+            font-weight: 700;
+            font-size: 14px;
+            padding: 10px 26px;
+            border-radius: 8px;
+            text-decoration: none;
+        }
+        .live-quality-lock-cta:hover { filter: brightness(1.08); text-decoration: none; }
+        .live-quality-lock-dismiss {
             background: none;
             border: none;
             color: var(--muted);
             font-size: 13px;
             cursor: pointer;
-            padding: 4px;
+            padding: 4px 8px;
         }
-        .quality-upsell-dismiss:hover { color: var(--text); }
+        .live-quality-lock-dismiss:hover { color: var(--text); }
+        @media (max-width: 640px) {
+            .live-quality-lock { flex-direction: column; gap: 16px; text-align: center; }
+            .live-quality-lock-icon { width: 64px; height: 64px; }
+            .live-quality-lock-body { align-items: center; }
+            .live-quality-lock-body h2 { font-size: 22px; }
+        }
         .login-modal-close {
             position: absolute;
             top: 8px;
@@ -1708,6 +1751,17 @@
                 <span class="live-badge" id="live-badge" hidden>OFFLINE</span>
                 <video id="live-video" muted autoplay playsinline></video>
                 <div id="live-poster" class="hidden" role="status" aria-live="polite" aria-atomic="true" aria-busy="false"></div>
+                <div id="live-quality-lock" class="live-quality-lock" hidden>
+                    <svg class="live-quality-lock-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/><circle cx="12" cy="16" r="1.4" fill="currentColor" stroke="none"/></svg>
+                    <div class="live-quality-lock-body">
+                        <h2>Subscribe to watch</h2>
+                        <p id="live-quality-lock-info"></p>
+                        <div class="live-quality-lock-actions">
+                            <a class="live-quality-lock-cta" href="/dashboard/subscription">View subscriptions</a>
+                            <button id="live-quality-lock-dismiss" class="live-quality-lock-dismiss" type="button">Not now</button>
+                        </div>
+                    </div>
+                </div>
                 <div class="browse-mini-overlay" id="browse-mini-overlay" hidden>
                     <button id="browse-mini-return" class="browse-mini-return" type="button">Return to <span id="browse-mini-username"></span></button>
                     <button id="browse-mini-close" class="browse-mini-close" type="button" aria-label="Close mini player">&times;</button>
@@ -1879,6 +1933,6 @@
         <div class="login-modal-alt">No account? <a id="login-modal-signup" href="/register">Create one</a></div>
     </div>
 </div>
-<script src="/live-8h13wrd2.js" type="module"></script>
+<script src="/live-jk4phnf7.js" type="module"></script>
 </body>
 </html>

@@ -13,7 +13,7 @@ import {
     resolveNextQuality,
     streamQualityText,
 } from "../../quality.ts";
-import { enterQualityLockedTerminal } from "../quality-upsell.ts";
+import { closeQualityUpsell, enterQualityLockedTerminal } from "../quality-upsell.ts";
 import { ensureViewerId } from "../../player-shared/viewer-id.ts";
 import { applyQualityList, renderQualityMenu } from "../quality-menu.ts";
 import { setStreamDimensions, setStreamFps, setStreamStart, updateQuality } from "../stream-info.ts";
@@ -148,6 +148,7 @@ export function adoptWSTransport(g: number, a: AdoptedTransport): void {
 
 export function startWSTransport(g: number): void {
     attachVideoFailureListeners(g);
+    closeQualityUpsell();
     void Promise.all([withCaptchaHint(g, captchaQuery()), ensureViewerId(ctx.mediaBase, ctx.username)]).then(([tq, vid]) => {
         if (!isCurrent(g)) return;
         ctx.requestedQuality = resolveNextQuality(ctx.qualityPreference,
