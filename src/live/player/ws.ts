@@ -1,6 +1,10 @@
 import { ctx, isCurrent, track } from "./context.ts";
 import type { AdoptedTransport } from "./adoption.ts";
-import { captchaChallengeActive, captchaQuery } from "../../captcha.ts";
+import { captchaQuery } from "../../captcha.ts";
+import { readLocalStorage } from "../../storage.ts";
+import { TRANSPORT_STORAGE_KEY } from "../constants.ts";
+import { chooseTransport } from "../../player-shared/transport-choice.ts";
+import { canUseHlsJs, canUseNativeHLS, mseSupported } from "./hls-support.ts";
 import {
     QUALITY_SOURCE,
     allowedSubset,
@@ -20,7 +24,7 @@ import { setStreamDimensions, setStreamFps, setStreamStart, updateQuality } from
 import { attachMediaSource, pruneBuffer, pump } from "./mse.ts";
 import { startChase } from "./chase.ts";
 import { attachVideoFailureListeners } from "./health.ts";
-import { fullTeardown, goOffline, nextRetryDelay, renderPlayerUI, restartAfterFailure, scheduleRestart, setPoster, setState } from "./lifecycle.ts";
+import { enterTerminal, fullTeardown, goOffline, nextRetryDelay, renderPlayerUI, restartAfterFailure, scheduleRestart, setPoster, setState } from "./lifecycle.ts";
 import { mediaWsUrl as sharedMediaWsUrl } from "../../player-shared/ws-url.ts";
 import { chooseTransportBase, markDirectFailed, shouldMarkDirectFailed } from "../../player-shared/transport-fallback.ts";
 
@@ -30,9 +34,8 @@ export function mediaWsUrl(base: string, path: string): string {
 }
 
 export function withCaptchaHint<T>(g: number, p: Promise<T>): Promise<T> {
-    const hint = captchaChallengeActive() ? "Cloudflare is checking your browser" : "Checking access";
     const t = window.setTimeout(() => {
-        if (isCurrent(g) && !ctx.terminal) setPoster(hint, false, true);
+        if (isCurrent(g) && !ctx.terminal) setPoster("Checking access", false, true);
     }, 300);
     return p.finally(() => window.clearTimeout(t));
 }
@@ -43,6 +46,29 @@ export function handleWSClose(g: number, ev: CloseEvent, direct = false, joined 
     fullTeardown();
     if (shouldMarkDirectFailed(direct, joined)) {
         markDirectFailed(ctx.wssBase);
+        setState("reconnecting");
+        scheduleRestart(100, g);
+        return;
+    }
+    if (ev.code === 4428) {
+        ctx.llDenied = true;
+        console.warn("live: low latency access denied, falling back to HLS");
+        const next = chooseTransport({
+            mseSupported: mseSupported(),
+            nativeHls: canUseNativeHLS(),
+            hlsJsSupported: canUseHlsJs(),
+            lowLatency: false,
+            llDenied: true,
+            override: readLocalStorage(TRANSPORT_STORAGE_KEY),
+        });
+        if (next === "unsupported") {
+            enterTerminal("Playback not supported");
+            return;
+        }
+        ctx.transportKind = next;
+        ctx.qualityLadder = [];
+        ctx.qualityLadderKnown = false;
+        renderQualityMenu();
         setState("reconnecting");
         scheduleRestart(100, g);
         return;

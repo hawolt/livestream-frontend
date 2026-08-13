@@ -1,10 +1,10 @@
-import type { EmbedPlaybackState } from "./context.ts";
+import type { EmbedPlaybackState, EmbedTransportKind } from "./context.ts";
 
 export type EmbedHealthRestartReason = "stuck-connecting" | "stale-media" | "stale-progress";
 
 export interface EmbedHealthInput {
     state: EmbedPlaybackState;
-    transportKind: "ws" | "hls" | "none";
+    transportKind: EmbedTransportKind;
     now: number;
     lastStateChangeAt: number;
     lastMediaArrivalAt: number;

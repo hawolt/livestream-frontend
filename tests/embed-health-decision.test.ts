@@ -34,7 +34,7 @@ describe("embed health decision", () => {
     test("restarts active playback when its clock stops", () => {
         expect(decideEmbedHealth({
             ...base,
-            transportKind: "hls",
+            transportKind: "hls-native",
             now: 41001,
             lastProgressAt: 25000,
         })).toBe("stale-progress");
@@ -43,7 +43,7 @@ describe("embed health decision", () => {
     test("does not treat intentional paused playback as stale progress", () => {
         expect(decideEmbedHealth({
             ...base,
-            transportKind: "hls",
+            transportKind: "hls-native",
             now: 41001,
             lastProgressAt: 25000,
             paused: true,

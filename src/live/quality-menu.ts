@@ -1,44 +1,112 @@
 import { qualityBtn, qualityPopupEl, qualitySelectEl } from "./dom.ts";
 import { ctx } from "./player/context.ts";
 import { allowedSubset, qualityLabel, resolveNextQuality } from "../quality.ts";
-import { openQualityUpsell, qualityPadlock } from "./quality-upsell.ts";
+import { openLowLatencyUpsell, openQualityUpsell, qualityPadlock } from "./quality-upsell.ts";
 import { QUALITY_STORAGE_KEY } from "./constants.ts";
 import { writeLocalStorage } from "../storage.ts";
 import { beginTransport } from "./player/lifecycle.ts";
 import { closeDismissibleSurface, openDismissibleSurface } from "../dismissible-surface.ts";
+import { hlsAutoEnabled, hlsCurrentLevel, hlsLevelLabel, hlsLevels, setHlsLevel } from "./player/hls.ts";
+
+function showLowLatencyUpsellRow(): boolean {
+    return (ctx.transportKind === "hls-native" || ctx.transportKind === "hls-js")
+        && !ctx.terminal
+        && ctx.state !== "offline";
+}
 
 export function qualityButtonLabel(): string {
-    return qualityLabel(ctx.qualityPreference);
+    if (ctx.transportKind === "ws") return qualityLabel(ctx.qualityPreference);
+    if (ctx.transportKind === "hls-js") return hlsLevelLabel();
+    return "Quality";
+}
+
+function appendUpsellRow(): void {
+    const item = document.createElement("button");
+    item.type = "button";
+    item.className = "live-quality-item locked";
+    const labelEl = document.createElement("span");
+    labelEl.textContent = "Low latency";
+    item.appendChild(labelEl);
+    item.appendChild(qualityPadlock());
+    item.addEventListener("click", () => openLowLatencyUpsell());
+    qualityPopupEl.appendChild(item);
+}
+
+function appendHlsAutoItem(): void {
+    const item = document.createElement("button");
+    item.type = "button";
+    item.className = "live-quality-item";
+    const active = hlsAutoEnabled();
+    item.classList.toggle("active", active);
+    item.setAttribute("aria-pressed", String(active));
+    const labelEl = document.createElement("span");
+    labelEl.textContent = "Auto";
+    item.appendChild(labelEl);
+    const checkEl = document.createElement("span");
+    checkEl.className = "live-quality-check";
+    checkEl.textContent = "✓";
+    item.appendChild(checkEl);
+    item.addEventListener("click", () => selectHlsLevel(-1));
+    qualityPopupEl.appendChild(item);
+}
+
+function appendHlsLevelItem(entry: { index: number; label: string }): void {
+    const item = document.createElement("button");
+    item.type = "button";
+    item.className = "live-quality-item";
+    const active = !hlsAutoEnabled() && hlsCurrentLevel() === entry.index;
+    item.classList.toggle("active", active);
+    item.setAttribute("aria-pressed", String(active));
+    const labelEl = document.createElement("span");
+    labelEl.textContent = entry.label;
+    item.appendChild(labelEl);
+    const checkEl = document.createElement("span");
+    checkEl.className = "live-quality-check";
+    checkEl.textContent = "✓";
+    item.appendChild(checkEl);
+    item.addEventListener("click", () => selectHlsLevel(entry.index));
+    qualityPopupEl.appendChild(item);
+}
+
+function selectHlsLevel(index: number): void {
+    setHlsLevel(index);
+    renderQualityMenu();
 }
 
 export function renderQualityPopupItems(): void {
     qualityPopupEl.replaceChildren();
-    const entries: Array<[string, string]> = [];
-    for (const name of ctx.qualityLadder) entries.push([name, qualityLabel(name)]);
-    for (const [value, label] of entries) {
-        const item = document.createElement("button");
-        item.type = "button";
-        item.className = "live-quality-item";
-        const locked = ctx.lockedQualities.includes(value);
-        const active = !locked && value === ctx.qualityPreference;
-        item.classList.toggle("active", active);
-        item.classList.toggle("locked", locked);
-        item.setAttribute("aria-pressed", String(active));
-        const labelEl = document.createElement("span");
-        labelEl.textContent = label;
-        item.appendChild(labelEl);
-        if (locked) {
-            item.appendChild(qualityPadlock());
-            item.addEventListener("click", () => openQualityUpsell());
-        } else {
-            const checkEl = document.createElement("span");
-            checkEl.className = "live-quality-check";
-            checkEl.textContent = "✓";
-            item.appendChild(checkEl);
-            item.addEventListener("click", () => selectQuality(value));
+    if (ctx.transportKind === "ws") {
+        const entries: Array<[string, string]> = [];
+        for (const name of ctx.qualityLadder) entries.push([name, qualityLabel(name)]);
+        for (const [value, label] of entries) {
+            const item = document.createElement("button");
+            item.type = "button";
+            item.className = "live-quality-item";
+            const locked = ctx.lockedQualities.includes(value);
+            const active = !locked && value === ctx.qualityPreference;
+            item.classList.toggle("active", active);
+            item.classList.toggle("locked", locked);
+            item.setAttribute("aria-pressed", String(active));
+            const labelEl = document.createElement("span");
+            labelEl.textContent = label;
+            item.appendChild(labelEl);
+            if (locked) {
+                item.appendChild(qualityPadlock());
+                item.addEventListener("click", () => openQualityUpsell());
+            } else {
+                const checkEl = document.createElement("span");
+                checkEl.className = "live-quality-check";
+                checkEl.textContent = "✓";
+                item.appendChild(checkEl);
+                item.addEventListener("click", () => selectQuality(value));
+            }
+            qualityPopupEl.appendChild(item);
         }
-        qualityPopupEl.appendChild(item);
+    } else if (ctx.transportKind === "hls-js") {
+        appendHlsAutoItem();
+        for (const entry of hlsLevels()) appendHlsLevelItem(entry);
     }
+    if (showLowLatencyUpsellRow()) appendUpsellRow();
 }
 
 function onOutsideQualityClick(ev: MouseEvent): void {
@@ -68,7 +136,9 @@ function toggleQualityPopup(): void {
 }
 
 export function renderQualityMenu(): void {
-    const show = ctx.transportKind === "ws" && ctx.qualityLadder.length >= 2;
+    const wsShow = ctx.transportKind === "ws" && ctx.qualityLadder.length >= 2;
+    const hlsJsShow = ctx.transportKind === "hls-js";
+    const show = wsShow || hlsJsShow || showLowLatencyUpsellRow();
     qualitySelectEl.hidden = !show;
     if (!show) {
         closeQualityPopup();

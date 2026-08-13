@@ -10,3 +10,4 @@ export const HEALTH_STALE_MS = 15000;
 export const HEALTH_STUCK_MS = 20000;
 export const WAITING_STALL_MS = 8000;
 export const PREVIEW_MESSAGE_TYPE = "itzon:stream-preview";
+export const TRANSPORT_STORAGE_KEY = "transport";

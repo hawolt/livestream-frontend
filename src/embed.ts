@@ -1,7 +1,12 @@
 import { cleanfeedMode, controlsMode, ctx, previewMode } from "./embed/context.ts";
 import { beginTransport, enterTerminal, setPoster, wirePageLifecycle, wireUnmute } from "./embed/lifecycle.ts";
-import { canUseNativeHLS } from "./embed/transport.ts";
+import { canUseHlsJs, canUseNativeHLS, mseSupported } from "./embed/transport.ts";
 import { video } from "./embed/dom.ts";
+import { getCaptchaToken } from "./captcha.ts";
+import { parseViewerClaim } from "./player-shared/viewer-claim.ts";
+import { chooseTransport } from "./player-shared/transport-choice.ts";
+import { readLocalStorage } from "./storage.ts";
+import { TRANSPORT_STORAGE_KEY } from "./embed/constants.ts";
 
 let bootGeneration = 0;
 let bootRequest: AbortController | null = null;
@@ -78,15 +83,23 @@ async function boot(): Promise<void> {
     }
     if (generation !== bootGeneration) return;
 
-    if (typeof MediaSource === "function" && typeof MediaSource.isTypeSupported === "function") {
-        ctx.transportKind = "ws";
-    } else if (canUseNativeHLS()) {
-        ctx.transportKind = "hls";
-    } else {
+    const captchaToken = await getCaptchaToken();
+    if (generation !== bootGeneration) return;
+    const { lowLatency } = parseViewerClaim(captchaToken || null);
+    const transport = chooseTransport({
+        mseSupported: mseSupported(),
+        nativeHls: canUseNativeHLS(),
+        hlsJsSupported: canUseHlsJs(),
+        lowLatency,
+        llDenied: ctx.llDenied,
+        override: readLocalStorage(TRANSPORT_STORAGE_KEY),
+    });
+    if (transport === "unsupported") {
         bootCompleted = true;
         enterTerminal("Playback not supported");
         return;
     }
+    ctx.transportKind = transport;
 
     setPoster("Offline");
     beginTransport();

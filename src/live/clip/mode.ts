@@ -1,7 +1,6 @@
 import {
     categoryEl,
     categorySepEl,
-    chatEl,
     chatFeatureSlotEl,
     clipWatchLiveEl,
     languageEl,
@@ -28,7 +27,7 @@ import { ctx } from "../player/context.ts";
 import type { LiveChannelInfo } from "../../api.ts";
 import { streamLanguageLabel } from "../../stream-languages.ts";
 import { startAdRotation } from "../../ads.ts";
-import { setCaptchaAnchor, warmCaptcha } from "../../captcha.ts";
+import { warmCaptcha } from "../../captcha.ts";
 import { startChat } from "../../live-chat.ts";
 import { openLoginModal, wireLoginModal } from "../login-modal.ts";
 import { initFollow } from "../follow.ts";
@@ -208,7 +207,6 @@ export async function bootClipMode(route: ClipRoute): Promise<void> {
     syncLayout();
 
     startChannelRail();
-    setCaptchaAnchor(chatEl);
     warmCaptcha();
     startAdRotation(chatFeatureSlotEl, "chat");
     void loadProfile(route.channel).then(profile => {

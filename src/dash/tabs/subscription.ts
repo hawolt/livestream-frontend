@@ -43,6 +43,7 @@ const PERK_FIELD: Record<string, keyof BillingPerks> = {
 const WATCH_PERK_LINES: Record<string, string[]> = {
     watch_2k: ["Watch up to 120 FPS", "Watch in 2K"],
     watch_4k: ["Watch up to 240 FPS", "Watch in 4K"],
+    watch_ll: ["Extra low latency streaming"],
 };
 
 function badgeTitle(token: string): string {
@@ -58,6 +59,7 @@ function perkLabel(token: string): string {
         case "ads_off": return "No ads";
         case "large_uploads": return "Profile images up to 1 MiB";
         case "animated_avatar": return "Animated GIF profile images";
+        case "watch_ll": return "Extra low latency";
         default:
             return token.startsWith("badge_") ? `Exclusive ${badgeTitle(token)} badge` : token;
     }

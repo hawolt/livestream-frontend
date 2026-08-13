@@ -1,6 +1,7 @@
 import { resolveEmbedModes } from "./modes.ts";
 
 export type EmbedPlaybackState = "offline" | "connecting" | "playing" | "retrying";
+export type EmbedTransportKind = "none" | "ws" | "hls-native" | "hls-js" | "unsupported";
 
 const modes = resolveEmbedModes(new URLSearchParams(location.search));
 
@@ -12,7 +13,8 @@ export const ctx = {
     username: "",
     mediaBase: "",
     wssBase: "",
-    transportKind: "none" as "ws" | "hls" | "none",
+    transportKind: "none" as EmbedTransportKind,
+    llDenied: false,
 
     gen: 0,
     terminal: false,

@@ -1,10 +1,14 @@
+import Hls from "hls.js";
 import { video } from "./dom.ts";
 import { ctx, isCurrent, track } from "./context.ts";
-import { HLS_BEACON_INTERVAL_MS } from "./constants.ts";
+import { HLS_BEACON_INTERVAL_MS, TRANSPORT_STORAGE_KEY } from "./constants.ts";
 import { captchaQuery, getCaptchaToken } from "../captcha.ts";
 import { ensureViewerId } from "../player-shared/viewer-id.ts";
+import { needsCredentials } from "../player-shared/needs-credentials.ts";
 import { mediaWsUrl as sharedMediaWsUrl } from "../player-shared/ws-url.ts";
+import { chooseTransport } from "../player-shared/transport-choice.ts";
 import { chooseTransportBase, markDirectFailed, shouldMarkDirectFailed } from "../player-shared/transport-fallback.ts";
+import { readLocalStorage } from "../storage.ts";
 import { beginTransport, enterTerminal, goOffline, resetRetryBackoff, restartAfterFailure, setPlaying } from "./lifecycle.ts";
 import { attachMediaSource, pump } from "./mse.ts";
 import { attachVideoFailureListeners } from "./health.ts";
@@ -44,23 +48,63 @@ export function startHLSBeacon(g: number): void {
     hlsBeaconTimer = window.setInterval(beat, HLS_BEACON_INTERVAL_MS);
 }
 
+export function mseSupported(): boolean {
+    return typeof MediaSource === "function" && typeof MediaSource.isTypeSupported === "function";
+}
+
 export function canUseNativeHLS(): boolean {
     return video.canPlayType("application/vnd.apple.mpegurl") !== "";
+}
+
+export function canUseHlsJs(): boolean {
+    return Hls.isSupported();
+}
+
+let hlsInstance: Hls | null = null;
+
+export function destroyHls(): void {
+    if (hlsInstance) {
+        try {
+            hlsInstance.destroy();
+        } catch {}
+        hlsInstance = null;
+    }
 }
 
 export function fallbackFromMSE(g: number): void {
     if (!isCurrent(g)) return;
     if (canUseNativeHLS()) {
-        ctx.transportKind = "hls";
-        beginTransport();
+        ctx.transportKind = "hls-native";
+    } else if (canUseHlsJs()) {
+        ctx.transportKind = "hls-js";
+    } else {
+        enterTerminal("Playback not supported");
         return;
     }
-    enterTerminal("Playback not supported");
+    beginTransport();
 }
 
 function handleWSClose(g: number, ev: CloseEvent, direct: boolean, joined: boolean): void {
     if (shouldMarkDirectFailed(direct, joined)) {
         markDirectFailed(ctx.wssBase);
+        restartAfterFailure(g, true);
+        return;
+    }
+    if (ev.code === 4428) {
+        ctx.llDenied = true;
+        const next = chooseTransport({
+            mseSupported: mseSupported(),
+            nativeHls: canUseNativeHLS(),
+            hlsJsSupported: canUseHlsJs(),
+            lowLatency: false,
+            llDenied: true,
+            override: readLocalStorage(TRANSPORT_STORAGE_KEY),
+        });
+        if (next === "unsupported") {
+            enterTerminal("Playback not supported");
+            return;
+        }
+        ctx.transportKind = next;
         restartAfterFailure(g, true);
         return;
     }
@@ -121,8 +165,46 @@ export function startWSTransport(g: number): void {
     });
 }
 
+async function masterUrl(): Promise<string> {
+    const tq = await captchaQuery();
+    const query = tq ? `?${tq.slice(1)}` : "";
+    return `${ctx.mediaBase}/hls/${encodeURIComponent(ctx.username)}/master.m3u8${query}`;
+}
+
+function startNativeHLS(g: number, src: string): void {
+    video.src = src;
+    void video.play().catch(() => {});
+    startHLSBeacon(g);
+}
+
+function startHlsJsPlayer(g: number, src: string): void {
+    const hls = new Hls({
+        lowLatencyMode: true,
+        backBufferLength: 30,
+        liveSyncDuration: 2.5,
+        maxLiveSyncPlaybackRate: 1.08,
+        enableWorker: true,
+        xhrSetup: (xhr, url) => {
+            xhr.withCredentials = needsCredentials(url, ctx.mediaBase, location.origin);
+        },
+    });
+    hlsInstance = hls;
+    hls.on(Hls.Events.ERROR, (_event, data) => {
+        if (!isCurrent(g) || hlsInstance !== hls) return;
+        if (data.details === Hls.ErrorDetails.BUFFER_FULL_ERROR) return;
+        if (!data.fatal) return;
+        restartAfterFailure(g);
+    });
+    hls.on(Hls.Events.MEDIA_ATTACHED, () => {
+        if (!isCurrent(g) || hlsInstance !== hls) return;
+        hls.loadSource(src);
+    });
+    hls.attachMedia(video);
+    void video.play().catch(() => {});
+    startHLSBeacon(g);
+}
+
 export function startHLSTransport(g: number): void {
-    const src = `${ctx.mediaBase}/hls/${encodeURIComponent(ctx.username)}/live.m3u8`;
     attachVideoFailureListeners(g);
 
     const onPlaying = () => {
@@ -139,10 +221,14 @@ export function startHLSTransport(g: number): void {
     track(() => video.removeEventListener("playing", onPlaying));
     track(() => video.removeEventListener("ended", onEnded));
 
-    void getCaptchaToken().then(() => {
+    void getCaptchaToken().then(async () => {
         if (!isCurrent(g)) return;
-        video.src = src;
-        void video.play().catch(() => {});
-        startHLSBeacon(g);
+        const src = await masterUrl();
+        if (!isCurrent(g)) return;
+        if (ctx.transportKind === "hls-native") {
+            startNativeHLS(g, src);
+        } else {
+            startHlsJsPlayer(g, src);
+        }
     });
 }

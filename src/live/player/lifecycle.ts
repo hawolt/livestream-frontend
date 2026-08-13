@@ -3,7 +3,7 @@ import { ctx, isCurrent, nextGen, runGenCleanup, type PlayerState } from "./cont
 import { PRUNE_KEEP_S, RETRY_MAX_MS, RETRY_MIN_MS, RETRY_MULT } from "../constants.ts";
 import { QUALITY_SOURCE } from "../../quality.ts";
 import { stopChase } from "./chase.ts";
-import { stopHLSBeacon, startHLSTransport } from "./hls.ts";
+import { destroyHls, stopHLSBeacon, startHLSTransport } from "./hls.ts";
 import { clearWaitingTimer, healthCheck, startHealthTimer, stopHealthTimer } from "./health.ts";
 import { resetStreamInfo, setViewers } from "../stream-info.ts";
 import { renderQualityMenu } from "../quality-menu.ts";
@@ -156,6 +156,7 @@ export function renderPlayerUI(): void {
 export function fullTeardown(): void {
     stopChase();
     stopHLSBeacon();
+    destroyHls();
     clearWaitingTimer();
     if (ctx.ws) {
         ctx.ws.onopen = null;
@@ -247,7 +248,7 @@ export function beginTransport(): void {
     }
     ctx.startedOnce = true;
     if (ctx.transportKind === "ws") startWSTransport(g);
-    else if (ctx.transportKind === "hls") startHLSTransport(g);
+    else if (ctx.transportKind === "hls-native" || ctx.transportKind === "hls-js") startHLSTransport(g);
 }
 
 let pageHideTornDown = false;

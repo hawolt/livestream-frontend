@@ -1,4 +1,5 @@
 import { stageEl } from "../dom.ts";
+import { ctx } from "./context.ts";
 import { START_BEHIND_S } from "../constants.ts";
 import { captchaRequired, freshCaptchaQuery } from "../../captcha.ts";
 import { ensureViewerId } from "../../player-shared/viewer-id.ts";
@@ -57,6 +58,7 @@ export function prewarmPhase(): PrewarmPhase {
 }
 
 export function startPrewarm(target: string): void {
+    if (ctx.transportKind !== "ws") return;
     if (session && session.target === target && session.phase !== "dead") return;
     cancelPrewarm();
     const videoEl = document.createElement("video");

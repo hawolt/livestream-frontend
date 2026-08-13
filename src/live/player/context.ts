@@ -4,6 +4,7 @@ import { PRUNE_KEEP_S, QUALITY_STORAGE_KEY } from "../constants.ts";
 import type { AdoptedTransport } from "./adoption.ts";
 
 export type PlayerState = "offline" | "connecting" | "buffering" | "playing" | "reconnecting";
+export type TransportKind = "none" | "ws" | "hls-native" | "hls-js" | "unsupported";
 
 const storedQualityPreference = readLocalStorage(QUALITY_STORAGE_KEY);
 const initialQualityPreference = !storedQualityPreference || storedQualityPreference === QUALITY_AUTO
@@ -14,7 +15,8 @@ export const ctx = {
     gen: 0,
     state: "offline" as PlayerState,
     terminal: false,
-    transportKind: "none" as "ws" | "hls" | "none",
+    transportKind: "none" as TransportKind,
+    llDenied: false,
 
     ws: null as WebSocket | null,
     adopt: null as AdoptedTransport | null,

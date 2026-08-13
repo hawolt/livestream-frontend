@@ -32,19 +32,25 @@ function panelEl(): HTMLElement | null {
     return document.getElementById("live-quality-lock");
 }
 
-export function openQualityUpsell(): void {
+function showUpsellPanel(info: string): void {
     const panel = panelEl();
     if (!panel) return;
-    const info = document.getElementById("live-quality-lock-info");
-    if (info) {
-        info.textContent = `This stream plays at ${ctx.lockedStreamLabel || "a higher quality"}`;
-    }
+    const infoEl = document.getElementById("live-quality-lock-info");
+    if (infoEl) infoEl.textContent = info;
     if (!dismissWired) {
         dismissWired = true;
         document.getElementById("live-quality-lock-dismiss")
             ?.addEventListener("click", closeQualityUpsell);
     }
     panel.hidden = false;
+}
+
+export function openQualityUpsell(): void {
+    showUpsellPanel(`This stream plays at ${ctx.lockedStreamLabel || "a higher quality"}`);
+}
+
+export function openLowLatencyUpsell(): void {
+    showUpsellPanel("Extra low latency (about 1 second) is part of select subscriptions.");
 }
 
 export function closeQualityUpsell(): void {

@@ -2,14 +2,13 @@ import { resumeChat, startChat, suspendChat } from "./live-chat.ts";
 import { type LiveChannelInfo } from "./api.ts";
 import { initSiteNav } from "./nav.ts";
 import { reportVisit } from "./visit-beacon.ts";
-import { setCaptchaAnchor, warmCaptcha } from "./captcha.ts";
+import { getCaptchaToken, warmCaptcha } from "./captcha.ts";
 import { startAdRotation } from "./ads.ts";
 import {
     browseMiniUsername,
     btnChatToggle,
     btnLayoutToggle,
     chatFeatureSlotEl,
-    chatEl,
     nameEl,
     page,
     titleBar,
@@ -21,7 +20,7 @@ import { startChannelRail } from "./live/channel-rail.ts";
 import { syncLayout } from "./live/layout.ts";
 import { beginTransport, enterTerminal, setOfflineArt } from "./live/player/lifecycle.ts";
 import { loadProfile, offlineArtUrl } from "./profile-card.ts";
-import { canUseNativeHLS } from "./live/player/hls.ts";
+import { canUseHlsJs, canUseNativeHLS, mseSupported } from "./live/player/hls-support.ts";
 import { openLoginModal, wireLoginModal } from "./live/login-modal.ts";
 import { initFollow } from "./live/follow.ts";
 import { connectViewcount, enableWatchAuth, resumeViewcount, suspendViewcount } from "./live/stream-info.ts";
@@ -32,6 +31,10 @@ import { bootClipMode } from "./live/clip/mode.ts";
 import { promptStreamPassword } from "./live/stream-pass-gate.ts";
 import { applyChannelChrome } from "./live/channel-chrome.ts";
 import { installRaidHandover } from "./live/raid-handover.ts";
+import { parseViewerClaim } from "./player-shared/viewer-claim.ts";
+import { chooseTransport } from "./player-shared/transport-choice.ts";
+import { readLocalStorage } from "./storage.ts";
+import { TRANSPORT_STORAGE_KEY } from "./live/constants.ts";
 
 const chatPopout = new URLSearchParams(location.search).get("chat") === "popout";
 reportVisit(parseClipRoute(location.pathname) ? "other" : "channel");
@@ -105,7 +108,6 @@ async function boot(): Promise<void> {
     browseMiniUsername.textContent = ctx.displayUsername;
     if (!chatPopout) {
         startChannelRail();
-        setCaptchaAnchor(chatEl);
         warmCaptcha();
         startAdRotation(chatFeatureSlotEl, "chat", () => document.body.classList.contains("is-vertical"));
     }
@@ -227,17 +229,24 @@ async function boot(): Promise<void> {
     connectViewcount();
     nameEl.addEventListener("click", () => openProfileFromUser());
 
-    if (typeof MediaSource === "function" && typeof MediaSource.isTypeSupported === "function") {
-        titleBar.classList.remove("hidden");
-        ctx.transportKind = "ws";
-    } else if (canUseNativeHLS()) {
-        titleBar.classList.remove("hidden");
-        ctx.transportKind = "hls";
-    } else {
+    const captchaToken = await getCaptchaToken();
+    if (generation !== bootGeneration) return;
+    const { lowLatency } = parseViewerClaim(captchaToken || null);
+    const transport = chooseTransport({
+        mseSupported: mseSupported(),
+        nativeHls: canUseNativeHLS(),
+        hlsJsSupported: canUseHlsJs(),
+        lowLatency,
+        llDenied: ctx.llDenied,
+        override: readLocalStorage(TRANSPORT_STORAGE_KEY),
+    });
+    if (transport === "unsupported") {
         bootCompleted = true;
         enterTerminal("Playback not supported");
         return;
     }
+    titleBar.classList.remove("hidden");
+    ctx.transportKind = transport;
     beginTransport();
     bootCompleted = true;
 }

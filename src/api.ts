@@ -166,6 +166,7 @@ export interface LiveChannelInfo {
     language: StreamLanguageCode;
     mediaBase: string;
     wssBase?: string;
+    hlsBase?: string;
     emoteTwitchId: string | null;
     passwordRequired?: boolean;
     ticketRequired?: boolean;

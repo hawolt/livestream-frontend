@@ -11,7 +11,7 @@ Frontend for the itzon.tv livestreaming site. It provides every public surface o
 - a user **dashboard** (stream keys, channel settings, chat overlay builder, health telemetry, account settings)
 - static **legal pages** and an **API documentation** page
 
-Everything is plain TypeScript compiled by Bun, one entry point per page, no framework and no runtime dependencies, with one sanctioned exception: the clip editor page depends on `hls.js` for its preview player (see ARCHITECTURE.md's clip editor section). That import is reachable only from `src/clip-editor.ts`, so it bundles solely into `public/clip-editor.js`; every other page stays dependency-free.
+Everything is plain TypeScript compiled by Bun, one entry point per page, no framework and no runtime dependencies, with one sanctioned exception: `hls.js` is reachable only from `src/live.ts`, `src/embed.ts`, and `src/clip-editor.ts` (the channel viewer, the embed player, and the clip editor's preview player; see ARCHITECTURE.md's player and clip editor sections). Bundling stays per entry, so `hls.js` lands only in `public/live.js`, `public/embed.js`, and `public/clip-editor.js`; every other page stays dependency-free.
 
 The dashboard renders only the tabs it carries loaders for. If the signed-in session grants a tab this repo has no loader for, the sidebar shows a single external link in its place instead of a broken tab.
 
@@ -49,9 +49,9 @@ Build outputs (`public/*.js`, `public/dash/`) are gitignored; a fresh checkout h
 | Page | Entry | HTML | What it does |
 |---|---|---|---|
 | Explorer | `src/explore.ts` | `explore.html` | Live stream and category grid at `/`, hover live previews |
-| Channel viewer | `src/live.ts` | `live.html` | `/<username>`: WS+MSE playback with native HLS fallback, DVR rewind, cinema mode, browse picture-in-picture, chat; also serves clip playback at `/<username>/clip/<code>` in a reduced clip mode |
+| Channel viewer | `src/live.ts` | `live.html` | `/<username>`: WS+MSE playback for the `watch_ll` perk, HLS (hls.js or native Safari) via the BunnyCDN-fronted origin otherwise, DVR rewind (WS only), cinema mode, browse picture-in-picture, chat; also serves clip playback at `/<username>/clip/<code>` in a reduced clip mode |
 | Chat client | `src/live-chat.ts` | (part of `live.html`) | IRC over WebSocket: badges, 7TV emotes, replies, mentions, whispers, pins, moderation actions |
-| Embed player | `src/embed.ts` | `embed.html` | `/embed/<username>`: minimal muted-autoplay player, click to unmute, preview mode for the explorer |
+| Embed player | `src/embed.ts` | `embed.html` | `/embed/<username>`: minimal muted-autoplay player (same WS/HLS transport selection as the channel viewer), click to unmute, preview mode for the explorer |
 | Chat overlay | `src/chat-overlay.ts` | `chat.html` | `/chat/<username>`: transparent read-only chat for OBS browser sources, styled via URL params |
 | Follow alerts | `src/follow-alerts.ts` | `alerts.html` | `/alerts/<username>`: transparent OBS overlay popping up an animated card on new follows |
 | Login | `src/user-login.ts` | `user-login.html` | Sign in, forgot-password flow, lockout countdown, `?return=` redirect |
@@ -61,7 +61,7 @@ Build outputs (`public/*.js`, `public/dash/`) are gitignored; a fresh checkout h
 | Dashboard | `src/dashboard.ts` | `dashboard.html` | Tab shell at `/dashboard/<tab>`; tabs in `src/dash/tabs/` |
 | API docs | `src/wiki.ts` | `wiki.html` | Hash-routed topic sections with a generated sidebar |
 | Legal | `src/legal.ts` | `terms.html`, `privacy.html`, `impressum.html` | Static pages, navbar only |
-| Clip editor | `src/clip-editor.ts` | `clip-editor.html` | `/clip/create?channel=<name>`: dedicated clip creation page opened in a new tab, plays a pinned window through an `hls.js`-backed HLS VOD player (the one sanctioned runtime dependency), in/out selection, submits and polls until the clip is ready at `/<channel>/clip/<code>` |
+| Clip editor | `src/clip-editor.ts` | `clip-editor.html` | `/clip/create?channel=<name>`: dedicated clip creation page opened in a new tab, plays a pinned window through an `hls.js`-backed HLS VOD player (one of the repo's three sanctioned `hls.js` entries), in/out selection, submits and polls until the clip is ready at `/<channel>/clip/<code>` |
 | Clip embed | `src/clip-embed.ts` | `clip-embed.html` | `/embed/clip/<channel>/<code>`: minimal cross-origin player X (Twitter) loads as its player-card iframe, native controls, muted autoplay, poster from `thumbnailUrl`, a small corner link to the full clip page |
 
 The dashboard health tabs embed a `/details` telemetry page in an iframe. That page is not part of this repository; production deployments provide it separately, and without it those tabs show their loading state indefinitely.

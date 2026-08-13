@@ -2,7 +2,7 @@ import { posterEl, stageEl, unmuteBtn, video } from "./dom.ts";
 import { cleanfeedMode, controlsMode, ctx, isCurrent, nextGen, previewMode, runGenCleanup } from "./context.ts";
 import { PREVIEW_MESSAGE_TYPE, RETRY_MAX_MS, RETRY_MIN_MS, RETRY_MULT } from "./constants.ts";
 import { stopChase } from "./chase.ts";
-import { startHLSTransport, startWSTransport, stopHLSBeacon } from "./transport.ts";
+import { destroyHls, startHLSTransport, startWSTransport, stopHLSBeacon } from "./transport.ts";
 import { healthCheck, startHealthTimer, stopHealthTimer } from "./health.ts";
 
 function notifyPreview(state: "connecting" | "playing" | "unavailable"): void {
@@ -80,6 +80,7 @@ export function fullTeardown(): void {
     runGenCleanup();
     stopChase();
     stopHLSBeacon();
+    destroyHls();
     if (ctx.ws) {
         ctx.ws.onopen = null;
         ctx.ws.onmessage = null;
@@ -163,7 +164,7 @@ export function beginTransport(): void {
     ctx.lastObservedTime = video.currentTime;
     notifyPreview("connecting");
     if (ctx.transportKind === "ws") startWSTransport(g);
-    else if (ctx.transportKind === "hls") startHLSTransport(g);
+    else if (ctx.transportKind === "hls-native" || ctx.transportKind === "hls-js") startHLSTransport(g);
     else goOffline(g);
 }
 

@@ -31,6 +31,7 @@ export const HLS_BEACON_INTERVAL_MS = 10000;
 export const VIEWCOUNT_RETRY_MS = 5000;
 export const VOLUME_KEY = "live-volume";
 export const QUALITY_STORAGE_KEY = "live-quality";
+export const TRANSPORT_STORAGE_KEY = "transport";
 export const CLIP_MIN_CAPTURE_S = 10;
 
 export const EXPLORE_TITLE = "Explore";

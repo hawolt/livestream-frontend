@@ -163,14 +163,15 @@ describe("captcha fail-open behavior", () => {
         expect(calls.length).toBe(1);
     });
 
-    test("a challenge config missing its sitekey fails open instead of trying to solve", async () => {
+    test("a config carrying legacy challenge and sitekey fields ignores them and mints normally", async () => {
         const calls = mockFetch({
-            "/captcha/config": () => okJson({ enabled: true, challenge: true, sitekey: "" }),
+            "/captcha/config": () => okJson({ enabled: true, challenge: true, sitekey: "legacy" }),
+            "/captcha/token": () => okJson({ token: "tok-1", ttl: 1800 }),
         });
 
         const mod = await freshCaptchaModule();
-        expect(await mod.getCaptchaToken()).toBe("");
-        expect(calls.length).toBe(1);
+        expect(await mod.getCaptchaToken()).toBe("tok-1");
+        expect(calls.length).toBe(2);
     });
 });
 
