@@ -137,8 +137,8 @@ function startHlsJsPlayer(g: number, src: string): void {
     const hls = new Hls({
         lowLatencyMode: true,
         backBufferLength: 30,
-        liveSyncDuration: 2.5,
-        maxLiveSyncPlaybackRate: 1.08,
+        liveSyncDuration: 4,
+        maxLiveSyncPlaybackRate: 1.05,
         enableWorker: true,
         xhrSetup: (xhr, url) => {
             xhr.withCredentials = needsCredentials(url, ctx.mediaBase, location.origin);
