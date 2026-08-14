@@ -675,15 +675,15 @@ body.rail-collapsed .live-channel-rail { width: 57px; }
     text-overflow: ellipsis;
     white-space: nowrap;
 }
-.live-channel-name { flex: 1; min-width: 0; color: var(--text); font-size: 13px; font-weight: 700; }
-.live-channel-category { margin-top: 0; color: var(--rail-category); font-size: 12px; font-weight: 500; }
+.live-channel-name { flex: 1; min-width: 0; color: var(--text); font-size: 14px; font-weight: 700; }
+.live-channel-category { margin-top: 0; color: var(--rail-category); font-size: 12px; font-weight: 600; }
 .live-channel-viewers {
     flex: 0 0 auto;
     display: inline-flex;
     align-items: center;
     gap: 5px;
     color: var(--text);
-    font-size: 13px;
+    font-size: 14px;
     font-weight: 700;
     font-variant-numeric: tabular-nums;
     white-space: nowrap;
