@@ -167,8 +167,7 @@ export function startWSTransport(g: number): void {
 
 async function masterUrl(): Promise<string> {
     const tq = await captchaQuery();
-    const query = tq ? `?${tq.slice(1)}` : "";
-    return `${ctx.mediaBase}/hls/${encodeURIComponent(ctx.username)}/master.m3u8${query}`;
+    return `${ctx.mediaBase}/hls/${encodeURIComponent(ctx.username)}/master.m3u8?ll=1${tq}`;
 }
 
 function startNativeHLS(g: number, src: string): void {
