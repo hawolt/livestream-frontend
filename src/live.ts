@@ -23,7 +23,7 @@ import { loadProfile, offlineArtUrl } from "./profile-card.ts";
 import { canUseHlsJs, canUseNativeHLS, mseSupported } from "./live/player/hls-support.ts";
 import { openLoginModal, wireLoginModal } from "./live/login-modal.ts";
 import { initFollow } from "./live/follow.ts";
-import { connectViewcount, enableWatchAuth, resumeViewcount, suspendViewcount } from "./live/stream-info.ts";
+import { connectViewcount, enableWatchAuth, resumeViewcount, setStreamStart, suspendViewcount } from "./live/stream-info.ts";
 import { initPointsChip } from "./live/points.ts";
 import { openProfileFromUser } from "./chat/panels.ts";
 import { parseClipRoute } from "./live/clip/route.ts";
@@ -196,6 +196,9 @@ async function boot(): Promise<void> {
             ctx.wssBase = typeof info.wssBase === "string" ? info.wssBase.replace(/\/+$/, "") : "";
             if (typeof info.emoteTwitchId === "string") {
                 emoteTwitchId = info.emoteTwitchId;
+            }
+            if (typeof info.startedAt === "number" && info.startedAt > 0) {
+                setStreamStart(info.startedAt);
             }
         }
     } catch {

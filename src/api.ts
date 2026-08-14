@@ -168,6 +168,7 @@ export interface LiveChannelInfo {
     wssBase?: string;
     hlsBase?: string;
     emoteTwitchId: string | null;
+    startedAt?: number;
     passwordRequired?: boolean;
     ticketRequired?: boolean;
     ticketPriceCents?: number | null;
