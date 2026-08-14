@@ -51,6 +51,12 @@ export function applyChannelIdentity(profile: Profile | null): void {
 function buildPanelCard(panel: ProfilePanel, owner: boolean): HTMLElement {
     const card = document.createElement("div");
     card.className = "live-about-panel";
+    if (panel.title) {
+        const title = document.createElement("div");
+        title.className = "live-about-panel-title";
+        title.textContent = panel.title;
+        card.appendChild(title);
+    }
     if (panel.imageUrl) {
         const img = document.createElement("img");
         img.className = "live-about-panel-img";
@@ -67,12 +73,6 @@ function buildPanelCard(panel: ProfilePanel, owner: boolean): HTMLElement {
         } else {
             card.appendChild(img);
         }
-    }
-    if (panel.title) {
-        const title = document.createElement("div");
-        title.className = "live-about-panel-title";
-        title.textContent = panel.title;
-        card.appendChild(title);
     }
     if (panel.body) {
         const body = document.createElement("div");
