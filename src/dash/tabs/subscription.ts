@@ -2,6 +2,13 @@ import type { BillingFounder, BillingPerks, BillingTier, BillingTiers } from "..
 import { esc, fmtDate } from "../format.ts";
 import { authFetch } from "../session.ts";
 
+const CHANNEL_RETURN_RE = /^\/[A-Za-z0-9_-]{3,32}$/;
+
+export function safeChannelReturnPath(raw: string | null | undefined): string | null {
+    if (!raw) return null;
+    return CHANNEL_RETURN_RE.test(raw) ? raw : null;
+}
+
 const PENDING_KEY = "sub-checkout-pending";
 const PENDING_MAX_AGE_MS = 15 * 60 * 1000;
 const POLL_INTERVAL_MS = 3000;
@@ -274,6 +281,10 @@ function render(): void {
     const renewalDate = current?.currentPeriodEnd
         ? fmtDate(new Date(current.currentPeriodEnd * 1000))
         : "-";
+    const backPath = safeChannelReturnPath(new URLSearchParams(location.search).get("return"));
+    const backLink = backPath
+        ? `<a class="sub-back-link" href="${esc(backPath)}">&larr; Back to ${esc(backPath.slice(1))}</a>`
+        : "";
     const head = `<p class="sub-head">Support the site and unlock extra features for chat, your profile and your stream. Cancel anytime, perks stay until the end of the paid period.</p>`;
     const pendingBanner = !activePlan && pendingCheckout()
         ? `<div class="sub-pending">Waiting for the payment provider to confirm your subscription. This usually takes a few seconds. If you cancelled the checkout, ignore this message.</div>`
@@ -294,7 +305,7 @@ function render(): void {
         ? `<div class="sub-grid">${tiers.map((t, i) => tierCard(t, i, tiers, tokenLists)).join("")}</div>`
         : `<p style="color:var(--muted);font-size:13px;margin:0">No plans configured.</p>`;
     const feeNote = cache.feeNote ? `<p class="sub-fee">${esc(cache.feeNote)}</p>` : "";
-    el.innerHTML = head + pendingBanner + statusBlock + grid + founderCardHtml() + feeNote;
+    el.innerHTML = backLink + head + pendingBanner + statusBlock + grid + founderCardHtml() + feeNote;
     el.querySelectorAll<HTMLButtonElement>("[data-portal-provider]").forEach(btn => {
         btn.addEventListener("click", () => void openPortal(btn));
     });

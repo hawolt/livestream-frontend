@@ -532,6 +532,8 @@
             font-size: 14px;
         }
         .login-modal-form { display: flex; flex-direction: column; gap: 10px; }
+        .login-modal-form[hidden] { display: none; }
+        .login-modal-hcaptcha { margin-top: 4px; }
         .login-modal-submit {
             padding: 9px 12px;
             border-radius: 6px;
@@ -1970,9 +1972,22 @@
             <div id="login-modal-error" class="login-modal-error" role="alert" aria-live="polite" aria-atomic="true"></div>
             <button type="submit" id="login-modal-submit" class="login-modal-submit">Log in</button>
         </form>
-        <div class="login-modal-alt">No account? <a id="login-modal-signup" href="/register">Create one</a></div>
+        <div class="login-modal-alt" id="login-modal-alt">No account? <a id="login-modal-signup" href="/register">Create one</a></div>
+        <form id="signup-modal-form" class="login-modal-form" aria-describedby="signup-modal-error" aria-busy="false" hidden>
+            <input id="signup-modal-user" type="text" placeholder="Username" aria-label="Username" autocomplete="username" required />
+            <input id="signup-modal-email" type="email" placeholder="Email address" aria-label="Email address" autocomplete="email" required />
+            <input id="signup-modal-pass" type="password" placeholder="Password" aria-label="Password" autocomplete="new-password" minlength="8" required />
+            <div id="signup-modal-hcaptcha" class="login-modal-hcaptcha"></div>
+            <div id="signup-modal-error" class="login-modal-error" role="alert" aria-live="polite" aria-atomic="true"></div>
+            <button type="submit" id="signup-modal-submit" class="login-modal-submit">Create account</button>
+        </form>
+        <div class="login-modal-alt" id="signup-modal-alt" hidden>
+            <a id="signup-modal-back" href="#">Back to sign in</a>
+            &middot;
+            <a id="signup-modal-fallback" href="/register">Use the full page</a>
+        </div>
     </div>
 </div>
-<script src="/live-wqeqfntr.js" type="module"></script>
+<script src="/live-fhnsexeq.js" type="module"></script>
 </body>
 </html>

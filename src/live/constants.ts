@@ -34,5 +34,8 @@ export const QUALITY_STORAGE_KEY = "live-quality";
 export const TRANSPORT_STORAGE_KEY = "transport";
 export const CLIP_MIN_CAPTURE_S = 10;
 export const SUBSCRIPTION_TAB_URL = "/dashboard/subscription";
+export const HCAPTCHA_SITEKEY = "ca58c42a-bf10-4fd4-b2f2-78a23bcccd04";
+export const HCAPTCHA_SCRIPT_SRC = "https://js.hcaptcha.com/1/api.js?render=explicit";
+export const HCAPTCHA_LOAD_TIMEOUT_MS = 10000;
 
 export const EXPLORE_TITLE = "Explore";

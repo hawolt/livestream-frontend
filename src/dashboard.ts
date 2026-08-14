@@ -537,7 +537,8 @@ function showSessionProblem(state: "forbidden" | "unavailable"): void {
     const requested = tabFromLocation();
     const landing = requested && tabById.has(requested) ? requested : tabs[0]?.id;
     if (landing) {
-        history.replaceState(null, "", `/dashboard/${landing}`);
+        const search = landing === requested ? location.search : "";
+        history.replaceState(null, "", `/dashboard/${landing}${search}`);
         void activateTab(landing, false);
     } else {
         setNoTabsVisible(true);
