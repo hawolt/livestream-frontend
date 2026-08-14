@@ -176,12 +176,21 @@ function startHlsJsPlayer(g: number, src: string): void {
     });
     hls.on(Hls.Events.LEVEL_LOADED, (_event, data) => {
         if (!isCurrent(g) || hlsInstance !== hls) return;
-        const window = latencyWindowFor(data.details.targetduration);
-        if (!window) return;
-        if (normalLiveWindow.sync !== window.sync || normalLiveWindow.max !== window.max) {
+        if (data.details.live === false) {
+            console.log("live: playlist is finalized, going offline");
+            window.setTimeout(() => {
+                if (!isCurrent(g) || hlsInstance !== hls) return;
+                fullTeardown();
+                goOffline(g);
+            }, 0);
+            return;
+        }
+        const widened = latencyWindowFor(data.details.targetduration);
+        if (!widened) return;
+        if (normalLiveWindow.sync !== widened.sync || normalLiveWindow.max !== widened.max) {
             console.warn(`live: large segments (target ${data.details.targetduration}s), widening latency window`);
-            normalLiveWindow = window;
-            if (!dvrHoldActive) applyLiveWindow(window);
+            normalLiveWindow = widened;
+            if (!dvrHoldActive) applyLiveWindow(widened);
         }
     });
     hls.on(Hls.Events.ERROR, (_event, data) => {
@@ -235,7 +244,7 @@ export function startHLSTransport(g: number): void {
     attachVideoFailureListeners(g);
     closeQualityUpsell();
     wireVideoLifecycle(g);
-    setState("buffering");
+    if (ctx.state !== "offline") setState("buffering");
     void withCaptchaHint(g, buildMasterUrl()).then(async (src) => {
         if (!isCurrent(g)) return;
         let locked = false;
