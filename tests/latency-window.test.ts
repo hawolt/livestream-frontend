@@ -27,11 +27,12 @@ test("garbage input is ignored", () => {
 });
 
 test("latency tier maps measured rtt to near, mid and far", () => {
-    expect(latencyTierFor(40, true)).toBe("near");
-    expect(latencyTierFor(150, true)).toBe("near");
-    expect(latencyTierFor(151, true)).toBe("mid");
-    expect(latencyTierFor(350, true)).toBe("mid");
-    expect(latencyTierFor(351, true)).toBe("far");
+    expect(latencyTierFor(27, true)).toBe("near");
+    expect(latencyTierFor(60, true)).toBe("near");
+    expect(latencyTierFor(61, true)).toBe("mid");
+    expect(latencyTierFor(114, true)).toBe("mid");
+    expect(latencyTierFor(250, true)).toBe("mid");
+    expect(latencyTierFor(251, true)).toBe("far");
     expect(latencyTierFor(900, true)).toBe("far");
 });
 

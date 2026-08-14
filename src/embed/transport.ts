@@ -180,7 +180,7 @@ function startNativeHLS(g: number, src: string): void {
 function startHlsJsPlayer(g: number, src: string, rttMs: number | null): void {
     const tier = latencyTierFor(rttMs, true);
     const hls = new Hls({
-        lowLatencyMode: tier !== "far",
+        lowLatencyMode: tier === "near",
         backBufferLength: 30,
         ...(tier === "far"
             ? { liveSyncDurationCount: 3, liveMaxLatencyDurationCount: 8 }
@@ -236,6 +236,7 @@ export function startHLSTransport(g: number): void {
         }
         let rttMs: number | null = null;
         try {
+            await fetch(src, { credentials: "include" });
             const t0 = performance.now();
             await fetch(src, { credentials: "include" });
             rttMs = performance.now() - t0;

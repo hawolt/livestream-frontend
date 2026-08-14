@@ -153,7 +153,7 @@ function startHlsJsPlayer(g: number, src: string, originLL: boolean, rttMs: numb
         : tier === "far" ? FAR_LIVE_WINDOW : DEFAULT_LIVE_WINDOW;
     let dvrHoldActive = false;
     const hls = new Hls({
-        lowLatencyMode: tier !== "far",
+        lowLatencyMode: tier === "near",
         abrEwmaDefaultEstimate: 10_000_000,
         backBufferLength: PRUNE_KEEP_S,
         liveSyncDuration: normalLiveWindow.sync,
