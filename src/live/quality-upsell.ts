@@ -1,5 +1,7 @@
 import { ctx } from "./player/context.ts";
 import { enterTerminal } from "./player/lifecycle.ts";
+import { openLoginModal } from "./login-modal.ts";
+import { sessionTokenMetadata } from "../session-token.ts";
 
 const SVG_NS = "http://www.w3.org/2000/svg";
 
@@ -26,10 +28,15 @@ export function qualityPadlock(): SVGSVGElement {
     return svg;
 }
 
-let dismissWired = false;
+let panelWired = false;
 
 function panelEl(): HTMLElement | null {
     return document.getElementById("live-quality-lock");
+}
+
+function isSignedIn(): boolean {
+    const token = sessionStorage.getItem("dash_token") ?? "";
+    return sessionTokenMetadata(token) !== null;
 }
 
 function showUpsellPanel(info: string): void {
@@ -37,10 +44,17 @@ function showUpsellPanel(info: string): void {
     if (!panel) return;
     const infoEl = document.getElementById("live-quality-lock-info");
     if (infoEl) infoEl.textContent = info;
-    if (!dismissWired) {
-        dismissWired = true;
+    if (!panelWired) {
+        panelWired = true;
         document.getElementById("live-quality-lock-dismiss")
             ?.addEventListener("click", closeQualityUpsell);
+        document.getElementById("live-quality-lock-cta")
+            ?.addEventListener("click", (event) => {
+                if (isSignedIn()) return;
+                event.preventDefault();
+                closeQualityUpsell();
+                openLoginModal("subscribe");
+            });
     }
     panel.hidden = false;
 }

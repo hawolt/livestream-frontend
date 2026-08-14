@@ -4,10 +4,11 @@ import { initSiteNav } from "./nav.ts";
 
 void initSiteNav(null);
 
-const form    = document.getElementById("login-form") as HTMLFormElement;
-const btnEl   = document.getElementById("btn-login")  as HTMLButtonElement;
-const errorEl = document.getElementById("error")      as HTMLElement;
-const lockEl  = document.getElementById("lockout")    as HTMLElement;
+const form           = document.getElementById("login-form")    as HTMLFormElement;
+const btnEl          = document.getElementById("btn-login")     as HTMLButtonElement;
+const errorEl        = document.getElementById("error")         as HTMLElement;
+const lockEl         = document.getElementById("lockout")       as HTMLElement;
+const registerLinkEl = document.getElementById("register-link") as HTMLAnchorElement | null;
 
 document.getElementById("btn-show-forgot")!.addEventListener("click", (e) => {
     e.preventDefault();
@@ -64,6 +65,15 @@ export function resolveReturnUrl(rawReturn: string, currentOrigin: string): stri
 function resolveRedirect(): string {
     const ret = new URLSearchParams(location.search).get("return") ?? "";
     return resolveReturnUrl(ret, location.origin) ?? "/dashboard";
+}
+
+export function registerLinkHref(rawReturn: string, currentOrigin: string): string {
+    const resolved = resolveReturnUrl(rawReturn, currentOrigin);
+    return resolved ? `/register?return=${encodeURIComponent(resolved)}` : "/register";
+}
+
+if (registerLinkEl) {
+    registerLinkEl.href = registerLinkHref(new URLSearchParams(location.search).get("return") ?? "", location.origin);
 }
 
 async function verifyToken(token: string): Promise<"valid" | "invalid" | "unavailable"> {

@@ -33,5 +33,6 @@ export const VOLUME_KEY = "live-volume";
 export const QUALITY_STORAGE_KEY = "live-quality";
 export const TRANSPORT_STORAGE_KEY = "transport";
 export const CLIP_MIN_CAPTURE_S = 10;
+export const SUBSCRIPTION_TAB_URL = "/dashboard/subscription";
 
 export const EXPLORE_TITLE = "Explore";

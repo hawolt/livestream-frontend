@@ -32,7 +32,7 @@ function autoStub(): unknown {
 (globalThis as unknown as { sessionStorage: unknown }).sessionStorage = autoStub();
 (globalThis as unknown as { fetch: unknown }).fetch = autoStub();
 
-const { resolveReturnUrl } = await import("../src/user-login.ts");
+const { resolveReturnUrl, registerLinkHref } = await import("../src/user-login.ts");
 
 describe("resolveReturnUrl", () => {
     const origin = "https://itzon.example";
@@ -75,5 +75,23 @@ describe("resolveReturnUrl", () => {
 
     test("rejects an unparseable return value", () => {
         expect(resolveReturnUrl("http://", origin)).toBeNull();
+    });
+});
+
+describe("registerLinkHref", () => {
+    const origin = "https://itzon.example";
+
+    test("forwards a valid return value onto the register link", () => {
+        expect(registerLinkHref("/dashboard/subscription", origin)).toBe(
+            `/register?return=${encodeURIComponent("https://itzon.example/dashboard/subscription")}`,
+        );
+    });
+
+    test("plain register link when there is no return value", () => {
+        expect(registerLinkHref("", origin)).toBe("/register");
+    });
+
+    test("plain register link when the return value is unsafe", () => {
+        expect(registerLinkHref("https://evil.example/phish", origin)).toBe("/register");
     });
 });

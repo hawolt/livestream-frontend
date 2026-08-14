@@ -16,22 +16,35 @@ declare const hcaptcha: {
 };
 declare const HCAPTCHA_SITEKEY: string;
 
-const form    = document.getElementById("register-form") as HTMLFormElement;
-const btnEl   = document.getElementById("btn-register")  as HTMLButtonElement;
-const errorEl = document.getElementById("error")          as HTMLElement;
+const form        = document.getElementById("register-form") as HTMLFormElement;
+const btnEl       = document.getElementById("btn-register")  as HTMLButtonElement;
+const errorEl     = document.getElementById("error")          as HTMLElement;
+const loginLinkEl = document.getElementById("login-link")     as HTMLAnchorElement | null;
 
 let widgetId: number | null = null;
 
+export function resolveReturnUrl(rawReturn: string, currentOrigin: string): string | null {
+    if (!rawReturn) return null;
+    try {
+        const url = new URL(rawReturn, currentOrigin);
+        const isHttp = url.protocol === "http:" || url.protocol === "https:";
+        if (isHttp && url.origin === currentOrigin && !url.username && !url.password) return url.toString();
+    } catch {}
+    return null;
+}
+
+export function loginLinkHref(rawReturn: string, currentOrigin: string): string {
+    const resolved = resolveReturnUrl(rawReturn, currentOrigin);
+    return resolved ? `/login?return=${encodeURIComponent(resolved)}` : "/login";
+}
+
 function resolveRedirect(): string {
-    const ret = new URLSearchParams(location.search).get("return");
-    if (ret) {
-        try {
-            const url = new URL(ret, location.origin);
-            const isHttp = url.protocol === "http:" || url.protocol === "https:";
-            if (isHttp && url.origin === location.origin && !url.username && !url.password) return url.toString();
-        } catch {}
-    }
-    return "/dashboard";
+    const ret = new URLSearchParams(location.search).get("return") ?? "";
+    return resolveReturnUrl(ret, location.origin) ?? "/dashboard";
+}
+
+if (loginLinkEl) {
+    loginLinkEl.href = loginLinkHref(new URLSearchParams(location.search).get("return") ?? "", location.origin);
 }
 
 async function verifyToken(token: string): Promise<"valid" | "invalid" | "unavailable"> {

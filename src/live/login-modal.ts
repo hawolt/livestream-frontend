@@ -18,8 +18,9 @@ import { isPopoutMode } from "./layout.ts";
 import { canAutoFollow, initFollow } from "./follow.ts";
 import { closeDismissibleSurface, openDismissibleSurface } from "../dismissible-surface.ts";
 import { inertSiblings, restoreInertSiblings, type InertSiblingState } from "../inert-siblings.ts";
+import { loginModalSignupHref, postLoginRedirectTarget } from "./subscribe-destination.ts";
 
-export type LoginIntent = "follow" | "chat" | "clip";
+export type LoginIntent = "follow" | "chat" | "clip" | "subscribe";
 
 let loginIntent: LoginIntent = "follow";
 let loginModalWired = false;
@@ -34,8 +35,10 @@ export function openLoginModal(intent: LoginIntent): void {
         ? `Log in to follow ${ctx.displayUsername}`
         : intent === "clip"
         ? "Log in to create a clip"
+        : intent === "subscribe"
+        ? "Sign in to subscribe"
         : "Log in to chat";
-    loginModalSignupEl.href = `/register?return=${encodeURIComponent(location.href)}`;
+    loginModalSignupEl.href = loginModalSignupHref(intent, location.href);
     if (loginModalEl.hidden) {
         loginRestoreFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
         loginBackgroundState = inertSiblings(loginModalEl);
@@ -139,6 +142,11 @@ export function wireLoginModal(): void {
             loginModalPassEl.value = "";
             loginAbort = null;
             closeLoginModal();
+            const redirectTarget = postLoginRedirectTarget(intent);
+            if (redirectTarget) {
+                location.href = redirectTarget;
+                return;
+            }
             reconnectChatAfterLogin();
             if (!isPopoutMode()) await initFollow();
             if (intent === "follow" && canAutoFollow()) followBtnEl.click();
