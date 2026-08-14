@@ -746,9 +746,7 @@ body.rail-collapsed .live-channel-rail .live-channel-section-divider { margin: 5
     .live-channel-section-divider { margin: 5px 8px; }
 }
 
-body.rail-collapsed:has(.live-channel-rail) .site-nav { padding-left: 17.5px; }
 @media (max-width: 1180px) {
-    body:has(.live-channel-rail) .site-nav { padding-left: 17.5px; }
     .live-channel-rail .live-channel-item {
         display: flex;
         justify-content: center;
