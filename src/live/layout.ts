@@ -1,11 +1,17 @@
-import { btnCinema, btnLayoutToggle, chatEl, chatHeadActionsEl, chatHeadEl, page, viewersEl } from "./dom.ts";
+import { btnCinema, btnLayoutToggle, channelRailEl, chatEl, chatHeadActionsEl, chatHeadEl, mainEl, page, video, viewersEl } from "./dom.ts";
 import { syncChannelRailVisibility } from "./channel-rail.ts";
 import { readLocalStorage, writeLocalStorage } from "../storage.ts";
 import {
+    CHAT_BASE_PX,
     CHAT_COLLAPSE_KEY,
+    CHAT_FIT_HYSTERESIS_PX,
+    CHAT_FIT_MIN_VW,
+    CHAT_MAX_PX,
+    DEFAULT_ASPECT,
     FULLSCREEN_SETTLE_MS,
     LAYOUT_KEY,
     LAYOUT_VERTICAL_QUERY,
+    STAGE_CHROME_PX,
 } from "./constants.ts";
 import { healthCheck } from "./player/health.ts";
 import { exitCinemaMode, isCinemaMode } from "./cinema.ts";
@@ -119,5 +125,20 @@ export function toggleChat(): void {
 }
 
 export function fitChat(): void {
-    chatEl.style.width = "";
+    if (isPopoutMode() || page.classList.contains("is-vertical") || document.body.classList.contains("chat-collapsed") || window.innerWidth < CHAT_FIT_MIN_VW) {
+        chatEl.style.width = "";
+        return;
+    }
+    const availH = window.innerHeight - STAGE_CHROME_PX;
+    if (availH <= 0) {
+        chatEl.style.width = "";
+        return;
+    }
+    const aspect = video.videoWidth > 0 && video.videoHeight > 0 ? video.videoWidth / video.videoHeight : DEFAULT_ASPECT;
+    const railWidth = channelRailEl.offsetParent === null ? 0 : channelRailEl.getBoundingClientRect().width;
+    const ideal = mainEl.clientWidth - railWidth - availH * aspect;
+    const want = Math.round(Math.min(CHAT_MAX_PX, Math.max(CHAT_BASE_PX, ideal)));
+    const current = parseFloat(chatEl.style.width) || 0;
+    if (Math.abs(current - want) < CHAT_FIT_HYSTERESIS_PX) return;
+    chatEl.style.width = `${want}px`;
 }

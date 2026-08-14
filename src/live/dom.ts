@@ -15,7 +15,6 @@ export function setVideoElement(el: HTMLVideoElement): void {
 }
 export const titleBar = document.getElementById("live-info-bar") as HTMLElement;
 export const channelAvatarWrapEl = document.getElementById("live-channel-avatar-wrap") as HTMLElement;
-export const channelFollowersEl = document.getElementById("live-channel-followers") as HTMLElement;
 export const aboutEl = document.getElementById("live-about") as HTMLElement;
 export const aboutBoxEl = document.getElementById("live-about-box") as HTMLElement;
 export const aboutHeadingEl = document.getElementById("live-about-heading") as HTMLElement;

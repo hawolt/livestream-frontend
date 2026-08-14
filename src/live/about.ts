@@ -30,7 +30,6 @@ import {
     cardModalSubmitEl,
     cardModalTitleInputEl,
     channelAvatarWrapEl,
-    channelFollowersEl,
 } from "./dom.ts";
 
 let currentPanelCount = 0;
@@ -40,8 +39,6 @@ let isOwner = false;
 export function applyChannelIdentity(profile: Profile | null): void {
     channelAvatarWrapEl.replaceChildren();
     if (profile) channelAvatarWrapEl.appendChild(buildAvatar(profile));
-    channelFollowersEl.textContent = profile ? followerLabel(profile.followers) : "";
-    channelFollowersEl.classList.toggle("hidden", !profile);
 }
 
 function buildPanelCard(panel: ProfilePanel): HTMLElement {

@@ -723,6 +723,8 @@ body.rail-collapsed .live-channel-rail .live-channel-copy,
 body.rail-collapsed .live-channel-rail .live-channel-section-label,
 body.rail-collapsed .live-channel-rail .live-channel-status { display: none; }
 body.rail-collapsed .live-channel-rail .live-channel-section-row { justify-content: center; padding: 2px 0; }
+body.rail-collapsed .live-channel-rail .live-channel-section-row:not(:has(.live-channel-rail-toggle)) { display: none; }
+body.rail-collapsed .live-channel-rail .live-channel-section-divider { display: none; }
 body.rail-collapsed .live-channel-rail .live-channel-item {
     display: flex;
     justify-content: center;
