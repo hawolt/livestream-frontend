@@ -183,16 +183,22 @@ export function startHLSTransport(g: number): void {
     void withCaptchaHint(g, buildMasterUrl()).then(async (src) => {
         if (!isCurrent(g)) return;
         let locked = false;
+        let missing = false;
         try {
             const probe = await fetch(src, { credentials: "include" });
             if (probe.status === 403) {
                 const body: unknown = await probe.json().catch(() => null);
                 if (body && (body as { error?: unknown }).error === "quality-locked") locked = true;
             }
+            if (probe.status === 404 || probe.status === 410) missing = true;
         } catch {}
         if (!isCurrent(g)) return;
         if (locked) {
             enterQualityLockedTerminal();
+            return;
+        }
+        if (missing) {
+            goOffline(g);
             return;
         }
         if (ctx.transportKind === "hls-native") {

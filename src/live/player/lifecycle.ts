@@ -214,11 +214,22 @@ export function goOffline(g: number): void {
     scheduleRestart(nextRetryDelay(), g);
 }
 
+async function verifyChannelLive(g: number): Promise<void> {
+    try {
+        const res = await fetch(`/api/live/channel/${encodeURIComponent(ctx.username)}`);
+        if (!isCurrent(g) || !res.ok) return;
+        const info = await res.json() as { live?: unknown };
+        if (!isCurrent(g)) return;
+        if (info.live === false && ctx.state === "reconnecting") goOffline(g);
+    } catch {}
+}
+
 export function restartAfterFailure(g: number): void {
     if (!isCurrent(g)) return;
     fullTeardown();
     setState("reconnecting");
     scheduleRestart(nextRetryDelay(), g);
+    void verifyChannelLive(g);
 }
 
 export function beginTransport(): void {
