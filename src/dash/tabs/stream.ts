@@ -2,7 +2,7 @@ import type { BillingAddon, BillingAddons, LiveInfo, RaidSettings, RegionOption 
 import { copyText } from "../../clipboard.ts";
 import { fieldRow, wireField } from "../fields.ts";
 import { esc, maskSecret } from "../format.ts";
-import { openModal } from "../modal.ts";
+import { validatePointsName } from "../points-name.ts";
 import { loadRegions } from "../regions.ts";
 import { authFetch } from "../session.ts";
 import { studioTabUrl } from "../studio.ts";
@@ -113,7 +113,7 @@ function renderStrip(): void {
 }
 
 async function loadLive(): Promise<void> {
-    const ids = ["live-ingest-body", "live-playback-body", "live-channel-body", "live-raid-settings-body", "live-thumbnail-body", "live-private-body"];
+    const ids = ["live-ingest-body", "live-playback-body", "live-channel-body", "live-raid-settings-body", "live-points-name-body", "live-thumbnail-body", "live-private-body"];
     for (const id of ids) {
         const el = document.getElementById(id);
         if (el) el.textContent = "Loading...";
@@ -128,6 +128,7 @@ async function loadLive(): Promise<void> {
         renderPlayback();
         renderChannel();
         renderRaidSettings();
+        renderPointsName();
         renderThumbnail();
         renderPrivate();
         renderLockedAddonCards();
@@ -423,6 +424,48 @@ function renderRaidSettings(): void {
         } catch (e) {
             status.textContent = e instanceof Error ? e.message : String(e);
             status.style.color = "var(--red)";
+        }
+    });
+}
+
+function renderPointsName(): void {
+    const el = document.getElementById("live-points-name-body");
+    if (!el || !liveCache) return;
+    const name = liveCache.pointsName ?? "";
+    el.innerHTML = `
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+            <input id="live-points-name" type="text" maxlength="24" placeholder="Channel points" value="${esc(name)}" style="flex:1;min-width:0" autocomplete="off" spellcheck="false">
+            <button class="btn btn-primary" id="live-points-name-save" style="flex:0 0 auto">Save</button>
+        </div>
+        <div style="font-size:11px;color:var(--muted);margin-top:6px">2 to 24 letters, digits and spaces. Leave blank to clear. Shown when viewers hover the points chip.</div>
+        <div id="live-points-name-error" style="color:var(--red);font-size:13px;margin-top:6px"></div>
+        <div id="live-points-name-status" style="font-size:12px;min-height:16px;margin-top:4px"></div>`;
+    document.getElementById("live-points-name-save")?.addEventListener("click", async () => {
+        const input = document.getElementById("live-points-name") as HTMLInputElement;
+        const errEl = document.getElementById("live-points-name-error")!;
+        const status = document.getElementById("live-points-name-status")!;
+        errEl.textContent = "";
+        status.textContent = "";
+        const result = validatePointsName(input.value);
+        if (!result.ok) {
+            errEl.textContent = result.error ?? "Invalid name.";
+            return;
+        }
+        const btn = document.getElementById("live-points-name-save") as HTMLButtonElement;
+        btn.disabled = true;
+        try {
+            const res = await authFetch<{ pointsName: string | null }>("/api/live/points-name", {
+                method: "PUT",
+                body: JSON.stringify({ name: result.value }),
+            });
+            if (liveCache) liveCache.pointsName = res.pointsName;
+            input.value = res.pointsName ?? "";
+            status.textContent = "Saved.";
+            status.style.color = "var(--success)";
+        } catch (e) {
+            errEl.textContent = e instanceof Error ? e.message : String(e);
+        } finally {
+            btn.disabled = false;
         }
     });
 }
