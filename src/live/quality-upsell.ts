@@ -7,11 +7,11 @@ export function qualityPadlock(): SVGSVGElement {
     const svg = document.createElementNS(SVG_NS, "svg");
     svg.classList.add("live-quality-lock-mini");
     svg.setAttribute("viewBox", "0 0 24 24");
-    svg.setAttribute("width", "12");
-    svg.setAttribute("height", "12");
+    svg.setAttribute("width", "13");
+    svg.setAttribute("height", "13");
     svg.setAttribute("fill", "none");
     svg.setAttribute("stroke", "currentColor");
-    svg.setAttribute("stroke-width", "2");
+    svg.setAttribute("stroke-width", "1.8");
     svg.setAttribute("stroke-linecap", "round");
     svg.setAttribute("stroke-linejoin", "round");
     const body = document.createElementNS(SVG_NS, "rect");
@@ -47,10 +47,6 @@ function showUpsellPanel(info: string): void {
 
 export function openQualityUpsell(): void {
     showUpsellPanel(`This stream plays at ${ctx.lockedStreamLabel || "a higher quality"}`);
-}
-
-export function openLowLatencyUpsell(): void {
-    showUpsellPanel("Extra low latency (about 1 second) is part of select subscriptions.");
 }
 
 export function closeQualityUpsell(): void {

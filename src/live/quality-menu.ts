@@ -1,7 +1,7 @@
 import { qualityBtn, qualityPopupEl, qualitySelectEl } from "./dom.ts";
 import { ctx } from "./player/context.ts";
-import { allowedSubset, qualityLabel, resolveNextQuality } from "../quality.ts";
-import { openLowLatencyUpsell, openQualityUpsell, qualityPadlock } from "./quality-upsell.ts";
+import { allowedSubset, qualityLabel, qualityRowParts, resolveNextQuality } from "../quality.ts";
+import { qualityPadlock } from "./quality-upsell.ts";
 import { QUALITY_STORAGE_KEY } from "./constants.ts";
 import { writeLocalStorage } from "../storage.ts";
 import { beginTransport } from "./player/lifecycle.ts";
@@ -20,52 +20,60 @@ export function qualityButtonLabel(): string {
     return "Quality";
 }
 
+function showMenuUpsell(text: string): void {
+    qualityPopupEl.querySelector(".live-quality-note")?.remove();
+    const note = document.createElement("div");
+    note.className = "live-quality-note";
+    const message = document.createElement("span");
+    message.textContent = text + " ";
+    const link = document.createElement("a");
+    link.href = "/dashboard/subscription";
+    link.textContent = "View subscriptions";
+    note.append(message, link);
+    qualityPopupEl.appendChild(note);
+}
+
+interface QualityRowSpec {
+    label: string;
+    active?: boolean;
+    locked?: boolean;
+    onClick: () => void;
+}
+
+function appendQualityRow(spec: QualityRowSpec): void {
+    const item = document.createElement("button");
+    item.type = "button";
+    item.className = "live-quality-item";
+    item.classList.toggle("active", spec.active === true);
+    item.classList.toggle("locked", spec.locked === true);
+    item.setAttribute("aria-pressed", String(spec.active === true));
+    const checkEl = document.createElement("span");
+    checkEl.className = "live-quality-check";
+    checkEl.textContent = "✓";
+    item.appendChild(checkEl);
+    const parts = qualityRowParts(spec.label);
+    const resEl = document.createElement("span");
+    resEl.className = "live-quality-res";
+    resEl.textContent = parts.res;
+    item.appendChild(resEl);
+    if (spec.locked) {
+        item.appendChild(qualityPadlock());
+    } else if (parts.fps !== null) {
+        const fpsEl = document.createElement("span");
+        fpsEl.className = "live-quality-fps";
+        fpsEl.textContent = parts.fps;
+        item.appendChild(fpsEl);
+    }
+    item.addEventListener("click", spec.onClick);
+    qualityPopupEl.appendChild(item);
+}
+
 function appendUpsellRow(): void {
-    const item = document.createElement("button");
-    item.type = "button";
-    item.className = "live-quality-item locked";
-    const labelEl = document.createElement("span");
-    labelEl.textContent = "Low latency";
-    item.appendChild(labelEl);
-    item.appendChild(qualityPadlock());
-    item.addEventListener("click", () => openLowLatencyUpsell());
-    qualityPopupEl.appendChild(item);
-}
-
-function appendHlsAutoItem(): void {
-    const item = document.createElement("button");
-    item.type = "button";
-    item.className = "live-quality-item";
-    const active = hlsAutoEnabled();
-    item.classList.toggle("active", active);
-    item.setAttribute("aria-pressed", String(active));
-    const labelEl = document.createElement("span");
-    labelEl.textContent = "Auto";
-    item.appendChild(labelEl);
-    const checkEl = document.createElement("span");
-    checkEl.className = "live-quality-check";
-    checkEl.textContent = "✓";
-    item.appendChild(checkEl);
-    item.addEventListener("click", () => selectHlsLevel(-1));
-    qualityPopupEl.appendChild(item);
-}
-
-function appendHlsLevelItem(entry: { index: number; label: string }): void {
-    const item = document.createElement("button");
-    item.type = "button";
-    item.className = "live-quality-item";
-    const active = !hlsAutoEnabled() && hlsCurrentLevel() === entry.index;
-    item.classList.toggle("active", active);
-    item.setAttribute("aria-pressed", String(active));
-    const labelEl = document.createElement("span");
-    labelEl.textContent = entry.label;
-    item.appendChild(labelEl);
-    const checkEl = document.createElement("span");
-    checkEl.className = "live-quality-check";
-    checkEl.textContent = "✓";
-    item.appendChild(checkEl);
-    item.addEventListener("click", () => selectHlsLevel(entry.index));
-    qualityPopupEl.appendChild(item);
+    appendQualityRow({
+        label: "Low latency",
+        locked: true,
+        onClick: () => showMenuUpsell("Extra low latency (about 1 second) is part of select subscriptions."),
+    });
 }
 
 function selectHlsLevel(index: number): void {
@@ -76,35 +84,30 @@ function selectHlsLevel(index: number): void {
 export function renderQualityPopupItems(): void {
     qualityPopupEl.replaceChildren();
     if (ctx.transportKind === "ws") {
-        const entries: Array<[string, string]> = [];
-        for (const name of ctx.qualityLadder) entries.push([name, qualityLabel(name)]);
-        for (const [value, label] of entries) {
-            const item = document.createElement("button");
-            item.type = "button";
-            item.className = "live-quality-item";
-            const locked = ctx.lockedQualities.includes(value);
-            const active = !locked && value === ctx.qualityPreference;
-            item.classList.toggle("active", active);
-            item.classList.toggle("locked", locked);
-            item.setAttribute("aria-pressed", String(active));
-            const labelEl = document.createElement("span");
-            labelEl.textContent = label;
-            item.appendChild(labelEl);
-            if (locked) {
-                item.appendChild(qualityPadlock());
-                item.addEventListener("click", () => openQualityUpsell());
-            } else {
-                const checkEl = document.createElement("span");
-                checkEl.className = "live-quality-check";
-                checkEl.textContent = "✓";
-                item.appendChild(checkEl);
-                item.addEventListener("click", () => selectQuality(value));
-            }
-            qualityPopupEl.appendChild(item);
+        for (const name of ctx.qualityLadder) {
+            const locked = ctx.lockedQualities.includes(name);
+            appendQualityRow({
+                label: qualityLabel(name),
+                locked,
+                active: !locked && name === ctx.qualityPreference,
+                onClick: locked
+                    ? () => showMenuUpsell(`This stream plays at ${ctx.lockedStreamLabel || "a higher quality"}.`)
+                    : () => selectQuality(name),
+            });
         }
     } else if (ctx.transportKind === "hls-js") {
-        appendHlsAutoItem();
-        for (const entry of hlsLevels()) appendHlsLevelItem(entry);
+        appendQualityRow({
+            label: "Auto",
+            active: hlsAutoEnabled(),
+            onClick: () => selectHlsLevel(-1),
+        });
+        for (const entry of hlsLevels()) {
+            appendQualityRow({
+                label: entry.label,
+                active: !hlsAutoEnabled() && hlsCurrentLevel() === entry.index,
+                onClick: () => selectHlsLevel(entry.index),
+            });
+        }
     }
     if (showLowLatencyUpsellRow()) appendUpsellRow();
 }
