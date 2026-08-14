@@ -132,6 +132,7 @@ export interface LiveInfo {
     maxFps?: number;
     raidsEnabled?: boolean;
     raidMinViewers?: number;
+    pointsName?: string | null;
 }
 
 export interface RaidSettings {
@@ -174,6 +175,7 @@ export interface LiveChannelInfo {
     ticketPriceCents?: number | null;
     ticketCurrency?: string | null;
     locked?: boolean;
+    pointsName?: string | null;
 }
 
 export interface LiveCategory {

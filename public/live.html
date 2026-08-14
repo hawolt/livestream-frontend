@@ -67,13 +67,14 @@
             display: flex;
             flex-direction: column;
             min-height: 0;
+            overflow-y: auto;
         }
 
         .live-stage {
             position: relative;
             background: #000;
             flex: 1;
-            min-height: 0;
+            min-height: 360px;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -775,16 +776,14 @@
             display: inline-flex;
             align-items: center;
             gap: 4px;
-            margin-left: 8px;
-            margin-right: auto;
             padding: 2px 8px;
             border: 1px solid var(--border);
             border-radius: 999px;
             color: var(--muted);
         }
         .live-chat-points[hidden] { display: none; }
-        .live-chat-points svg { width: 12px; height: 12px; }
-        .live-chat-head .live-chat-points span { font-size: 11px; font-weight: 600; color: var(--text); }
+        .live-chat-points svg { width: 14px; height: 14px; }
+        .live-chat-composer-row2 .live-chat-points span { font-size: 11px; font-weight: 600; color: var(--text); }
         .live-chat-head-actions {
             position: relative;
             display: flex;
@@ -1221,6 +1220,67 @@
         .profile-card-link:hover { text-decoration: underline; }
         .profile-card-empty { padding: 24px 14px; color: var(--muted); font-size: 13px; text-align: center; }
 
+        .live-about {
+            padding: 20px 24px 40px;
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+        .live-about-card {
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            background: var(--surface);
+        }
+        .live-about-card:empty { display: none; }
+        .live-about-card .profile-card-head { padding: 18px; }
+        .live-about-card .profile-card-avatar,
+        .live-about-card .profile-card-avatar-fallback { width: 72px; height: 72px; }
+        .live-about-card .profile-card-avatar-fallback { font-size: 28px; }
+        .live-about-card .profile-card-username { font-size: 18px; }
+        .live-about-card .profile-card-bio { padding: 0 18px 18px; }
+        .live-about-card .profile-card-links { padding: 0 18px 18px; }
+
+        .live-about-panels {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 14px;
+        }
+        .live-about-panels[hidden] { display: none; }
+        .live-about-panel {
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 12px;
+            background: var(--surface);
+            overflow: hidden;
+        }
+        .live-about-panel-img {
+            display: block;
+            width: 100%;
+            max-width: 100%;
+            border-radius: 6px;
+            margin-bottom: 8px;
+        }
+        .live-about-panel-title { font-weight: 700; color: var(--text); font-size: 14px; margin-bottom: 4px; }
+        .live-about-panel-body { color: var(--text); font-size: 13px; line-height: 1.5; white-space: pre-line; overflow-wrap: anywhere; }
+
+        .live-about-clips[hidden] { display: none; }
+        .live-about-heading { font-size: 14px; font-weight: 700; color: var(--text); margin: 0 0 10px; }
+        .live-about-clips-row { display: flex; gap: 12px; overflow-x: auto; padding-bottom: 4px; }
+        .live-about-clip { flex: 0 0 200px; display: block; color: inherit; text-decoration: none; }
+        .live-about-clip-poster { width: 200px; height: 112px; object-fit: cover; border-radius: 8px; background: var(--bg); display: block; }
+        .live-about-clip-title {
+            margin-top: 6px;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text);
+            overflow: hidden;
+            text-overflow: ellipsis;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+        }
+        .live-about-clip-date { margin-top: 2px; font-size: 11px; color: var(--muted); }
+
         body.chat-left:not(.is-vertical) .live-left { order: 2; }
         body.chat-left:not(.is-vertical) #live-chat { order: 1; }
         body.chat-left:not(.is-vertical) #live-chat { border-left: none; border-right: 1px solid var(--border); }
@@ -1255,25 +1315,24 @@
             padding-left: max(10px, env(safe-area-inset-left));
             padding-right: max(10px, env(safe-area-inset-right));
         }
-        body.chat-popout .live-chat-inputrow textarea {
+        body.chat-popout .live-chat-input-box textarea {
             min-height: 34px;
             height: 34px;
-            padding: 7px 10px;
+            padding: 7px 34px 7px 10px;
             font-size: 13px;
             line-height: 18px;
         }
-        body.chat-popout .live-chat-inputrow .live-chat-emote-btn {
-            width: 32px;
-            height: 34px;
-            min-height: 34px;
-            padding: 0;
+        body.chat-popout .live-chat-input-box .live-chat-emote-btn {
+            width: 24px;
+            height: 24px;
         }
-        body.chat-popout .live-chat-inputrow #live-chat-send-btn {
-            height: 34px;
-            min-height: 34px;
+        body.chat-popout .live-chat-composer-row2-actions #live-chat-send-btn {
+            height: 28px;
+            min-height: 28px;
             padding: 4px 10px;
             font-size: 12px;
         }
+        body.chat-popout .live-chat-gear-btn { width: 24px; height: 24px; }
         body.chat-popout .live-chat-guest-login {
             height: 34px;
             min-height: 34px;
@@ -1289,8 +1348,7 @@
             margin-left: 4px;
         }
 
-        .live-chat-nick { font-weight: 700; cursor: pointer; }
-        body.chat-popout .live-chat-nick { cursor: default; }
+        .live-chat-nick { font-weight: 700; }
 
         .live-chat-emote {
             height: 32px;
@@ -1418,8 +1476,12 @@
             border-top: 1px solid var(--border);
             flex-shrink: 0;
         }
-        .live-chat-inputrow { display: flex; gap: 8px; align-items: flex-end; }
-        .live-chat-inputrow textarea {
+        .live-chat-inputrow { display: flex; flex-direction: column; gap: 8px; }
+        .live-chat-input-box {
+            position: relative;
+            display: flex;
+        }
+        .live-chat-input-box textarea {
             flex: 1;
             resize: none;
             overflow-y: auto;
@@ -1429,9 +1491,36 @@
             line-height: 18px;
             font-family: inherit;
             word-break: break-word;
+            padding-right: 38px;
         }
-        .live-chat-inputrow .live-chat-emote-btn,
-        .live-chat-inputrow #live-chat-send-btn { flex-shrink: 0; height: 34px; align-self: flex-end; }
+        .live-chat-composer-row2 {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .live-chat-composer-row2-actions {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-left: auto;
+        }
+        .live-chat-composer-row2-actions #live-chat-send-btn { flex-shrink: 0; }
+        .live-chat-gear-btn {
+            flex-shrink: 0;
+            width: 28px;
+            height: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: none;
+            border: none;
+            color: var(--muted);
+            cursor: pointer;
+            padding: 0;
+        }
+        .live-chat-gear-btn:hover,
+        .live-chat-gear-btn.active { color: var(--accent); }
+        .live-chat-gear-btn svg { width: 18px; height: 18px; display: block; }
 
         .live-chat-guest-login {
             display: flex;
@@ -1448,21 +1537,22 @@
         .live-chat-guest-login[hidden] { display: none; }
 
         @media (max-width: 840px) {
-            .live-chat-inputrow textarea {
+            .live-chat-input-box textarea {
                 min-height: 40px;
                 height: 40px;
-                padding: 10px 12px;
+                padding: 10px 44px 10px 12px;
                 font-size: 16px;
                 line-height: 20px;
             }
-            .live-chat-inputrow .live-chat-emote-btn,
-            .live-chat-inputrow #live-chat-send-btn {
-                height: 40px;
-                min-height: 40px;
+            .live-chat-input-box .live-chat-emote-btn { width: 32px; height: 32px; }
+            .live-chat-input-box .live-chat-emote-btn svg { width: 20px; height: 20px; }
+            .live-chat-composer-row2-actions #live-chat-send-btn {
+                height: 36px;
+                min-height: 36px;
                 font-size: 13px;
+                padding: 0 14px;
             }
-            .live-chat-inputrow .live-chat-emote-btn { width: 44px; padding: 0; }
-            .live-chat-inputrow #live-chat-send-btn { padding: 0 14px; }
+            .live-chat-gear-btn { width: 32px; height: 32px; }
             .live-chat-guest-login { height: 40px; min-height: 40px; font-size: 14px; }
         }
 
@@ -1490,22 +1580,25 @@
         .live-chat-reply-cancel:hover { color: var(--text); }
 
         .live-chat-emote-btn {
+            position: absolute;
+            top: 50%;
+            right: 6px;
+            transform: translateY(-50%);
             flex-shrink: 0;
-            width: 32px;
-            height: 32px;
+            width: 26px;
+            height: 26px;
             display: flex;
             align-items: center;
             justify-content: center;
             background: none;
-            border: 1px solid var(--border);
-            border-radius: var(--radius);
+            border: none;
             color: var(--muted);
             cursor: pointer;
             padding: 0;
         }
         .live-chat-emote-btn:hover,
-        .live-chat-emote-btn.active { color: var(--text); border-color: var(--accent); }
-        .live-chat-emote-btn svg { width: 18px; height: 18px; }
+        .live-chat-emote-btn.active { color: var(--accent); }
+        .live-chat-emote-btn svg { width: 19px; height: 19px; }
 
         .live-chat-picker,
         .live-chat-suggest {
@@ -1582,7 +1675,8 @@
         .live-app.is-vertical .live-main { flex-direction: column; overflow-y: auto; }
         .live-app.is-vertical .live-channel-rail { display: none; }
         .live-app.is-vertical .live-left { flex: 0 0 auto; }
-        .live-app.is-vertical .live-stage { aspect-ratio: 16 / 9; flex: none; height: auto; }
+        .live-app.is-vertical .live-stage { aspect-ratio: 16 / 9; flex: none; height: auto; min-height: 0; }
+        .live-app.is-vertical .live-left { overflow-y: visible; }
         .live-app.is-vertical #live-chat { width: 100%; border-left: none; border-top: 1px solid var(--border); flex: 1 1 0; height: auto; min-height: 220px; }
         .live-app.is-vertical .live-chat-head { display: none; }
         body.is-vertical #live-chat-feature { display: none; }
@@ -1621,7 +1715,6 @@
         #live-viewers-header { display: none; }
 
         @media (max-width: 900px) {
-            .live-chat-inputrow .live-chat-emote-btn { width: 44px; }
             #btn-chat-toggle { display: none; }
             #btn-chat-collapse { display: none; }
             #btn-cinema { display: none; }
@@ -1676,6 +1769,7 @@
         body.cinema-mode .site-nav { display: none; }
         body.cinema-mode .live-channel-rail { display: none; }
         body.cinema-mode .live-info-bar { display: none; }
+        body.cinema-mode .live-about { display: none; }
         body.cinema-mode .live-app { height: 100vh; height: 100dvh; }
         body.cinema-mode .live-main { height: 100%; }
 
@@ -1853,12 +1947,19 @@
                     <span id="live-uptime" class="live-uptime" hidden></span>
                 </div>
             </div>
+            <div class="live-about" id="live-about">
+                <div class="live-about-card" id="live-about-card"></div>
+                <div class="live-about-panels" id="live-about-panels" hidden></div>
+                <div class="live-about-clips" id="live-about-clips" hidden>
+                    <h3 class="live-about-heading">Clips</h3>
+                    <div class="live-about-clips-row" id="live-about-clips-row"></div>
+                </div>
+            </div>
         </div>
         <div id="live-chat">
             <div id="live-chat-feature"></div>
             <div class="live-chat-head" id="live-chat-head">
                 <span>Chat</span>
-                <span id="live-chat-points" class="live-chat-points" hidden title="Your channel points"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v10M9.5 9.5h3.75a1.75 1.75 0 0 1 0 3.5H9.5"/></svg><span id="live-chat-points-value"></span></span>
                 <div class="live-chat-head-actions" id="live-chat-head-actions">
                     <button id="btn-chat-more" type="button" title="More chat options" aria-label="More chat options" aria-haspopup="true" aria-expanded="false" aria-controls="live-chat-overflow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg></button>
                     <div class="live-chat-overflow" id="live-chat-overflow" hidden>
@@ -1866,7 +1967,6 @@
                         <button id="btn-chat-profile" type="button">Channel profile</button>
                         <button id="btn-chat-users" type="button">View chatters</button>
                         <button id="btn-chat-help" type="button">Chat commands</button>
-                        <button id="btn-chat-settings" type="button">Chat settings</button>
                         <div class="live-chat-overflow-divider"></div>
                         <span class="live-chat-overflow-label live-chat-overflow-window-label">Window</span>
                         <button id="btn-chat-side" type="button">Move chat to other side</button>
@@ -1934,11 +2034,21 @@
                     <div class="live-chat-picker-grid" id="live-chat-picker-grid"></div>
                 </div>
                 <div class="live-chat-inputrow" id="live-chat-inputrow">
-                    <textarea id="live-chat-input" placeholder="Send message" rows="1" disabled></textarea>
-                    <button class="live-chat-emote-btn" id="live-chat-emote-btn" type="button" title="Emotes" aria-label="Emotes">
-                        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.6" fill="none"/><circle cx="9" cy="10" r="1.3" fill="currentColor"/><circle cx="15" cy="10" r="1.3" fill="currentColor"/><path d="M7.5 14c1.1 1.6 2.7 2.5 4.5 2.5s3.4-.9 4.5-2.5" stroke="currentColor" stroke-width="1.6" fill="none" stroke-linecap="round"/></svg>
-                    </button>
-                    <button class="btn btn-sm" id="live-chat-send-btn" disabled>Send</button>
+                    <div class="live-chat-input-box">
+                        <textarea id="live-chat-input" placeholder="Send message" rows="1" disabled></textarea>
+                        <button class="live-chat-emote-btn" id="live-chat-emote-btn" type="button" title="Emotes" aria-label="Emotes">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M8.5 10.2h.01M15.5 10.2h.01"/><path d="M8 14.5c1 1.3 2.4 2 4 2s3-.7 4-2"/></svg>
+                        </button>
+                    </div>
+                    <div class="live-chat-composer-row2">
+                        <span id="live-chat-points" class="live-chat-points" hidden title="Channel points" aria-label="Channel points"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5.5" stroke-width="1.1" opacity=".6"/><path d="M12 8.3v7.4M10.1 9.9c0-.8.85-1.5 1.9-1.5s1.9.6 1.9 1.4c0 1.8-3.8 1.2-3.8 3 0 .8.85 1.5 1.9 1.5s1.9-.6 1.9-1.5" stroke-width="1.2"/></svg><span id="live-chat-points-value"></span></span>
+                        <div class="live-chat-composer-row2-actions">
+                            <button id="btn-chat-settings" type="button" class="live-chat-gear-btn" title="Chat settings" aria-label="Chat settings">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z"/><path d="M19.4 13.5a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V19.5a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1.08-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H4.5a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1.08 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H10a1.65 1.65 0 0 0 1-1.51V4.5a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V10a1.65 1.65 0 0 0 1.51 1H19.5a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z"/></svg>
+                            </button>
+                            <button class="btn btn-sm" id="live-chat-send-btn" disabled>Send</button>
+                        </div>
+                    </div>
                 </div>
                 <a class="btn live-chat-guest-login" id="live-chat-guest-login" href="/login" hidden>Log in to chat</a>
                 <a class="btn live-chat-guest-login" id="live-chat-verify" href="/dashboard" hidden>Verify your email to chat</a>
@@ -1988,6 +2098,6 @@
         </div>
     </div>
 </div>
-<script src="/live-4mpep6c6.js" type="module"></script>
+<script src="/live-e2ddgefh.js" type="module"></script>
 </body>
 </html>

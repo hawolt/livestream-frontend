@@ -15,6 +15,11 @@ export function setVideoElement(el: HTMLVideoElement): void {
     video = el;
 }
 export const titleBar = document.getElementById("live-info-bar") as HTMLElement;
+export const aboutEl = document.getElementById("live-about") as HTMLElement;
+export const aboutCardEl = document.getElementById("live-about-card") as HTMLElement;
+export const aboutPanelsEl = document.getElementById("live-about-panels") as HTMLElement;
+export const aboutClipsEl = document.getElementById("live-about-clips") as HTMLElement;
+export const aboutClipsRowEl = document.getElementById("live-about-clips-row") as HTMLElement;
 export const titleEl = document.getElementById("live-title-text") as HTMLElement;
 export const categoryEl = document.getElementById("live-category") as HTMLAnchorElement;
 export const categorySepEl = document.getElementById("live-category-sep") as HTMLElement;

@@ -8,7 +8,6 @@ import { send } from "./connection.ts";
 import { renderPickerGrid } from "./composer.ts";
 import { updateSuggest } from "./suggest.ts";
 import { renderPins } from "./pins.ts";
-import { openProfileFromUser } from "./panels.ts";
 import { shouldPingForMention } from "./mention-ping.ts";
 import { playMentionPing } from "./ping-sound.ts";
 import { recordChatMessageForAds } from "./chat-ad.ts";
@@ -99,10 +98,6 @@ function buildNick(from: string): HTMLSpanElement {
     nick.className = "live-chat-nick";
     nick.textContent = from;
     nick.style.color = nickColor(from);
-    nick.addEventListener("click", () => {
-        if (document.body.classList.contains("chat-popout")) return;
-        openProfileFromUser(from);
-    });
     return nick;
 }
 

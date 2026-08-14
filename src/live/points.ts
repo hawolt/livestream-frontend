@@ -30,14 +30,19 @@ function flushNotice(sum: number): void {
     }, { ttlMs: NOTICE_TTL_MS });
 }
 
-export function initPointsChip(channel: string): void {
+export function initPointsChip(channel: string, pointsName?: string | null): void {
     chipChannel = channel.toLowerCase();
     balanceKnown = false;
     ownChannel = false;
     batcher?.dispose();
     batcher = new PointsBatcher(flushNotice);
     const wrap = document.getElementById("live-chat-points");
-    if (wrap) wrap.hidden = true;
+    if (wrap) {
+        wrap.hidden = true;
+        const label = pointsName && pointsName.trim() ? pointsName.trim() : "Channel points";
+        wrap.title = label;
+        wrap.setAttribute("aria-label", label);
+    }
     void seedBalance(chipChannel);
 }
 

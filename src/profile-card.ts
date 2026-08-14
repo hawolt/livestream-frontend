@@ -1,5 +1,8 @@
 import { hashColor } from "./chat/text.ts";
 import { PLATFORM_LABELS, PLATFORM_PATHS } from "./platform-icons.ts";
+import { normalizePanels, type ProfilePanel } from "./live/about/panels.ts";
+
+export type { ProfilePanel } from "./live/about/panels.ts";
 
 export interface ProfileLink {
     label: string;
@@ -16,6 +19,7 @@ export interface Profile {
     hasBanner: boolean;
     avatarVersion: number;
     bannerVersion: number;
+    panels: ProfilePanel[];
 }
 
 function isHttpsUrl(url: string): boolean {
@@ -56,6 +60,7 @@ export async function loadProfile(username: string): Promise<Profile | null> {
             hasBanner: data.hasBanner === true,
             avatarVersion: typeof data.avatarVersion === "number" ? data.avatarVersion : 0,
             bannerVersion: typeof data.bannerVersion === "number" ? data.bannerVersion : 0,
+            panels: normalizePanels(data.panels),
         };
     } catch {
         return null;

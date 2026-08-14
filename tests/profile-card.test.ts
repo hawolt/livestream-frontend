@@ -79,6 +79,7 @@ function makeProfile(overrides: Partial<Profile> = {}): Profile {
         hasBanner: true,
         avatarVersion: 1,
         bannerVersion: 1,
+        panels: [],
         ...overrides,
     };
 }

@@ -20,6 +20,7 @@ import { startChannelRail } from "./live/channel-rail.ts";
 import { syncLayout } from "./live/layout.ts";
 import { beginTransport, enterTerminal, setOfflineArt } from "./live/player/lifecycle.ts";
 import { loadProfile, offlineArtUrl } from "./profile-card.ts";
+import { loadAboutClips, mountAboutCard } from "./live/about.ts";
 import { canUseHlsJs, canUseNativeHLS, mseSupported } from "./live/player/hls-support.ts";
 import { openLoginModal, wireLoginModal } from "./live/login-modal.ts";
 import { initFollow } from "./live/follow.ts";
@@ -117,6 +118,7 @@ async function boot(): Promise<void> {
     let categoryId: number | null = null;
     let language = "und";
     let emoteTwitchId = "";
+    let pointsName = "";
     const request = new AbortController();
     bootRequest?.abort();
     bootRequest = request;
@@ -197,6 +199,9 @@ async function boot(): Promise<void> {
             if (typeof info.emoteTwitchId === "string") {
                 emoteTwitchId = info.emoteTwitchId;
             }
+            if (typeof info.pointsName === "string") {
+                pointsName = info.pointsName;
+            }
             if (typeof info.startedAt === "number" && info.startedAt > 0) {
                 setStreamStart(info.startedAt);
             }
@@ -212,8 +217,11 @@ async function boot(): Promise<void> {
     browseMiniUsername.textContent = ctx.displayUsername;
     if (!chatPopout) {
         void loadProfile(ctx.username).then(profile => {
-            if (profile && generation === bootGeneration) setOfflineArt(offlineArtUrl(profile));
+            if (generation !== bootGeneration) return;
+            if (profile) setOfflineArt(offlineArtUrl(profile));
+            mountAboutCard(profile);
         });
+        loadAboutClips(ctx.username);
     }
     applyChannelChrome({ title, category, categoryId, language });
 
@@ -228,7 +236,7 @@ async function boot(): Promise<void> {
 
     void initFollow();
     enableWatchAuth();
-    initPointsChip(ctx.username);
+    initPointsChip(ctx.username, pointsName);
     connectViewcount();
     nameEl.addEventListener("click", () => openProfileFromUser());
 
