@@ -57,7 +57,9 @@
             flex-direction: column;
             min-height: 0;
             overflow-y: auto;
+            scrollbar-width: none;
         }
+        .live-left::-webkit-scrollbar { display: none; }
 
         .live-stage {
             position: relative;
@@ -421,10 +423,9 @@
 
         .live-channel-header {
             display: flex;
-            align-items: center;
+            align-items: flex-start;
             gap: 14px;
-            padding: 14px 16px;
-            border-top: 1px solid var(--border);
+            padding: 10px 16px 14px;
             flex-shrink: 0;
         }
         .live-channel-header.hidden { display: none; }
@@ -494,6 +495,7 @@
             display: flex;
             align-items: center;
             gap: 14px;
+            margin-top: 6px;
         }
         .live-channel-followers {
             color: var(--muted);
@@ -778,8 +780,7 @@
 
         #live-chat {
             position: relative;
-            width: clamp(300px, calc(100vw - (100vh - 114px) * 1.7778), 560px);
-            width: clamp(300px, calc(100vw - (100dvh - 114px) * 1.7778), 560px);
+            width: 340px;
             flex-shrink: 0;
             border-left: 1px solid var(--border);
             display: flex;
@@ -2192,6 +2193,6 @@
         </form>
     </div>
 </div>
-<script src="/live-ft6n2tea.js" type="module"></script>
+<script src="/live-gkbqrpcz.js" type="module"></script>
 </body>
 </html>
