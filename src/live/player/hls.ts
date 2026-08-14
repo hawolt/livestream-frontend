@@ -1,7 +1,7 @@
 import Hls from "hls.js";
 import { video } from "../dom.ts";
 import { ctx, isCurrent, track } from "./context.ts";
-import { HLS_BEACON_INTERVAL_MS } from "../constants.ts";
+import { HLS_BEACON_INTERVAL_MS, PRUNE_KEEP_S } from "../constants.ts";
 import { ensureViewerId } from "../../player-shared/viewer-id.ts";
 import { needsCredentials } from "../../player-shared/needs-credentials.ts";
 import { captchaQuery } from "../../captcha.ts";
@@ -12,7 +12,8 @@ import { attachVideoFailureListeners } from "./health.ts";
 import { renderQualityMenu } from "../quality-menu.ts";
 import { streamQualityText } from "../../quality.ts";
 import { canUseHlsJs, canUseNativeHLS } from "./hls-support.ts";
-import { latencyWindowFor } from "./latency-window.ts";
+import { latencyWindowFor, type LatencyWindow } from "./latency-window.ts";
+import { updateSeekBar } from "../seekbar.ts";
 
 export interface HlsLevelEntry {
     index: number;
@@ -86,6 +87,10 @@ export function setHlsLevel(index: number): void {
     renderQualityMenu();
 }
 
+export function hlsLiveSyncPosition(): number | null {
+    return hlsInstance ? hlsInstance.liveSyncPosition : null;
+}
+
 export function fallbackFromMSE(g: number): void {
     if (!isCurrent(g)) return;
     if (canUseNativeHLS()) {
@@ -134,12 +139,17 @@ function startNativeHLS(g: number, src: string): void {
     startHLSBeacon(g);
 }
 
+const HLS_DVR_TICK_MS = 500;
+const DEFAULT_LIVE_WINDOW: LatencyWindow = { sync: 3.5, max: 8 };
+
 function startHlsJsPlayer(g: number, src: string): void {
+    let normalLiveWindow: LatencyWindow = DEFAULT_LIVE_WINDOW;
+    let dvrHoldActive = false;
     const hls = new Hls({
         lowLatencyMode: true,
-        backBufferLength: 30,
-        liveSyncDuration: 3.5,
-        liveMaxLatencyDuration: 8,
+        backBufferLength: PRUNE_KEEP_S,
+        liveSyncDuration: normalLiveWindow.sync,
+        liveMaxLatencyDuration: normalLiveWindow.max,
         maxLiveSyncPlaybackRate: 1,
         enableWorker: true,
         xhrSetup: (xhr, url) => {
@@ -148,6 +158,10 @@ function startHlsJsPlayer(g: number, src: string): void {
     });
     hlsInstance = hls;
     hlsLevelEntries = [];
+    const applyLiveWindow = (target: LatencyWindow): void => {
+        hls.config.liveSyncDuration = target.sync;
+        hls.config.liveMaxLatencyDuration = target.max;
+    };
     hls.on(Hls.Events.MANIFEST_PARSED, () => {
         if (!isCurrent(g) || hlsInstance !== hls) return;
         hlsLevelEntries = hls.levels.map((level, index) => ({
@@ -164,10 +178,10 @@ function startHlsJsPlayer(g: number, src: string): void {
         if (!isCurrent(g) || hlsInstance !== hls) return;
         const window = latencyWindowFor(data.details.targetduration);
         if (!window) return;
-        if (hls.config.liveSyncDuration !== window.sync) {
+        if (normalLiveWindow.sync !== window.sync || normalLiveWindow.max !== window.max) {
             console.warn(`live: large segments (target ${data.details.targetduration}s), widening latency window`);
-            hls.config.liveSyncDuration = window.sync;
-            hls.config.liveMaxLatencyDuration = window.max;
+            normalLiveWindow = window;
+            if (!dvrHoldActive) applyLiveWindow(window);
         }
     });
     hls.on(Hls.Events.ERROR, (_event, data) => {
@@ -185,6 +199,18 @@ function startHlsJsPlayer(g: number, src: string): void {
     void video.play().catch(() => {});
     startHLSBeacon(g);
     startLadderWatch(g, src);
+    const dvrTimer = window.setInterval(() => {
+        if (!isCurrent(g) || hlsInstance !== hls) {
+            window.clearInterval(dvrTimer);
+            return;
+        }
+        if (ctx.behindLive !== dvrHoldActive) {
+            dvrHoldActive = ctx.behindLive;
+            applyLiveWindow(dvrHoldActive ? { sync: normalLiveWindow.sync, max: PRUNE_KEEP_S } : normalLiveWindow);
+        }
+        updateSeekBar();
+    }, HLS_DVR_TICK_MS);
+    track(() => window.clearInterval(dvrTimer));
 }
 
 const LADDER_WATCH_MS = 30000;

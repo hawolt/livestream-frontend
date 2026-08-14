@@ -138,7 +138,7 @@ function snapToEdgeOnPlay(): void {
         healthRestart("resume-stale");
         return;
     }
-    if (ctx.transportKind === "ws" && ctx.behindLive) return;
+    if ((ctx.transportKind === "ws" || ctx.transportKind === "hls-js") && ctx.behindLive) return;
     const edge = bufferedEnd();
     if (edge > 0) {
         video.currentTime = Math.max(0, edge - START_BEHIND_S);
