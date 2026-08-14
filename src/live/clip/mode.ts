@@ -8,7 +8,7 @@ import {
     video,
 } from "../dom.ts";
 import { applyChannelChrome } from "../channel-chrome.ts";
-import { applyChannelIdentity } from "../about.ts";
+import { initOwnerCards, loadAboutClips, mountAboutCard } from "../about.ts";
 import { syncLayout } from "../layout.ts";
 import {
     clipStatusPollingActive,
@@ -194,8 +194,10 @@ export async function bootClipMode(route: ClipRoute): Promise<void> {
     void loadProfile(route.channel).then(profile => {
         if (profile) clipArtUrl = offlineArtUrl(profile);
         if (!posterEl.classList.contains("hidden")) applyClipArt(true);
-        applyChannelIdentity(profile);
+        mountAboutCard(profile);
     });
+    loadAboutClips(route.channel);
+    initOwnerCards(route.channel);
 
     const [chromeResult, clipResult] = await Promise.all([
         fetchChannelChrome(route.channel),
