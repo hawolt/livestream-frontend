@@ -1,8 +1,13 @@
 .explore-modes {
-    display: inline-flex;
+    display: flex;
+    align-items: center;
     gap: 6px;
     margin: 14px 24px 0 14px;
 }
+
+.explore-lang { margin-left: auto; width: 180px; }
+.explore-lang input { width: 100%; height: 30px; min-height: 0; font-size: 13px; padding: 4px 10px; }
+@media (max-width: 760px) { .explore-lang { width: 140px; } }
 
 .explore-mode-btn {
     border: none;

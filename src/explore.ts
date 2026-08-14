@@ -2,9 +2,12 @@ import { createChannelRail } from "./channel-rail.ts";
 import { initSiteNav } from "./nav.ts";
 import { reportVisit } from "./visit-beacon.ts";
 import { ctx, isFramed, NO_CATEGORY_LABEL, type CategorySelector, type ViewState } from "./explore/context.ts";
+import { STREAM_LANGUAGE_OPTIONS } from "./stream-languages.ts";
+import { attachTypeahead, type TypeaheadOption } from "./typeahead.ts";
 import {
     backBtn,
     gridEl,
+    languageFilterEl,
     modeCategoriesBtn,
     modeStreamsBtn,
     page,
@@ -31,6 +34,15 @@ function refreshOnNavigation(): void {
     void loadExplore();
     railRefresh?.();
 }
+
+const languageFilterOptions: TypeaheadOption[] = [{ value: "", label: "Any language" }]
+    .concat(STREAM_LANGUAGE_OPTIONS
+        .filter(({ code }) => code !== "und")
+        .map(({ code, label }) => ({ value: code, label })));
+attachTypeahead(languageFilterEl, languageFilterOptions, (code) => {
+    ctx.languageFilter = code;
+    render();
+}).setValue("");
 
 modeStreamsBtn.addEventListener("click", () => {
     refreshOnNavigation();

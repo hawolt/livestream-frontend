@@ -1,5 +1,6 @@
 import { streamLanguageLabel } from "../stream-languages.ts";
 import { ctx, isFramed, NO_CATEGORY_LABEL, type ExploreStream } from "./context.ts";
+import { filterStreamsByLanguage } from "./language-filter.ts";
 import { drillEl, emptyEl, gridEl, modeCategoriesBtn, modeStreamsBtn } from "./dom.ts";
 import { previewCardInFlight, queueStreamPreview, stopStreamPreview } from "./preview.ts";
 import { thumbnailMinute } from "./thumbnail-minute.ts";
@@ -161,6 +162,12 @@ export function renderStreamsMode(): void {
         showEmpty("No one is live right now");
         return;
     }
+    const list = filterStreamsByLanguage(ctx.streams, ctx.languageFilter);
+    if (!list.length) {
+        setGridChildren([]);
+        showEmpty("No live streams in this language right now");
+        return;
+    }
     hideEmpty();
-    renderStreamList(ctx.streams);
+    renderStreamList(list);
 }

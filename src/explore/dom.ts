@@ -6,6 +6,7 @@ export const drillTitleEl = document.getElementById("explore-drill-title") as HT
 export const backBtn = document.getElementById("explore-back") as HTMLButtonElement;
 export const modeStreamsBtn = document.getElementById("mode-streams") as HTMLButtonElement;
 export const modeCategoriesBtn = document.getElementById("mode-categories") as HTMLButtonElement;
+export const languageFilterEl = document.getElementById("explore-language") as HTMLInputElement;
 export const railEl = document.getElementById("live-channel-rail") as HTMLElement;
 export const railToggleEl = document.getElementById("live-channel-rail-toggle") as HTMLButtonElement;
 export const railToggleGlyphEl = document.getElementById("live-channel-rail-toggle-glyph") as HTMLElement;

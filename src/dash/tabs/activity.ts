@@ -1,5 +1,6 @@
 import type { LiveInfo, LiveCategory } from "../../api.ts";
 import { STREAM_LANGUAGE_OPTIONS, streamLanguageCodes } from "../../stream-languages.ts";
+import { attachTypeahead, type TypeaheadOption } from "../../typeahead.ts";
 import { esc, fmtDate, fmtTime } from "../format.ts";
 import { authFetch, getMe, token } from "../session.ts";
 import { countNewLiveEvents, eventTypeClass, followEventKey, mergeFollowEvents, rejectEventLabel, viewerCountLabel, type FollowEvent } from "../activity-events.ts";
@@ -225,22 +226,15 @@ async function loadLive(generation: number): Promise<void> {
 function renderInfo(): void {
     const el = document.getElementById("live-info-body");
     if (!el || !liveCache) return;
-    const options = [`<option value="" ${liveCache.categoryId === null ? "selected" : ""}>No category</option>`]
-        .concat(categoriesCache.map(c =>
-            `<option value="${c.id}" ${liveCache!.categoryId === c.id ? "selected" : ""}>${esc(c.name)}</option>`));
     const currentCodes = streamLanguageCodes(liveCache.language);
     const primaryCode = currentCodes[0] ?? "und";
     const secondaryCode = currentCodes[1] ?? "und";
-    const languageOptions = (selected: string) => STREAM_LANGUAGE_OPTIONS.map(({ code, label }) =>
-        `<option value="${code}" ${selected === code ? "selected" : ""}>${esc(label)}</option>`);
-    const secondaryOptions = STREAM_LANGUAGE_OPTIONS.map(({ code, label }) =>
-        `<option value="${code}" ${secondaryCode === code ? "selected" : ""}>${esc(code === "und" ? "None" : label)}</option>`);
     el.innerHTML = `
         <div class="form-grid">
             <label class="span2"><span>Title</span><input id="live-info-title" type="text" maxlength="200" placeholder="Now streaming..." value="${esc(liveCache.title)}"></label>
-            <label><span>Category</span><select id="live-info-category">${options.join("")}</select></label>
-            <label><span>Language</span><select id="live-info-language">${languageOptions(primaryCode).join("")}</select></label>
-            <label><span>Second language</span><select id="live-info-language2">${secondaryOptions.join("")}</select></label>
+            <label><span>Category</span><input id="live-info-category" type="text" placeholder="No category"></label>
+            <label><span>Language</span><input id="live-info-language" type="text" placeholder="Unspecified"></label>
+            <label><span>Second language</span><input id="live-info-language2" type="text" placeholder="None"></label>
         </div>
         <div style="font-size:12px;color:var(--muted);margin-top:6px">
             Shown with your stream on the channel page and explorer. Categories are also used to group streams.
@@ -250,17 +244,33 @@ function renderInfo(): void {
             <button class="btn btn-primary" id="btn-live-info-save">Save Stream Info</button>
             <span id="live-info-saved" style="font-size:13px;color:var(--success)"></span>
         </div>`;
+    const categoryOptions: TypeaheadOption[] = [{ value: "", label: "No category" }]
+        .concat(categoriesCache.map(c => ({ value: String(c.id), label: c.name })));
+    const categoryField = attachTypeahead(
+        document.getElementById("live-info-category") as HTMLInputElement, categoryOptions);
+    categoryField.setValue(liveCache.categoryId === null ? "" : String(liveCache.categoryId));
+
+    const primaryOptions: TypeaheadOption[] = STREAM_LANGUAGE_OPTIONS.map(({ code, label }) =>
+        ({ value: code, label }));
+    const secondaryOptions: TypeaheadOption[] = STREAM_LANGUAGE_OPTIONS.map(({ code, label }) =>
+        ({ value: code, label: code === "und" ? "None" : label }));
+    const primaryField = attachTypeahead(
+        document.getElementById("live-info-language") as HTMLInputElement, primaryOptions);
+    primaryField.setValue(primaryCode);
+    const secondaryField = attachTypeahead(
+        document.getElementById("live-info-language2") as HTMLInputElement, secondaryOptions);
+    secondaryField.setValue(secondaryCode);
+
     document.getElementById("btn-live-info-save")?.addEventListener("click", async () => {
         if (!liveCache) return;
         const btn = document.getElementById("btn-live-info-save") as HTMLButtonElement;
         const errEl = document.getElementById("live-info-error")!;
         const savedEl = document.getElementById("live-info-saved")!;
         const title = (document.getElementById("live-info-title") as HTMLInputElement).value;
-        const catVal = (document.getElementById("live-info-category") as HTMLSelectElement).value;
+        const catVal = categoryField.value();
         const categoryId = catVal === "" ? null : Number(catVal);
-        const primary = (document.getElementById("live-info-language") as HTMLSelectElement).value;
-        const secondary = (document.getElementById("live-info-language2") as HTMLSelectElement).value;
-        const codes = [primary, secondary].filter((code, i, all) => code !== "und" && all.indexOf(code) === i);
+        const codes = [primaryField.value(), secondaryField.value()]
+            .filter((code, i, all) => code !== "und" && all.indexOf(code) === i);
         const language = codes.length ? codes.join(",") : "und";
         errEl.textContent = "";
         savedEl.textContent = "";

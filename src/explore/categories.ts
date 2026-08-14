@@ -1,5 +1,6 @@
 import { ctx, NO_CATEGORY_LABEL, type CategorySelector, type ExploreStream } from "./context.ts";
 import { compareCategoryCards } from "./category-sort.ts";
+import { filterStreamsByLanguage } from "./language-filter.ts";
 import { drillEl, drillTitleEl } from "./dom.ts";
 import { hideEmpty, renderStreamList, setGridChildren, setGridPortrait, showEmpty, viewersIcon } from "./stream-cards.ts";
 import { urlFor } from "./url-state.ts";
@@ -92,8 +93,14 @@ function renderCategoryDrill(name: string, list: ExploreStream[]): void {
         showEmpty("No one is streaming in this category right now");
         return;
     }
+    const filtered = filterStreamsByLanguage(list, ctx.languageFilter);
+    if (!filtered.length) {
+        setGridChildren([]);
+        showEmpty("No one is streaming in this language in this category right now");
+        return;
+    }
     hideEmpty();
-    renderStreamList(list);
+    renderStreamList(filtered);
 }
 
 function renderCategoryNotFound(): void {

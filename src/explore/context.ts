@@ -36,4 +36,5 @@ export const ctx = {
     mode: "streams" as Mode,
     drillCategoryId: null as CategorySelector,
     mediaBase: "",
+    languageFilter: "",
 };
