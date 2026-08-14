@@ -78,7 +78,7 @@ function bannerMount(surface: BannerSurface): { host: Element; cls: string } {
         if (social) return { host: social, cls: "status-banner status-banner-nav" };
     }
     if (surface === "mobile") return { host: document.body, cls: "status-banner status-banner-mobile" };
-    return { host: document.body, cls: "status-banner" };
+    return { host: document.body, cls: "status-banner status-banner-float" };
 }
 
 function render(state: BannerState): void {

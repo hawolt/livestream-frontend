@@ -745,7 +745,8 @@ body.rail-collapsed .live-channel-rail .live-channel-section-divider { margin: 5
     .live-channel-section-divider { margin: 5px 8px; }
 }
 
-.status-banner { position: fixed; left: 16px; bottom: 16px; z-index: 9000; display: flex; align-items: center; gap: 10px; max-width: min(440px, calc(100vw - 32px)); padding: 10px 12px; background: rgba(30, 22, 8, .96); border: 1px solid rgba(250, 204, 21, .45); border-radius: 8px; box-shadow: 0 4px 18px rgba(0, 0, 0, .5); font-size: 13px; color: var(--text); }
+.status-banner { display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: rgba(30, 22, 8, .96); border: 1px solid rgba(250, 204, 21, .45); font-size: 13px; color: var(--text); }
+.status-banner-float { position: fixed; left: 16px; bottom: 16px; z-index: 9000; max-width: min(440px, calc(100vw - 32px)); border-radius: 8px; box-shadow: 0 4px 18px rgba(0, 0, 0, .5); }
 .status-banner-text { line-height: 1.4; }
 .status-banner-link { color: #facc15; text-decoration: underline; white-space: nowrap; }
 .status-banner-link:hover { color: #fde047; }
@@ -754,32 +755,26 @@ body.rail-collapsed .live-channel-rail .live-channel-section-divider { margin: 5
 .status-banner-icon { flex: 0 0 auto; display: inline-flex; color: #facc15; }
 .status-banner-icon svg { display: block; }
 .status-banner-chat {
-    position: static;
-    max-width: none;
-    border-radius: 0;
     border: none;
     border-bottom: 1px solid rgba(250, 204, 21, .35);
     background: rgba(45, 36, 12, .85);
-    box-shadow: none;
     padding: 8px 10px;
     font-size: 12.5px;
 }
 .status-banner-nav {
-    position: static;
     max-width: 420px;
     padding: 5px 10px;
     font-size: 12px;
     border-radius: 999px;
-    box-shadow: none;
 }
 .status-banner-nav .status-banner-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .status-banner-mobile {
+    position: fixed;
     left: 0;
     right: 0;
     bottom: 0;
+    z-index: 9000;
     width: 100%;
-    max-width: none;
-    border-radius: 0;
     border: none;
     border-top: 1px solid rgba(250, 204, 21, .45);
     padding: 10px max(12px, env(safe-area-inset-right)) max(10px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left));
