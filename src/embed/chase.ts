@@ -36,6 +36,7 @@ export function startChase(g: number): void {
             });
             return;
         }
+        if (video.paused) return;
         const gap = edge - video.currentTime;
         if (gap > SEEK_GAP_S) {
             video.currentTime = edge - START_BEHIND_S;

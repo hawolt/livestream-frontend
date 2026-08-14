@@ -7,6 +7,7 @@ import { parseViewerClaim } from "./player-shared/viewer-claim.ts";
 import { chooseTransport } from "./player-shared/transport-choice.ts";
 import { readLocalStorage } from "./storage.ts";
 import { TRANSPORT_STORAGE_KEY } from "./embed/constants.ts";
+import { setOverlayChannel, setOverlayOffline, wireOverlay } from "./embed/overlay.ts";
 
 let bootGeneration = 0;
 let bootRequest: AbortController | null = null;
@@ -41,6 +42,7 @@ async function boot(): Promise<void> {
     if (!shellWired) {
         shellWired = true;
         wireUnmute();
+        wireOverlay();
         wirePageLifecycle();
     }
 
@@ -55,6 +57,7 @@ async function boot(): Promise<void> {
     const request = new AbortController();
     bootRequest?.abort();
     bootRequest = request;
+    let channelLive = false;
     try {
         const res = await fetch(`/api/live/channel/${encodeURIComponent(ctx.username)}`, { signal: request.signal });
         if (!isCurrentBoot(generation, request)) return;
@@ -74,7 +77,15 @@ async function boot(): Promise<void> {
             if (info && typeof info.mediaBase === "string") {
                 ctx.mediaBase = info.mediaBase.replace(/\/+$/, "");
             }
-            if (info) ctx.wssBase = typeof info.wssBase === "string" ? info.wssBase.replace(/\/+$/, "") : "";
+            if (info) {
+                ctx.wssBase = typeof info.wssBase === "string" ? info.wssBase.replace(/\/+$/, "") : "";
+                channelLive = info.live === true;
+                setOverlayChannel(
+                    ctx.username,
+                    typeof info.username === "string" ? info.username : ctx.username,
+                    typeof info.title === "string" ? info.title : "",
+                );
+            }
         }
     } catch {
         if (!isCurrentBoot(generation, request)) return;
@@ -101,7 +112,8 @@ async function boot(): Promise<void> {
     }
     ctx.transportKind = transport;
 
-    setPoster("Offline");
+    setPoster(channelLive ? null : "Offline");
+    setOverlayOffline(!channelLive);
     beginTransport();
     bootCompleted = true;
 }

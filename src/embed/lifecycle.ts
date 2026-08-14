@@ -4,6 +4,7 @@ import { PREVIEW_MESSAGE_TYPE, RETRY_MAX_MS, RETRY_MIN_MS, RETRY_MULT } from "./
 import { stopChase } from "./chase.ts";
 import { destroyHls, startHLSTransport, startWSTransport, stopHLSBeacon } from "./transport.ts";
 import { healthCheck, startHealthTimer, stopHealthTimer } from "./health.ts";
+import { isUserPaused, overlayContains, setOverlayOffline } from "./overlay.ts";
 
 function notifyPreview(state: "connecting" | "playing" | "unavailable"): void {
     if (!previewMode || window.parent === window) return;
@@ -122,6 +123,7 @@ export function setPlaying(): void {
     ctx.lastProgressAt = Date.now();
     ctx.lastObservedTime = video.currentTime;
     setPoster(null);
+    setOverlayOffline(false);
     showUnmute(video.muted || video.volume === 0);
     notifyPreview("playing");
 }
@@ -135,6 +137,7 @@ export function goOffline(g: number): void {
     ctx.state = "offline";
     ctx.lastStateChangeAt = Date.now();
     setPoster("Offline");
+    setOverlayOffline(true);
     notifyPreview("unavailable");
     scheduleRestart(nextRetryDelay(), retryGeneration);
 }
@@ -176,6 +179,7 @@ export function enterTerminal(label: string): void {
     nextGen();
     fullTeardown();
     setPoster(label);
+    setOverlayOffline(true);
     notifyPreview("unavailable");
 }
 
@@ -192,6 +196,8 @@ export function wireUnmute(): void {
     });
     stageEl.addEventListener("click", (ev) => {
         if (ev.target === unmuteBtn || unmuteBtn.contains(ev.target as Node)) return;
+        if (overlayContains(ev.target as Node)) return;
+        if (isUserPaused()) return;
         if (video.muted && !ctx.offline) {
             video.muted = false;
             if (video.volume === 0) video.volume = 1;
