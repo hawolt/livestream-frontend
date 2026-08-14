@@ -2,8 +2,8 @@ import { describe, expect, test } from "bun:test";
 import { chooseTransport, type TransportChoice, type TransportChoiceInput } from "../src/player-shared/transport-choice.ts";
 
 function expectedHlsFallback(input: TransportChoiceInput): TransportChoice {
-    if (input.nativeHls) return "hls-native";
     if (input.hlsJsSupported) return "hls-js";
+    if (input.nativeHls) return "hls-native";
     return "unsupported";
 }
 
@@ -50,7 +50,7 @@ describe("override handling", () => {
         expect(chooseTransport({
             mseSupported: false, nativeHls: true, hlsJsSupported: true,
             lowLatency: true, llDenied: false, override: "ws",
-        })).toBe("hls-native");
+        })).toBe("hls-js");
         expect(chooseTransport({
             mseSupported: false, nativeHls: false, hlsJsSupported: true,
             lowLatency: true, llDenied: false, override: "ws",
@@ -65,7 +65,7 @@ describe("override handling", () => {
         expect(chooseTransport({
             mseSupported: true, nativeHls: true, hlsJsSupported: true,
             lowLatency: true, llDenied: false, override: "hls",
-        })).toBe("hls-native");
+        })).toBe("hls-js");
         expect(chooseTransport({
             mseSupported: true, nativeHls: false, hlsJsSupported: true,
             lowLatency: true, llDenied: false, override: "hls",
@@ -84,7 +84,7 @@ describe("override handling", () => {
         expect(chooseTransport({
             mseSupported: true, nativeHls: true, hlsJsSupported: true,
             lowLatency: false, llDenied: false, override: "bogus",
-        })).toBe("hls-native");
+        })).toBe("hls-js");
     });
 
     test("a null override runs normal selection", () => {
@@ -96,18 +96,18 @@ describe("override handling", () => {
 });
 
 describe("hls preference order", () => {
-    test("hls-native is preferred over hls-js when both are available", () => {
+    test("hls-js is preferred over hls-native when both are available", () => {
         expect(chooseTransport({
             mseSupported: false, nativeHls: true, hlsJsSupported: true,
             lowLatency: false, llDenied: false, override: null,
-        })).toBe("hls-native");
+        })).toBe("hls-js");
     });
 
-    test("hls-js is chosen when native HLS is unavailable", () => {
+    test("hls-native is chosen when hls.js is unavailable", () => {
         expect(chooseTransport({
-            mseSupported: false, nativeHls: false, hlsJsSupported: true,
+            mseSupported: false, nativeHls: true, hlsJsSupported: false,
             lowLatency: false, llDenied: false, override: null,
-        })).toBe("hls-js");
+        })).toBe("hls-native");
     });
 
     test("unsupported when neither hls path nor ws is available", () => {
@@ -115,5 +115,19 @@ describe("hls preference order", () => {
             mseSupported: false, nativeHls: false, hlsJsSupported: false,
             lowLatency: false, llDenied: false, override: null,
         })).toBe("unsupported");
+    });
+
+    test("Edge on Windows: MSE and native HLS both report support, but hls.js wins so the level API stays available", () => {
+        expect(chooseTransport({
+            mseSupported: true, nativeHls: true, hlsJsSupported: true,
+            lowLatency: false, llDenied: false, override: null,
+        })).toBe("hls-js");
+    });
+
+    test("iPhone Safari: no MSE and no hls.js, native HLS is the only option", () => {
+        expect(chooseTransport({
+            mseSupported: false, nativeHls: true, hlsJsSupported: false,
+            lowLatency: false, llDenied: false, override: null,
+        })).toBe("hls-native");
     });
 });

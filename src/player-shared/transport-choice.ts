@@ -10,8 +10,8 @@ export interface TransportChoiceInput {
 }
 
 function hlsChoice(input: TransportChoiceInput): TransportChoice {
-    if (input.nativeHls) return "hls-native";
     if (input.hlsJsSupported) return "hls-js";
+    if (input.nativeHls) return "hls-native";
     return "unsupported";
 }
 
