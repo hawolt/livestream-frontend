@@ -13,6 +13,7 @@ import { renderQualityMenu } from "../quality-menu.ts";
 import { streamQualityText } from "../../quality.ts";
 import { canUseHlsJs, canUseNativeHLS } from "./hls-support.ts";
 import { latencyWindowFor, type LatencyWindow } from "./latency-window.ts";
+import { bufferedAheadOf, startupHoldOver } from "./startup-hold.ts";
 import { updateSeekBar } from "../seekbar.ts";
 
 export interface HlsLevelEntry {
@@ -205,7 +206,21 @@ function startHlsJsPlayer(g: number, src: string): void {
         hls.loadSource(src);
     });
     hls.attachMedia(video);
-    void video.play().catch(() => {});
+    const holdStarted = Date.now();
+    const holdTimer = window.setInterval(() => {
+        if (!isCurrent(g) || hlsInstance !== hls) {
+            window.clearInterval(holdTimer);
+            return;
+        }
+        const ranges: Array<{ start: number; end: number }> = [];
+        for (let i = 0; i < video.buffered.length; i++) {
+            ranges.push({ start: video.buffered.start(i), end: video.buffered.end(i) });
+        }
+        if (!startupHoldOver(bufferedAheadOf(ranges, video.currentTime), Date.now() - holdStarted)) return;
+        window.clearInterval(holdTimer);
+        void video.play().catch(() => {});
+    }, 200);
+    track(() => window.clearInterval(holdTimer));
     startHLSBeacon(g);
     startLadderWatch(g, src);
     const dvrTimer = window.setInterval(() => {
