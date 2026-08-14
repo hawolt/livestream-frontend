@@ -11,5 +11,4 @@ export const railEl = document.getElementById("live-channel-rail") as HTMLElemen
 export const railToggleEl = document.getElementById("live-channel-rail-toggle") as HTMLButtonElement;
 export const railToggleGlyphEl = document.getElementById("live-channel-rail-toggle-glyph") as HTMLElement;
 export const railListEl = document.getElementById("live-channel-list") as HTMLElement;
-export const railCountEl = document.getElementById("live-channel-count") as HTMLElement;
 export const railStatusEl = document.getElementById("live-channel-status") as HTMLElement;

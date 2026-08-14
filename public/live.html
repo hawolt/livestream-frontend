@@ -35,7 +35,8 @@
             padding: 0;
             cursor: pointer;
         }
-        #live-name:hover, #live-name:focus-visible { text-decoration: underline; }
+        #live-name:hover { text-decoration: none; }
+        #live-name:focus-visible { text-decoration: underline; }
         #live-sep, #live-category-sep, #live-language-sep { margin: 0 8px; color: var(--muted); }
         #live-sep.hidden, #live-category-sep.hidden, #live-language-sep.hidden { display: none; }
         .live-badge {
@@ -424,9 +425,9 @@
             color: inherit;
             text-decoration: none;
         }
-        #live-category:hover, #live-category:focus-visible {
-            text-decoration: underline;
-        }
+        #live-category { cursor: pointer; }
+        #live-category:hover { text-decoration: none; }
+        #live-category:focus-visible { text-decoration: underline; }
         #live-language {
             color: var(--muted);
         }
@@ -1737,13 +1738,8 @@
 <div class="live-app" id="live-page" hidden>
     <div class="live-main">
         <aside class="live-channel-rail" id="live-channel-rail" aria-label="Live channels">
-            <div class="live-channel-rail-head">
-                <span class="live-channel-rail-title">Live channels</span>
-                <span class="live-channel-count" id="live-channel-count" aria-live="polite">0</span>
-                <button class="live-channel-rail-toggle" id="live-channel-rail-toggle" type="button" title="Collapse live channels" aria-label="Collapse live channels" aria-expanded="true"><span id="live-channel-rail-toggle-glyph" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></span></button>
-            </div>
             <div class="live-channel-rail-body">
-                <div class="live-channel-list" id="live-channel-list" role="navigation" aria-label="Streaming now"></div>
+                <div class="live-channel-list" id="live-channel-list" role="navigation" aria-label="Streaming now"><div class="live-channel-section-row"><span class="live-channel-section-label">Live channels</span><button class="live-channel-rail-toggle" id="live-channel-rail-toggle" type="button" title="Collapse live channels" aria-label="Collapse live channels" aria-expanded="true"><span id="live-channel-rail-toggle-glyph" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></span></button></div></div>
                 <div class="live-channel-status" id="live-channel-status" role="status" aria-live="polite">Loading live channels...</div>
             </div>
         </aside>
@@ -1934,6 +1930,6 @@
         <div class="login-modal-alt">No account? <a id="login-modal-signup" href="/register">Create one</a></div>
     </div>
 </div>
-<script src="/live-8r9bk585.js" type="module"></script>
+<script src="/live-whfjzp1r.js" type="module"></script>
 </body>
 </html>

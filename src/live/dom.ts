@@ -4,7 +4,6 @@ export const channelRailEl = document.getElementById("live-channel-rail") as HTM
 export const channelRailToggleEl = document.getElementById("live-channel-rail-toggle") as HTMLButtonElement;
 export const channelRailToggleGlyphEl = document.getElementById("live-channel-rail-toggle-glyph") as HTMLElement;
 export const channelListEl = document.getElementById("live-channel-list") as HTMLElement;
-export const channelCountEl = document.getElementById("live-channel-count") as HTMLElement;
 export const channelStatusEl = document.getElementById("live-channel-status") as HTMLElement;
 export const nameEl = document.getElementById("live-name") as HTMLButtonElement;
 export const sepEl = document.getElementById("live-sep") as HTMLElement;

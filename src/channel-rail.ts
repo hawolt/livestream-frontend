@@ -11,7 +11,6 @@ export interface ChannelRailElements {
     toggle: HTMLButtonElement;
     glyph: HTMLElement;
     list: HTMLElement;
-    count: HTMLElement;
     status: HTMLElement;
 }
 
@@ -68,6 +67,13 @@ function sectionLabel(text: string): HTMLSpanElement {
     return label;
 }
 
+function sectionRow(text: string): HTMLDivElement {
+    const row = document.createElement("div");
+    row.className = "live-channel-section-row";
+    row.appendChild(sectionLabel(text));
+    return row;
+}
+
 function sectionDivider(): HTMLDivElement {
     const divider = document.createElement("div");
     divider.className = "live-channel-section-divider";
@@ -90,9 +96,14 @@ export function createChannelRail(options: ChannelRailOptions): ChannelRailHandl
         maximumFractionDigits: 1,
     });
 
-    const followedLabel = sectionLabel("Following");
-    const liveLabel = sectionLabel("Live channels");
+    const followedRow = sectionRow("Following");
+    const liveRow = sectionRow("Live channels");
     const railDivider = sectionDivider();
+
+    function withToggle(row: HTMLElement): HTMLElement {
+        row.appendChild(elements.toggle);
+        return row;
+    }
 
     function updateRailItem(item: RailItem, stream: ChannelRailStream): void {
         const normalizedUsername = stream.username.toLowerCase();
@@ -184,12 +195,12 @@ export function createChannelRail(options: ChannelRailOptions): ChannelRailHandl
         const others = streams.filter((stream) => !followedUsernames.has(stream.username.toLowerCase()));
         followed.sort(byViewersThenName);
         others.sort(byViewersThenName);
-        const count = streams.length.toLocaleString();
-        if (elements.count.textContent !== count) elements.count.textContent = count;
         const nodes: Node[] = [];
         if (followed.length > 0) {
-            nodes.push(followedLabel, ...followed.map(railItem));
-            if (others.length > 0) nodes.push(railDivider, liveLabel);
+            nodes.push(withToggle(followedRow), ...followed.map(railItem));
+            if (others.length > 0) nodes.push(railDivider, liveRow);
+        } else {
+            nodes.push(withToggle(liveRow));
         }
         nodes.push(...others.map(railItem));
         const liveUsernames = new Set(streams.map((stream) => stream.username.toLowerCase()));
@@ -241,8 +252,8 @@ export function createChannelRail(options: ChannelRailOptions): ChannelRailHandl
                 .filter((stream): stream is ChannelRailStream => stream !== null);
             renderRail(streams);
         } catch {
-            if (elements.list.childElementCount === 0) {
-                elements.count.textContent = "0";
+            if (elements.list.querySelector(".live-channel-item") === null) {
+                reconcileRailChildren([withToggle(liveRow)]);
                 setRailStatus("Live channels unavailable");
             }
         } finally {

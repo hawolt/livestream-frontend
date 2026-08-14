@@ -1,6 +1,5 @@
 import { createChannelRail } from "../channel-rail.ts";
 import {
-    channelCountEl,
     channelListEl,
     channelRailEl,
     channelRailToggleEl,
@@ -26,7 +25,6 @@ const rail = createChannelRail({
         toggle: channelRailToggleEl,
         glyph: channelRailToggleGlyphEl,
         list: channelListEl,
-        count: channelCountEl,
         status: channelStatusEl,
     },
     getActiveUsername: () => ctx.username,
