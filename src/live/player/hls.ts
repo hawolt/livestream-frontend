@@ -138,6 +138,14 @@ function startNativeHLS(g: number, src: string): void {
     video.src = src;
     void video.play().catch(() => {});
     startHLSBeacon(g);
+    const uiTimer = window.setInterval(() => {
+        if (!isCurrent(g)) {
+            window.clearInterval(uiTimer);
+            return;
+        }
+        updateSeekBar();
+    }, HLS_DVR_TICK_MS);
+    track(() => window.clearInterval(uiTimer));
 }
 
 const HLS_DVR_TICK_MS = 500;

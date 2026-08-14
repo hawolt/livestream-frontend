@@ -12,7 +12,8 @@ function isSignedIn(): boolean {
 
 export function updateClipButtonVisibility(): void {
     btnClip.hidden = ctx.clipsDisabled
-        || ctx.transportKind !== "ws"
+        || ctx.transportKind === "none"
+        || ctx.transportKind === "unsupported"
         || bufferedEnd() - bufferedStart() < CLIP_MIN_CAPTURE_S;
 }
 
