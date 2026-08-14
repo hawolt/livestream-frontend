@@ -626,8 +626,7 @@ body.rail-collapsed .live-channel-rail { width: 57px; }
     align-items: center;
     gap: 9px;
     min-height: 44px;
-    padding: 4px 12px 4px 9px;
-    border-left: 3px solid transparent;
+    padding: 4px 12px;
     color: var(--text);
     text-decoration: none;
 }
@@ -738,21 +737,12 @@ body.rail-collapsed .live-channel-rail .live-channel-section-divider { margin: 5
     .live-channel-section-label,
     .live-channel-status { display: none; }
     .live-channel-item {
-        grid-template-columns: 38px;
-        gap: 0;
-        padding: 4px 0;
-        justify-content: center;
-    }
-    .live-channel-section-divider { margin: 5px 8px; }
-}
-
-@media (max-width: 1180px) {
-    .live-channel-rail .live-channel-item {
         display: flex;
         justify-content: center;
         gap: 0;
-        padding: 4px 3px 4px 0;
+        padding: 4px 0;
     }
+    .live-channel-section-divider { margin: 5px 8px; }
 }
 
 .status-banner { position: fixed; left: 16px; bottom: 16px; z-index: 9000; display: flex; align-items: center; gap: 10px; max-width: min(440px, calc(100vw - 32px)); padding: 10px 12px; background: rgba(30, 22, 8, .96); border: 1px solid rgba(250, 204, 21, .45); border-radius: 8px; box-shadow: 0 4px 18px rgba(0, 0, 0, .5); font-size: 13px; color: var(--text); }
