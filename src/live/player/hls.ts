@@ -111,8 +111,7 @@ export function fallbackFromMSE(g: number): void {
 
 async function buildMasterUrl(): Promise<string> {
     const tq = await captchaQuery();
-    const query = tq ? `?${tq.slice(1)}` : "";
-    return `${ctx.mediaBase}/hls/${encodeURIComponent(ctx.username)}/master.m3u8${query}`;
+    return `${ctx.mediaBase}/hls/${encodeURIComponent(ctx.username)}/master.m3u8?ll=1${tq}`;
 }
 
 function wireVideoLifecycle(g: number): void {
@@ -143,6 +142,7 @@ function startNativeHLS(g: number, src: string): void {
 
 const HLS_DVR_TICK_MS = 500;
 const DEFAULT_LIVE_WINDOW: LatencyWindow = { sync: 5, max: 12 };
+const TIGHT_LIVE_WINDOW: LatencyWindow = { sync: 2.5, max: 8 };
 
 function startHlsJsPlayer(g: number, src: string): void {
     let normalLiveWindow: LatencyWindow = DEFAULT_LIVE_WINDOW;
@@ -193,12 +193,12 @@ function startHlsJsPlayer(g: number, src: string): void {
             }, 0);
             return;
         }
+        const base = data.details.url.startsWith(ctx.mediaBase) ? TIGHT_LIVE_WINDOW : DEFAULT_LIVE_WINDOW;
         const widened = latencyWindowFor(data.details.targetduration);
-        if (!widened) return;
-        if (normalLiveWindow.sync !== widened.sync || normalLiveWindow.max !== widened.max) {
-            console.warn(`live: large segments (target ${data.details.targetduration}s), widening latency window`);
-            normalLiveWindow = widened;
-            if (!dvrHoldActive) applyLiveWindow(widened);
+        const target = widened && widened.sync > base.sync ? widened : base;
+        if (normalLiveWindow.sync !== target.sync || normalLiveWindow.max !== target.max) {
+            normalLiveWindow = target;
+            if (!dvrHoldActive) applyLiveWindow(target);
         }
     });
     hls.on(Hls.Events.ERROR, (_event, data) => {
