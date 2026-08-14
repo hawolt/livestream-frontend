@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { latencyWindowFor } from "../src/live/player/latency-window.ts";
+import { farWindowFor, latencyTierFor, latencyWindowFor } from "../src/live/player/latency-window.ts";
 
 test("compliant 2s segments keep the tuned defaults", () => {
     expect(latencyWindowFor(2)).toBeNull();
@@ -24,4 +24,32 @@ test("garbage input is ignored", () => {
     expect(latencyWindowFor(NaN)).toBeNull();
     expect(latencyWindowFor(Infinity)).toBeNull();
     expect(latencyWindowFor(0)).toBeNull();
+});
+
+test("latency tier maps measured rtt to near, mid and far", () => {
+    expect(latencyTierFor(40, true)).toBe("near");
+    expect(latencyTierFor(150, true)).toBe("near");
+    expect(latencyTierFor(151, true)).toBe("mid");
+    expect(latencyTierFor(350, true)).toBe("mid");
+    expect(latencyTierFor(351, true)).toBe("far");
+    expect(latencyTierFor(900, true)).toBe("far");
+});
+
+test("without origin ll a close viewer still only gets the default window", () => {
+    expect(latencyTierFor(40, false)).toBe("mid");
+    expect(latencyTierFor(900, false)).toBe("far");
+});
+
+test("unmeasured or garbage rtt falls back to the default tier", () => {
+    expect(latencyTierFor(null, true)).toBe("mid");
+    expect(latencyTierFor(Number.NaN, true)).toBe("mid");
+    expect(latencyTierFor(-5, true)).toBe("mid");
+});
+
+test("far windows scale with segment duration and stay ordered", () => {
+    expect(farWindowFor(2)).toEqual({ sync: 8, max: 14 });
+    expect(farWindowFor(4.167)).toEqual({ sync: 10.334, max: 20.668 });
+    expect(farWindowFor(15)).toEqual({ sync: 15, max: 30 });
+    expect(farWindowFor(0)).toBeNull();
+    expect(farWindowFor(Number.NaN)).toBeNull();
 });

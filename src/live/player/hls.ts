@@ -13,7 +13,7 @@ import { attachVideoFailureListeners } from "./health.ts";
 import { renderQualityMenu } from "../quality-menu.ts";
 import { streamQualityText } from "../../quality.ts";
 import { canUseHlsJs, canUseNativeHLS } from "./hls-support.ts";
-import { latencyWindowFor, type LatencyWindow } from "./latency-window.ts";
+import { farWindowFor, latencyTierFor, latencyWindowFor, type LatencyWindow } from "./latency-window.ts";
 import { bufferedAheadOf, startupHoldOver } from "./startup-hold.ts";
 import { updateSeekBar } from "../seekbar.ts";
 
@@ -143,12 +143,17 @@ function startNativeHLS(g: number, src: string): void {
 const HLS_DVR_TICK_MS = 500;
 const DEFAULT_LIVE_WINDOW: LatencyWindow = { sync: 5, max: 12 };
 const TIGHT_LIVE_WINDOW: LatencyWindow = { sync: 2.5, max: 8 };
+const FAR_LIVE_WINDOW: LatencyWindow = { sync: 10, max: 24 };
 
-function startHlsJsPlayer(g: number, src: string, originLL: boolean): void {
-    let normalLiveWindow: LatencyWindow = originLL ? TIGHT_LIVE_WINDOW : DEFAULT_LIVE_WINDOW;
+function startHlsJsPlayer(g: number, src: string, originLL: boolean, rttMs: number | null): void {
+    const tier = latencyTierFor(rttMs, originLL);
+    console.log("live: hls latency tier", tier, rttMs === null ? "unmeasured" : `${Math.round(rttMs)}ms`);
+    let normalLiveWindow: LatencyWindow = tier === "near"
+        ? TIGHT_LIVE_WINDOW
+        : tier === "far" ? FAR_LIVE_WINDOW : DEFAULT_LIVE_WINDOW;
     let dvrHoldActive = false;
     const hls = new Hls({
-        lowLatencyMode: true,
+        lowLatencyMode: tier !== "far",
         abrEwmaDefaultEstimate: 10_000_000,
         backBufferLength: PRUNE_KEEP_S,
         liveSyncDuration: normalLiveWindow.sync,
@@ -193,7 +198,9 @@ function startHlsJsPlayer(g: number, src: string, originLL: boolean): void {
             }, 0);
             return;
         }
-        const base = data.details.url.startsWith(ctx.mediaBase) ? TIGHT_LIVE_WINDOW : DEFAULT_LIVE_WINDOW;
+        const base = tier === "far"
+            ? farWindowFor(data.details.targetduration) ?? FAR_LIVE_WINDOW
+            : tier === "near" && data.details.url.startsWith(ctx.mediaBase) ? TIGHT_LIVE_WINDOW : DEFAULT_LIVE_WINDOW;
         const widened = latencyWindowFor(data.details.targetduration);
         const target = widened && widened.sync > base.sync ? widened : base;
         if (normalLiveWindow.sync !== target.sync || normalLiveWindow.max !== target.max) {
@@ -294,8 +301,15 @@ export function startHLSTransport(g: number): void {
         }
         if (ctx.transportKind === "hls-native") {
             startNativeHLS(g, src);
-        } else {
-            startHlsJsPlayer(g, src, originLL);
+            return;
         }
+        let rttMs: number | null = null;
+        try {
+            const t0 = performance.now();
+            await fetch(src, { credentials: "include" });
+            rttMs = performance.now() - t0;
+        } catch {}
+        if (!isCurrent(g)) return;
+        startHlsJsPlayer(g, src, originLL, rttMs);
     });
 }

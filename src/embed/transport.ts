@@ -10,6 +10,7 @@ import { chooseTransport } from "../player-shared/transport-choice.ts";
 import { chooseTransportBase, markDirectFailed, shouldMarkDirectFailed } from "../player-shared/transport-fallback.ts";
 import { readLocalStorage } from "../storage.ts";
 import { beginTransport, enterTerminal, goOffline, resetRetryBackoff, restartAfterFailure, setPlaying } from "./lifecycle.ts";
+import { latencyTierFor } from "../live/player/latency-window.ts";
 import { attachMediaSource, pump } from "./mse.ts";
 import { attachVideoFailureListeners } from "./health.ts";
 
@@ -176,12 +177,16 @@ function startNativeHLS(g: number, src: string): void {
     startHLSBeacon(g);
 }
 
-function startHlsJsPlayer(g: number, src: string): void {
+function startHlsJsPlayer(g: number, src: string, rttMs: number | null): void {
+    const tier = latencyTierFor(rttMs, true);
     const hls = new Hls({
-        lowLatencyMode: false,
+        lowLatencyMode: tier !== "far",
         backBufferLength: 30,
-        liveSyncDurationCount: 3,
-        liveMaxLatencyDurationCount: 8,
+        ...(tier === "far"
+            ? { liveSyncDurationCount: 3, liveMaxLatencyDurationCount: 8 }
+            : tier === "near"
+                ? { liveSyncDuration: 3.5, liveMaxLatencyDuration: 8 }
+                : { liveSyncDuration: 5, liveMaxLatencyDuration: 12 }),
         maxLiveSyncPlaybackRate: 1,
         enableWorker: true,
         xhrSetup: (xhr, url) => {
@@ -227,8 +232,15 @@ export function startHLSTransport(g: number): void {
         if (!isCurrent(g)) return;
         if (ctx.transportKind === "hls-native") {
             startNativeHLS(g, src);
-        } else {
-            startHlsJsPlayer(g, src);
+            return;
         }
+        let rttMs: number | null = null;
+        try {
+            const t0 = performance.now();
+            await fetch(src, { credentials: "include" });
+            rttMs = performance.now() - t0;
+        } catch {}
+        if (!isCurrent(g)) return;
+        startHlsJsPlayer(g, src, rttMs);
     });
 }
