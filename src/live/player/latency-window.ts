@@ -5,7 +5,7 @@ export interface LatencyWindow {
 
 export function latencyWindowFor(targetduration: number): LatencyWindow | null {
     if (!Number.isFinite(targetduration) || targetduration <= 4) return null;
-    const sync = Math.min(targetduration + 1, 12);
+    const sync = Math.min(targetduration + 3, 15);
     const max = Math.min(Math.max(targetduration * 3, sync + 4), 30);
     return { sync, max };
 }

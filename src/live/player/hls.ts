@@ -142,7 +142,7 @@ function startNativeHLS(g: number, src: string): void {
 }
 
 const HLS_DVR_TICK_MS = 500;
-const DEFAULT_LIVE_WINDOW: LatencyWindow = { sync: 3.5, max: 8 };
+const DEFAULT_LIVE_WINDOW: LatencyWindow = { sync: 5, max: 12 };
 
 function startHlsJsPlayer(g: number, src: string): void {
     let normalLiveWindow: LatencyWindow = DEFAULT_LIVE_WINDOW;
