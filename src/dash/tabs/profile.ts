@@ -377,7 +377,8 @@ async function loadPanels(): Promise<void> {
     const errEl = $("pf-panels-error");
     errEl.textContent = "";
     try {
-        const panels = await authFetch<ChannelPanel[]>("/api/profile/me/panels");
+        const res = await authFetch<ChannelPanel[] | { panels: ChannelPanel[] }>("/api/profile/me/panels");
+        const panels = Array.isArray(res) ? res : res.panels ?? [];
         if (!active) return;
         panelsCache = panels;
         renderPanels();
