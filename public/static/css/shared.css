@@ -1328,5 +1328,6 @@ html.live-host .live-chat-actions button:focus-visible {
 .typeahead-wrap { position: relative; }
 .typeahead-wrap input { width: 100%; }
 .typeahead-list { position: absolute; top: calc(100% + 4px); left: 0; right: 0; z-index: 400; max-height: 240px; overflow-y: auto; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 6px 20px rgba(0, 0, 0, .5); display: flex; flex-direction: column; }
+.typeahead-list[hidden] { display: none; }
 .typeahead-item { flex: 0 0 auto; text-align: left; background: none; border: none; color: var(--text); font: inherit; font-size: 13px; padding: 8px 10px; cursor: pointer; }
 .typeahead-item:hover, .typeahead-item-active { background: rgba(255, 255, 255, .07); }
