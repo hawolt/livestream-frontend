@@ -50,7 +50,7 @@ export function openQualityUpsell(): void {
 }
 
 export function openLowLatencyUpsell(): void {
-    showUpsellPanel("Extra low latency (about 1 second) is part of select subscriptions.");
+    showUpsellPanel("Extra low latency is part of a subscription.");
 }
 
 export function closeQualityUpsell(): void {

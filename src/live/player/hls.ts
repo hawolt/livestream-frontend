@@ -12,6 +12,7 @@ import { attachVideoFailureListeners } from "./health.ts";
 import { renderQualityMenu } from "../quality-menu.ts";
 import { streamQualityText } from "../../quality.ts";
 import { canUseHlsJs, canUseNativeHLS } from "./hls-support.ts";
+import { latencyWindowFor } from "./latency-window.ts";
 
 export interface HlsLevelEntry {
     index: number;
@@ -158,6 +159,16 @@ function startHlsJsPlayer(g: number, src: string): void {
     hls.on(Hls.Events.LEVEL_SWITCHED, () => {
         if (!isCurrent(g) || hlsInstance !== hls) return;
         renderQualityMenu();
+    });
+    hls.on(Hls.Events.LEVEL_LOADED, (_event, data) => {
+        if (!isCurrent(g) || hlsInstance !== hls) return;
+        const window = latencyWindowFor(data.details.targetduration);
+        if (!window) return;
+        if (hls.config.liveSyncDuration !== window.sync) {
+            console.warn(`live: large segments (target ${data.details.targetduration}s), widening latency window`);
+            hls.config.liveSyncDuration = window.sync;
+            hls.config.liveMaxLatencyDuration = window.max;
+        }
     });
     hls.on(Hls.Events.ERROR, (_event, data) => {
         if (!isCurrent(g) || hlsInstance !== hls) return;
