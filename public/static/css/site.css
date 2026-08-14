@@ -776,3 +776,10 @@ body.rail-collapsed:has(.live-channel-rail) .site-nav { padding-left: 17.5px; }
         padding: 4px 3px 4px 0;
     }
 }
+
+.status-banner { position: fixed; left: 16px; bottom: 16px; z-index: 9000; display: flex; align-items: center; gap: 10px; max-width: min(440px, calc(100vw - 32px)); padding: 10px 12px; background: rgba(30, 22, 8, .96); border: 1px solid rgba(250, 204, 21, .45); border-radius: 8px; box-shadow: 0 4px 18px rgba(0, 0, 0, .5); font-size: 13px; color: var(--text); }
+.status-banner-text { line-height: 1.4; }
+.status-banner-link { color: #facc15; text-decoration: underline; white-space: nowrap; }
+.status-banner-link:hover { color: #fde047; }
+.status-banner-dismiss { flex: 0 0 auto; background: none; border: none; color: var(--muted); font: inherit; font-size: 17px; line-height: 1; cursor: pointer; padding: 2px 4px; }
+.status-banner-dismiss:hover { color: var(--text); }

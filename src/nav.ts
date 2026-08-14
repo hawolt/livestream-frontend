@@ -3,6 +3,7 @@ import { sessionTokenMetadata } from "./session-token.ts";
 import { buildSignedIn, buildSignedOut, buildViewMenu } from "./nav/account-menu.ts";
 import { buildBurger } from "./nav/burger.ts";
 import { wireDropdown } from "./nav/dropdown.ts";
+import { initStatusBanner } from "./status-banner.ts";
 
 export type NavActive = "browse" | "dashboard" | null;
 
@@ -91,12 +92,15 @@ const SOCIAL_LINKS: Array<[string, string, string]> = [
     ["GitHub", "https://github.com/hawolt/livestream-frontend", GITHUB_ICON],
 ];
 
-const MORE_LINKS: Array<[string, string]> = [
-    ["API", "/wiki"],
-    ["Terms of Service", "/terms"],
-    ["Privacy Policy", "/privacy"],
-    ["Impressum", "/impressum"],
-];
+function moreLinks(): Array<[string, string]> {
+    return [
+        ["API", "/wiki"],
+        ["Status", `https://status.${location.hostname}`],
+        ["Terms of Service", "/terms"],
+        ["Privacy Policy", "/privacy"],
+        ["Impressum", "/impressum"],
+    ];
+}
 
 function buildMoreMenu(): HTMLElement {
     const wrap = document.createElement("div");
@@ -113,7 +117,7 @@ function buildMoreMenu(): HTMLElement {
     panel.className = "site-more-panel";
     panel.hidden = true;
 
-    for (const [label, href] of MORE_LINKS) {
+    for (const [label, href] of moreLinks()) {
         const a = document.createElement("a");
         a.className = "site-account-item";
         a.href = href;
@@ -183,6 +187,7 @@ export async function initSiteNav(
 ): Promise<void> {
     markActive(active);
     insertMoreMenu();
+    initStatusBanner();
 
     const right = rightMount();
     const controlButtons: HTMLButtonElement[] = [];
