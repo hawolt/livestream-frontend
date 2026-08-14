@@ -1,5 +1,5 @@
 import type { LiveInfo, LiveCategory } from "../../api.ts";
-import { STREAM_LANGUAGE_OPTIONS, type StreamLanguageCode } from "../../stream-languages.ts";
+import { STREAM_LANGUAGE_OPTIONS, streamLanguageCodes } from "../../stream-languages.ts";
 import { esc, fmtDate, fmtTime } from "../format.ts";
 import { authFetch, getMe, token } from "../session.ts";
 import { countNewLiveEvents, eventTypeClass, followEventKey, mergeFollowEvents, rejectEventLabel, viewerCountLabel, type FollowEvent } from "../activity-events.ts";
@@ -228,13 +228,19 @@ function renderInfo(): void {
     const options = [`<option value="" ${liveCache.categoryId === null ? "selected" : ""}>No category</option>`]
         .concat(categoriesCache.map(c =>
             `<option value="${c.id}" ${liveCache!.categoryId === c.id ? "selected" : ""}>${esc(c.name)}</option>`));
-    const languageOptions = STREAM_LANGUAGE_OPTIONS.map(({ code, label }) =>
-        `<option value="${code}" ${liveCache!.language === code ? "selected" : ""}>${esc(label)}</option>`);
+    const currentCodes = streamLanguageCodes(liveCache.language);
+    const primaryCode = currentCodes[0] ?? "und";
+    const secondaryCode = currentCodes[1] ?? "und";
+    const languageOptions = (selected: string) => STREAM_LANGUAGE_OPTIONS.map(({ code, label }) =>
+        `<option value="${code}" ${selected === code ? "selected" : ""}>${esc(label)}</option>`);
+    const secondaryOptions = STREAM_LANGUAGE_OPTIONS.map(({ code, label }) =>
+        `<option value="${code}" ${secondaryCode === code ? "selected" : ""}>${esc(code === "und" ? "None" : label)}</option>`);
     el.innerHTML = `
         <div class="form-grid">
             <label class="span2"><span>Title</span><input id="live-info-title" type="text" maxlength="200" placeholder="Now streaming..." value="${esc(liveCache.title)}"></label>
             <label><span>Category</span><select id="live-info-category">${options.join("")}</select></label>
-            <label><span>Language</span><select id="live-info-language">${languageOptions.join("")}</select></label>
+            <label><span>Language</span><select id="live-info-language">${languageOptions(primaryCode).join("")}</select></label>
+            <label><span>Second language</span><select id="live-info-language2">${secondaryOptions.join("")}</select></label>
         </div>
         <div style="font-size:12px;color:var(--muted);margin-top:6px">
             Shown with your stream on the channel page and explorer. Categories are also used to group streams.
@@ -252,7 +258,10 @@ function renderInfo(): void {
         const title = (document.getElementById("live-info-title") as HTMLInputElement).value;
         const catVal = (document.getElementById("live-info-category") as HTMLSelectElement).value;
         const categoryId = catVal === "" ? null : Number(catVal);
-        const language = (document.getElementById("live-info-language") as HTMLSelectElement).value as StreamLanguageCode;
+        const primary = (document.getElementById("live-info-language") as HTMLSelectElement).value;
+        const secondary = (document.getElementById("live-info-language2") as HTMLSelectElement).value;
+        const codes = [primary, secondary].filter((code, i, all) => code !== "und" && all.indexOf(code) === i);
+        const language = codes.length ? codes.join(",") : "und";
         errEl.textContent = "";
         savedEl.textContent = "";
         btn.disabled = true;

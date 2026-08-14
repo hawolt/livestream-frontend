@@ -1,4 +1,4 @@
-import type { StreamLanguageCode } from "./stream-languages.ts";
+
 
 export interface AccountSettings {
     chatBotToken?: string | null;
@@ -112,7 +112,7 @@ export interface LiveInfo {
     title: string;
     category: string | null;
     categoryId: number | null;
-    language: StreamLanguageCode;
+    language: string;
     webhookStartUrl: string;
     webhookEndUrl: string;
     webhookSecret: string;
@@ -163,7 +163,7 @@ export interface LiveChannelInfo {
     title: string;
     category: string | null;
     categoryId: number | null;
-    language: StreamLanguageCode;
+    language: string;
     mediaBase: string;
     wssBase?: string;
     hlsBase?: string;

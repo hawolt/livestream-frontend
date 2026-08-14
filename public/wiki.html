@@ -216,7 +216,7 @@ PONG :go-irc</code></pre>
             </table>
 
             <h2>GET /channel/{username}</h2>
-            <p>Scope: <code>api:read</code>. Public info for a channel. <code>viewers</code> is only present while the channel is live; <code>category</code> and <code>categoryId</code> are <code>null</code> when unset; <code>language</code> is an ISO 639-1 code or <code>und</code>. Unknown, banned, and non-streaming accounts answer <code>404</code>. Password-protected channels answer <code>404</code> to everyone except a token owned by the channel itself.</p>
+            <p>Scope: <code>api:read</code>. Public info for a channel. <code>viewers</code> is only present while the channel is live; <code>category</code> and <code>categoryId</code> are <code>null</code> when unset; <code>language</code> is one or two comma-separated ISO 639-1 codes (e.g. <code>fr,en</code>) or <code>und</code>. Unknown, banned, and non-streaming accounts answer <code>404</code>. Password-protected channels answer <code>404</code> to everyone except a token owned by the channel itself.</p>
             <pre><code>curl https://<span data-fill="host">itzon.tv</span>/api/public/v1/channel/streamer \
   -H "Authorization: Bearer $TOKEN"</code></pre>
             <pre><code>{
@@ -273,7 +273,7 @@ PONG :go-irc</code></pre>
                 <tr><th>Field</th><th>Rules</th></tr>
                 <tr><td><code>title</code></td><td>max 200 characters; omitted or empty clears the title</td></tr>
                 <tr><td><code>categoryId</code></td><td>must be an id from <code>/categories</code>; omitted or <code>null</code> clears the category</td></tr>
-                <tr><td><code>language</code></td><td>ISO 639-1 two-letter code; <code>null</code> resets to unspecified; omitted leaves it unchanged</td></tr>
+                <tr><td><code>language</code></td><td>up to two ISO 639-1 codes, as a comma-separated string (<code>"fr,en"</code>) or an array (<code>["fr","en"]</code>); <code>null</code> resets to unspecified; omitted leaves it unchanged</td></tr>
             </table>
             <pre><code>curl -X PUT https://<span data-fill="host">itzon.tv</span>/api/public/v1/me/stream-info \
   -H "Authorization: Bearer $TOKEN" \

@@ -192,9 +192,19 @@ const STREAM_LANGUAGE_LABELS = new Map<string, string>(
     STREAM_LANGUAGE_OPTIONS.map(({ code, label }) => [code, label]),
 );
 
+export function streamLanguageCodes(language: unknown): string[] {
+    if (typeof language !== "string") return [];
+    const codes: string[] = [];
+    for (const part of language.split(",")) {
+        const code = part.trim().toLowerCase();
+        if (!code || code === "und" || !STREAM_LANGUAGE_LABELS.has(code)) continue;
+        if (!codes.includes(code)) codes.push(code);
+        if (codes.length === 2) break;
+    }
+    return codes;
+}
+
 export function streamLanguageLabel(language: unknown): string | null {
-    if (typeof language !== "string") return null;
-    const code = language.trim().toLowerCase();
-    if (!code || code === "und") return null;
-    return STREAM_LANGUAGE_LABELS.get(code) ?? null;
+    const labels = streamLanguageCodes(language).map((code) => STREAM_LANGUAGE_LABELS.get(code)!);
+    return labels.length ? labels.join(" / ") : null;
 }
