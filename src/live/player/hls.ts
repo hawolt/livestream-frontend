@@ -1,7 +1,8 @@
 import Hls from "hls.js";
 import { video } from "../dom.ts";
 import { ctx, isCurrent, track } from "./context.ts";
-import { HLS_BEACON_INTERVAL_MS, PRUNE_KEEP_S } from "../constants.ts";
+import { HLS_BEACON_INTERVAL_MS, HLS_QUALITY_STORAGE_KEY, PRUNE_KEEP_S } from "../constants.ts";
+import { readLocalStorage } from "../../storage.ts";
 import { ensureViewerId } from "../../player-shared/viewer-id.ts";
 import { needsCredentials } from "../../player-shared/needs-credentials.ts";
 import { captchaQuery } from "../../captcha.ts";
@@ -148,6 +149,7 @@ function startHlsJsPlayer(g: number, src: string): void {
     let dvrHoldActive = false;
     const hls = new Hls({
         lowLatencyMode: true,
+        abrEwmaDefaultEstimate: 6_000_000,
         backBufferLength: PRUNE_KEEP_S,
         liveSyncDuration: normalLiveWindow.sync,
         liveMaxLatencyDuration: normalLiveWindow.max,
@@ -169,6 +171,11 @@ function startHlsJsPlayer(g: number, src: string): void {
             index,
             label: streamQualityText(level.width ?? 0, level.height ?? 0, level.frameRate ?? 0),
         }));
+        const preferred = readLocalStorage(HLS_QUALITY_STORAGE_KEY);
+        if (preferred) {
+            const match = hlsLevelEntries.find((entry) => entry.label === preferred);
+            if (match) hls.currentLevel = match.index;
+        }
         renderQualityMenu();
     });
     hls.on(Hls.Events.LEVEL_SWITCHED, () => {

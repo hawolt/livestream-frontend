@@ -2,7 +2,7 @@ import { qualityBtn, qualityPopupEl, qualitySelectEl } from "./dom.ts";
 import { ctx } from "./player/context.ts";
 import { allowedSubset, qualityLabel, qualityRowParts, resolveNextQuality } from "../quality.ts";
 import { openLowLatencyUpsell, openQualityUpsell, qualityPadlock } from "./quality-upsell.ts";
-import { QUALITY_STORAGE_KEY } from "./constants.ts";
+import { HLS_QUALITY_STORAGE_KEY, QUALITY_STORAGE_KEY } from "./constants.ts";
 import { writeLocalStorage } from "../storage.ts";
 import { beginTransport } from "./player/lifecycle.ts";
 import { closeDismissibleSurface, openDismissibleSurface } from "../dismissible-surface.ts";
@@ -67,6 +67,8 @@ function appendUpsellRow(): void {
 }
 
 function selectHlsLevel(index: number): void {
+    const entry = hlsLevels().find((e) => e.index === index);
+    writeLocalStorage(HLS_QUALITY_STORAGE_KEY, index === -1 || !entry ? "" : entry.label);
     setHlsLevel(index);
     renderQualityMenu();
 }
