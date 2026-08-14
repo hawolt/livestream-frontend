@@ -1315,12 +1315,13 @@
         .live-about-sort-btn:hover { color: var(--text); border-color: var(--text); }
         .live-about-sort-btn.active { color: #000; background: var(--accent); border-color: var(--accent); }
         .live-about-clips-row { display: flex; gap: 12px; overflow-x: auto; padding-bottom: 4px; }
-        .live-about-clip { position: relative; flex: 0 0 200px; display: block; color: inherit; text-decoration: none; }
-        .live-about-clip-poster { width: 200px; height: 112px; object-fit: cover; border-radius: 8px; background: var(--bg); display: block; }
-        .live-about-clip-views {
+        .live-about-clip { flex: 0 0 300px; display: block; color: inherit; text-decoration: none; }
+        .live-about-clip-thumb { position: relative; width: 300px; height: 169px; border-radius: 8px; overflow: hidden; background: var(--bg); }
+        .live-about-clip-poster { width: 100%; height: 100%; object-fit: cover; display: block; }
+        .live-about-clip-views,
+        .live-about-clip-date {
             position: absolute;
-            left: 6px;
-            top: 92px;
+            right: 8px;
             font-size: 11px;
             font-weight: 600;
             color: #fff;
@@ -1328,6 +1329,8 @@
             padding: 2px 6px;
             border-radius: 4px;
         }
+        .live-about-clip-views { bottom: 8px; }
+        .live-about-clip-date { top: 8px; }
         .live-about-clip-title {
             margin-top: 6px;
             font-size: 13px;
@@ -1339,7 +1342,6 @@
             -webkit-line-clamp: 2;
             -webkit-box-orient: vertical;
         }
-        .live-about-clip-date { margin-top: 2px; font-size: 11px; color: var(--muted); }
 
         body.chat-left:not(.is-vertical) .live-left { order: 2; }
         body.chat-left:not(.is-vertical) #live-chat { order: 1; }
@@ -2185,6 +2187,6 @@
         </form>
     </div>
 </div>
-<script src="/live-s8tcsadj.js" type="module"></script>
+<script src="/live-va3de0ps.js" type="module"></script>
 </body>
 </html>

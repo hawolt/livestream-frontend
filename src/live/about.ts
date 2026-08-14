@@ -93,26 +93,29 @@ function buildClipCard(channel: string, clip: AboutClip): HTMLAnchorElement {
     const a = document.createElement("a");
     a.className = "live-about-clip";
     a.href = `/${channel}/clip/${encodeURIComponent(clip.id)}`;
+    const thumb = document.createElement("div");
+    thumb.className = "live-about-clip-thumb";
     if (clip.poster) {
         const img = document.createElement("img");
         img.className = "live-about-clip-poster";
         img.src = clip.poster;
         img.alt = "";
         img.loading = "lazy";
-        a.appendChild(img);
+        thumb.appendChild(img);
     }
+    const date = document.createElement("div");
+    date.className = "live-about-clip-date";
+    date.textContent = relativeDate(clip.createdAt);
+    thumb.appendChild(date);
     const views = document.createElement("div");
     views.className = "live-about-clip-views";
     views.textContent = `${formatCompactCount(clip.views)} views`;
-    a.appendChild(views);
+    thumb.appendChild(views);
+    a.appendChild(thumb);
     const title = document.createElement("div");
     title.className = "live-about-clip-title";
     title.textContent = clip.title;
     a.appendChild(title);
-    const date = document.createElement("div");
-    date.className = "live-about-clip-date";
-    date.textContent = relativeDate(clip.createdAt);
-    a.appendChild(date);
     return a;
 }
 
