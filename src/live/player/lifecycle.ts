@@ -9,7 +9,6 @@ import { resetStreamInfo, setViewers } from "../stream-info.ts";
 import { renderQualityMenu } from "../quality-menu.ts";
 import { adoptWSTransport, startWSTransport } from "./ws.ts";
 import { resetSeekDrag } from "../seekbar.ts";
-import { applyDefaultProfileVisibility } from "../../chat/panels.ts";
 
 let retryTimer: number | null = null;
 let retryDelay = RETRY_MIN_MS;
@@ -131,7 +130,6 @@ export function renderPlayerUI(): void {
         case "offline":
             setBadge(false);
             setPoster("Offline", false, false, true);
-            applyDefaultProfileVisibility(true);
             break;
         case "connecting":
             setBadge(false);
@@ -148,7 +146,6 @@ export function renderPlayerUI(): void {
         case "playing":
             setBadge(true);
             setPoster(null);
-            applyDefaultProfileVisibility(false);
             break;
     }
 }

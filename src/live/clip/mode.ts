@@ -1,18 +1,14 @@
 import {
-    categoryEl,
-    categorySepEl,
     chatFeatureSlotEl,
     clipWatchLiveEl,
-    languageEl,
-    languageSepEl,
     nameEl,
     page,
     posterEl,
-    sepEl,
     titleBar,
-    titleEl,
     video,
 } from "../dom.ts";
+import { applyChannelChrome } from "../channel-chrome.ts";
+import { applyChannelIdentity } from "../about.ts";
 import { syncLayout } from "../layout.ts";
 import {
     clipStatusPollingActive,
@@ -25,7 +21,6 @@ import { clipProcessingMessage } from "../../clip-processing-message.ts";
 import type { ClipRoute } from "./route.ts";
 import { ctx } from "../player/context.ts";
 import type { LiveChannelInfo } from "../../api.ts";
-import { streamLanguageLabel } from "../../stream-languages.ts";
 import { startAdRotation } from "../../ads.ts";
 import { warmCaptcha } from "../../captcha.ts";
 import { startChat } from "../../live-chat.ts";
@@ -33,7 +28,6 @@ import { openLoginModal, wireLoginModal } from "../login-modal.ts";
 import { initFollow } from "../follow.ts";
 import { connectViewcount } from "../stream-info.ts";
 import { startChannelRail } from "../channel-rail.ts";
-import { applyDefaultProfileVisibility, openProfileFromUser } from "../../chat/panels.ts";
 import { loadProfile, offlineArtUrl } from "../../profile-card.ts";
 import { attemptClipAutoplay, hideClipControls, showClipControls, wireClipPlayer, wireClipUnmute } from "./player.ts";
 
@@ -95,22 +89,12 @@ function applyChannelLiveState(): void {
 }
 
 function renderInfoBar(): void {
-    const hasClipTitle = !!clipTitle;
-    const hasCategory = !!channelChrome.category;
-    const languageLabel = streamLanguageLabel(channelChrome.language);
-    const hasLanguage = languageLabel !== null;
-    titleEl.textContent = clipTitle;
-    sepEl.classList.toggle("hidden", !hasClipTitle && !hasCategory && !hasLanguage);
-    categoryEl.textContent = channelChrome.category;
-    if (channelChrome.categoryId !== null && hasCategory) categoryEl.href = `/category/${encodeURIComponent(channelChrome.category)}`;
-    else if (channelChrome.categoryId !== null) categoryEl.href = `/?category=${channelChrome.categoryId}`;
-    else categoryEl.removeAttribute("href");
-    categoryEl.classList.toggle("hidden", !hasCategory);
-    categorySepEl.classList.toggle("hidden", !hasClipTitle || !hasCategory);
-    languageEl.textContent = languageLabel ?? "";
-    languageEl.classList.toggle("hidden", !hasLanguage);
-    languageSepEl.classList.toggle("hidden", !hasLanguage || (!hasClipTitle && !hasCategory));
-    languageEl.title = languageLabel ? `Stream language: ${languageLabel}` : "";
+    applyChannelChrome({
+        title: clipTitle,
+        category: channelChrome.category,
+        categoryId: channelChrome.categoryId,
+        language: channelChrome.language,
+    });
 }
 
 async function fetchChannelChrome(channel: string): Promise<ChannelChrome> {
@@ -183,8 +167,6 @@ function applyResult(route: ClipRoute, result: ClipStatusRecord | null | "not-fo
     }
 }
 
-let clipModeWired = false;
-
 export async function bootClipMode(route: ClipRoute): Promise<void> {
     document.body.classList.add("clip-mode");
     page.hidden = false;
@@ -212,6 +194,7 @@ export async function bootClipMode(route: ClipRoute): Promise<void> {
     void loadProfile(route.channel).then(profile => {
         if (profile) clipArtUrl = offlineArtUrl(profile);
         if (!posterEl.classList.contains("hidden")) applyClipArt(true);
+        applyChannelIdentity(profile);
     });
 
     const [chromeResult, clipResult] = await Promise.all([
@@ -229,11 +212,6 @@ export async function bootClipMode(route: ClipRoute): Promise<void> {
 
     wireLoginModal();
     startChat(route.channel, channelChrome.emoteTwitchId, () => openLoginModal("chat"));
-    if (!clipModeWired) {
-        clipModeWired = true;
-        nameEl.addEventListener("click", () => openProfileFromUser());
-    }
-    applyDefaultProfileVisibility(true);
 
     void initFollow();
     connectViewcount();

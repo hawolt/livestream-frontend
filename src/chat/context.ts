@@ -36,7 +36,6 @@ export const ctx = {
     helpOpen: false,
     helpBuilt: false,
     settingsOpen: false,
-    profileOpen: false,
     suggestIndex: -1,
     suggestItemsData: [] as SuggestItem[],
     tabCycleRange: null as ReplaceRange | null,

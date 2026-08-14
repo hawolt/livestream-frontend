@@ -20,13 +20,12 @@ import { startChannelRail } from "./live/channel-rail.ts";
 import { syncLayout } from "./live/layout.ts";
 import { beginTransport, enterTerminal, setOfflineArt } from "./live/player/lifecycle.ts";
 import { loadProfile, offlineArtUrl } from "./profile-card.ts";
-import { loadAboutClips, mountAboutCard } from "./live/about.ts";
+import { initOwnerCards, loadAboutClips, mountAboutCard } from "./live/about.ts";
 import { canUseHlsJs, canUseNativeHLS, mseSupported } from "./live/player/hls-support.ts";
 import { openLoginModal, wireLoginModal } from "./live/login-modal.ts";
 import { initFollow } from "./live/follow.ts";
 import { connectViewcount, enableWatchAuth, resumeViewcount, setStreamStart, suspendViewcount } from "./live/stream-info.ts";
 import { initPointsChip } from "./live/points.ts";
-import { openProfileFromUser } from "./chat/panels.ts";
 import { parseClipRoute } from "./live/clip/route.ts";
 import { bootClipMode } from "./live/clip/mode.ts";
 import { promptStreamPassword } from "./live/stream-pass-gate.ts";
@@ -222,6 +221,7 @@ async function boot(): Promise<void> {
             mountAboutCard(profile);
         });
         loadAboutClips(ctx.username);
+        initOwnerCards(ctx.username);
     }
     applyChannelChrome({ title, category, categoryId, language });
 
@@ -238,7 +238,6 @@ async function boot(): Promise<void> {
     enableWatchAuth();
     initPointsChip(ctx.username, pointsName);
     connectViewcount();
-    nameEl.addEventListener("click", () => openProfileFromUser());
 
     const captchaToken = await getCaptchaToken();
     if (generation !== bootGeneration) return;

@@ -11,6 +11,15 @@ export function formatUptime(total: number): string {
     return `${m}:${ss}`;
 }
 
+const compactCountFormatter = new Intl.NumberFormat(undefined, {
+    notation: "compact",
+    maximumFractionDigits: 1,
+});
+
+export function formatCompactCount(n: number): string {
+    return compactCountFormatter.format(Math.max(0, n));
+}
+
 export function formatBehind(s: number): string {
     const total = Math.max(0, Math.round(s));
     const h = Math.floor(total / 3600);

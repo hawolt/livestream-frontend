@@ -76,7 +76,7 @@ export function offlineArtUrl(profile: Profile): string | null {
     return `/api/live/profile/${encodeURIComponent(profile.username)}/banner?v=${profile.bannerVersion}`;
 }
 
-function buildAvatar(profile: Profile): HTMLElement {
+export function buildAvatar(profile: Profile): HTMLElement {
     if (profile.hasAvatar) {
         const img = document.createElement("img");
         img.className = "profile-card-avatar";
@@ -107,63 +107,31 @@ function buildPlatformIcon(platform: string): SVGSVGElement | null {
     return svg;
 }
 
-function followerLabel(count: number): string {
+export function followerLabel(count: number): string {
     return `${count.toLocaleString()} follower${count === 1 ? "" : "s"}`;
 }
 
-export function renderProfileCard(container: HTMLElement, profile: Profile | null): void {
-    container.replaceChildren();
-    if (!profile) return;
-
-    const card = document.createElement("div");
-    card.className = "profile-card";
-
-    const head = document.createElement("div");
-    head.className = "profile-card-head";
-    head.appendChild(buildAvatar(profile));
-
-    const identity = document.createElement("div");
-    identity.className = "profile-card-identity";
-    const username = document.createElement("div");
-    username.className = "profile-card-username";
-    username.textContent = profile.username;
-    const followers = document.createElement("div");
-    followers.className = "profile-card-followers";
-    followers.textContent = followerLabel(profile.followers);
-    identity.append(username, followers);
-    head.appendChild(identity);
-    card.appendChild(head);
-
-    if (profile.bio) {
-        const bio = document.createElement("p");
-        bio.className = "profile-card-bio";
-        bio.textContent = profile.bio;
-        card.appendChild(bio);
-    }
-
-    const safeLinks = profile.links.filter(link => isHttpsUrl(link.url));
-    if (safeLinks.length) {
-        const links = document.createElement("div");
-        links.className = "profile-card-links";
-        for (const link of safeLinks) {
-            const a = document.createElement("a");
-            a.className = "profile-card-link";
-            a.href = link.url;
-            const glyph = buildPlatformIcon(link.platform);
-            if (glyph) {
-                a.appendChild(glyph);
-                a.title = PLATFORM_LABELS[link.platform] ?? link.platform;
-            }
-            const text = document.createElement("span");
-            text.textContent = link.label;
-            a.appendChild(text);
-            a.target = "_blank";
-            a.rel = "noopener noreferrer nofollow ugc";
-            a.referrerPolicy = "no-referrer";
-            links.appendChild(a);
+export function buildProfileLinks(links: ProfileLink[]): HTMLElement | null {
+    const safeLinks = links.filter(link => isHttpsUrl(link.url));
+    if (!safeLinks.length) return null;
+    const wrap = document.createElement("div");
+    wrap.className = "profile-card-links";
+    for (const link of safeLinks) {
+        const a = document.createElement("a");
+        a.className = "profile-card-link";
+        a.href = link.url;
+        const glyph = buildPlatformIcon(link.platform);
+        if (glyph) {
+            a.appendChild(glyph);
+            a.title = PLATFORM_LABELS[link.platform] ?? link.platform;
         }
-        card.appendChild(links);
+        const text = document.createElement("span");
+        text.textContent = link.label;
+        a.appendChild(text);
+        a.target = "_blank";
+        a.rel = "noopener noreferrer nofollow ugc";
+        a.referrerPolicy = "no-referrer";
+        wrap.appendChild(a);
     }
-
-    container.appendChild(card);
+    return wrap;
 }

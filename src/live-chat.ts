@@ -11,8 +11,6 @@ import {
     msgsEl,
     pickerFilterEl,
     pingMuteToggleEl,
-    profileBtnEl,
-    profileCloseEl,
     replyCancelEl,
     sendEl,
     settingsBtnEl,
@@ -38,18 +36,17 @@ import {
     applyMutePingsPref,
     applyTimestampPref,
     AVATARS_KEY,
-    closeProfile,
     MUTE_PINGS_KEY,
     setHelp,
     setSettings,
     setUserlist,
     TIMESTAMPS_KEY,
     toggleHelp,
-    toggleProfile,
     toggleSettings,
     toggleUserlist,
 } from "./chat/panels.ts";
 import { acceptSelectedSuggestion, advanceTabCycle, hideSuggest, moveSuggest, updateSuggest } from "./chat/suggest.ts";
+import { GEAR_ICON } from "./nav/account-menu.ts";
 
 let chatStarted = false;
 let teardownListeners: (() => void) | null = null;
@@ -69,7 +66,6 @@ export function startChat(user: string, emoteTwitchId?: string, onLoginRequested
     msgsEl.setAttribute("aria-live", "polite");
     msgsEl.setAttribute("aria-relevant", "additions text");
     const panelAttributes: Array<[HTMLButtonElement, HTMLElement, string]> = [
-        [profileBtnEl, document.getElementById("live-chat-profile") as HTMLElement, "Channel profile"],
         [usersBtnEl, document.getElementById("live-chat-userlist") as HTMLElement, "Viewers"],
         [helpBtnEl, document.getElementById("live-chat-help") as HTMLElement, "Chat commands"],
         [settingsBtnEl, document.getElementById("live-chat-settings") as HTMLElement, "Chat settings"],
@@ -80,6 +76,7 @@ export function startChat(user: string, emoteTwitchId?: string, onLoginRequested
         panel.setAttribute("role", "region");
         panel.setAttribute("aria-label", label);
     }
+    settingsBtnEl.innerHTML = GEAR_ICON;
     emoteBtnEl.setAttribute("aria-haspopup", "dialog");
     emoteBtnEl.setAttribute("aria-expanded", "false");
     emoteBtnEl.setAttribute("aria-controls", document.getElementById("live-chat-picker")!.id);
@@ -114,8 +111,6 @@ export function startChat(user: string, emoteTwitchId?: string, onLoginRequested
     settingsBtnEl.addEventListener("click", toggleSettings);
     const onSettingsCloseClick = (): void => setSettings(false);
     settingsCloseEl.addEventListener("click", onSettingsCloseClick);
-    profileBtnEl.addEventListener("click", toggleProfile);
-    profileCloseEl.addEventListener("click", closeProfile);
     applyTimestampPref(readLocalStorage(TIMESTAMPS_KEY) === "1");
     const onTimestampToggleChange = (): void => {
         applyTimestampPref(timestampToggleEl.checked);
@@ -186,8 +181,6 @@ export function startChat(user: string, emoteTwitchId?: string, onLoginRequested
             setHelp(false);
         } else if (ctx.settingsOpen) {
             setSettings(false);
-        } else if (ctx.profileOpen) {
-            closeProfile();
         } else {
             return;
         }
@@ -209,8 +202,6 @@ export function startChat(user: string, emoteTwitchId?: string, onLoginRequested
         helpCloseEl.removeEventListener("click", onHelpCloseClick);
         settingsBtnEl.removeEventListener("click", toggleSettings);
         settingsCloseEl.removeEventListener("click", onSettingsCloseClick);
-        profileBtnEl.removeEventListener("click", toggleProfile);
-        profileCloseEl.removeEventListener("click", closeProfile);
         timestampToggleEl.removeEventListener("change", onTimestampToggleChange);
         avatarToggleEl.removeEventListener("change", onAvatarToggleChange);
         pingMuteToggleEl.removeEventListener("change", onMutePingsToggleChange);

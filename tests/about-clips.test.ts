@@ -3,10 +3,10 @@ import { normalizeClipsPayload } from "../src/live/about/clips.ts";
 
 test("normalizes a well formed clips payload", () => {
     const clips = normalizeClipsPayload({
-        clips: [{ id: "abc", title: "Nice play", createdAt: "2026-08-01T00:00:00Z", url: "https://x.com/c/abc", poster: "https://x.com/p.png" }],
+        clips: [{ id: "abc", title: "Nice play", createdAt: "2026-08-01T00:00:00Z", url: "https://x.com/c/abc", poster: "https://x.com/p.png", views: 42 }],
     });
     expect(clips).toEqual([
-        { id: "abc", title: "Nice play", createdAt: "2026-08-01T00:00:00Z", url: "https://x.com/c/abc", poster: "https://x.com/p.png" },
+        { id: "abc", title: "Nice play", createdAt: "2026-08-01T00:00:00Z", url: "https://x.com/c/abc", poster: "https://x.com/p.png", views: 42 },
     ]);
 });
 
@@ -15,9 +15,9 @@ test("skips entries with no id", () => {
     expect(clips).toEqual([]);
 });
 
-test("fills missing string fields with empty strings", () => {
+test("fills missing string fields with empty strings and missing views with zero", () => {
     const clips = normalizeClipsPayload({ clips: [{ id: "abc" }] });
-    expect(clips).toEqual([{ id: "abc", title: "", createdAt: "", url: "", poster: "" }]);
+    expect(clips).toEqual([{ id: "abc", title: "", createdAt: "", url: "", poster: "", views: 0 }]);
 });
 
 test("is defensive about missing or malformed input", () => {

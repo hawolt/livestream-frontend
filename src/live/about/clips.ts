@@ -1,9 +1,12 @@
+export type ClipsSort = "newest" | "views";
+
 export interface AboutClip {
     id: string;
     title: string;
     createdAt: string;
     url: string;
     poster: string;
+    views: number;
 }
 
 function stringField(item: Record<string, unknown>, key: string): string {
@@ -26,15 +29,17 @@ export function normalizeClipsPayload(raw: unknown): AboutClip[] {
             createdAt: stringField(item, "createdAt"),
             url: stringField(item, "url"),
             poster: stringField(item, "poster"),
+            views: typeof item["views"] === "number" ? item["views"] as number : 0,
         });
     }
     return out;
 }
 
-export async function loadChannelClips(username: string): Promise<AboutClip[]> {
+export async function loadChannelClips(username: string, sort: ClipsSort = "newest"): Promise<AboutClip[]> {
     if (!username) return [];
     try {
-        const res = await fetch(`/api/live/clips/channel/${encodeURIComponent(username)}`);
+        const query = sort === "views" ? "?sort=views" : "";
+        const res = await fetch(`/api/live/clips/channel/${encodeURIComponent(username)}${query}`);
         if (!res.ok) return [];
         const data: unknown = await res.json();
         return normalizeClipsPayload(data);
