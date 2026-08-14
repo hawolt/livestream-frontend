@@ -49,6 +49,10 @@ export function openQualityUpsell(): void {
     showUpsellPanel(`This stream plays at ${ctx.lockedStreamLabel || "a higher quality"}`);
 }
 
+export function openLowLatencyUpsell(): void {
+    showUpsellPanel("Extra low latency (about 1 second) is part of select subscriptions.");
+}
+
 export function closeQualityUpsell(): void {
     const panel = panelEl();
     if (panel) panel.hidden = true;

@@ -173,6 +173,25 @@ function startHlsJsPlayer(g: number, src: string): void {
     hls.attachMedia(video);
     void video.play().catch(() => {});
     startHLSBeacon(g);
+    startLadderWatch(g, src);
+}
+
+const LADDER_WATCH_MS = 30000;
+
+function startLadderWatch(g: number, src: string): void {
+    const timer = window.setInterval(() => {
+        if (!isCurrent(g)) return;
+        const hls = hlsInstance;
+        if (!hls) return;
+        void fetch(src, { credentials: "include" }).then(async (res) => {
+            if (!res.ok || !isCurrent(g) || hlsInstance !== hls) return;
+            const text = await res.text();
+            if (!isCurrent(g) || hlsInstance !== hls) return;
+            const variants = text.split("#EXT-X-STREAM-INF").length - 1;
+            if (variants > hls.levels.length) beginTransport();
+        }).catch(() => {});
+    }, LADDER_WATCH_MS);
+    track(() => window.clearInterval(timer));
 }
 
 export function startHLSTransport(g: number): void {

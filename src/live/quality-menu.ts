@@ -1,7 +1,7 @@
 import { qualityBtn, qualityPopupEl, qualitySelectEl } from "./dom.ts";
 import { ctx } from "./player/context.ts";
 import { allowedSubset, qualityLabel, qualityRowParts, resolveNextQuality } from "../quality.ts";
-import { qualityPadlock } from "./quality-upsell.ts";
+import { openLowLatencyUpsell, openQualityUpsell, qualityPadlock } from "./quality-upsell.ts";
 import { QUALITY_STORAGE_KEY } from "./constants.ts";
 import { writeLocalStorage } from "../storage.ts";
 import { beginTransport } from "./player/lifecycle.ts";
@@ -18,19 +18,6 @@ export function qualityButtonLabel(): string {
     if (ctx.transportKind === "ws") return qualityLabel(ctx.qualityPreference);
     if (ctx.transportKind === "hls-js") return hlsLevelLabel();
     return "Quality";
-}
-
-function showMenuUpsell(text: string): void {
-    qualityPopupEl.querySelector(".live-quality-note")?.remove();
-    const note = document.createElement("div");
-    note.className = "live-quality-note";
-    const message = document.createElement("span");
-    message.textContent = text + " ";
-    const link = document.createElement("a");
-    link.href = "/dashboard/subscription";
-    link.textContent = "View subscriptions";
-    note.append(message, link);
-    qualityPopupEl.appendChild(note);
 }
 
 interface QualityRowSpec {
@@ -72,7 +59,10 @@ function appendUpsellRow(): void {
     appendQualityRow({
         label: "Low latency",
         locked: true,
-        onClick: () => showMenuUpsell("Extra low latency (about 1 second) is part of select subscriptions."),
+        onClick: () => {
+            closeQualityPopup();
+            openLowLatencyUpsell();
+        },
     });
 }
 
@@ -91,7 +81,10 @@ export function renderQualityPopupItems(): void {
                 locked,
                 active: !locked && name === ctx.qualityPreference,
                 onClick: locked
-                    ? () => showMenuUpsell(`This stream plays at ${ctx.lockedStreamLabel || "a higher quality"}.`)
+                    ? () => {
+                        closeQualityPopup();
+                        openQualityUpsell();
+                    }
                     : () => selectQuality(name),
             });
         }
