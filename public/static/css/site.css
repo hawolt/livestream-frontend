@@ -638,7 +638,6 @@ body.rail-collapsed .live-channel-rail { width: 57px; }
     text-decoration: none;
 }
 .live-channel-item:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
-.live-channel-item.active { border-left-color: var(--accent); background: var(--accent-pale); }
 .live-channel-avatar-img {
     position: absolute;
     inset: 0;
