@@ -1,4 +1,4 @@
-import { video } from "./dom.ts";
+import { unmuteBtn, video } from "./dom.ts";
 import { cleanfeedMode, controlsMode, previewMode } from "./context.ts";
 
 const overlayEl = document.getElementById("embed-overlay") as HTMLElement;
@@ -17,7 +17,17 @@ const MUTED_ICON = `<svg viewBox="0 0 24 24"><path d="M3 10v4h4l5 5V5L7 10H3z"/>
 const TOUCH_HIDE_MS = 3000;
 
 let userPaused = false;
+let audioInteracted = false;
 let touchTimer: number | null = null;
+
+function markAudioInteraction(): void {
+    audioInteracted = true;
+    unmuteBtn.classList.add("hidden");
+}
+
+export function hasAudioInteraction(): boolean {
+    return audioInteracted;
+}
 
 export function overlayContains(node: Node | null): boolean {
     return node !== null && overlayEl.contains(node);
@@ -75,6 +85,7 @@ export function wireOverlay(): void {
     video.addEventListener("pause", syncPlayIcon);
 
     muteBtn.addEventListener("click", () => {
+        markAudioInteraction();
         if (video.muted || video.volume === 0) {
             video.muted = false;
             if (video.volume === 0) video.volume = 1;
@@ -83,6 +94,7 @@ export function wireOverlay(): void {
         }
     });
     volumeEl.addEventListener("input", () => {
+        markAudioInteraction();
         const v = Number(volumeEl.value) / 100;
         video.volume = v;
         video.muted = v === 0;

@@ -4,7 +4,7 @@ import { PREVIEW_MESSAGE_TYPE, RETRY_MAX_MS, RETRY_MIN_MS, RETRY_MULT } from "./
 import { stopChase } from "./chase.ts";
 import { destroyHls, startHLSTransport, startWSTransport, stopHLSBeacon } from "./transport.ts";
 import { healthCheck, startHealthTimer, stopHealthTimer } from "./health.ts";
-import { isUserPaused, overlayContains, setOverlayOffline } from "./overlay.ts";
+import { hasAudioInteraction, isUserPaused, overlayContains, setOverlayOffline } from "./overlay.ts";
 
 function notifyPreview(state: "connecting" | "playing" | "unavailable"): void {
     if (!previewMode || window.parent === window) return;
@@ -70,7 +70,7 @@ export function setPoster(label: string | null): void {
 }
 
 export function showUnmute(show: boolean): void {
-    if (previewMode || cleanfeedMode || controlsMode) {
+    if (previewMode || cleanfeedMode || controlsMode || hasAudioInteraction()) {
         unmuteBtn.classList.add("hidden");
         return;
     }
