@@ -2,6 +2,7 @@ import { unmuteBtn, video } from "./dom.ts";
 import { cleanfeedMode, controlsMode, previewMode } from "./context.ts";
 
 const overlayEl = document.getElementById("embed-overlay") as HTMLElement;
+const brandEl = document.getElementById("embed-brand") as HTMLAnchorElement;
 const channelLink = document.getElementById("embed-channel") as HTMLAnchorElement;
 const channelNameEl = document.getElementById("embed-channel-name") as HTMLElement;
 const channelTitleEl = document.getElementById("embed-channel-title") as HTMLElement;
@@ -30,7 +31,7 @@ export function hasAudioInteraction(): boolean {
 }
 
 export function overlayContains(node: Node | null): boolean {
-    return node !== null && overlayEl.contains(node);
+    return node !== null && (overlayEl.contains(node) || brandEl.contains(node));
 }
 
 export function setOverlayChannel(username: string, display: string, title: string): void {
