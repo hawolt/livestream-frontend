@@ -478,15 +478,11 @@
         }
         #live-language-sep.hidden { display: none; }
         #live-category {
-            color: inherit;
+            color: var(--accent);
             text-decoration: none;
             cursor: pointer;
-            background: rgba(255, 255, 255, .08);
-            padding: 1px 8px;
-            border-radius: 10px;
-            font-size: .92em;
         }
-        #live-category:hover { text-decoration: none; }
+        #live-category:hover { color: #86efac; text-decoration: none; }
         #live-category:focus-visible { text-decoration: underline; }
         #live-language {
             color: var(--muted);
@@ -1273,8 +1269,6 @@
         }
         .live-about-panels-actions { display: flex; align-items: center; gap: 12px; margin-left: auto; }
         .live-about-panels-actions[hidden] { display: none; }
-        .live-about-manage-link { color: var(--accent); font-size: 12.5px; text-decoration: none; }
-        .live-about-manage-link:hover { text-decoration: underline; }
         .live-about-panels {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
@@ -1282,6 +1276,7 @@
         }
         .live-about-panels[hidden] { display: none; }
         .live-about-panel {
+            position: relative;
             border: 1px solid var(--border);
             border-radius: 8px;
             padding: 12px;
@@ -1297,6 +1292,35 @@
         }
         .live-about-panel-title { font-weight: 700; color: var(--text); font-size: 14px; margin-bottom: 4px; }
         .live-about-panel-body { color: var(--text); font-size: 13px; line-height: 1.5; white-space: pre-line; overflow-wrap: anywhere; }
+        .live-about-panel-delete {
+            position: absolute;
+            top: 6px;
+            right: 6px;
+            width: 22px;
+            height: 22px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid var(--border);
+            border-radius: 50%;
+            background: var(--bg);
+            color: var(--muted);
+            font-size: 15px;
+            line-height: 1;
+            cursor: pointer;
+            opacity: 0;
+            transition: opacity .15s, color .15s, border-color .15s;
+        }
+        .live-about-panel:hover .live-about-panel-delete { opacity: 1; }
+        .live-about-panel-delete:hover { color: var(--red); border-color: var(--red); }
+        @media (hover: none) {
+            .live-about-panel-delete { opacity: 1; }
+        }
+        .live-card-modal-type { display: flex; align-items: center; gap: 6px; margin: 4px 0 4px; }
+        .live-card-modal-file-row { display: flex; align-items: center; gap: 10px; }
+        .live-card-modal-file-name { font-size: 12.5px; color: var(--muted); overflow-wrap: anywhere; }
+        .live-card-modal-image-group { display: flex; flex-direction: column; gap: 10px; }
+        .live-card-modal-image-group[hidden] { display: none; }
 
         .live-about-clips[hidden] { display: none; }
         .live-about-clips-head { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
@@ -1525,7 +1549,6 @@
             flex-direction: column;
             gap: 8px;
             padding: 10px;
-            border-top: 1px solid var(--border);
             flex-shrink: 0;
             min-width: 0;
         }
@@ -2025,7 +2048,6 @@
                         <h3 class="live-about-heading">Cards</h3>
                         <div class="live-about-panels-actions" id="live-about-panels-actions" hidden>
                             <button type="button" id="live-about-add-card" class="btn btn-sm">Add card</button>
-                            <a id="live-about-manage-cards" class="live-about-manage-link" href="/dashboard/channel-profile">Manage cards</a>
                         </div>
                     </div>
                     <div class="live-about-panels" id="live-about-panels" hidden></div>
@@ -2178,15 +2200,26 @@
     <div class="login-modal-box" tabindex="-1">
         <button type="button" id="live-card-modal-close" class="login-modal-close" aria-label="Close">&times;</button>
         <h3 id="live-card-modal-title">Add card</h3>
+        <div class="live-card-modal-type" id="live-card-modal-type" role="group" aria-label="Card type">
+            <button type="button" class="live-about-sort-btn active" id="live-card-modal-type-text" data-type="text">Text</button>
+            <button type="button" class="live-about-sort-btn" id="live-card-modal-type-image" data-type="image">Image</button>
+        </div>
         <form id="live-card-modal-form" class="login-modal-form" aria-describedby="live-card-modal-error" aria-busy="false">
-            <input id="live-card-modal-title-input" type="text" placeholder="Title" aria-label="Title" maxlength="80" autocomplete="off" />
+            <input id="live-card-modal-title-input" type="text" placeholder="Headline (optional)" aria-label="Headline" maxlength="80" autocomplete="off" />
             <textarea id="live-card-modal-body-input" placeholder="Body" aria-label="Body" maxlength="300" rows="4"></textarea>
-            <input id="live-card-modal-link-input" type="text" placeholder="https://example.com" aria-label="Link URL" maxlength="512" autocomplete="off" />
+            <div class="live-card-modal-image-group" id="live-card-modal-image-group" hidden>
+                <div class="live-card-modal-file-row">
+                    <input id="live-card-modal-file-input" type="file" accept="image/png,image/jpeg" aria-label="Card image" hidden />
+                    <button type="button" class="btn btn-sm" id="live-card-modal-file-btn">Choose image</button>
+                    <span id="live-card-modal-file-name" class="live-card-modal-file-name">No file selected</span>
+                </div>
+                <input id="live-card-modal-link-input" type="text" placeholder="https://example.com (optional)" aria-label="Link URL" maxlength="512" autocomplete="off" />
+            </div>
             <div id="live-card-modal-error" class="login-modal-error" role="alert" aria-live="polite" aria-atomic="true"></div>
             <button type="submit" id="live-card-modal-submit" class="login-modal-submit">Add card</button>
         </form>
     </div>
 </div>
-<script src="/live-va3de0ps.js" type="module"></script>
+<script src="/live-sg6n3sjv.js" type="module"></script>
 </body>
 </html>

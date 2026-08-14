@@ -1,5 +1,6 @@
 import { buildAvatar, buildProfileLinks, followerLabel, loadProfile, type Profile, type ProfilePanel } from "../profile-card.ts";
 import { isSafeHttpLink } from "./about/panels.ts";
+import { cardImageError, validateCardForm, type CardType } from "./about/card-form.ts";
 import { loadChannelClips, type AboutClip, type ClipsSort } from "./about/clips.ts";
 import { relativeDate } from "./about/relative-date.ts";
 import { formatCompactCount } from "./format.ts";
@@ -25,14 +26,20 @@ import {
     cardModalBodyInputEl,
     cardModalErrorEl,
     cardModalEl,
+    cardModalFileBtnEl,
+    cardModalFileInputEl,
+    cardModalFileNameEl,
     cardModalFormEl,
+    cardModalImageGroupEl,
     cardModalLinkInputEl,
     cardModalSubmitEl,
     cardModalTitleInputEl,
+    cardModalTypeImageEl,
+    cardModalTypeTextEl,
     channelAvatarWrapEl,
 } from "./dom.ts";
 
-let currentPanelCount = 0;
+let currentPanels: ProfilePanel[] = [];
 let ownerChannel = "";
 let isOwner = false;
 
@@ -41,7 +48,7 @@ export function applyChannelIdentity(profile: Profile | null): void {
     if (profile) channelAvatarWrapEl.appendChild(buildAvatar(profile));
 }
 
-function buildPanelCard(panel: ProfilePanel): HTMLElement {
+function buildPanelCard(panel: ProfilePanel, owner: boolean): HTMLElement {
     const card = document.createElement("div");
     card.className = "live-about-panel";
     if (panel.imageUrl) {
@@ -73,19 +80,28 @@ function buildPanelCard(panel: ProfilePanel): HTMLElement {
         body.textContent = panel.body;
         card.appendChild(body);
     }
+    if (owner) {
+        const del = document.createElement("button");
+        del.type = "button";
+        del.className = "live-about-panel-delete";
+        del.setAttribute("aria-label", "Delete card");
+        del.textContent = "×";
+        del.addEventListener("click", () => void deleteCard(panel.id));
+        card.appendChild(del);
+    }
     return card;
 }
 
 function updatePanelsSectionVisibility(): void {
-    aboutPanelsSectionEl.hidden = currentPanelCount === 0 && !isOwner;
+    aboutPanelsSectionEl.hidden = currentPanels.length === 0 && !isOwner;
     aboutPanelsActionsEl.hidden = !isOwner;
 }
 
 function renderPanels(panels: ProfilePanel[]): void {
     aboutPanelsEl.replaceChildren();
-    currentPanelCount = panels.length;
+    currentPanels = panels;
     aboutPanelsEl.hidden = panels.length === 0;
-    for (const panel of panels) aboutPanelsEl.appendChild(buildPanelCard(panel));
+    for (const panel of panels) aboutPanelsEl.appendChild(buildPanelCard(panel, isOwner));
     updatePanelsSectionVisibility();
 }
 
@@ -177,19 +193,39 @@ export function loadAboutClips(username: string): void {
     void loadChannelClips(username, clipsSort).then(clips => renderClips(username, clips));
 }
 
-function cardModalHeaders(): Record<string, string> {
-    const headers: Record<string, string> = { "Content-Type": "application/json" };
+function dashAuthHeaders(): Record<string, string> {
+    const headers: Record<string, string> = {};
     const token = sessionStorage.getItem("dash_token");
     if (token) headers["Authorization"] = `Bearer ${token}`;
     return headers;
+}
+
+function cardModalHeaders(): Record<string, string> {
+    return { "Content-Type": "application/json", ...dashAuthHeaders() };
+}
+
+let cardType: CardType = "text";
+let selectedCardFile: File | null = null;
+
+function setCardType(type: CardType): void {
+    cardType = type;
+    cardModalTypeTextEl.classList.toggle("active", type === "text");
+    cardModalTypeImageEl.classList.toggle("active", type === "image");
+    cardModalBodyInputEl.hidden = type !== "text";
+    cardModalImageGroupEl.hidden = type !== "image";
+    cardModalErrorEl.textContent = "";
 }
 
 function resetCardModal(): void {
     cardModalTitleInputEl.value = "";
     cardModalBodyInputEl.value = "";
     cardModalLinkInputEl.value = "";
+    cardModalFileInputEl.value = "";
+    cardModalFileNameEl.textContent = "No file selected";
+    selectedCardFile = null;
     cardModalErrorEl.textContent = "";
     cardModalSubmitEl.disabled = false;
+    setCardType("text");
 }
 
 function closeCardModal(): void {
@@ -210,42 +246,93 @@ async function refreshOwnedProfile(): Promise<void> {
     mountAboutCard(profile);
 }
 
+async function deleteCard(id: string): Promise<void> {
+    if (!confirm("Delete this card? This cannot be undone.")) return;
+    try {
+        await fetch(`${API_BASE}/profile/me/panels/${id}`, {
+            method: "DELETE",
+            credentials: "include",
+            headers: dashAuthHeaders(),
+        });
+    } catch {}
+    void refreshOwnedProfile();
+}
+
+async function uploadCardImage(id: string, file: File): Promise<boolean> {
+    try {
+        const bytes = await file.arrayBuffer();
+        const res = await fetch(`${API_BASE}/profile/me/panels/${id}/image`, {
+            method: "POST",
+            credentials: "include",
+            headers: { ...dashAuthHeaders(), "Content-Type": file.type },
+            body: bytes,
+        });
+        return res.ok;
+    } catch {
+        return false;
+    }
+}
+
 async function submitCardModal(): Promise<void> {
     const title = cardModalTitleInputEl.value.trim();
     const body = cardModalBodyInputEl.value.trim();
-    const linkUrl = cardModalLinkInputEl.value.trim();
+    const linkUrl = cardType === "image" ? cardModalLinkInputEl.value.trim() : "";
+    const errors = validateCardForm({ type: cardType, body, linkUrl, hasFile: selectedCardFile !== null });
     cardModalErrorEl.textContent = "";
-    if (!title && !body) {
-        cardModalErrorEl.textContent = "Add a title or body.";
+    const firstError = errors.body ?? errors.file ?? errors.linkUrl;
+    if (firstError) {
+        cardModalErrorEl.textContent = firstError;
         return;
     }
-    if (linkUrl && !isSafeHttpLink(linkUrl)) {
-        cardModalErrorEl.textContent = "Link must start with http:// or https://";
-        return;
+    if (cardType === "image" && selectedCardFile) {
+        const sizeError = cardImageError(selectedCardFile);
+        if (sizeError) {
+            cardModalErrorEl.textContent = sizeError;
+            return;
+        }
     }
     cardModalSubmitEl.disabled = true;
+    const payload: Record<string, string> = {};
+    if (title) payload["title"] = title;
+    if (cardType === "text") payload["body"] = body;
+    if (cardType === "image" && linkUrl) payload["linkUrl"] = linkUrl;
     try {
         const res = await fetch(`${API_BASE}/profile/me/panels`, {
             method: "POST",
             credentials: "include",
             headers: cardModalHeaders(),
-            body: JSON.stringify({ title, body, linkUrl }),
+            body: JSON.stringify(payload),
         });
-        if (res.ok) {
-            closeCardModal();
-            void refreshOwnedProfile();
+        if (!res.ok) {
+            if (res.status === 409) {
+                cardModalErrorEl.textContent = "You've reached the 12 card limit.";
+            } else {
+                const errBody = await res.json().catch(() => ({})) as { error?: string };
+                cardModalErrorEl.textContent = errBody.error || "Could not add this card. Try again.";
+            }
+            cardModalSubmitEl.disabled = false;
             return;
         }
-        if (res.status === 409) {
-            cardModalErrorEl.textContent = "You've reached the 12 card limit.";
-        } else {
-            const errBody = await res.json().catch(() => ({})) as { error?: string };
-            cardModalErrorEl.textContent = errBody.error || "Could not add this card. Try again.";
+        const created = await res.json().catch(() => ({})) as { id?: string | number };
+        if (cardType === "image" && selectedCardFile && created.id !== undefined) {
+            const uploaded = await uploadCardImage(String(created.id), selectedCardFile);
+            if (!uploaded) {
+                await fetch(`${API_BASE}/profile/me/panels/${created.id}`, {
+                    method: "DELETE",
+                    credentials: "include",
+                    headers: dashAuthHeaders(),
+                }).catch(() => {});
+                cardModalErrorEl.textContent = "Could not upload the image. Try again.";
+                cardModalSubmitEl.disabled = false;
+                return;
+            }
         }
+        closeCardModal();
+        void refreshOwnedProfile();
     } catch {
         cardModalErrorEl.textContent = "Could not reach the server. Try again.";
+        cardModalSubmitEl.disabled = false;
     }
-    cardModalSubmitEl.disabled = false;
 }
 
 let ownerCardsWired = false;
@@ -257,6 +344,15 @@ function wireOwnerCardsOnce(): void {
     cardModalCloseEl.addEventListener("click", closeCardModal);
     cardModalEl.addEventListener("click", (event) => {
         if (event.target === cardModalEl) closeCardModal();
+    });
+    cardModalTypeTextEl.addEventListener("click", () => setCardType("text"));
+    cardModalTypeImageEl.addEventListener("click", () => setCardType("image"));
+    cardModalFileBtnEl.addEventListener("click", () => cardModalFileInputEl.click());
+    cardModalFileInputEl.addEventListener("change", () => {
+        const file = cardModalFileInputEl.files?.[0] ?? null;
+        selectedCardFile = file;
+        cardModalFileNameEl.textContent = file ? file.name : "No file selected";
+        cardModalErrorEl.textContent = "";
     });
     cardModalFormEl.addEventListener("submit", (event) => {
         event.preventDefault();
@@ -276,7 +372,7 @@ export function initOwnerCards(channel: string): void {
             if (ownerChannel !== channel.toLowerCase()) return;
             isOwner = viewerOwnsChannel(info, ownerChannel);
             if (isOwner) wireOwnerCardsOnce();
-            updatePanelsSectionVisibility();
+            renderPanels(currentPanels);
         } catch {}
     })();
 }
