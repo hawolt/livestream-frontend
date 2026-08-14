@@ -12,8 +12,8 @@ export function latencyWindowFor(targetduration: number): LatencyWindow | null {
 
 export type LatencyTier = "near" | "mid" | "far";
 
-export const NEAR_RTT_MS = 60;
-export const FAR_RTT_MS = 250;
+export const NEAR_RTT_MS = 40;
+export const FAR_RTT_MS = 80;
 
 export function latencyTierFor(rttMs: number | null, originLL: boolean): LatencyTier {
     if (rttMs === null || !Number.isFinite(rttMs) || rttMs < 0) return "mid";
