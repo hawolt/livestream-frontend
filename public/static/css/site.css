@@ -762,3 +762,36 @@ body.rail-collapsed:has(.live-channel-rail) .site-nav { padding-left: 17.5px; }
 .status-banner-link:hover { color: #fde047; }
 .status-banner-dismiss { flex: 0 0 auto; background: none; border: none; color: var(--muted); font: inherit; font-size: 17px; line-height: 1; cursor: pointer; padding: 2px 4px; }
 .status-banner-dismiss:hover { color: var(--text); }
+.status-banner-icon { flex: 0 0 auto; display: inline-flex; color: #facc15; }
+.status-banner-icon svg { display: block; }
+.status-banner-chat {
+    position: static;
+    max-width: none;
+    border-radius: 0;
+    border: none;
+    border-bottom: 1px solid rgba(250, 204, 21, .35);
+    background: rgba(45, 36, 12, .85);
+    box-shadow: none;
+    padding: 8px 10px;
+    font-size: 12.5px;
+}
+.status-banner-nav {
+    position: static;
+    max-width: 420px;
+    padding: 5px 10px;
+    font-size: 12px;
+    border-radius: 999px;
+    box-shadow: none;
+}
+.status-banner-nav .status-banner-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.status-banner-mobile {
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100%;
+    max-width: none;
+    border-radius: 0;
+    border: none;
+    border-top: 1px solid rgba(250, 204, 21, .45);
+    padding: 10px max(12px, env(safe-area-inset-right)) max(10px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left));
+}

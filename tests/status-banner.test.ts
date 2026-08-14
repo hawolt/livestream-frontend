@@ -1,5 +1,6 @@
 import { expect, test } from "bun:test";
 import {
+    bannerSurfaceFor,
     INITIAL_BANNER_STATE,
     OUTAGE_ERROR_THRESHOLD,
     bannerMessage,
@@ -58,4 +59,12 @@ test("signatures distinguish different affected service sets", () => {
     const a = nextBannerState(INITIAL_BANNER_STATE, { kind: "ok", degraded: true, services: ["Chat"] });
     const b = nextBannerState(INITIAL_BANNER_STATE, { kind: "ok", degraded: true, services: ["Chat", "Payments"] });
     expect(bannerSignature(a)).not.toBe(bannerSignature(b));
+});
+
+test("banner surface picks mobile, chat, nav, float in that order", () => {
+    expect(bannerSurfaceFor(600, true, true)).toBe("mobile");
+    expect(bannerSurfaceFor(1400, true, true)).toBe("chat");
+    expect(bannerSurfaceFor(1400, false, true)).toBe("nav");
+    expect(bannerSurfaceFor(1000, false, true)).toBe("float");
+    expect(bannerSurfaceFor(1400, false, false)).toBe("float");
 });

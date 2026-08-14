@@ -57,17 +57,50 @@ async function fetchOutcome(): Promise<BannerOutcome> {
     }
 }
 
+export type BannerSurface = "mobile" | "chat" | "nav" | "float";
+
+export function bannerSurfaceFor(viewportWidth: number, hasChat: boolean, hasNav: boolean): BannerSurface {
+    if (viewportWidth <= 840) return "mobile";
+    if (hasChat) return "chat";
+    if (hasNav && viewportWidth > 1100) return "nav";
+    return "float";
+}
+
+const WARNING_ICON = `<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>`;
+
+function bannerMount(surface: BannerSurface): { host: Element; cls: string } {
+    if (surface === "chat") {
+        const head = document.querySelector(".live-chat-head");
+        if (head && head.parentElement) return { host: head.parentElement, cls: "status-banner status-banner-chat" };
+    }
+    if (surface === "nav") {
+        const social = document.querySelector(".site-nav-right");
+        if (social) return { host: social, cls: "status-banner status-banner-nav" };
+    }
+    if (surface === "mobile") return { host: document.body, cls: "status-banner status-banner-mobile" };
+    return { host: document.body, cls: "status-banner" };
+}
+
 function render(state: BannerState): void {
     const message = bannerMessage(state);
-    const existing = document.getElementById("status-banner");
-    if (!message || sessionStorage.getItem(DISMISS_KEY) === bannerSignature(state)) {
-        existing?.remove();
-        return;
-    }
-    const bar = existing ?? document.createElement("div");
+    document.getElementById("status-banner")?.remove();
+    if (!message || sessionStorage.getItem(DISMISS_KEY) === bannerSignature(state)) return;
+
+    const chatHead = document.querySelector(".live-chat-head");
+    const hasChat = chatHead !== null && !document.body.classList.contains("chat-popout")
+        && !document.body.classList.contains("chat-collapsed");
+    const hasNav = document.querySelector(".site-nav-right .site-social-btn") !== null;
+    const surface = bannerSurfaceFor(window.innerWidth, hasChat, hasNav);
+    const mount = bannerMount(surface);
+
+    const bar = document.createElement("div");
     bar.id = "status-banner";
-    bar.className = "status-banner";
-    bar.replaceChildren();
+    bar.className = mount.cls;
+
+    const icon = document.createElement("span");
+    icon.className = "status-banner-icon";
+    icon.innerHTML = WARNING_ICON;
+    bar.appendChild(icon);
 
     const text = document.createElement("span");
     text.className = "status-banner-text";
@@ -93,7 +126,9 @@ function render(state: BannerState): void {
     });
     bar.appendChild(dismiss);
 
-    if (!existing) document.body.appendChild(bar);
+    if (surface === "chat" && chatHead) chatHead.insertAdjacentElement("afterend", bar);
+    else if (surface === "nav") mount.host.insertBefore(bar, mount.host.querySelector(".site-social-btn"));
+    else mount.host.appendChild(bar);
 }
 
 let started = false;
