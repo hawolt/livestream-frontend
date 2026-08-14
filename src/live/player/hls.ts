@@ -144,12 +144,12 @@ const HLS_DVR_TICK_MS = 500;
 const DEFAULT_LIVE_WINDOW: LatencyWindow = { sync: 5, max: 12 };
 const TIGHT_LIVE_WINDOW: LatencyWindow = { sync: 2.5, max: 8 };
 
-function startHlsJsPlayer(g: number, src: string): void {
-    let normalLiveWindow: LatencyWindow = DEFAULT_LIVE_WINDOW;
+function startHlsJsPlayer(g: number, src: string, originLL: boolean): void {
+    let normalLiveWindow: LatencyWindow = originLL ? TIGHT_LIVE_WINDOW : DEFAULT_LIVE_WINDOW;
     let dvrHoldActive = false;
     const hls = new Hls({
         lowLatencyMode: true,
-        abrEwmaDefaultEstimate: 6_000_000,
+        abrEwmaDefaultEstimate: 10_000_000,
         backBufferLength: PRUNE_KEEP_S,
         liveSyncDuration: normalLiveWindow.sync,
         liveMaxLatencyDuration: normalLiveWindow.max,
@@ -271,12 +271,16 @@ export function startHLSTransport(g: number): void {
         if (!isCurrent(g)) return;
         let locked = false;
         let missing = false;
+        let originLL = false;
         try {
             const probe = await fetch(src, { credentials: "include" });
+            const body = await probe.text().catch(() => "");
             if (probe.status === 403) {
-                const body: unknown = await probe.json().catch(() => null);
-                if (body && (body as { error?: unknown }).error === "quality-locked") locked = true;
+                try {
+                    if ((JSON.parse(body) as { error?: unknown }).error === "quality-locked") locked = true;
+                } catch {}
             }
+            if (probe.ok) originLL = body.includes("ll=1");
             if (probe.status === 404 || probe.status === 410) missing = true;
         } catch {}
         if (!isCurrent(g)) return;
@@ -291,7 +295,7 @@ export function startHLSTransport(g: number): void {
         if (ctx.transportKind === "hls-native") {
             startNativeHLS(g, src);
         } else {
-            startHlsJsPlayer(g, src);
+            startHlsJsPlayer(g, src, originLL);
         }
     });
 }
