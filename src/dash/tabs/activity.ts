@@ -58,18 +58,19 @@ function buildEventRow(e: FollowEvent): HTMLElement {
     row.className = "act-ev";
     const type = document.createElement("span");
     type.className = eventTypeClass(e.type);
-    type.textContent = e.type === "reject" ? "STREAM" : e.type.toUpperCase();
+    const streamEvent = e.type === "reject" || e.type === "warn";
+    type.textContent = streamEvent ? "STREAM" : e.type.toUpperCase();
     const text = document.createElement("span");
     text.className = "act-ev-text";
     let label = e.username;
     if (e.type === "raid" && typeof e.viewers === "number") {
         label = `${e.username} with ${e.viewers} ${e.viewers === 1 ? "viewer" : "viewers"}`;
-    } else if (e.type === "reject") {
+    } else if (streamEvent) {
         label = rejectEventLabel(e);
     }
     text.textContent = label;
     text.title = label;
-    if (e.type === "reject") {
+    if (streamEvent) {
         text.appendChild(document.createTextNode(" "));
         const link = document.createElement("a");
         link.href = "/wiki#obs";
