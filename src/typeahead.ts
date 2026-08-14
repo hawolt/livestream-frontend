@@ -1,6 +1,7 @@
 export interface TypeaheadOption {
     value: string;
     label: string;
+    inputLabel?: string;
 }
 
 export interface TypeaheadHandle {
@@ -50,7 +51,10 @@ export function attachTypeahead(
     list.hidden = true;
     wrap.appendChild(list);
 
-    const labelFor = (value: string): string => options.find((o) => o.value === value)?.label ?? "";
+    const labelFor = (value: string): string => {
+        const option = options.find((o) => o.value === value);
+        return option === undefined ? "" : option.inputLabel ?? option.label;
+    };
 
     function close(): void {
         list.hidden = true;
@@ -60,7 +64,7 @@ export function attachTypeahead(
     function commit(option: TypeaheadOption): void {
         const changed = option.value !== selected;
         selected = option.value;
-        input.value = option.label;
+        input.value = option.inputLabel ?? option.label;
         close();
         if (changed) onSelect?.(option.value);
     }

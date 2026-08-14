@@ -35,10 +35,12 @@ function refreshOnNavigation(): void {
     railRefresh?.();
 }
 
-const languageFilterOptions: TypeaheadOption[] = [{ value: "", label: "Any language" }]
-    .concat(STREAM_LANGUAGE_OPTIONS
+const languageFilterOptions: TypeaheadOption[] = [
+    { value: "", label: "Any language", inputLabel: "" },
+    ...STREAM_LANGUAGE_OPTIONS
         .filter(({ code }) => code !== "und")
-        .map(({ code, label }) => ({ value: code, label })));
+        .map(({ code, label }) => ({ value: code, label })),
+];
 attachTypeahead(languageFilterEl, languageFilterOptions, (code) => {
     ctx.languageFilter = code;
     render();

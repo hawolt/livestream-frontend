@@ -6,7 +6,9 @@
 }
 
 .explore-lang { margin-left: 10px; width: 180px; }
-.explore-lang input { width: 100%; height: 30px; min-height: 0; font-size: 13px; padding: 4px 10px; }
+.explore-lang input { width: 100%; height: 30px; min-height: 0; font-size: 13px; padding: 4px 10px; background: none; border: 1px solid transparent; color: var(--text); transition: background .15s, border-color .15s; }
+.explore-lang input::placeholder { color: var(--muted); opacity: .7; }
+.explore-lang input:hover, .explore-lang input:focus { background: var(--surface); border-color: var(--border); }
 @media (max-width: 760px) { .explore-lang { width: 140px; } }
 
 .explore-mode-btn {
