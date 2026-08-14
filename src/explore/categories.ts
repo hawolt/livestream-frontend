@@ -67,13 +67,28 @@ function categoryCardEl(data: CategoryCardData): HTMLAnchorElement {
     return a;
 }
 
+export function realOtherCategory(): { id: number; name: string } | undefined {
+    return ctx.categories.find(c => c.name.trim().toLowerCase() === NO_CATEGORY_LABEL.toLowerCase());
+}
+
 function renderCategoryGrid(): void {
     drillEl.classList.add("hidden");
     setGridPortrait(true);
     const noCategory = ctx.streams.filter(s => s.categoryId === null);
-    const cards: CategoryCardData[] = ctx.categories.map(c => ({ id: c.id, name: c.name, viewers: c.viewerCount, count: c.liveStreamCount, imageUrl: c.imageUrl }));
-    if (noCategory.length) {
-        cards.push({ id: "none", name: NO_CATEGORY_LABEL, viewers: noCategory.reduce((sum, s) => sum + s.viewers, 0), count: noCategory.length });
+    const noCategoryViewers = noCategory.reduce((sum, s) => sum + s.viewers, 0);
+    const other = realOtherCategory();
+    const cards: CategoryCardData[] = ctx.categories.map(c => {
+        const merged = other !== undefined && c.id === other.id;
+        return {
+            id: c.id,
+            name: c.name,
+            viewers: c.viewerCount + (merged ? noCategoryViewers : 0),
+            count: c.liveStreamCount + (merged ? noCategory.length : 0),
+            imageUrl: c.imageUrl,
+        };
+    });
+    if (other === undefined && noCategory.length) {
+        cards.push({ id: "none", name: NO_CATEGORY_LABEL, viewers: noCategoryViewers, count: noCategory.length });
     }
     if (!cards.length) {
         setGridChildren([]);
@@ -129,5 +144,7 @@ export function renderCategoriesMode(): void {
         renderCategoryNotFound();
         return;
     }
-    renderCategoryDrill(cat.name, ctx.streams.filter(s => s.categoryId === cat.id));
+    const includeUncategorized = realOtherCategory()?.id === cat.id;
+    renderCategoryDrill(cat.name, ctx.streams.filter(s =>
+        s.categoryId === cat.id || (includeUncategorized && s.categoryId === null)));
 }

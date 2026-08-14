@@ -96,7 +96,7 @@ export function createChannelRail(options: ChannelRailOptions): ChannelRailHandl
 
     function updateRailItem(item: RailItem, stream: ChannelRailStream): void {
         const normalizedUsername = stream.username.toLowerCase();
-        const category = stream.category?.trim() || "No category";
+        const category = stream.category?.trim() || "Other";
         const title = stream.title.trim() || "Untitled stream";
         item.root.href = `/${encodeURIComponent(normalizedUsername)}`;
         item.root.title = `${stream.username} | ${title} | ${category}`;

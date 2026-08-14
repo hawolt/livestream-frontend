@@ -24,7 +24,7 @@ describe("urlFor", () => {
     });
 
     test("the none drill uses the no-category label", () => {
-        expect(urlFor("categories", "none", NO_CATEGORY_LABEL)).toBe("/category/No%20category");
+        expect(urlFor("categories", "none", NO_CATEGORY_LABEL)).toBe("/category/Other");
     });
 
     test("categories mode without a usable name builds the grid url", () => {
@@ -112,8 +112,19 @@ describe("resolveCategoryName", () => {
     });
 
     test("the no-category label resolves to none regardless of case", () => {
+        expect(resolveCategoryName("Other", cats)).toBe("none");
+        expect(resolveCategoryName("oTHer", cats)).toBe("none");
+    });
+
+    test("the legacy no-category label keeps resolving to none", () => {
         expect(resolveCategoryName("No category", cats)).toBe("none");
         expect(resolveCategoryName("no CATEGORY", cats)).toBe("none");
+    });
+
+    test("a real category named Other wins over the synthetic bucket", () => {
+        const withOther = [...cats, { id: 12, name: "Other" }];
+        expect(resolveCategoryName("Other", withOther)).toBe(12);
+        expect(resolveCategoryName("No category", withOther)).toBe("none");
     });
 
     test("substrings and unknown names resolve to null", () => {

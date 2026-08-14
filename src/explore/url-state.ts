@@ -1,6 +1,7 @@
 import type { CategorySelector, Mode, ViewState } from "./context.ts";
 
-export const NO_CATEGORY_LABEL = "No category";
+export const NO_CATEGORY_LABEL = "Other";
+const LEGACY_NO_CATEGORY_LABEL = "no category";
 
 export function urlFor(mode: Mode, catId: CategorySelector, name?: string): string {
     if (mode === "categories") {
@@ -15,9 +16,10 @@ export function urlFor(mode: Mode, catId: CategorySelector, name?: string): stri
 export function resolveCategoryName(name: string, categories: { id: number; name: string }[]): number | "none" | null {
     const needle = name.trim().toLowerCase();
     if (needle === "") return null;
-    if (needle === NO_CATEGORY_LABEL.toLowerCase()) return "none";
     const match = categories.find(c => c.name.toLowerCase() === needle);
-    return match === undefined ? null : match.id;
+    if (match !== undefined) return match.id;
+    if (needle === NO_CATEGORY_LABEL.toLowerCase() || needle === LEGACY_NO_CATEGORY_LABEL) return "none";
+    return null;
 }
 
 function parsePath(pathname: string): ViewState | null {

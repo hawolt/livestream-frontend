@@ -232,7 +232,7 @@ function renderInfo(): void {
     el.innerHTML = `
         <div class="form-grid">
             <label class="span2"><span>Title</span><input id="live-info-title" type="text" maxlength="200" placeholder="Now streaming..." value="${esc(liveCache.title)}"></label>
-            <label><span>Category</span><input id="live-info-category" type="text" placeholder="No category"></label>
+            <label><span>Category</span><input id="live-info-category" type="text" placeholder="Other (no category)"></label>
             <label><span>Language</span><input id="live-info-language" type="text" placeholder="Unspecified"></label>
             <label><span>Second language</span><input id="live-info-language2" type="text" placeholder="None"></label>
         </div>
@@ -244,7 +244,7 @@ function renderInfo(): void {
             <button class="btn btn-primary" id="btn-live-info-save">Save Stream Info</button>
             <span id="live-info-saved" style="font-size:13px;color:var(--success)"></span>
         </div>`;
-    const categoryOptions: TypeaheadOption[] = [{ value: "", label: "No category" }]
+    const categoryOptions: TypeaheadOption[] = [{ value: "", label: "Other (no category)" }]
         .concat(categoriesCache.map(c => ({ value: String(c.id), label: c.name })));
     const categoryField = attachTypeahead(
         document.getElementById("live-info-category") as HTMLInputElement, categoryOptions);
