@@ -15,17 +15,37 @@ import { recordChatMessageForAds } from "./chat-ad.ts";
 export const MAX_MESSAGES = 200;
 const SCROLL_SLACK_PX = 40;
 
+let pinned = true;
+let scrollPinningWired = false;
+
 function atBottom(): boolean {
     return msgsEl.scrollHeight - msgsEl.scrollTop - msgsEl.clientHeight < SCROLL_SLACK_PX;
 }
 
+function stickToBottom(): void {
+    msgsEl.scrollTop = msgsEl.scrollHeight;
+}
+
+function restickIfPinned(): void {
+    if (pinned) stickToBottom();
+}
+
+export function wireScrollPinning(): void {
+    if (scrollPinningWired) return;
+    scrollPinningWired = true;
+    msgsEl.addEventListener("scroll", () => {
+        pinned = atBottom();
+    });
+    msgsEl.addEventListener("load", restickIfPinned, true);
+    new ResizeObserver(restickIfPinned).observe(msgsEl);
+}
+
 export function append(node: HTMLElement): void {
-    const stick = atBottom();
     const empty = msgsEl.querySelector(".live-chat-empty");
     if (empty) empty.remove();
     msgsEl.appendChild(node);
     while (msgsEl.childElementCount > MAX_MESSAGES) msgsEl.removeChild(msgsEl.firstElementChild as Element);
-    if (stick) msgsEl.scrollTop = msgsEl.scrollHeight;
+    restickIfPinned();
 }
 
 export function addSystem(text: string): void {
@@ -246,15 +266,14 @@ export function updateModTools(): void {
 }
 
 export function refreshEmoteRendering(): void {
-    const stick = atBottom();
     const previousHeight = msgsEl.scrollHeight;
     for (const body of Array.from(document.querySelectorAll<HTMLElement>(`.${RENDERED_BODY_CLASS}`))) {
         body.replaceChildren(renderBody(body.dataset["rawText"] ?? ""));
     }
     if (ctx.pickerOpen) renderPickerGrid(pickerFilterEl.value);
     if (!suggestEl.hidden) updateSuggest();
-    if (stick) {
-        msgsEl.scrollTop = msgsEl.scrollHeight;
+    if (pinned) {
+        stickToBottom();
     } else {
         msgsEl.scrollTop += msgsEl.scrollHeight - previousHeight;
     }
