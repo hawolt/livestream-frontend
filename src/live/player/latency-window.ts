@@ -22,6 +22,14 @@ export function latencyTierFor(rttMs: number | null, originLL: boolean): Latency
     return "near";
 }
 
+export function clampToAdvertisedWindow(w: LatencyWindow, availableS: number, targetduration: number): LatencyWindow {
+    if (!Number.isFinite(availableS) || availableS <= 0) return w;
+    const td = Number.isFinite(targetduration) && targetduration > 0 ? targetduration : 1;
+    const sync = Math.min(w.sync, Math.max(availableS - 2 * td, td));
+    const max = Math.min(Math.max(w.max, sync + td), Math.max(availableS, sync + td));
+    return { sync, max };
+}
+
 export function farWindowFor(targetduration: number): LatencyWindow | null {
     if (!Number.isFinite(targetduration) || targetduration <= 0) return null;
     const sync = Math.min(Math.max(targetduration * 2 + 2, 8), 15);

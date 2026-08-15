@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { farWindowFor, latencyTierFor, latencyWindowFor } from "../src/live/player/latency-window.ts";
+import { clampToAdvertisedWindow, farWindowFor, latencyTierFor, latencyWindowFor } from "../src/live/player/latency-window.ts";
 
 test("compliant 2s segments keep the tuned defaults", () => {
     expect(latencyWindowFor(2)).toBeNull();
@@ -53,4 +53,26 @@ test("far windows scale with segment duration and stay ordered", () => {
     expect(farWindowFor(15)).toEqual({ sync: 15, max: 30 });
     expect(farWindowFor(0)).toBeNull();
     expect(farWindowFor(Number.NaN)).toBeNull();
+});
+
+test("windows deeper than the advertised playlist clamp inside it", () => {
+    expect(clampToAdvertisedWindow({ sync: 8, max: 14 }, 6, 1)).toEqual({ sync: 4, max: 6 });
+    expect(clampToAdvertisedWindow({ sync: 10, max: 24 }, 6, 1)).toEqual({ sync: 4, max: 6 });
+});
+
+test("windows that fit the advertised playlist pass through", () => {
+    expect(clampToAdvertisedWindow({ sync: 8, max: 14 }, 12, 2)).toEqual({ sync: 8, max: 12 });
+    expect(clampToAdvertisedWindow({ sync: 8, max: 14 }, 30, 1)).toEqual({ sync: 8, max: 14 });
+    expect(clampToAdvertisedWindow({ sync: 2.5, max: 8 }, 30, 1)).toEqual({ sync: 2.5, max: 8 });
+});
+
+test("clamped max always stays above sync by a segment", () => {
+    const w = clampToAdvertisedWindow({ sync: 8, max: 14 }, 2, 1);
+    expect(w.sync).toBe(1);
+    expect(w.max).toBeGreaterThan(w.sync);
+});
+
+test("clamp ignores garbage availability", () => {
+    expect(clampToAdvertisedWindow({ sync: 8, max: 14 }, Number.NaN, 1)).toEqual({ sync: 8, max: 14 });
+    expect(clampToAdvertisedWindow({ sync: 8, max: 14 }, 0, 1)).toEqual({ sync: 8, max: 14 });
 });

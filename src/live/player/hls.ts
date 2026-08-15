@@ -13,7 +13,7 @@ import { attachVideoFailureListeners } from "./health.ts";
 import { renderQualityMenu } from "../quality-menu.ts";
 import { streamQualityText } from "../../quality.ts";
 import { canUseHlsJs, canUseNativeHLS } from "./hls-support.ts";
-import { farWindowFor, latencyTierFor, latencyWindowFor, type LatencyWindow } from "./latency-window.ts";
+import { clampToAdvertisedWindow, farWindowFor, latencyTierFor, latencyWindowFor, type LatencyWindow } from "./latency-window.ts";
 import { bufferedAheadOf, startupHoldOver } from "./startup-hold.ts";
 import { updateSeekBar } from "../seekbar.ts";
 
@@ -210,7 +210,11 @@ function startHlsJsPlayer(g: number, src: string, originLL: boolean, rttMs: numb
             ? farWindowFor(data.details.targetduration) ?? FAR_LIVE_WINDOW
             : tier === "near" && data.details.url.startsWith(ctx.mediaBase) ? TIGHT_LIVE_WINDOW : DEFAULT_LIVE_WINDOW;
         const widened = latencyWindowFor(data.details.targetduration);
-        const target = widened && widened.sync > base.sync ? widened : base;
+        const target = clampToAdvertisedWindow(
+            widened && widened.sync > base.sync ? widened : base,
+            data.details.totalduration,
+            data.details.targetduration,
+        );
         if (normalLiveWindow.sync !== target.sync || normalLiveWindow.max !== target.max) {
             normalLiveWindow = target;
             if (!dvrHoldActive) applyLiveWindow(target);
