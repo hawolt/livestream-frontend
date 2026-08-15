@@ -18,7 +18,7 @@
 .site-brand {
     display: inline-flex;
     align-items: center;
-    font-size: 19px;
+    font-size: 22px;
     font-weight: 700;
     line-height: 1;
     color: var(--accent);
@@ -28,8 +28,8 @@
 .site-brand:hover { color: var(--accent); text-decoration: none; }
 .brand-o {
     display: block;
-    width: 38px;
-    height: 38px;
+    width: 28px;
+    height: 28px;
 }
 .brand-wm {
     margin-left: 9px;
