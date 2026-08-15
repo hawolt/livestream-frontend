@@ -290,7 +290,8 @@
 @media (max-width: 640px) {
     .site-nav-controls,
     .site-auth-cluster,
-    .site-account { display: none; }
+    .site-account,
+    .brand-wm { display: none; }
     .site-burger { display: flex; }
 }
 
