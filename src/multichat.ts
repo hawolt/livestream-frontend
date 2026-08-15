@@ -40,7 +40,7 @@ const TIKTOK_BADGE_CHIPS: Record<string, { label: string; color: string }> = {
     subscriber: { label: "SUB", color: "#fe2c55" },
 };
 
-type SiteBadge = "op" | "staff" | "bot" | "mod" | "vip" | "unverified";
+type SiteBadge = "op" | "staff" | "bot" | "mod" | "vip" | "partner" | "unverified";
 
 const TWITCH_BADGE_IDS: Record<string, string> = {
     broadcaster: "5527c58c-fb7d-422d-b71b-f309dcb85cc1",
@@ -504,6 +504,7 @@ function startItzon(channelName: string): void {
     const channel = `#${channelName.toLowerCase()}`;
     const roles = new Map<string, ItzonRole>();
     const vips = new Set<string>();
+    const itzonPartners = new Set<string>();
     const subscribers = new Set<string>();
     const subscriberBadges = new Map<string, string>();
     const unverified = new Set<string>();
@@ -563,6 +564,7 @@ function startItzon(channelName: string): void {
         if (key === channel.slice(1)) out.push(makeSiteBadge("op"));
         if (role === "bot") out.push(makeSiteBadge("bot"));
         if (role === "mod") out.push(makeSiteBadge("mod"));
+        if (itzonPartners.has(key)) out.push(makeSiteBadge("partner"));
         if (vips.has(key)) out.push(makeSiteBadge("vip"));
         if (subscribers.has(key)) out.push(makeItzonSubBadge(sanitizeSubBadgeName(subscriberBadges.get(key))));
         if (unverified.has(key)) out.push(makeSiteBadge("unverified"));
@@ -615,6 +617,9 @@ function startItzon(channelName: string): void {
                     const key = line.nick.toLowerCase();
                     subscribers.add(key);
                     subscriberBadges.set(key, sanitizeSubBadgeName(subBadge));
+                }
+                if (line.tags.get("partner") === "1") {
+                    itzonPartners.add(line.nick.toLowerCase());
                 }
                 const meta: MessageMeta = { badges: badgesFor(line.nick) };
                 const color = line.tags.get("color");

@@ -1,10 +1,10 @@
 import { hashColor } from "../chat/text.ts";
 import { sanitizeSubscriberBadgeName, subscriberBadgeAssetPath, subscriberBadgeTitle } from "../chat/badges.ts";
-import { MAX_MESSAGES, RENDERED_BODY_CLASS, colors, ctx, emotes, isOwner, msgsEl, roles, subscriberBadges, subscribers, unverified, vips } from "./context.ts";
+import { MAX_MESSAGES, RENDERED_BODY_CLASS, colors, ctx, emotes, isOwner, msgsEl, partners, roles, subscriberBadges, subscribers, unverified, vips } from "./context.ts";
 
 const SAFE_COLOR = /^#[0-9a-fA-F]{3,8}$/;
 
-type BadgeName = "op" | "staff" | "bot" | "mod" | "vip" | "regular" | "unverified";
+type BadgeName = "op" | "staff" | "bot" | "mod" | "vip" | "partner" | "regular" | "unverified";
 
 function makeBadge(name: BadgeName): HTMLImageElement {
     const img = document.createElement("img");
@@ -39,6 +39,7 @@ function buildBadges(from: string): HTMLImageElement[] {
     if (isOwner(from)) badges.push(makeBadge("op"));
     if (role === "bot") badges.push(makeBadge("bot"));
     if (role === "mod") badges.push(makeBadge("mod"));
+    if (partners.has(key)) badges.push(makeBadge("partner"));
     if (vips.has(key)) badges.push(makeBadge("vip"));
     if (subscribers.has(key)) badges.push(makeSubscriberBadge(key));
     if (unverified.has(key)) badges.push(makeBadge("unverified"));

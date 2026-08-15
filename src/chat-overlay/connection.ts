@@ -1,4 +1,4 @@
-import { BAN_RETRY_MS, RETRY_MS, colors, ctx, knownMembers, msgsEl, roles, subscriberBadges, subscribers, unverified, vips } from "./context.ts";
+import { BAN_RETRY_MS, RETRY_MS, colors, ctx, knownMembers, msgsEl, partners, roles, subscriberBadges, subscribers, unverified, vips } from "./context.ts";
 import type { Role } from "./context.ts";
 import type { IrcLine } from "./irc.ts";
 import { parse } from "./irc.ts";
@@ -146,6 +146,14 @@ function handle(line: IrcLine): void {
             if (who) subscriberBadges.set(who.toLowerCase(), sanitizeSubscriberBadgeName(line.params[2]));
             return;
         }
+        case "PARTNER": {
+            if (line.params[0]?.toLowerCase() !== ctx.channel) return;
+            const who = line.params[1];
+            if (!who) return;
+            if (line.params[2] === "1") partners.add(who.toLowerCase());
+            else partners.delete(who.toLowerCase());
+            return;
+        }
         case "PRIVMSG":
             if (line.color !== undefined && line.nick) {
                 const key = line.nick.toLowerCase();
@@ -154,6 +162,9 @@ function handle(line: IrcLine): void {
             }
             if (line.subBadge !== undefined && line.nick) {
                 subscriberBadges.set(line.nick.toLowerCase(), sanitizeSubscriberBadgeName(line.subBadge));
+            }
+            if (line.partner && line.nick) {
+                partners.add(line.nick.toLowerCase());
             }
             if (line.params[0]?.toLowerCase() === ctx.channel && line.params[1]) {
                 addMessage(line.nick, line.params[1], line.msgid);
@@ -181,6 +192,7 @@ export function connect(): void {
     cancelNamesRefresh();
     roles.clear();
     vips.clear();
+    partners.clear();
     subscribers.clear();
     subscriberBadges.clear();
     colors.clear();

@@ -4,6 +4,7 @@ import { hashColor } from "./text.ts";
 export type Role = "op" | "staff" | "bot" | "mod";
 export const roles = new Map<string, Role>();
 export const vips = new Set<string>();
+export const partners = new Set<string>();
 export const subscribers = new Set<string>();
 export const subscriberBadges = new Map<string, string>();
 export const unverified = new Set<string>();
@@ -107,6 +108,7 @@ export function removeMember(key: string): void {
     memberDisplay.delete(key);
     roles.delete(key);
     vips.delete(key);
+    partners.delete(key);
     subscribers.delete(key);
     subscriberBadges.delete(key);
     unverified.delete(key);

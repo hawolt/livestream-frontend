@@ -1,10 +1,10 @@
 import { isOwner } from "./context.ts";
-import { roles, subscriberBadges, subscribers, unverified, vips } from "./members.ts";
+import { partners, roles, subscriberBadges, subscribers, unverified, vips } from "./members.ts";
 import { attachBadgeUpsell } from "./badge-upsell.ts";
 
-export type BadgeName = "op" | "staff" | "bot" | "mod" | "vip" | "regular" | "unverified";
+export type BadgeName = "op" | "staff" | "bot" | "mod" | "vip" | "partner" | "regular" | "unverified";
 export const BADGE_TITLE: Record<BadgeName, string> = {
-    op: "Owner", staff: "Staff", bot: "Bot", mod: "Mod", vip: "VIP", regular: "Regular", unverified: "Unverified",
+    op: "Owner", staff: "Staff", bot: "Bot", mod: "Mod", vip: "VIP", partner: "Partner", regular: "Regular", unverified: "Unverified",
 };
 
 const SUBSCRIBER_BADGE_NAME_RE = /^[a-z0-9_]{1,24}$/;
@@ -20,6 +20,7 @@ export function subscriberBadgeAssetPath(name: string): string {
 
 export function subscriberBadgeTitle(name: string): string {
     if (name === "regular") return BADGE_TITLE.regular;
+    if (name === "ambassador") return "Ambassador - one of the first";
     return name.split("_").filter(Boolean).map(w => w[0]!.toUpperCase() + w.slice(1)).join(" ");
 }
 
@@ -60,6 +61,7 @@ export function buildBadges(from: string): HTMLImageElement[] {
     if (isOwner(from)) badges.push(makeBadge("op"));
     if (role === "bot") badges.push(makeBadge("bot"));
     if (role === "mod") badges.push(makeBadge("mod"));
+    if (partners.has(key)) badges.push(makeBadge("partner"));
     if (vips.has(key)) badges.push(makeBadge("vip"));
     if (subscribers.has(key)) badges.push(makeSubscriberBadge(key));
     if (unverified.has(key)) badges.push(makeBadge("unverified"));

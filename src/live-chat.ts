@@ -47,6 +47,7 @@ import {
 } from "./chat/panels.ts";
 import { acceptSelectedSuggestion, advanceTabCycle, hideSuggest, moveSuggest, updateSuggest } from "./chat/suggest.ts";
 import { GEAR_ICON } from "./nav/account-menu.ts";
+import { destroyBadgePicker, initBadgePicker } from "./chat/badge-picker.ts";
 
 let chatStarted = false;
 let teardownListeners: (() => void) | null = null;
@@ -77,6 +78,7 @@ export function startChat(user: string, emoteTwitchId?: string, onLoginRequested
         panel.setAttribute("aria-label", label);
     }
     settingsBtnEl.innerHTML = GEAR_ICON;
+    initBadgePicker(settingsBtnEl);
     emoteBtnEl.setAttribute("aria-haspopup", "dialog");
     emoteBtnEl.setAttribute("aria-expanded", "false");
     emoteBtnEl.setAttribute("aria-controls", document.getElementById("live-chat-picker")!.id);
@@ -202,6 +204,7 @@ export function startChat(user: string, emoteTwitchId?: string, onLoginRequested
         helpCloseEl.removeEventListener("click", onHelpCloseClick);
         settingsBtnEl.removeEventListener("click", toggleSettings);
         settingsCloseEl.removeEventListener("click", onSettingsCloseClick);
+        destroyBadgePicker();
         timestampToggleEl.removeEventListener("change", onTimestampToggleChange);
         avatarToggleEl.removeEventListener("change", onAvatarToggleChange);
         pingMuteToggleEl.removeEventListener("change", onMutePingsToggleChange);

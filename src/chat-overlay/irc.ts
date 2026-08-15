@@ -4,6 +4,7 @@ export interface IrcLine {
     params: string[];
     msgid?: string;
     subBadge?: string;
+    partner?: boolean;
     color?: string;
 }
 
@@ -12,6 +13,7 @@ export function parse(line: string): IrcLine | null {
     let from = "";
     let msgid: string | undefined;
     let subBadge: string | undefined;
+    let partner = false;
     let color: string | undefined;
     if (rest.startsWith("@")) {
         const sp = rest.indexOf(" ");
@@ -22,6 +24,7 @@ export function parse(line: string): IrcLine | null {
             const val = eq > 0 ? tag.slice(eq + 1) : "";
             if (key === "msgid") msgid = val;
             else if (key === "sub-badge") subBadge = val;
+            else if (key === "partner") partner = val === "1";
             else if (key === "color") color = val;
         }
         rest = rest.slice(sp + 1);
@@ -53,6 +56,7 @@ export function parse(line: string): IrcLine | null {
     const out: IrcLine = { nick: from, command: command.toUpperCase(), params };
     if (msgid) out.msgid = msgid;
     if (subBadge) out.subBadge = subBadge;
+    if (partner) out.partner = true;
     if (color !== undefined) out.color = color;
     return out;
 }

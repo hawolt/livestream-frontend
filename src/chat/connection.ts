@@ -27,6 +27,7 @@ import {
     roles,
     subscribers,
     subscriberBadges,
+    partners,
     unverified,
     vips,
 } from "./members.ts";
@@ -281,6 +282,9 @@ function handle(line: IrcLine): void {
             if (line.subBadge !== undefined && line.nick) {
                 subscriberBadges.set(line.nick.toLowerCase(), sanitizeSubscriberBadgeName(line.subBadge));
             }
+            if (line.partner && line.nick) {
+                partners.add(line.nick.toLowerCase());
+            }
             if (target.toLowerCase() === ctx.channel) {
                 if (line.automod) {
                     if (!document.body.classList.contains("chat-popout")) {
@@ -299,6 +303,15 @@ function handle(line: IrcLine): void {
             const who = line.params[1];
             if (!who) return;
             subscriberBadges.set(who.toLowerCase(), sanitizeSubscriberBadgeName(line.params[2]));
+            if (ctx.userlistOpen) renderUserlist();
+            return;
+        }
+        case "PARTNER": {
+            if (line.params[0]?.toLowerCase() !== ctx.channel) return;
+            const who = line.params[1];
+            if (!who) return;
+            if (line.params[2] === "1") partners.add(who.toLowerCase());
+            else partners.delete(who.toLowerCase());
             if (ctx.userlistOpen) renderUserlist();
             return;
         }
