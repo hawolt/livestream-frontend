@@ -49,6 +49,7 @@ import {
 import { isCinemaMode, exitCinemaMode, toggleCinemaMode } from "./cinema.ts";
 import { isBrowseMode, wireBrowseMode } from "./browse-mini.ts";
 import { wirePageLifecycle } from "./player/lifecycle.ts";
+import { resumeHlsLoad } from "./player/hls.ts";
 import { renderQualityMenu, wireQualityMenu } from "./quality-menu.ts";
 import { startFpsMeter, updateQuality } from "./stream-info.ts";
 import { wireSeekBar } from "./seekbar.ts";
@@ -134,6 +135,10 @@ function onVideoClickPause(ev: MouseEvent): void {
 }
 
 function snapToEdgeOnPlay(): void {
+    if (ctx.transportKind === "hls-js" && ctx.pauseSuspended) {
+        ctx.pauseSuspended = false;
+        resumeHlsLoad();
+    }
     if (ctx.transportKind === "ws" && ctx.pauseSuspended) {
         healthRestart("resume-after-pause");
         return;

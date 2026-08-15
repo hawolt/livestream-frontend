@@ -1,12 +1,12 @@
 import Hls from "hls.js";
 import { video } from "../dom.ts";
 import { ctx, isCurrent, track } from "./context.ts";
-import { HLS_BEACON_INTERVAL_MS, HLS_QUALITY_STORAGE_KEY, PRUNE_KEEP_S } from "../constants.ts";
+import { HLS_BEACON_INTERVAL_MS, HLS_QUALITY_STORAGE_KEY, PAUSE_SUSPEND_MS, PRUNE_KEEP_S } from "../constants.ts";
 import { readLocalStorage } from "../../storage.ts";
 import { ensureViewerId } from "../../player-shared/viewer-id.ts";
 import { needsCredentials } from "../../player-shared/needs-credentials.ts";
 import { captchaQuery } from "../../captcha.ts";
-import { beginTransport, enterTerminal, fullTeardown, goOffline, resetRetryBackoff, restartAfterFailure, setState } from "./lifecycle.ts";
+import { beginTransport, enterTerminal, fullTeardown, goOffline, resetRetryBackoff, restartAfterFailure, setState, suspendForPause } from "./lifecycle.ts";
 import { closeQualityUpsell, enterQualityLockedTerminal } from "../quality-upsell.ts";
 import { withCaptchaHint } from "./ws.ts";
 import { attachVideoFailureListeners } from "./health.ts";
@@ -91,6 +91,21 @@ export function setHlsLevel(index: number): void {
 
 export function hlsLiveSyncPosition(): number | null {
     return hlsInstance ? hlsInstance.liveSyncPosition : null;
+}
+
+export function stopHlsLoad(): boolean {
+    if (!hlsInstance) return false;
+    try {
+        hlsInstance.stopLoad();
+    } catch {}
+    return true;
+}
+
+export function resumeHlsLoad(): void {
+    if (!hlsInstance) return;
+    try {
+        hlsInstance.startLoad();
+    } catch {}
 }
 
 export function fallbackFromMSE(g: number): void {
@@ -254,8 +269,10 @@ function startHlsJsPlayer(g: number, src: string, originLL: boolean, rttMs: numb
             window.clearInterval(dvrTimer);
             return;
         }
-        if (ctx.behindLive !== dvrHoldActive) {
-            dvrHoldActive = ctx.behindLive;
+        if (video.paused && Date.now() - ctx.lastProgressAt > PAUSE_SUSPEND_MS) suspendForPause();
+        const hold = ctx.behindLive || video.paused;
+        if (hold !== dvrHoldActive) {
+            dvrHoldActive = hold;
             applyLiveWindow(dvrHoldActive ? { sync: normalLiveWindow.sync, max: PRUNE_KEEP_S } : normalLiveWindow);
         }
         updateSeekBar();
@@ -268,6 +285,7 @@ const LADDER_WATCH_MS = 30000;
 function startLadderWatch(g: number, src: string): void {
     const timer = window.setInterval(() => {
         if (!isCurrent(g)) return;
+        if (video.paused) return;
         const hls = hlsInstance;
         if (!hls) return;
         void fetch(src, { credentials: "include" }).then(async (res) => {

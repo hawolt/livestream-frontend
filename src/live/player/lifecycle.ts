@@ -3,7 +3,7 @@ import { ctx, isCurrent, nextGen, runGenCleanup, type PlayerState } from "./cont
 import { PRUNE_KEEP_S, RETRY_MAX_MS, RETRY_MIN_MS, RETRY_MULT } from "../constants.ts";
 import { QUALITY_SOURCE } from "../../quality.ts";
 import { stopChase } from "./chase.ts";
-import { destroyHls, stopHLSBeacon, startHLSTransport } from "./hls.ts";
+import { destroyHls, stopHlsLoad, stopHLSBeacon, startHLSTransport } from "./hls.ts";
 import { clearWaitingTimer, healthCheck, startHealthTimer, stopHealthTimer } from "./health.ts";
 import { resetStreamInfo, setViewers } from "../stream-info.ts";
 import { renderQualityMenu } from "../quality-menu.ts";
@@ -151,17 +151,26 @@ export function renderPlayerUI(): void {
 }
 
 export function suspendForPause(): void {
-    if (ctx.pauseSuspended || ctx.transportKind !== "ws" || !ctx.ws) return;
-    ctx.pauseSuspended = true;
-    ctx.ws.onmessage = null;
-    ctx.ws.onclose = null;
-    ctx.ws.onerror = null;
-    try {
-        ctx.ws.close();
-    } catch {}
-    ctx.ws = null;
-    ctx.appendQueue = [];
-    console.log("live: paused, suspending stream transport");
+    if (ctx.pauseSuspended) return;
+    if (ctx.transportKind === "ws") {
+        if (!ctx.ws) return;
+        ctx.pauseSuspended = true;
+        ctx.ws.onmessage = null;
+        ctx.ws.onclose = null;
+        ctx.ws.onerror = null;
+        try {
+            ctx.ws.close();
+        } catch {}
+        ctx.ws = null;
+        ctx.appendQueue = [];
+        console.log("live: paused, suspending stream transport");
+        return;
+    }
+    if (ctx.transportKind === "hls-js") {
+        if (!stopHlsLoad()) return;
+        ctx.pauseSuspended = true;
+        console.log("live: paused, suspending hls loading");
+    }
 }
 
 export function fullTeardown(): void {
