@@ -1,8 +1,8 @@
 import { video } from "../dom.ts";
 import { ctx, isCurrent } from "./context.ts";
-import { CHASE_GAP_S, CHASE_RATE, CHASE_STOP_S, SEEK_GAP_S, START_BEHIND_S } from "../constants.ts";
+import { CHASE_GAP_S, CHASE_RATE, CHASE_STOP_S, PAUSE_SUSPEND_MS, SEEK_GAP_S, START_BEHIND_S } from "../constants.ts";
 import { decideChase } from "./chase-decision.ts";
-import { resetRetryBackoff, setState } from "./lifecycle.ts";
+import { resetRetryBackoff, setState, suspendForPause } from "./lifecycle.ts";
 import { updateInfoBar } from "../stream-info.ts";
 import { updateSeekBar } from "../seekbar.ts";
 
@@ -39,6 +39,7 @@ export function startChase(g: number): void {
         }
         updateInfoBar();
         if (video.paused) {
+            if (Date.now() - ctx.lastProgressAt > PAUSE_SUSPEND_MS) suspendForPause();
             updateSeekBar();
             return;
         }

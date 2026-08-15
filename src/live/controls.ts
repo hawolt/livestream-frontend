@@ -134,6 +134,10 @@ function onVideoClickPause(ev: MouseEvent): void {
 }
 
 function snapToEdgeOnPlay(): void {
+    if (ctx.transportKind === "ws" && ctx.pauseSuspended) {
+        healthRestart("resume-after-pause");
+        return;
+    }
     if (ctx.transportKind === "ws" && ctx.lastMediaArrivalAt > 0 && Date.now() - ctx.lastMediaArrivalAt > HEALTH_STALE_MS) {
         healthRestart("resume-stale");
         return;

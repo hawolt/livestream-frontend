@@ -39,6 +39,12 @@ export function updateSeekBar(): void {
         btnLiveChip.hidden = true;
         return;
     }
+    if (video.paused && !seekDragging) {
+        seekBarEl.hidden = true;
+        behindReadoutEl.hidden = true;
+        btnLiveChip.hidden = true;
+        return;
+    }
     if (ctx.transportKind === "ws") {
         const b = video.buffered;
         const start = bufferedStart();
@@ -165,6 +171,8 @@ export function wireSeekBar(): void {
     seekTrackEl.addEventListener("pointermove", onMove);
     seekTrackEl.addEventListener("pointerup", onUp);
     seekTrackEl.addEventListener("pointercancel", onUp);
+    video.addEventListener("pause", updateSeekBar);
+    video.addEventListener("play", updateSeekBar);
     btnLiveChip.addEventListener("click", () => {
         if (btnLiveChip.classList.contains("live-chip-behind")) goLive();
     });

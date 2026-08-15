@@ -27,6 +27,7 @@ export const ctx = {
     startedPlayback: false,
     overflowReconnects: 0,
     startedOnce: false,
+    pauseSuspended: false,
 
     behindLive: false,
     quotaKeepS: PRUNE_KEEP_S,

@@ -150,6 +150,20 @@ export function renderPlayerUI(): void {
     }
 }
 
+export function suspendForPause(): void {
+    if (ctx.pauseSuspended || ctx.transportKind !== "ws" || !ctx.ws) return;
+    ctx.pauseSuspended = true;
+    ctx.ws.onmessage = null;
+    ctx.ws.onclose = null;
+    ctx.ws.onerror = null;
+    try {
+        ctx.ws.close();
+    } catch {}
+    ctx.ws = null;
+    ctx.appendQueue = [];
+    console.log("live: paused, suspending stream transport");
+}
+
 export function fullTeardown(): void {
     stopChase();
     stopHLSBeacon();
@@ -179,6 +193,7 @@ export function fullTeardown(): void {
     ctx.mediaSource = null;
     ctx.appendQueue = [];
     ctx.startedPlayback = false;
+    ctx.pauseSuspended = false;
     if (ctx.objectUrl) {
         URL.revokeObjectURL(ctx.objectUrl);
         ctx.objectUrl = null;
@@ -233,6 +248,7 @@ export function beginTransport(): void {
     if (ctx.terminal || ctx.transportKind === "none") return;
     startHealthTimer();
     clearRetryTimer();
+    ctx.pauseSuspended = false;
     const g = nextGen();
     const adoption = ctx.adopt;
     if (adoption && ctx.transportKind === "ws") {

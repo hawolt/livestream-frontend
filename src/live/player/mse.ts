@@ -20,8 +20,7 @@ export function pruneBuffer(): void {
     if (!ctx.sourceBuffer || ctx.sourceBuffer.updating) return;
     const b = video.buffered;
     if (!b.length) return;
-    const ref = video.paused ? b.end(b.length - 1) : video.currentTime;
-    const cutoff = ref - PRUNE_KEEP_S;
+    const cutoff = video.currentTime - PRUNE_KEEP_S;
     if (cutoff > b.start(0) + 5) {
         try {
             ctx.sourceBuffer.remove(0, cutoff);
@@ -47,8 +46,7 @@ export function pump(g: number): void {
                 const trimmed = quotaTrimOnFailure({ keepS: ctx.quotaKeepS, failStreak: ctx.quotaFailStreak }, QUOTA_TRIM_FLOOR_S);
                 ctx.quotaFailStreak = trimmed.failStreak;
                 ctx.quotaKeepS = trimmed.keepS;
-                const ref = video.paused ? b.end(b.length - 1) : video.currentTime;
-                const target = Math.max(b.start(0) + 1, ref - ctx.quotaKeepS);
+                const target = Math.max(b.start(0) + 1, video.currentTime - ctx.quotaKeepS);
                 try {
                     ctx.sourceBuffer.remove(0, target);
                     recoveryStarted = true;

@@ -16,6 +16,7 @@ export const WAITING_STALL_MS = 8000;
 export const HEALTH_STALE_MS = 15000;
 export const HEALTH_STUCK_MS = 20000;
 export const HEALTH_CHECK_INTERVAL_MS = 5000;
+export const PAUSE_SUSPEND_MS = 30000;
 export const FULLSCREEN_SETTLE_MS = 120;
 export const CHAT_COLLAPSE_KEY = "live-chat-collapsed";
 export const CHAT_MIN_PX = 300;
