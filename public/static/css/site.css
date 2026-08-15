@@ -18,7 +18,7 @@
 .site-brand {
     display: inline-flex;
     align-items: center;
-    font-size: 22px;
+    font-size: 24px;
     font-weight: 700;
     line-height: 1;
     color: var(--accent);
@@ -28,8 +28,8 @@
 .site-brand:hover { color: var(--accent); text-decoration: none; }
 .brand-o {
     display: block;
-    width: 28px;
-    height: 28px;
+    width: 17px;
+    height: 17px;
     transition: transform 0.55s cubic-bezier(0.22, 1, 0.36, 1);
 }
 .site-brand:hover .brand-o, .site-brand:focus-visible .brand-o { transform: rotate(360deg); }
