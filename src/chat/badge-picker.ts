@@ -1,3 +1,4 @@
+import { API_BASE } from "../api.ts";
 import { ctx } from "./context.ts";
 import { subscriberBadgeAssetPath, subscriberBadgeTitle } from "./badges.ts";
 
@@ -16,7 +17,7 @@ async function fetchState(): Promise<BadgeState | null> {
     const token = ctx.accountSessionToken;
     if (!token) return null;
     try {
-        const res = await fetch("/api/settings/chat-badge", { headers: { Authorization: `Bearer ${token}` } });
+        const res = await fetch(`${API_BASE}/settings/chat-badge`, { headers: { Authorization: `Bearer ${token}` } });
         if (!res.ok) return null;
         const data = await res.json() as { selected?: string | null; owned?: string[] };
         return { selected: data.selected ?? null, owned: Array.isArray(data.owned) ? data.owned : [] };
@@ -29,7 +30,7 @@ async function saveSelection(badge: string): Promise<boolean> {
     const token = ctx.accountSessionToken;
     if (!token) return false;
     try {
-        const res = await fetch("/api/settings/chat-badge", {
+        const res = await fetch(`${API_BASE}/settings/chat-badge`, {
             method: "PUT",
             headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
             body: JSON.stringify({ badge }),
