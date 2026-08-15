@@ -166,7 +166,7 @@ function startHlsJsPlayer(g: number, src: string, originLL: boolean, rttMs: numb
         backBufferLength: PRUNE_KEEP_S,
         liveSyncDuration: normalLiveWindow.sync,
         liveMaxLatencyDuration: normalLiveWindow.max,
-        maxLiveSyncPlaybackRate: 1,
+        maxLiveSyncPlaybackRate: 1.05,
         enableWorker: true,
         xhrSetup: (xhr, url) => {
             xhr.withCredentials = needsCredentials(url, ctx.mediaBase, location.origin);
