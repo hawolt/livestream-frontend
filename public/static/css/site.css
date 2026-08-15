@@ -32,7 +32,7 @@
     height: 21px;
     transition: transform 0.55s cubic-bezier(0.22, 1, 0.36, 1);
 }
-.site-brand:hover .brand-o, .site-brand:focus-visible .brand-o { transform: rotate(360deg); }
+.brand-o:hover { transform: rotate(360deg); }
 @media (prefers-reduced-motion: reduce) {
     .brand-o { transition: none; }
 }
