@@ -60,7 +60,7 @@
     white-space: nowrap;
 }
 .site-link:hover { color: var(--text); text-decoration: none; }
-.site-link.active { color: var(--accent); }
+.site-link.active { color: var(--text); font-weight: 600; }
 
 .site-nav-right {
     margin-left: auto;
