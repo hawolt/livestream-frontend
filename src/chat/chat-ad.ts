@@ -47,7 +47,7 @@ async function showChatAd(): Promise<void> {
     cta.className = "live-chat-ad-cta";
     cta.href = `/api/live/spots/visit/${id}`;
     cta.target = "_blank";
-    cta.rel = "noopener noreferrer nofollow sponsored";
+    cta.rel = "noopener nofollow sponsored";
     cta.textContent = "Learn more";
     const close = document.createElement("button");
     close.type = "button";

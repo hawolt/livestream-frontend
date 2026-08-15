@@ -83,7 +83,7 @@ describe("renderAdSlot", () => {
         expect(anchor).not.toBeNull();
         expect(anchor!.href).toBe("/api/live/spots/visit/42");
         expect(anchor!.target).toBe("_blank");
-        expect(anchor!.rel).toBe("noopener noreferrer nofollow sponsored");
+        expect(anchor!.rel).toBe("noopener nofollow sponsored");
     });
 
     test("carries no classes or ids, only inline styles, so per-element cosmetic filters have nothing to match", () => {

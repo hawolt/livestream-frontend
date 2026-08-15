@@ -30,7 +30,7 @@ export function renderAdSlot(container: HTMLElement, ads: AdSpot[]): void {
     a.style.cssText = "display:block;position:relative;border:1px solid var(--border);border-radius:var(--radius);overflow:hidden";
     a.href = `/api/live/spots/visit/${ad.id}`;
     a.target = "_blank";
-    a.rel = "noopener noreferrer nofollow sponsored";
+    a.rel = "noopener nofollow sponsored";
     const img = document.createElement("img");
     img.style.cssText = "display:block;width:100%;max-height:90px;object-fit:contain;background:rgba(255,255,255,.03)";
     img.src = `/api/live/spots/image/${ad.id}`;
