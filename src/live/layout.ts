@@ -1,4 +1,4 @@
-import { btnCinema, btnLayoutToggle, channelRailEl, chatEl, chatHeadActionsEl, chatHeadEl, mainEl, page, video, viewersEl } from "./dom.ts";
+import { btnCinema, btnLayoutToggle, channelRailEl, chatEl, chatHeadActionsEl, chatHeadEl, mainEl, page, uptimeEl, video } from "./dom.ts";
 import { syncChannelRailVisibility } from "./channel-rail.ts";
 import { readLocalStorage, writeLocalStorage } from "../storage.ts";
 import {
@@ -50,7 +50,7 @@ export function syncLayout(): void {
     document.body.classList.toggle("is-vertical", isVertical);
     if (isVertical) document.body.classList.remove("chat-collapsed");
     if (isVertical) {
-        viewersEl.after(chatHeadActionsEl);
+        uptimeEl.after(chatHeadActionsEl);
     } else if (chatHeadActionsEl.parentElement !== chatHeadEl) {
         chatHeadEl.appendChild(chatHeadActionsEl);
     }
