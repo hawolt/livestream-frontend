@@ -82,6 +82,13 @@ function buildPanelCard(panel: ProfilePanel, owner: boolean): HTMLElement {
         card.appendChild(body);
     }
     if (owner) {
+        const edit = document.createElement("button");
+        edit.type = "button";
+        edit.className = "live-about-panel-delete live-about-panel-edit";
+        edit.setAttribute("aria-label", "Edit card");
+        edit.innerHTML = `<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>`;
+        edit.addEventListener("click", () => openEditCardModal(panel));
+        card.appendChild(edit);
         const del = document.createElement("button");
         del.type = "button";
         del.className = "live-about-panel-delete";
@@ -407,6 +414,7 @@ function cardModalHeaders(): Record<string, string> {
 
 let cardType: CardType = "text";
 let selectedCardFile: File | null = null;
+let editingPanelId: string | null = null;
 
 function setCardType(type: CardType): void {
     cardType = type;
@@ -424,8 +432,14 @@ function resetCardModal(): void {
     cardModalFileInputEl.value = "";
     cardModalFileNameEl.textContent = "No file selected";
     selectedCardFile = null;
+    editingPanelId = null;
     cardModalErrorEl.textContent = "";
     cardModalSubmitEl.disabled = false;
+    cardModalTypeTextEl.disabled = false;
+    cardModalTypeImageEl.disabled = false;
+    const heading = document.getElementById("live-card-modal-title");
+    if (heading) heading.textContent = "Add card";
+    cardModalSubmitEl.textContent = "Add card";
     setCardType("text");
 }
 
@@ -437,6 +451,24 @@ function closeCardModal(): void {
 
 function openCardModal(): void {
     resetCardModal();
+    cardModalEl.hidden = false;
+    openDismissibleSurface(cardModalEl, closeCardModal);
+    cardModalTitleInputEl.focus();
+}
+
+function openEditCardModal(panel: ProfilePanel): void {
+    resetCardModal();
+    editingPanelId = panel.id;
+    setCardType(panel.imageUrl ? "image" : "text");
+    cardModalTypeTextEl.disabled = true;
+    cardModalTypeImageEl.disabled = true;
+    cardModalTitleInputEl.value = panel.title;
+    cardModalBodyInputEl.value = panel.body;
+    cardModalLinkInputEl.value = panel.linkUrl;
+    if (panel.imageUrl) cardModalFileNameEl.textContent = "Keeping current image";
+    const heading = document.getElementById("live-card-modal-title");
+    if (heading) heading.textContent = "Edit card";
+    cardModalSubmitEl.textContent = "Save";
     cardModalEl.hidden = false;
     openDismissibleSurface(cardModalEl, closeCardModal);
     cardModalTitleInputEl.focus();
@@ -481,7 +513,7 @@ async function submitCardModal(): Promise<void> {
     const title = cardModalTitleInputEl.value.trim();
     const body = cardModalBodyInputEl.value.trim();
     const linkUrl = cardType === "image" ? cardModalLinkInputEl.value.trim() : "";
-    const errors = validateCardForm({ type: cardType, body, linkUrl, hasFile: selectedCardFile !== null });
+    const errors = validateCardForm({ type: cardType, body, linkUrl, hasFile: selectedCardFile !== null || editingPanelId !== null });
     cardModalErrorEl.textContent = "";
     const firstError = errors.body ?? errors.file ?? errors.linkUrl;
     if (firstError) {
@@ -496,13 +528,22 @@ async function submitCardModal(): Promise<void> {
         }
     }
     cardModalSubmitEl.disabled = true;
+    const editing = editingPanelId;
     const payload: Record<string, string> = {};
-    if (title) payload["title"] = title;
-    if (cardType === "text") payload["body"] = body;
-    if (cardType === "image" && linkUrl) payload["linkUrl"] = linkUrl;
+    if (editing) {
+        payload["title"] = title;
+        if (cardType === "text") payload["body"] = body;
+        if (cardType === "image") payload["linkUrl"] = linkUrl;
+    } else {
+        if (title) payload["title"] = title;
+        if (cardType === "text") payload["body"] = body;
+        if (cardType === "image" && linkUrl) payload["linkUrl"] = linkUrl;
+    }
     try {
-        const res = await fetch(`${API_BASE}/profile/me/panels`, {
-            method: "POST",
+        const res = await fetch(editing
+            ? `${API_BASE}/profile/me/panels/${editing}`
+            : `${API_BASE}/profile/me/panels`, {
+            method: editing ? "PATCH" : "POST",
             credentials: "include",
             headers: cardModalHeaders(),
             body: JSON.stringify(payload),
@@ -520,14 +561,17 @@ async function submitCardModal(): Promise<void> {
             return;
         }
         const created = await res.json().catch(() => ({})) as { id?: string | number };
-        if (cardType === "image" && selectedCardFile && created.id !== undefined) {
-            const uploaded = await uploadCardImage(String(created.id), selectedCardFile);
+        const imageTarget = editing ?? (created.id !== undefined ? String(created.id) : "");
+        if (cardType === "image" && selectedCardFile && imageTarget) {
+            const uploaded = await uploadCardImage(imageTarget, selectedCardFile);
             if (!uploaded.ok) {
-                await fetch(`${API_BASE}/profile/me/panels/${created.id}`, {
-                    method: "DELETE",
-                    credentials: "include",
-                    headers: dashAuthHeaders(),
-                }).catch(() => {});
+                if (!editing) {
+                    await fetch(`${API_BASE}/profile/me/panels/${imageTarget}`, {
+                        method: "DELETE",
+                        credentials: "include",
+                        headers: dashAuthHeaders(),
+                    }).catch(() => {});
+                }
                 cardModalErrorEl.textContent = uploaded.error || "Could not upload the image. Try again.";
                 cardModalSubmitEl.disabled = false;
                 return;
