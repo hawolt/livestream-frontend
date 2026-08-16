@@ -443,7 +443,8 @@
             min-width: 0;
         }
         .live-channel-name {
-            display: block;
+            display: inline-block;
+            vertical-align: middle;
             font: inherit;
             font-size: 16px;
             font-weight: 700;
@@ -987,7 +988,7 @@
         @keyframes liveChatFlash { 0% { background: rgba(74,222,128,.28); } 100% { background: transparent; } }
         .live-chat-mention { color: var(--accent); font-weight: 700; }
         .live-chat-deleted { color: var(--muted); font-style: italic; }
-        .live-partner-badge { width: 18px; height: 18px; vertical-align: -3px; margin-left: 6px; }
+        .live-partner-badge { width: 18px; height: 18px; vertical-align: middle; margin-left: 6px; }
         .live-partner-badge[hidden] { display: none; }
         .live-activity-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
         .live-activity-head .live-about-panel-title { margin: 0; }
