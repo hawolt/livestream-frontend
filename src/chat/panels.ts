@@ -71,15 +71,25 @@ export function renderUserlist(): void {
     }
 }
 
+let userlistRefreshTimer: number | null = null;
+
 export function setUserlist(open: boolean): void {
     ctx.userlistOpen = open;
     usersBtnEl.classList.toggle("active", open);
     userlistEl.hidden = !open;
+    if (userlistRefreshTimer !== null) {
+        window.clearInterval(userlistRefreshTimer);
+        userlistRefreshTimer = null;
+    }
     if (open) {
         setHelp(false);
         setSettings(false);
         renderUserlist();
         send(`NAMES ${ctx.channel}`);
+        userlistRefreshTimer = window.setInterval(() => {
+            if (!ctx.userlistOpen || !ctx.joined) return;
+            send(`NAMES ${ctx.channel}`);
+        }, 30000);
     }
 }
 
