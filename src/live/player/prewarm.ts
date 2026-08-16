@@ -210,7 +210,7 @@ async function openPrewarm(s: PrewarmSession): Promise<void> {
         emoteTwitchId: typeof info.emoteTwitchId === "string" ? info.emoteTwitchId : "",
         mediaBase,
         wssBase,
-        clipsDisabled: info.passwordRequired === true || info.ticketRequired === true,
+        clipsDisabled: info.passwordRequired === true,
     };
     let tq = "";
     let vid = "";

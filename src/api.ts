@@ -123,10 +123,6 @@ export interface LiveInfo {
     passwordProtected: boolean;
     thumbnailAllowed?: boolean;
     privateAllowed?: boolean;
-    ticketingAllowed?: boolean;
-    ticketPriceCents?: number | null;
-    ticketCurrency?: string | null;
-    ticketDays?: number;
     maxImageBytes?: number;
     maxHeight?: number;
     maxFps?: number;
@@ -171,9 +167,6 @@ export interface LiveChannelInfo {
     emoteTwitchId: string | null;
     startedAt?: number;
     passwordRequired?: boolean;
-    ticketRequired?: boolean;
-    ticketPriceCents?: number | null;
-    ticketCurrency?: string | null;
     locked?: boolean;
     pointsName?: string | null;
 }
