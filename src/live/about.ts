@@ -96,20 +96,42 @@ function buildPanelCard(panel: ProfilePanel, owner: boolean): HTMLElement {
 let activityDays = new Set<string>();
 let activityLoadedFor = "";
 
-function activityDayKey(offsetDays: number): string {
-    return new Date(Date.now() - offsetDays * 86400000).toISOString().slice(0, 10);
+const ACTIVITY_EPOCH = "2026-08-16";
+const DAY_MS = 86400000;
+
+const EXPAND_ICON = `<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>`;
+
+function dayKeyFromTime(t: number): string {
+    return new Date(t).toISOString().slice(0, 10);
+}
+
+function todayKey(): string {
+    return dayKeyFromTime(Date.now());
+}
+
+function dayTime(key: string): number {
+    return new Date(`${key}T00:00:00Z`).getTime();
+}
+
+function buildActivityCell(key: string): HTMLElement {
+    const today = todayKey();
+    const cell = document.createElement("div");
+    let cls = "live-activity-cell";
+    if (activityDays.has(key)) cls += " on";
+    else if (key > today) cls += " future";
+    if (key === today) cls += " today";
+    cell.className = cls;
+    cell.title = activityDays.has(key) ? `${key} - live` : key;
+    return cell;
 }
 
 function buildActivityCells(count: number): HTMLElement {
     const strip = document.createElement("div");
     strip.className = "live-activity-strip";
-    for (let i = count - 1; i >= 0; i--) {
-        const key = activityDayKey(i);
-        const on = activityDays.has(key);
-        const cell = document.createElement("div");
-        cell.className = on ? "live-activity-cell on" : "live-activity-cell";
-        cell.title = on ? `${key} - live` : key;
-        strip.appendChild(cell);
+    const epoch = dayTime(ACTIVITY_EPOCH);
+    const windowStart = Math.max(epoch, dayTime(todayKey()) - (count - 1) * DAY_MS);
+    for (let i = 0; i < count; i++) {
+        strip.appendChild(buildActivityCell(dayKeyFromTime(windowStart + i * DAY_MS)));
     }
     return strip;
 }
@@ -135,25 +157,25 @@ function openActivityHistory(): void {
     const heading = document.createElement("h3");
     heading.textContent = "Stream activity";
     box.append(close, heading);
-    const sorted = Array.from(activityDays).sort();
-    const first = sorted[0] ?? activityDayKey(364);
-    const firstDate = new Date(`${first}T00:00:00Z`);
-    const start = new Date(firstDate.getTime() - firstDate.getUTCDay() * 86400000);
-    const today = new Date(`${activityDayKey(0)}T00:00:00Z`);
+    const epoch = dayTime(ACTIVITY_EPOCH);
+    const start = epoch - new Date(epoch).getUTCDay() * DAY_MS;
+    const minEnd = dayTime(todayKey()) + 7 * DAY_MS;
+    const end = Math.max(start + 20 * 7 * DAY_MS, minEnd);
     const grid = document.createElement("div");
     grid.className = "live-activity-grid";
-    for (let t = start.getTime(); t <= today.getTime(); t += 86400000) {
-        const key = new Date(t).toISOString().slice(0, 10);
-        const on = activityDays.has(key);
-        const cell = document.createElement("div");
-        cell.className = on ? "live-activity-cell on" : "live-activity-cell";
-        cell.title = on ? `${key} - live` : key;
-        grid.appendChild(cell);
+    for (let t = start; t < end; t += DAY_MS) {
+        if (t < epoch) {
+            const pad = document.createElement("div");
+            pad.className = "live-activity-cell pad";
+            grid.appendChild(pad);
+            continue;
+        }
+        grid.appendChild(buildActivityCell(dayKeyFromTime(t)));
     }
     const wrap = document.createElement("div");
     wrap.className = "live-activity-grid-wrap";
     wrap.appendChild(grid);
-    const liveCount = sorted.length;
+    const liveCount = activityDays.size;
     const note = document.createElement("p");
     note.className = "live-activity-note";
     note.textContent = liveCount === 1 ? "1 day live" : `${liveCount} days live`;
@@ -165,21 +187,21 @@ function openActivityHistory(): void {
 function buildActivityCard(): HTMLElement {
     const card = document.createElement("div");
     card.className = "live-about-panel live-activity-card";
+    const head = document.createElement("div");
+    head.className = "live-activity-head";
     const title = document.createElement("div");
     title.className = "live-about-panel-title";
     title.textContent = "Stream activity";
-    card.appendChild(title);
-    const sub = document.createElement("div");
-    sub.className = "live-activity-sub";
-    sub.textContent = "Past 30 days";
-    card.appendChild(sub);
+    const expand = document.createElement("button");
+    expand.type = "button";
+    expand.className = "live-activity-expand";
+    expand.setAttribute("aria-label", "Open full stream activity");
+    expand.title = "Full view";
+    expand.innerHTML = EXPAND_ICON;
+    expand.addEventListener("click", openActivityHistory);
+    head.append(title, expand);
+    card.appendChild(head);
     card.appendChild(buildActivityCells(30));
-    const historyBtn = document.createElement("button");
-    historyBtn.type = "button";
-    historyBtn.className = "live-activity-history-btn";
-    historyBtn.textContent = "View full history";
-    historyBtn.addEventListener("click", openActivityHistory);
-    card.appendChild(historyBtn);
     return card;
 }
 
@@ -202,7 +224,8 @@ export function loadStreamActivity(username: string): void {
         .then(data => {
             if (!data) return;
             activityLoadedFor = username;
-            activityDays = new Set(Array.isArray(data.days) ? data.days.filter((d): d is string => typeof d === "string") : []);
+            const days = Array.isArray(data.days) ? data.days.filter((d): d is string => typeof d === "string") : [];
+            activityDays = new Set(days.filter(d => d >= ACTIVITY_EPOCH));
             mountActivityCard();
         })
         .catch(() => {});

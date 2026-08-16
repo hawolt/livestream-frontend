@@ -989,35 +989,42 @@
         .live-chat-deleted { color: var(--muted); font-style: italic; }
         .live-partner-badge { width: 18px; height: 18px; vertical-align: -3px; margin-left: 6px; }
         .live-partner-badge[hidden] { display: none; }
-        .live-activity-sub { color: var(--muted); font-size: 12px; margin: 2px 0 10px; }
-        .live-activity-strip { display: flex; flex-wrap: wrap; gap: 3px; }
+        .live-activity-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+        .live-activity-head .live-about-panel-title { margin: 0; }
+        .live-activity-expand {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 26px;
+            height: 26px;
+            background: none;
+            border: none;
+            border-radius: var(--radius);
+            color: var(--muted);
+            cursor: pointer;
+            padding: 0;
+        }
+        .live-activity-expand:hover { color: var(--text); }
+        .live-activity-strip { display: flex; flex-wrap: wrap; gap: 5px; }
+        .live-activity-strip .live-activity-cell { width: 17px; height: 17px; border-radius: 3px; }
         .live-activity-cell {
-            width: 11px;
-            height: 11px;
+            width: 12px;
+            height: 12px;
             border-radius: 2px;
             background: rgba(255, 255, 255, .08);
             flex: 0 0 auto;
         }
         .live-activity-cell.on { background: var(--accent); }
-        .live-activity-history-btn {
-            margin-top: 12px;
-            background: none;
-            border: none;
-            padding: 0;
-            font: inherit;
-            font-size: 12.5px;
-            color: var(--muted);
-            cursor: pointer;
-            text-decoration: underline;
-            text-underline-offset: 3px;
-        }
-        .live-activity-history-btn:hover { color: var(--text); }
+        .live-activity-cell.future { background: rgba(255, 255, 255, .03); }
+        .live-activity-cell.today { box-shadow: inset 0 0 0 1px var(--dim); }
+        .live-activity-cell.today.on { box-shadow: none; }
+        .live-activity-cell.pad { background: none; }
         .live-activity-history-box { max-width: min(760px, calc(100vw - 32px)); }
         .live-activity-grid-wrap { overflow-x: auto; padding-bottom: 6px; }
         .live-activity-grid {
             display: grid;
             grid-auto-flow: column;
-            grid-template-rows: repeat(7, 11px);
+            grid-template-rows: repeat(7, 12px);
             gap: 3px;
             width: max-content;
         }
@@ -2288,6 +2295,6 @@
         </form>
     </div>
 </div>
-<script src="/live-b25ee56w.js" type="module"></script>
+<script src="/live-rwqjersd.js" type="module"></script>
 </body>
 </html>
