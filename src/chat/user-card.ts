@@ -1,7 +1,9 @@
 import { subscriberBadgeAssetPath, subscriberBadgeTitle } from "./badges.ts";
-import { nickColor } from "./members.ts";
+import { hasModRole, nickColor } from "./members.ts";
 import { inputEl } from "./dom.ts";
 import { loadProfile } from "../profile-card.ts";
+import { ctx, myNickLower } from "./context.ts";
+import { send } from "./connection.ts";
 
 let cardEl: HTMLElement | null = null;
 let cardToken = 0;
@@ -90,6 +92,35 @@ export function openUserCard(username: string, anchor: DOMRect): void {
     });
     actions.appendChild(mention);
     card.appendChild(actions);
+
+    if (ctx.joined && hasModRole() && username.toLowerCase() !== myNickLower()) {
+        const mod = document.createElement("div");
+        mod.className = "live-user-card-actions live-user-card-mod";
+        const timeout = document.createElement("button");
+        timeout.type = "button";
+        timeout.textContent = "Timeout 10m";
+        timeout.addEventListener("click", () => {
+            send(`PRIVMSG ${ctx.channel} :.timeout ${username} 10`);
+            closeUserCard();
+        });
+        const ban = document.createElement("button");
+        ban.type = "button";
+        ban.className = "live-user-card-ban";
+        ban.textContent = "Ban";
+        ban.addEventListener("click", () => {
+            send(`PRIVMSG ${ctx.channel} :.ban ${username}`);
+            closeUserCard();
+        });
+        const unban = document.createElement("button");
+        unban.type = "button";
+        unban.textContent = "Unban";
+        unban.addEventListener("click", () => {
+            send(`PRIVMSG ${ctx.channel} :.unban ${username}`);
+            closeUserCard();
+        });
+        mod.append(timeout, ban, unban);
+        card.appendChild(mod);
+    }
 
     positionCard(card, anchor);
     wireDismiss(card);
