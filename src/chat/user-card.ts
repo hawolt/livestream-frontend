@@ -1,0 +1,141 @@
+import { subscriberBadgeAssetPath, subscriberBadgeTitle } from "./badges.ts";
+import { nickColor } from "./members.ts";
+import { inputEl } from "./dom.ts";
+import { loadProfile } from "../profile-card.ts";
+
+let cardEl: HTMLElement | null = null;
+let cardToken = 0;
+
+export function closeUserCard(): void {
+    cardEl?.remove();
+    cardEl = null;
+}
+
+function positionCard(card: HTMLElement, anchor: DOMRect): void {
+    const width = 260;
+    const left = Math.max(8, Math.min(anchor.left, window.innerWidth - width - 8));
+    card.style.left = `${Math.round(left)}px`;
+    document.body.appendChild(card);
+    const height = card.offsetHeight;
+    const below = anchor.bottom + 6;
+    const top = below + height > window.innerHeight - 8 ? Math.max(8, anchor.top - height - 6) : below;
+    card.style.top = `${Math.round(top)}px`;
+}
+
+function wireDismiss(card: HTMLElement): void {
+    const onDoc = (ev: MouseEvent): void => {
+        if (ev.target instanceof Node && card.contains(ev.target)) return;
+        cleanup();
+    };
+    const onKey = (ev: KeyboardEvent): void => {
+        if (ev.key === "Escape") cleanup();
+    };
+    const cleanup = (): void => {
+        document.removeEventListener("click", onDoc, true);
+        document.removeEventListener("keydown", onKey);
+        closeUserCard();
+    };
+    window.setTimeout(() => {
+        document.addEventListener("click", onDoc, true);
+        document.addEventListener("keydown", onKey);
+    }, 0);
+}
+
+function memberSince(createdAt: number | null): string {
+    if (!createdAt) return "";
+    const date = new Date(createdAt);
+    return `Member since ${date.toLocaleString("en", { month: "short", year: "numeric" })}`;
+}
+
+export function openUserCard(username: string, anchor: DOMRect): void {
+    closeUserCard();
+    const token = ++cardToken;
+    const card = document.createElement("div");
+    card.className = "live-user-card";
+    card.setAttribute("role", "dialog");
+    card.setAttribute("aria-label", `${username} profile`);
+
+    const head = document.createElement("div");
+    head.className = "live-user-card-head";
+    const fallback = document.createElement("div");
+    fallback.className = "live-user-card-avatar-fallback";
+    fallback.textContent = username.slice(0, 1);
+    head.appendChild(fallback);
+    const id = document.createElement("div");
+    id.style.minWidth = "0";
+    const name = document.createElement("div");
+    name.className = "live-user-card-name";
+    name.textContent = username;
+    name.style.color = nickColor(username);
+    id.appendChild(name);
+    const meta = document.createElement("div");
+    meta.className = "live-user-card-meta";
+    meta.textContent = "Loading…";
+    id.appendChild(meta);
+    head.appendChild(id);
+    card.appendChild(head);
+
+    const actions = document.createElement("div");
+    actions.className = "live-user-card-actions";
+    const mention = document.createElement("button");
+    mention.type = "button";
+    mention.textContent = "Mention";
+    mention.addEventListener("click", () => {
+        if (!inputEl.disabled) {
+            const prefix = inputEl.value && !inputEl.value.endsWith(" ") ? " " : "";
+            inputEl.value += `${prefix}@${username} `;
+            inputEl.focus();
+        }
+        closeUserCard();
+    });
+    actions.appendChild(mention);
+    card.appendChild(actions);
+
+    positionCard(card, anchor);
+    wireDismiss(card);
+    cardEl = card;
+
+    void loadProfile(username).then(profile => {
+        if (token !== cardToken || cardEl !== card) return;
+        if (!profile) {
+            meta.textContent = "Guest viewer";
+            return;
+        }
+        name.textContent = profile.username;
+        if (profile.hasAvatar) {
+            const img = document.createElement("img");
+            img.className = "live-user-card-avatar";
+            img.src = `/api/live/profile/${encodeURIComponent(profile.username)}/avatar?v=${profile.avatarVersion}`;
+            img.alt = "";
+            img.addEventListener("error", () => img.replaceWith(fallback));
+            fallback.replaceWith(img);
+        }
+        const parts: string[] = [];
+        const since = memberSince(profile.createdAt);
+        if (since) parts.push(since);
+        if (profile.streamer) {
+            parts.push(profile.followers === 1 ? "1 follower" : `${profile.followers} followers`);
+        }
+        meta.textContent = parts.join(" · ") || " ";
+        if (profile.badges.length) {
+            const shelf = document.createElement("div");
+            shelf.className = "live-user-card-badges";
+            for (const badge of profile.badges) {
+                const img = document.createElement("img");
+                img.src = subscriberBadgeAssetPath(badge);
+                img.alt = badge;
+                img.title = subscriberBadgeTitle(badge);
+                img.addEventListener("error", () => img.remove());
+                shelf.appendChild(img);
+            }
+            card.insertBefore(shelf, actions);
+        }
+        if (profile.streamer) {
+            const visit = document.createElement("a");
+            visit.href = `/${encodeURIComponent(profile.username)}`;
+            visit.textContent = "Visit channel";
+            actions.appendChild(visit);
+        }
+        positionCard(card, anchor);
+    });
+}

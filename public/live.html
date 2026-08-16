@@ -1282,6 +1282,65 @@
         .live-about-info { flex: 1; min-width: 0; }
         .live-about-title { margin: 0; font-size: 16px; font-weight: 700; color: var(--text); overflow-wrap: anywhere; }
         .live-about-followers { margin-top: 4px; font-size: 12.5px; color: var(--muted); }
+        .live-about-badges { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+        .live-about-badges[hidden] { display: none; }
+        .live-about-badges img { width: 20px; height: 20px; display: block; }
+        .live-user-card {
+            position: fixed;
+            z-index: 80;
+            width: 260px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            box-shadow: 0 6px 24px rgba(0, 0, 0, .55);
+            padding: 14px;
+        }
+        .live-user-card-head { display: flex; align-items: center; gap: 10px; }
+        .live-user-card-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            object-fit: cover;
+            flex: 0 0 auto;
+        }
+        .live-user-card-avatar-fallback {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: var(--border);
+            color: var(--text);
+            font-size: 17px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-transform: uppercase;
+            flex: 0 0 auto;
+        }
+        .live-user-card-name { font-weight: 700; font-size: 15px; overflow: hidden; text-overflow: ellipsis; }
+        .live-user-card-meta { color: var(--muted); font-size: 12px; margin-top: 2px; }
+        .live-user-card-badges { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+        .live-user-card-badges img { width: 20px; height: 20px; display: block; }
+        .live-user-card-actions { display: flex; gap: 8px; margin-top: 12px; }
+        .live-user-card-actions a, .live-user-card-actions button {
+            flex: 1;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 6px 10px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            background: none;
+            color: var(--text);
+            font: inherit;
+            font-size: 13px;
+            cursor: pointer;
+            text-decoration: none;
+        }
+        .live-user-card-actions a:hover, .live-user-card-actions button:hover { border-color: var(--accent); }
+        .live-user-card-note { color: var(--muted); font-size: 13px; margin-top: 8px; }
+        .live-chat-nick { cursor: pointer; }
+        .live-chat-nick:hover { text-decoration: underline; }
         .live-about-bio {
             margin: 12px 0 0;
             font-size: 13.5px; line-height: 1.6; color: var(--text);
@@ -2126,6 +2185,7 @@
                     <div class="live-about-info">
                         <h3 class="live-about-title" id="live-about-heading"></h3>
                         <div class="live-about-followers" id="live-about-followers"></div>
+                        <div class="live-about-badges" id="live-about-badges" hidden></div>
                         <p class="live-about-bio" id="live-about-bio" hidden></p>
                     </div>
                     <div class="live-about-links" id="live-about-links"></div>
@@ -2303,6 +2363,6 @@
         </form>
     </div>
 </div>
-<script src="/live-ka0tb5s0.js" type="module"></script>
+<script src="/live-z7886wme.js" type="module"></script>
 </body>
 </html>

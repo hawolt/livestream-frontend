@@ -20,6 +20,9 @@ export interface Profile {
     avatarVersion: number;
     bannerVersion: number;
     panels: ProfilePanel[];
+    badges: string[];
+    streamer: boolean;
+    createdAt: number | null;
 }
 
 function isHttpsUrl(url: string): boolean {
@@ -61,6 +64,9 @@ export async function loadProfile(username: string): Promise<Profile | null> {
             avatarVersion: typeof data.avatarVersion === "number" ? data.avatarVersion : 0,
             bannerVersion: typeof data.bannerVersion === "number" ? data.bannerVersion : 0,
             panels: normalizePanels(data.panels),
+            badges: Array.isArray(data.badges) ? data.badges.filter((b): b is string => typeof b === "string") : [],
+            streamer: data.streamer === true,
+            createdAt: typeof data.createdAt === "number" ? data.createdAt : null,
         };
     } catch {
         return null;

@@ -11,6 +11,7 @@ import { renderPins } from "./pins.ts";
 import { shouldPingForMention } from "./mention-ping.ts";
 import { playMentionPing } from "./ping-sound.ts";
 import { recordChatMessageForAds } from "./chat-ad.ts";
+import { openUserCard } from "./user-card.ts";
 
 export const MAX_MESSAGES = 200;
 const SCROLL_SLACK_PX = 40;
@@ -118,6 +119,10 @@ function buildNick(from: string): HTMLSpanElement {
     nick.className = "live-chat-nick";
     nick.textContent = from;
     nick.style.color = nickColor(from);
+    nick.addEventListener("click", (ev) => {
+        ev.stopPropagation();
+        openUserCard(from, nick.getBoundingClientRect());
+    });
     return nick;
 }
 

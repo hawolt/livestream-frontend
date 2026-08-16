@@ -1,6 +1,7 @@
 import { buildAvatar, buildProfileLinks, followerLabel, loadProfile, type Profile, type ProfilePanel } from "../profile-card.ts";
 import { isSafeHttpLink } from "./about/panels.ts";
 import { cardImageError, validateCardForm, type CardType } from "./about/card-form.ts";
+import { subscriberBadgeAssetPath, subscriberBadgeTitle } from "../chat/badges.ts";
 import { loadChannelClips, type AboutClip, type ClipsSort } from "./about/clips.ts";
 import { relativeDate } from "./about/relative-date.ts";
 import { formatCompactCount } from "./format.ts";
@@ -337,6 +338,21 @@ export function mountAboutCard(profile: Profile | null): void {
     aboutFollowersEl.textContent = profile ? followerLabel(profile.followers) : "";
     aboutBioEl.textContent = profile?.bio ?? "";
     aboutBioEl.hidden = !profile?.bio;
+    const badgesEl = document.getElementById("live-about-badges");
+    if (badgesEl) {
+        badgesEl.replaceChildren();
+        const badges = profile?.badges ?? [];
+        badgesEl.hidden = badges.length === 0;
+        for (const badge of badges) {
+            const img = document.createElement("img");
+            img.src = subscriberBadgeAssetPath(badge);
+            img.alt = badge;
+            img.title = subscriberBadgeTitle(badge);
+            img.loading = "lazy";
+            img.addEventListener("error", () => img.remove());
+            badgesEl.appendChild(img);
+        }
+    }
     aboutLinksEl.replaceChildren();
     const links = profile ? buildProfileLinks(profile.links) : null;
     if (links) aboutLinksEl.appendChild(links);
