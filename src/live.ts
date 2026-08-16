@@ -10,6 +10,7 @@ import {
     btnLayoutToggle,
     chatFeatureSlotEl,
     nameEl,
+    partnerBadgeEl,
     page,
     titleBar,
     viewersHeaderEl,
@@ -104,6 +105,8 @@ async function boot(): Promise<void> {
         return;
     }
     nameEl.textContent = ctx.displayUsername;
+    let channelPartner = false;
+    partnerBadgeEl.hidden = true;
     document.title = ctx.displayUsername;
     browseMiniUsername.textContent = ctx.displayUsername;
     if (!chatPopout) {
@@ -171,6 +174,7 @@ async function boot(): Promise<void> {
                 }
             }
             ctx.clipsDisabled = info.passwordRequired === true;
+            channelPartner = info.partner === true;
             if (typeof info.username === "string" && info.username) {
                 ctx.displayUsername = info.username;
             }
@@ -207,6 +211,7 @@ async function boot(): Promise<void> {
     }
     if (generation !== bootGeneration) return;
     nameEl.textContent = ctx.displayUsername;
+    partnerBadgeEl.hidden = channelPartner !== true;
     document.title = ctx.displayUsername;
     browseMiniUsername.textContent = ctx.displayUsername;
     if (!chatPopout) {

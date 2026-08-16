@@ -987,6 +987,8 @@
         @keyframes liveChatFlash { 0% { background: rgba(74,222,128,.28); } 100% { background: transparent; } }
         .live-chat-mention { color: var(--accent); font-weight: 700; }
         .live-chat-deleted { color: var(--muted); font-style: italic; }
+        .live-partner-badge { width: 18px; height: 18px; vertical-align: -3px; margin-left: 6px; }
+        .live-partner-badge[hidden] { display: none; }
         .live-activity-sub { color: var(--muted); font-size: 12px; margin: 2px 0 10px; }
         .live-activity-strip { display: flex; flex-wrap: wrap; gap: 3px; }
         .live-activity-cell {
@@ -2085,7 +2087,7 @@
             <div class="live-channel-header hidden" id="live-info-bar">
                 <div class="live-channel-avatar-wrap" id="live-channel-avatar-wrap"></div>
                 <div class="live-channel-id">
-                    <span id="live-name" class="live-channel-name"></span>
+                    <span id="live-name" class="live-channel-name"></span><img id="live-partner-badge" class="live-partner-badge" src="/static/img/badge-partner.svg" alt="Partner" title="Partner" hidden />
                     <div id="live-title-text" class="live-channel-title"></div>
                     <div class="live-channel-meta">
                         <a id="live-category" class="hidden"></a>
@@ -2286,6 +2288,6 @@
         </form>
     </div>
 </div>
-<script src="/live-tyvh1b85.js" type="module"></script>
+<script src="/live-b25ee56w.js" type="module"></script>
 </body>
 </html>

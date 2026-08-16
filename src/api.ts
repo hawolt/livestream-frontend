@@ -167,6 +167,7 @@ export interface LiveChannelInfo {
     emoteTwitchId: string | null;
     startedAt?: number;
     passwordRequired?: boolean;
+    partner?: boolean;
     locked?: boolean;
     pointsName?: string | null;
 }

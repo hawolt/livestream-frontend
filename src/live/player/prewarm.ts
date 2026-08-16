@@ -12,6 +12,7 @@ import type { AdoptedTransport } from "./adoption.ts";
 export interface PrewarmChannel {
     target: string;
     displayUsername: string;
+    partner: boolean;
     title: string;
     category: string;
     categoryId: number | null;
@@ -211,6 +212,7 @@ async function openPrewarm(s: PrewarmSession): Promise<void> {
         mediaBase,
         wssBase,
         clipsDisabled: info.passwordRequired === true,
+        partner: info.partner === true,
     };
     let tq = "";
     let vid = "";
