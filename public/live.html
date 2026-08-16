@@ -1303,8 +1303,16 @@
         .live-about-panels-actions { display: flex; align-items: center; gap: 12px; margin-left: auto; }
         .live-about-panels-actions[hidden] { display: none; }
         .live-about-panels {
-            columns: 220px;
-            column-gap: 14px;
+            display: flex;
+            gap: 14px;
+            align-items: flex-start;
+        }
+        .live-about-col {
+            flex: 1;
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
         }
         .live-about-panels[hidden] { display: none; }
         .live-about-panel {
@@ -1314,8 +1322,6 @@
             padding: 12px;
             background: var(--surface);
             overflow: hidden;
-            break-inside: avoid;
-            margin-bottom: 14px;
         }
         .live-about-panel-img {
             display: block;
@@ -2297,6 +2303,6 @@
         </form>
     </div>
 </div>
-<script src="/live-rwqjersd.js" type="module"></script>
+<script src="/live-d26wwr8w.js" type="module"></script>
 </body>
 </html>

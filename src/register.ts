@@ -21,7 +21,12 @@ const form        = document.getElementById("register-form") as HTMLFormElement;
 const referralParam = new URLSearchParams(location.search).get("ref");
 if (referralParam) {
     const referralEl = document.getElementById("referral") as HTMLInputElement;
-    if (referralEl && !referralEl.value) referralEl.value = referralParam;
+    if (referralEl) {
+        referralEl.value = referralParam;
+        referralEl.readOnly = true;
+        referralEl.classList.add("login-locked");
+        referralEl.tabIndex = -1;
+    }
 }
 const btnEl       = document.getElementById("btn-register")  as HTMLButtonElement;
 const errorEl     = document.getElementById("error")          as HTMLElement;

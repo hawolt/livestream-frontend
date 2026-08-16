@@ -992,6 +992,19 @@ tr:last-child td { border-bottom: none; }
     margin-top: 5px;
 }
 
+.login-field-label {
+    display: block;
+    font-size: 11px;
+    color: var(--dim);
+    margin-bottom: 5px;
+    text-align: left;
+}
+
+input.login-locked {
+    opacity: .7;
+    pointer-events: none;
+}
+
 .nav-menu-btn {
     display: none;
     background: none;

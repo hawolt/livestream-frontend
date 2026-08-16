@@ -473,6 +473,51 @@ function applyChatColorAllowed(allowed: boolean): void {
     if (saveBtn) saveBtn.disabled = !allowed;
 }
 
+async function loadReferrals(): Promise<void> {
+    const host = document.getElementById("st-referrals");
+    if (!host) return;
+    try {
+        const res = await authFetch<{ referrals: Array<{ username: string; verified: boolean; createdAt: number }> }>(
+            "/api/settings/referrals");
+        host.replaceChildren();
+        if (!res.referrals.length) {
+            const empty = document.createElement("span");
+            empty.style.color = "var(--muted)";
+            empty.textContent = "No one has signed up with your link yet.";
+            host.appendChild(empty);
+            return;
+        }
+        for (const referral of res.referrals) {
+            const row = document.createElement("div");
+            row.style.cssText = "display:flex;align-items:center;gap:10px";
+            const name = document.createElement("span");
+            name.textContent = referral.username;
+            const status = document.createElement("span");
+            status.style.cssText = "font-size:11.5px;border-radius:999px;padding:1px 9px;border:1px solid";
+            if (referral.verified) {
+                status.textContent = "Verified";
+                status.style.color = "var(--success)";
+                status.style.borderColor = "var(--success)";
+            } else {
+                status.textContent = "Pending";
+                status.style.color = "var(--muted)";
+                status.style.borderColor = "var(--border)";
+            }
+            const when = document.createElement("span");
+            when.style.cssText = "color:var(--muted);font-size:12px;margin-left:auto";
+            when.textContent = new Date(referral.createdAt).toLocaleDateString();
+            row.append(name, status, when);
+            host.appendChild(row);
+        }
+    } catch {
+        host.replaceChildren();
+        const err = document.createElement("span");
+        err.style.color = "var(--muted)";
+        err.textContent = "Could not load invited people.";
+        host.appendChild(err);
+    }
+}
+
 export function init(): void {
     const me = getMe();
     const flags = new Set((me?.flags ?? "").split(",").map(f => f.trim()).filter(Boolean));
@@ -480,6 +525,7 @@ export function init(): void {
     if (inviteLinkEl && me?.username) {
         inviteLinkEl.value = `${location.origin}/register?ref=${encodeURIComponent(me.username)}`;
     }
+    void loadReferrals();
     document.getElementById("btn-invite-copy")?.addEventListener("click", () => {
         const copied = document.getElementById("st-invite-copied") as HTMLElement | null;
         void copyText(inviteLinkEl?.value ?? "").then(ok => {

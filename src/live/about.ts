@@ -205,9 +205,56 @@ function buildActivityCard(): HTMLElement {
     return card;
 }
 
+let activityCardRef: HTMLElement | null = null;
+let panelCardRefs: HTMLElement[] = [];
+let aboutLayoutWired = false;
+let aboutLayoutTimer: number | null = null;
+
+function scheduleAboutLayout(): void {
+    if (aboutLayoutTimer !== null) return;
+    aboutLayoutTimer = window.setTimeout(() => {
+        aboutLayoutTimer = null;
+        layoutAboutCards();
+    }, 50);
+}
+
+function layoutAboutCards(): void {
+    if (!aboutLayoutWired) {
+        aboutLayoutWired = true;
+        window.addEventListener("resize", scheduleAboutLayout);
+    }
+    const cards: HTMLElement[] = [];
+    if (activityCardRef) cards.push(activityCardRef);
+    cards.push(...panelCardRefs);
+    aboutPanelsEl.replaceChildren();
+    if (!cards.length) return;
+    const width = aboutPanelsEl.clientWidth || 640;
+    const count = Math.max(1, Math.floor((width + 14) / 234));
+    const cols: HTMLElement[] = [];
+    for (let i = 0; i < count; i++) {
+        const col = document.createElement("div");
+        col.className = "live-about-col";
+        cols.push(col);
+        aboutPanelsEl.appendChild(col);
+    }
+    for (const card of cards) {
+        let target = cols[0]!;
+        for (const col of cols) {
+            if (col.offsetHeight < target.offsetHeight) target = col;
+        }
+        target.appendChild(card);
+        for (const img of Array.from(card.querySelectorAll("img"))) {
+            if (!img.complete && !img.dataset["relayout"]) {
+                img.dataset["relayout"] = "1";
+                img.addEventListener("load", scheduleAboutLayout, { once: true });
+            }
+        }
+    }
+}
+
 function mountActivityCard(): void {
-    document.querySelector(".live-activity-card")?.remove();
-    aboutPanelsEl.prepend(buildActivityCard());
+    activityCardRef = buildActivityCard();
+    layoutAboutCards();
     aboutPanelsEl.hidden = false;
     aboutPanelsSectionEl.hidden = false;
 }
@@ -237,11 +284,10 @@ function updatePanelsSectionVisibility(): void {
 }
 
 function renderPanels(panels: ProfilePanel[]): void {
-    aboutPanelsEl.replaceChildren();
     currentPanels = panels;
-    for (const panel of panels) aboutPanelsEl.appendChild(buildPanelCard(panel, isOwner));
+    panelCardRefs = panels.map(panel => buildPanelCard(panel, isOwner));
     updatePanelsSectionVisibility();
-    mountActivityCard();
+    layoutAboutCards();
 }
 
 function buildClipCard(channel: string, clip: AboutClip): HTMLAnchorElement {
