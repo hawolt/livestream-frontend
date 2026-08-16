@@ -13,7 +13,7 @@ import { attachVideoFailureListeners } from "./health.ts";
 import { renderQualityMenu } from "../quality-menu.ts";
 import { streamQualityText } from "../../quality.ts";
 import { canUseHlsJs, canUseNativeHLS } from "./hls-support.ts";
-import { clampToAdvertisedWindow, farWindowFor, latencyTierFor, latencyWindowFor, type LatencyWindow } from "./latency-window.ts";
+import { clampToAdvertisedWindow, farWindowFor, isPhoneUA, latencyTierFor, latencyWindowFor, type LatencyWindow } from "./latency-window.ts";
 import { bufferedAheadOf, startupHoldOver } from "./startup-hold.ts";
 import { updateSeekBar } from "../seekbar.ts";
 
@@ -168,9 +168,15 @@ const DEFAULT_LIVE_WINDOW: LatencyWindow = { sync: 5, max: 12 };
 const TIGHT_LIVE_WINDOW: LatencyWindow = { sync: 2.5, max: 8 };
 const FAR_LIVE_WINDOW: LatencyWindow = { sync: 10, max: 24 };
 
+function isPhone(): boolean {
+    const uaData = (navigator as { userAgentData?: { mobile?: boolean } }).userAgentData;
+    return isPhoneUA(navigator.userAgent, typeof uaData?.mobile === "boolean" ? uaData.mobile : null);
+}
+
 function startHlsJsPlayer(g: number, src: string, originLL: boolean, rttMs: number | null): void {
-    const tier = latencyTierFor(rttMs, originLL);
-    console.log("live: hls latency tier", tier, rttMs === null ? "unmeasured" : `${Math.round(rttMs)}ms`);
+    const phone = isPhone();
+    const tier = latencyTierFor(rttMs, originLL, phone);
+    console.log("live: hls latency tier", tier, rttMs === null ? "unmeasured" : `${Math.round(rttMs)}ms`, phone ? "phone" : "desktop");
     let normalLiveWindow: LatencyWindow = tier === "near"
         ? TIGHT_LIVE_WINDOW
         : tier === "far" ? FAR_LIVE_WINDOW : DEFAULT_LIVE_WINDOW;

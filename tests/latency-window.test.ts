@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { clampToAdvertisedWindow, farWindowFor, latencyTierFor, latencyWindowFor } from "../src/live/player/latency-window.ts";
+import { clampToAdvertisedWindow, farWindowFor, isPhoneUA, latencyTierFor, latencyWindowFor } from "../src/live/player/latency-window.ts";
 
 test("compliant 2s segments keep the tuned defaults", () => {
     expect(latencyWindowFor(2)).toBeNull();
@@ -39,6 +39,23 @@ test("latency tier maps measured rtt to near, mid and far", () => {
 test("without origin ll a close viewer still only gets the default window", () => {
     expect(latencyTierFor(40, false)).toBe("mid");
     expect(latencyTierFor(900, false)).toBe("far");
+});
+
+test("phones never get the near tier", () => {
+    expect(latencyTierFor(27, true, true)).toBe("mid");
+    expect(latencyTierFor(40, true, true)).toBe("mid");
+    expect(latencyTierFor(80, true, true)).toBe("mid");
+    expect(latencyTierFor(900, true, true)).toBe("far");
+});
+
+test("phone detection prefers client hints and falls back to the user agent", () => {
+    expect(isPhoneUA("whatever", true)).toBe(true);
+    expect(isPhoneUA("Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X)", false)).toBe(false);
+    expect(isPhoneUA("Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15", null)).toBe(true);
+    expect(isPhoneUA("Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 Mobile Safari/537.36", null)).toBe(true);
+    expect(isPhoneUA("Mozilla/5.0 (Linux; Android 14; SM-X910) AppleWebKit/537.36 Safari/537.36", null)).toBe(false);
+    expect(isPhoneUA("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15", null)).toBe(false);
+    expect(isPhoneUA("Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/126.0", null)).toBe(false);
 });
 
 test("unmeasured or garbage rtt falls back to the default tier", () => {

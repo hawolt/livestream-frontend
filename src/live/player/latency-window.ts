@@ -15,11 +15,17 @@ export type LatencyTier = "near" | "mid" | "far";
 export const NEAR_RTT_MS = 40;
 export const FAR_RTT_MS = 80;
 
-export function latencyTierFor(rttMs: number | null, originLL: boolean): LatencyTier {
+export function latencyTierFor(rttMs: number | null, originLL: boolean, phone = false): LatencyTier {
     if (rttMs === null || !Number.isFinite(rttMs) || rttMs < 0) return "mid";
     if (rttMs > FAR_RTT_MS) return "far";
-    if (rttMs > NEAR_RTT_MS || !originLL) return "mid";
+    if (rttMs > NEAR_RTT_MS || !originLL || phone) return "mid";
     return "near";
+}
+
+export function isPhoneUA(ua: string, uaDataMobile: boolean | null): boolean {
+    if (uaDataMobile !== null) return uaDataMobile;
+    if (/iP(hone|od)/.test(ua)) return true;
+    return /Android/.test(ua) && /Mobile/.test(ua);
 }
 
 export function clampToAdvertisedWindow(w: LatencyWindow, availableS: number, targetduration: number): LatencyWindow {
