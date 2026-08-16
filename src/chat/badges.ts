@@ -8,6 +8,7 @@ export const BADGE_TITLE: Record<BadgeName, string> = {
 };
 
 const SUBSCRIBER_BADGE_NAME_RE = /^[a-z0-9_]{1,24}$/;
+export const NON_PURCHASABLE_BADGES = new Set(["ambassador"]);
 
 export function sanitizeSubscriberBadgeName(raw: string | undefined): string {
     if (raw && SUBSCRIBER_BADGE_NAME_RE.test(raw)) return raw;
@@ -49,7 +50,7 @@ export function makeSubscriberBadge(key: string): HTMLImageElement {
             img.title = BADGE_TITLE.regular;
         }, { once: true });
     }
-    attachBadgeUpsell(img);
+    if (!NON_PURCHASABLE_BADGES.has(name)) attachBadgeUpsell(img);
     return img;
 }
 

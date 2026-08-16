@@ -162,7 +162,10 @@ function buildActions(from: string, text: string, msgid: string): HTMLElement {
     pin.title = "Pin message";
     pin.setAttribute("aria-label", `Pin message from ${from}`);
     pin.textContent = "📌";
-    pin.addEventListener("click", () => send(`PRIVMSG ${ctx.channel} :.pin ${msgid}`));
+    pin.addEventListener("click", () => {
+        if (!msgsEl.classList.contains("live-chat-can-mod")) return;
+        send(`PRIVMSG ${ctx.channel} :.pin ${msgid}`);
+    });
     actions.appendChild(pin);
     const del = document.createElement("button");
     del.type = "button";
@@ -170,7 +173,10 @@ function buildActions(from: string, text: string, msgid: string): HTMLElement {
     del.title = "Delete message";
     del.setAttribute("aria-label", `Delete message from ${from}`);
     del.textContent = "✕";
-    del.addEventListener("click", () => send(`PRIVMSG ${ctx.channel} :.delete ${msgid}`));
+    del.addEventListener("click", () => {
+        if (!msgsEl.classList.contains("live-chat-can-mod")) return;
+        send(`PRIVMSG ${ctx.channel} :.delete ${msgid}`);
+    });
     actions.appendChild(del);
     return actions;
 }
