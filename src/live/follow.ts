@@ -11,6 +11,7 @@ let followNotify = false;
 let followWired = false;
 let followRefreshRevision = 0;
 let followError: string | null = null;
+let lastFollowing: boolean | null = null;
 
 const FOLLOW_SESSION_RETRY_MS = 5000;
 
@@ -27,6 +28,7 @@ export function renderFollow(): void {
     if (followOwn) {
         followBtnEl.hidden = true;
         followBellEl.hidden = true;
+        lastFollowing = null;
         return;
     }
     followBtnEl.hidden = false;
@@ -36,6 +38,20 @@ export function renderFollow(): void {
     followBellEl.hidden = !following;
     followBellEl.classList.toggle("on", followNotify);
     followBellEl.title = followError ?? (followNotify ? "Email notifications on" : "Email me when this channel goes live");
+    if (lastFollowing !== null && lastFollowing !== following) popFollowButton();
+    lastFollowing = following;
+}
+
+function popFollowButton(): void {
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    followBtnEl.animate(
+        [
+            { transform: "scale(1)" },
+            { transform: "scale(1.15)" },
+            { transform: "scale(1)" },
+        ],
+        { duration: 300, easing: "ease-out" },
+    );
 }
 
 function wireFollow(): void {
