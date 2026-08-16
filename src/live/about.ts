@@ -85,7 +85,7 @@ function buildPanelCard(panel: ProfilePanel, owner: boolean): HTMLElement {
         del.type = "button";
         del.className = "live-about-panel-delete";
         del.setAttribute("aria-label", "Delete card");
-        del.textContent = "×";
+        del.innerHTML = `<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><line x1="5" y1="5" x2="19" y2="19"/><line x1="19" y1="5" x2="5" y2="19"/></svg>`;
         del.addEventListener("click", () => void deleteCard(panel.id));
         card.appendChild(del);
     }
