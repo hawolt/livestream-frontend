@@ -514,10 +514,14 @@
             background: var(--accent);
             color: #000;
             cursor: pointer;
+            transition: background .15s, color .15s, border-color .15s, filter .15s, transform .1s;
         }
         .live-follow-btn[hidden] { display: none; }
         .live-follow-btn:disabled { opacity: .6; cursor: default; }
+        .live-follow-btn:hover:not(:disabled) { filter: brightness(1.08); }
         .live-follow-btn.following { background: transparent; color: var(--text); border-color: var(--border); }
+        .live-follow-btn.following:hover:not(:disabled) { background: rgba(255,255,255,.06); border-color: var(--dim); }
+        .live-follow-btn:active:not(:disabled) { transform: scale(.97); }
         .live-follow-bell {
             display: inline-flex;
             align-items: center;
@@ -2263,6 +2267,6 @@
         </form>
     </div>
 </div>
-<script src="/live-xhpgwsv6.js" type="module"></script>
+<script src="/live-pemhf96j.js" type="module"></script>
 </body>
 </html>

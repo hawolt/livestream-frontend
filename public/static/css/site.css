@@ -58,9 +58,10 @@
     color: var(--dim);
     text-decoration: none;
     white-space: nowrap;
+    font-weight: bold;
 }
 .site-link:hover { color: var(--text); text-decoration: none; }
-.site-link.active { color: var(--text); font-weight: 600; }
+.site-link.active { color: var(--text); font-weight: bold; }
 
 .site-nav-right {
     margin-left: auto;
