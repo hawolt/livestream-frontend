@@ -1,4 +1,4 @@
-import { loadAds } from "../ads.ts";
+import { currentAdLabel, loadAds } from "../ads.ts";
 import { ctx } from "./context.ts";
 import { append } from "./messages.ts";
 import { CHAT_AD_PACING, chatAdDue, type ChatAdState } from "./chat-ad-pacing.ts";
@@ -39,7 +39,7 @@ async function showChatAd(): Promise<void> {
     line.className = "live-chat-sys live-chat-ad";
     const tag = document.createElement("span");
     tag.className = "live-chat-ad-tag";
-    tag.textContent = "Ad";
+    tag.textContent = currentAdLabel("Ad");
     const label = document.createElement("span");
     label.className = "live-chat-ad-label";
     label.textContent = ad.label || "Support the site with a cosmetic subscription.";

@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 import type { AdSpot } from "../src/ads.ts";
-import { renderAdSlot } from "../src/ads.ts";
+import { adLabelFor, renderAdSlot } from "../src/ads.ts";
 
 class StubElement {
     tagName: string;
@@ -133,6 +133,18 @@ describe("renderAdSlot", () => {
         expect(container.children.length).toBeGreaterThan(0);
         render(container, []);
         expect(container.children.length).toBe(0);
+    });
+
+    test("localizes the ad label by viewer country, keeping the element fallback when unknown", () => {
+        expect(adLabelFor("DE", "Anzeige")).toBe("Anzeige");
+        expect(adLabelFor("at", "Ad")).toBe("Anzeige");
+        expect(adLabelFor("FR", "Anzeige")).toBe("Publicité");
+        expect(adLabelFor("BR", "Anzeige")).toBe("Publicidade");
+        expect(adLabelFor("US", "Anzeige")).toBe("Ad");
+        expect(adLabelFor("JP", "Anzeige")).toBe("Ad");
+        expect(adLabelFor("", "Anzeige")).toBe("Anzeige");
+        expect(adLabelFor("", "Ad")).toBe("Ad");
+        expect(adLabelFor("  ", "Anzeige")).toBe("Anzeige");
     });
 
     test("renders only through createElement, so an innerHTML rewrite would fail this suite", () => {
