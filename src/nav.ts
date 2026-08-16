@@ -11,6 +11,7 @@ export interface SessionInfo {
     kind?: string;
     username?: string;
     token?: string;
+    streak?: number;
 }
 
 export { setBurgerExtra } from "./nav/burger.ts";
@@ -130,6 +131,32 @@ function buildMoreMenu(): HTMLElement {
     return wrap;
 }
 
+const FLAME_ICON = `<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg>`;
+
+function renderStreak(streak: number | undefined): void {
+    const existing = document.querySelector<HTMLElement>(".site-streak");
+    if (typeof streak !== "number" || streak < 1) {
+        existing?.remove();
+        return;
+    }
+    if (existing) {
+        const count = existing.querySelector("span");
+        if (count) count.textContent = String(streak);
+        existing.title = `${streak}-day visit streak`;
+        return;
+    }
+    const more = document.querySelector<HTMLElement>(".site-more");
+    if (!more) return;
+    const chip = document.createElement("span");
+    chip.className = "site-streak";
+    chip.title = `${streak}-day visit streak`;
+    chip.innerHTML = FLAME_ICON;
+    const count = document.createElement("span");
+    count.textContent = String(streak);
+    chip.appendChild(count);
+    more.after(chip);
+}
+
 function insertMoreMenu(): void {
     const links = document.querySelector<HTMLElement>(".site-links");
     if (!links) return;
@@ -163,6 +190,7 @@ async function renewSession(): Promise<void> {
         if (!res.ok) return;
         const info = await res.json() as SessionInfo;
         storeSessionToken(info, tokenBeforeRequest);
+        if (info.kind === "user") renderStreak(info.streak);
     } catch {}
 }
 
@@ -215,6 +243,7 @@ export async function initSiteNav(
     }
 
     const signedIn = !!info && info.kind === "user" && typeof info.username === "string";
+    if (signedIn) renderStreak((info as SessionInfo).streak);
     if (signedIn && knownSession === undefined) storeSessionToken(info as SessionInfo, tokenBeforeRequest);
     if (knownSession === undefined) startSessionRenewal();
     right.appendChild(signedIn
