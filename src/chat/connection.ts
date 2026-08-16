@@ -168,6 +168,15 @@ export function enterBanned(): void {
     ctx.sock?.close();
 }
 
+function applyMemberMeta(who: string, line: IrcLine): void {
+    const key = who.toLowerCase();
+    if (line.subBadge) {
+        subscribers.add(key);
+        subscriberBadges.set(key, sanitizeSubscriberBadgeName(line.subBadge));
+    }
+    if (line.partner) partners.add(key);
+}
+
 function handle(line: IrcLine): void {
     switch (line.command) {
         case "PING":
@@ -207,6 +216,7 @@ function handle(line: IrcLine): void {
         }
         case "JOIN": {
             const joiner = line.nick;
+            applyMemberMeta(joiner, line);
             const firstOwnJoin = joiner.toLowerCase() === ctx.nick.toLowerCase() && !ctx.joined;
             if (firstOwnJoin) {
                 ctx.banned = false;
@@ -296,6 +306,14 @@ function handle(line: IrcLine): void {
             } else {
                 addWhisper(line.nick, target, body, line.userId, line.avatar);
             }
+            return;
+        }
+        case "META": {
+            if (line.params[0]?.toLowerCase() !== ctx.channel) return;
+            const who = line.params[1];
+            if (!who) return;
+            applyMemberMeta(who, line);
+            if (ctx.userlistOpen) renderUserlist();
             return;
         }
         case "SUBBADGE": {

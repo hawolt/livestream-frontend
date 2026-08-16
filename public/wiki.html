@@ -151,8 +151,17 @@ PONG :go-irc</code></pre>
                 <tr><td><code>msgid</code></td><td>stable message id (replies, deletion)</td></tr>
                 <tr><td><code>color</code></td><td>sender display color</td></tr>
                 <tr><td><code>+reply=&lt;msgid&gt;</code></td><td>reply marker; send as client tag to reply</td></tr>
+                <tr><td><code>sub-badge</code></td><td>sender's cosmetic badge name</td></tr>
+                <tr><td><code>partner</code></td><td><code>1</code> when the sender is a partner</td></tr>
+                <tr><td><code>user-id</code> / <code>avatar</code></td><td>sender's account id and avatar extension</td></tr>
                 <tr><td><code>REDACT</code> line</td><td>message deleted; drop it from logs</td></tr>
             </table>
+            <p>
+                With <code>message-tags</code> negotiated, the same metadata tags also ride <code>JOIN</code>
+                broadcasts, and on joining a channel you receive one <code>META &lt;channel&gt; &lt;nick&gt;</code>
+                line per member that carries metadata. New metadata appears as additional tags over time; parse
+                what you know and ignore the rest.
+            </p>
 
             <h2>Commands</h2>
             <table>
