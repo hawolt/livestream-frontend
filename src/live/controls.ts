@@ -239,9 +239,32 @@ export function wireChatAndLayoutChrome(): void {
 
 let volumeControlWired = false;
 
+function syncUnmuteChip(): void {
+    const chip = document.getElementById("live-unmute");
+    if (!chip) return;
+    const show = isMutedState()
+        && !video.paused
+        && ctx.state === "playing"
+        && !isBrowseMode()
+        && !document.body.classList.contains("clip-mode");
+    chip.hidden = !show;
+}
+
 export function wireVolumeControl(): void {
     if (volumeControlWired) return;
     volumeControlWired = true;
+    const unmuteChip = document.getElementById("live-unmute");
+    unmuteChip?.addEventListener("click", () => {
+        video.muted = false;
+        if (video.volume === 0) video.volume = 0.5;
+        void video.play().catch(() => {});
+        updateVolumeUI();
+        syncUnmuteChip();
+    });
+    video.addEventListener("playing", syncUnmuteChip);
+    video.addEventListener("volumechange", syncUnmuteChip);
+    video.addEventListener("pause", syncUnmuteChip);
+    video.addEventListener("emptied", syncUnmuteChip);
     if (isIOS() || !volumeIsSettable()) {
         volInput.hidden = true;
         volpctEl.hidden = true;

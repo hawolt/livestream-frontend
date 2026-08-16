@@ -258,7 +258,7 @@ async function deleteCard(id: string): Promise<void> {
     void refreshOwnedProfile();
 }
 
-async function uploadCardImage(id: string, file: File): Promise<boolean> {
+async function uploadCardImage(id: string, file: File): Promise<{ ok: boolean; error: string | null }> {
     try {
         const bytes = await file.arrayBuffer();
         const res = await fetch(`${API_BASE}/profile/me/panels/${id}/image`, {
@@ -267,9 +267,11 @@ async function uploadCardImage(id: string, file: File): Promise<boolean> {
             headers: { ...dashAuthHeaders(), "Content-Type": file.type },
             body: bytes,
         });
-        return res.ok;
+        if (res.ok) return { ok: true, error: null };
+        const errBody = await res.json().catch(() => ({})) as { error?: string };
+        return { ok: false, error: errBody.error && errBody.error.trim() ? errBody.error : null };
     } catch {
-        return false;
+        return { ok: false, error: null };
     }
 }
 
@@ -305,7 +307,9 @@ async function submitCardModal(): Promise<void> {
         });
         if (!res.ok) {
             if (res.status === 409) {
-                cardModalErrorEl.textContent = "You've reached the 12 card limit.";
+                cardModalErrorEl.textContent = "You've reached the 12 card limit. Delete a card to add a new one.";
+            } else if (res.status === 401) {
+                cardModalErrorEl.textContent = "Your session expired. Sign in again to add cards.";
             } else {
                 const errBody = await res.json().catch(() => ({})) as { error?: string };
                 cardModalErrorEl.textContent = errBody.error || "Could not add this card. Try again.";
@@ -316,13 +320,13 @@ async function submitCardModal(): Promise<void> {
         const created = await res.json().catch(() => ({})) as { id?: string | number };
         if (cardType === "image" && selectedCardFile && created.id !== undefined) {
             const uploaded = await uploadCardImage(String(created.id), selectedCardFile);
-            if (!uploaded) {
+            if (!uploaded.ok) {
                 await fetch(`${API_BASE}/profile/me/panels/${created.id}`, {
                     method: "DELETE",
                     credentials: "include",
                     headers: dashAuthHeaders(),
                 }).catch(() => {});
-                cardModalErrorEl.textContent = "Could not upload the image. Try again.";
+                cardModalErrorEl.textContent = uploaded.error || "Could not upload the image. Try again.";
                 cardModalSubmitEl.disabled = false;
                 return;
             }
