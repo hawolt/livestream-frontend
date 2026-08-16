@@ -16,6 +16,15 @@
     </div>
     <div class="card-grid">
         <div class="card">
+            <div class="section-title">Invite a friend</div>
+            <p style="color:var(--muted);font-size:12px;margin:0 0 10px">Share your link. When someone signs up through it and verifies their email, you earn the invite badge.</p>
+            <div style="display:flex;gap:8px;align-items:center">
+                <input id="st-invite-link" type="text" readonly style="flex:1" aria-label="Your invite link" />
+                <button type="button" class="btn" id="btn-invite-copy">Copy</button>
+            </div>
+            <span id="st-invite-copied" style="font-size:12px;color:var(--success);visibility:hidden">Copied to clipboard</span>
+        </div>
+        <div class="card">
             <div class="section-title">Email</div>
             <form id="settings-account-form">
                 <div class="form-grid">

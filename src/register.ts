@@ -17,6 +17,12 @@ declare const hcaptcha: {
 declare const HCAPTCHA_SITEKEY: string;
 
 const form        = document.getElementById("register-form") as HTMLFormElement;
+
+const referralParam = new URLSearchParams(location.search).get("ref");
+if (referralParam) {
+    const referralEl = document.getElementById("referral") as HTMLInputElement;
+    if (referralEl && !referralEl.value) referralEl.value = referralParam;
+}
 const btnEl       = document.getElementById("btn-register")  as HTMLButtonElement;
 const errorEl     = document.getElementById("error")          as HTMLElement;
 const loginLinkEl = document.getElementById("login-link")     as HTMLAnchorElement | null;
@@ -158,6 +164,7 @@ async function doSubmit(captchaToken: string): Promise<void> {
     const username    = (document.getElementById("username")     as HTMLInputElement).value.trim();
     const email       = (document.getElementById("email")        as HTMLInputElement).value.trim();
     const password    = (document.getElementById("password")     as HTMLInputElement).value;
+    const referral    = (document.getElementById("referral")     as HTMLInputElement).value.trim();
 
     if (!email) {
         showError("Email is required so you can verify your account and reset your password.");
@@ -175,6 +182,7 @@ async function doSubmit(captchaToken: string): Promise<void> {
                 password,
                 email,
                 captchaToken,
+                ...(referral ? { referral } : {}),
             }),
         });
 

@@ -476,6 +476,18 @@ function applyChatColorAllowed(allowed: boolean): void {
 export function init(): void {
     const me = getMe();
     const flags = new Set((me?.flags ?? "").split(",").map(f => f.trim()).filter(Boolean));
+    const inviteLinkEl = document.getElementById("st-invite-link") as HTMLInputElement | null;
+    if (inviteLinkEl && me?.username) {
+        inviteLinkEl.value = `${location.origin}/register?ref=${encodeURIComponent(me.username)}`;
+    }
+    document.getElementById("btn-invite-copy")?.addEventListener("click", () => {
+        const copied = document.getElementById("st-invite-copied") as HTMLElement | null;
+        void copyText(inviteLinkEl?.value ?? "").then(ok => {
+            if (!copied) return;
+            copied.style.visibility = ok ? "visible" : "hidden";
+            window.setTimeout(() => { copied.style.visibility = "hidden"; }, 2000);
+        });
+    });
     const pendingBanner = document.getElementById("settings-pending-banner");
     if (pendingBanner) {
         pendingBanner.style.display = (me?.kind === "user" && flags.size === 0) ? "" : "none";
