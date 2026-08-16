@@ -92,17 +92,133 @@ function buildPanelCard(panel: ProfilePanel, owner: boolean): HTMLElement {
     return card;
 }
 
+
+let activityDays = new Set<string>();
+let activityLoadedFor = "";
+
+function activityDayKey(offsetDays: number): string {
+    return new Date(Date.now() - offsetDays * 86400000).toISOString().slice(0, 10);
+}
+
+function buildActivityCells(count: number): HTMLElement {
+    const strip = document.createElement("div");
+    strip.className = "live-activity-strip";
+    for (let i = count - 1; i >= 0; i--) {
+        const key = activityDayKey(i);
+        const on = activityDays.has(key);
+        const cell = document.createElement("div");
+        cell.className = on ? "live-activity-cell on" : "live-activity-cell";
+        cell.title = on ? `${key} - live` : key;
+        strip.appendChild(cell);
+    }
+    return strip;
+}
+
+function openActivityHistory(): void {
+    document.getElementById("live-activity-history")?.remove();
+    const overlay = document.createElement("div");
+    overlay.id = "live-activity-history";
+    overlay.className = "login-modal";
+    overlay.setAttribute("role", "dialog");
+    overlay.setAttribute("aria-modal", "true");
+    const box = document.createElement("div");
+    box.className = "login-modal-box live-activity-history-box";
+    const close = document.createElement("button");
+    close.type = "button";
+    close.className = "login-modal-close";
+    close.setAttribute("aria-label", "Close");
+    close.textContent = "\u00d7";
+    close.addEventListener("click", () => overlay.remove());
+    overlay.addEventListener("click", (ev) => {
+        if (ev.target === overlay) overlay.remove();
+    });
+    const heading = document.createElement("h3");
+    heading.textContent = "Stream activity";
+    box.append(close, heading);
+    const sorted = Array.from(activityDays).sort();
+    const first = sorted[0] ?? activityDayKey(364);
+    const firstDate = new Date(`${first}T00:00:00Z`);
+    const start = new Date(firstDate.getTime() - firstDate.getUTCDay() * 86400000);
+    const today = new Date(`${activityDayKey(0)}T00:00:00Z`);
+    const grid = document.createElement("div");
+    grid.className = "live-activity-grid";
+    for (let t = start.getTime(); t <= today.getTime(); t += 86400000) {
+        const key = new Date(t).toISOString().slice(0, 10);
+        const on = activityDays.has(key);
+        const cell = document.createElement("div");
+        cell.className = on ? "live-activity-cell on" : "live-activity-cell";
+        cell.title = on ? `${key} - live` : key;
+        grid.appendChild(cell);
+    }
+    const wrap = document.createElement("div");
+    wrap.className = "live-activity-grid-wrap";
+    wrap.appendChild(grid);
+    const liveCount = sorted.length;
+    const note = document.createElement("p");
+    note.className = "live-activity-note";
+    note.textContent = liveCount === 1 ? "1 day live" : `${liveCount} days live`;
+    box.append(wrap, note);
+    overlay.appendChild(box);
+    document.body.appendChild(overlay);
+}
+
+function buildActivityCard(): HTMLElement {
+    const card = document.createElement("div");
+    card.className = "live-about-panel live-activity-card";
+    const title = document.createElement("div");
+    title.className = "live-about-panel-title";
+    title.textContent = "Stream activity";
+    card.appendChild(title);
+    const sub = document.createElement("div");
+    sub.className = "live-activity-sub";
+    sub.textContent = "Past 30 days";
+    card.appendChild(sub);
+    card.appendChild(buildActivityCells(30));
+    const historyBtn = document.createElement("button");
+    historyBtn.type = "button";
+    historyBtn.className = "live-activity-history-btn";
+    historyBtn.textContent = "View full history";
+    historyBtn.addEventListener("click", openActivityHistory);
+    card.appendChild(historyBtn);
+    return card;
+}
+
+function mountActivityCard(): void {
+    document.querySelector(".live-activity-card")?.remove();
+    aboutPanelsEl.prepend(buildActivityCard());
+    aboutPanelsEl.hidden = false;
+    aboutPanelsSectionEl.hidden = false;
+}
+
+export function loadStreamActivity(username: string): void {
+    if (activityLoadedFor === username) {
+        mountActivityCard();
+        return;
+    }
+    activityDays = new Set();
+    mountActivityCard();
+    void fetch(`/api/live/activity/${encodeURIComponent(username)}`)
+        .then(res => res.ok ? res.json() as Promise<{ days?: unknown }> : null)
+        .then(data => {
+            if (!data) return;
+            activityLoadedFor = username;
+            activityDays = new Set(Array.isArray(data.days) ? data.days.filter((d): d is string => typeof d === "string") : []);
+            mountActivityCard();
+        })
+        .catch(() => {});
+}
+
 function updatePanelsSectionVisibility(): void {
-    aboutPanelsSectionEl.hidden = currentPanels.length === 0 && !isOwner;
+    aboutPanelsSectionEl.hidden = false;
     aboutPanelsActionsEl.hidden = !isOwner;
 }
 
 function renderPanels(panels: ProfilePanel[]): void {
     aboutPanelsEl.replaceChildren();
     currentPanels = panels;
-    aboutPanelsEl.hidden = panels.length === 0;
     for (const panel of panels) aboutPanelsEl.appendChild(buildPanelCard(panel, isOwner));
     updatePanelsSectionVisibility();
+    mountActivityCard();
 }
 
 function buildClipCard(channel: string, clip: AboutClip): HTMLAnchorElement {

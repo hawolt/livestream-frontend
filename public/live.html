@@ -987,6 +987,39 @@
         @keyframes liveChatFlash { 0% { background: rgba(74,222,128,.28); } 100% { background: transparent; } }
         .live-chat-mention { color: var(--accent); font-weight: 700; }
         .live-chat-deleted { color: var(--muted); font-style: italic; }
+        .live-activity-sub { color: var(--muted); font-size: 12px; margin: 2px 0 10px; }
+        .live-activity-strip { display: flex; flex-wrap: wrap; gap: 3px; }
+        .live-activity-cell {
+            width: 11px;
+            height: 11px;
+            border-radius: 2px;
+            background: rgba(255, 255, 255, .08);
+            flex: 0 0 auto;
+        }
+        .live-activity-cell.on { background: var(--accent); }
+        .live-activity-history-btn {
+            margin-top: 12px;
+            background: none;
+            border: none;
+            padding: 0;
+            font: inherit;
+            font-size: 12.5px;
+            color: var(--muted);
+            cursor: pointer;
+            text-decoration: underline;
+            text-underline-offset: 3px;
+        }
+        .live-activity-history-btn:hover { color: var(--text); }
+        .live-activity-history-box { max-width: min(760px, calc(100vw - 32px)); }
+        .live-activity-grid-wrap { overflow-x: auto; padding-bottom: 6px; }
+        .live-activity-grid {
+            display: grid;
+            grid-auto-flow: column;
+            grid-template-rows: repeat(7, 11px);
+            gap: 3px;
+            width: max-content;
+        }
+        .live-activity-note { color: var(--muted); font-size: 12.5px; margin: 10px 0 0; }
         .live-chat-whisper { color: #c084fc; background: rgba(192,132,252,.12); border-radius: 4px; }
         .live-chat-whisper .live-chat-whisper-tag { font-weight: 700; opacity: .9; }
 
@@ -2253,6 +2286,6 @@
         </form>
     </div>
 </div>
-<script src="/live-8ktq0xmv.js" type="module"></script>
+<script src="/live-tyvh1b85.js" type="module"></script>
 </body>
 </html>

@@ -20,7 +20,7 @@ import { startChannelRail } from "./live/channel-rail.ts";
 import { syncLayout } from "./live/layout.ts";
 import { beginTransport, enterTerminal, setOfflineArt } from "./live/player/lifecycle.ts";
 import { loadProfile, offlineArtUrl } from "./profile-card.ts";
-import { initOwnerCards, loadAboutClips, mountAboutCard } from "./live/about.ts";
+import { initOwnerCards, loadAboutClips, loadStreamActivity, mountAboutCard } from "./live/about.ts";
 import { canUseHlsJs, canUseNativeHLS, mseSupported } from "./live/player/hls-support.ts";
 import { openLoginModal, wireLoginModal } from "./live/login-modal.ts";
 import { initFollow } from "./live/follow.ts";
@@ -216,6 +216,7 @@ async function boot(): Promise<void> {
             mountAboutCard(profile);
         });
         loadAboutClips(ctx.username);
+        loadStreamActivity(ctx.username);
         initOwnerCards(ctx.username);
     }
     applyChannelChrome({ title, category, categoryId, language });
