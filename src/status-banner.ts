@@ -13,7 +13,6 @@ export const INITIAL_BANNER_STATE: BannerState = { serverErrors: 0, mode: "hidde
 export const OUTAGE_ERROR_THRESHOLD = 3;
 
 const POLL_MS = 60_000;
-const DISMISS_KEY = "status_banner_dismissed";
 
 export function nextBannerState(state: BannerState, outcome: BannerOutcome): BannerState {
     if (outcome.kind === "ok") {
@@ -57,78 +56,117 @@ async function fetchOutcome(): Promise<BannerOutcome> {
     }
 }
 
-export type BannerSurface = "mobile" | "chat" | "nav" | "float";
+const WARNING_ICON = `<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>`;
 
-export function bannerSurfaceFor(viewportWidth: number, hasChat: boolean, hasNav: boolean): BannerSurface {
-    if (viewportWidth <= 840) return "mobile";
-    if (hasChat) return "chat";
-    if (hasNav && viewportWidth > 1100) return "nav";
-    return "float";
+let currentState: BannerState = INITIAL_BANNER_STATE;
+let tipEl: HTMLDivElement | null = null;
+let tipPinned = false;
+let hideTimer: number | null = null;
+
+function removeTip(): void {
+    if (hideTimer !== null) {
+        window.clearTimeout(hideTimer);
+        hideTimer = null;
+    }
+    tipEl?.remove();
+    tipEl = null;
+    tipPinned = false;
 }
 
-const WARNING_ICON = `<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>`;
-
-function bannerMount(surface: BannerSurface): { host: Element; cls: string } {
-    if (surface === "chat") {
-        const head = document.querySelector(".live-chat-head");
-        if (head && head.parentElement) return { host: head.parentElement, cls: "status-banner status-banner-chat" };
-    }
-    if (surface === "nav") {
-        const social = document.querySelector(".site-nav-right");
-        if (social) return { host: social, cls: "status-banner status-banner-nav" };
-    }
-    if (surface === "mobile") return { host: document.body, cls: "status-banner status-banner-mobile" };
-    return { host: document.body, cls: "status-banner status-banner-float" };
+function scheduleHide(): void {
+    if (tipPinned) return;
+    if (hideTimer !== null) window.clearTimeout(hideTimer);
+    hideTimer = window.setTimeout(removeTip, 200);
 }
 
-function render(state: BannerState): void {
-    const message = bannerMessage(state);
-    document.getElementById("status-banner")?.remove();
-    if (!message || sessionStorage.getItem(DISMISS_KEY) === bannerSignature(state)) return;
+function cancelHide(): void {
+    if (hideTimer !== null) {
+        window.clearTimeout(hideTimer);
+        hideTimer = null;
+    }
+}
 
-    const chatHead = document.querySelector(".live-chat-head");
-    const hasChat = chatHead !== null && !document.body.classList.contains("chat-popout")
-        && !document.body.classList.contains("chat-collapsed");
-    const hasNav = document.querySelector(".site-nav-right .site-social-btn") !== null;
-    const surface = bannerSurfaceFor(window.innerWidth, hasChat, hasNav);
-    const mount = bannerMount(surface);
+function buildTip(anchor: HTMLElement): HTMLDivElement {
+    const tip = document.createElement("div");
+    tip.className = "status-tip";
+    tip.setAttribute("role", "status");
 
-    const bar = document.createElement("div");
-    bar.id = "status-banner";
-    bar.className = mount.cls;
+    const title = document.createElement("div");
+    title.className = "status-tip-title";
+    title.textContent = currentState.mode === "outage" ? "Technical difficulties" : "Degraded performance";
+    tip.appendChild(title);
 
-    const icon = document.createElement("span");
-    icon.className = "status-banner-icon";
-    icon.innerHTML = WARNING_ICON;
-    bar.appendChild(icon);
-
-    const text = document.createElement("span");
-    text.className = "status-banner-text";
-    text.textContent = message;
-    bar.appendChild(text);
+    if (currentState.mode === "outage") {
+        const line = document.createElement("div");
+        line.className = "status-tip-service";
+        line.textContent = "Some features may be unavailable.";
+        tip.appendChild(line);
+    }
+    for (const service of currentState.services) {
+        const line = document.createElement("div");
+        line.className = "status-tip-service";
+        line.textContent = service;
+        tip.appendChild(line);
+    }
 
     const link = document.createElement("a");
-    link.className = "status-banner-link";
+    link.className = "status-tip-link";
     link.href = `https://status.${location.hostname}`;
     link.target = "_blank";
     link.rel = "noopener";
     link.textContent = "Status page";
-    bar.appendChild(link);
+    tip.appendChild(link);
 
-    const dismiss = document.createElement("button");
-    dismiss.type = "button";
-    dismiss.className = "status-banner-dismiss";
-    dismiss.setAttribute("aria-label", "Dismiss");
-    dismiss.textContent = "×";
-    dismiss.addEventListener("click", () => {
-        sessionStorage.setItem(DISMISS_KEY, bannerSignature(state));
-        bar.remove();
+    tip.addEventListener("mouseenter", cancelHide);
+    tip.addEventListener("mouseleave", scheduleHide);
+
+    const rect = anchor.getBoundingClientRect();
+    tip.style.top = `${Math.round(rect.bottom + 6)}px`;
+    tip.style.right = `${Math.max(8, Math.round(window.innerWidth - rect.right - 100))}px`;
+    return tip;
+}
+
+function showTip(anchor: HTMLElement, pinned: boolean): void {
+    removeTip();
+    tipEl = buildTip(anchor);
+    tipPinned = pinned;
+    document.body.appendChild(tipEl);
+}
+
+function render(state: BannerState): void {
+    currentState = state;
+    const existing = document.getElementById("status-indicator");
+    if (state.mode === "hidden") {
+        existing?.remove();
+        removeTip();
+        return;
+    }
+    if (existing) {
+        if (tipEl && !tipPinned) {
+            const anchor = existing;
+            showTip(anchor, false);
+        }
+        return;
+    }
+    const host = document.querySelector(".site-nav-right");
+    if (!host) return;
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.id = "status-indicator";
+    btn.className = "status-indicator";
+    btn.setAttribute("aria-label", "Service status");
+    btn.innerHTML = WARNING_ICON;
+    btn.addEventListener("mouseenter", () => {
+        if (!tipEl) showTip(btn, false);
+        else cancelHide();
     });
-    bar.appendChild(dismiss);
-
-    if (surface === "chat" && chatHead) chatHead.insertAdjacentElement("afterend", bar);
-    else if (surface === "nav") mount.host.insertBefore(bar, mount.host.querySelector(".site-social-btn"));
-    else mount.host.appendChild(bar);
+    btn.addEventListener("mouseleave", scheduleHide);
+    btn.addEventListener("click", (ev) => {
+        ev.stopPropagation();
+        if (tipEl && tipPinned) removeTip();
+        else showTip(btn, true);
+    });
+    host.insertBefore(btn, host.querySelector(".site-social-btn"));
 }
 
 let started = false;
@@ -136,6 +174,11 @@ let started = false;
 export function initStatusBanner(): void {
     if (started) return;
     started = true;
+    document.addEventListener("click", (ev) => {
+        if (!tipPinned || !tipEl) return;
+        if (ev.target instanceof Node && tipEl.contains(ev.target)) return;
+        removeTip();
+    });
     let state = INITIAL_BANNER_STATE;
     const tick = async (): Promise<void> => {
         if (document.visibilityState === "hidden") return;
