@@ -448,6 +448,7 @@ async function refreshOwnedProfile(): Promise<void> {
 }
 
 async function deleteCard(id: string): Promise<void> {
+    if (!id) return;
     if (!confirm("Delete this card? This cannot be undone.")) return;
     try {
         await fetch(`${API_BASE}/profile/me/panels/${id}`, {

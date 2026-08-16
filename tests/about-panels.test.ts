@@ -20,6 +20,11 @@ test("keeps an entry with only a body", () => {
     expect(panels).toEqual([{ id: "1", title: "", body: "Just text", linkUrl: "", imageUrl: "" }]);
 });
 
+test("numeric panel ids from the server normalize to strings", () => {
+    const panels = normalizePanels([{ id: 42, body: "Numbered" }]);
+    expect(panels[0]?.id).toBe("42");
+});
+
 test("is defensive about missing or malformed input", () => {
     expect(normalizePanels(undefined)).toEqual([]);
     expect(normalizePanels(null)).toEqual([]);

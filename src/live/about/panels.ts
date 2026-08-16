@@ -10,6 +10,13 @@ function stringField(item: Record<string, unknown>, key: string): string {
     return typeof item[key] === "string" ? (item[key] as string) : "";
 }
 
+function idField(item: Record<string, unknown>): string {
+    const raw = item["id"];
+    if (typeof raw === "string") return raw;
+    if (typeof raw === "number" && Number.isFinite(raw)) return String(raw);
+    return "";
+}
+
 export function normalizePanels(raw: unknown): ProfilePanel[] {
     if (!Array.isArray(raw)) return [];
     const out: ProfilePanel[] = [];
@@ -17,7 +24,7 @@ export function normalizePanels(raw: unknown): ProfilePanel[] {
         if (!entry || typeof entry !== "object") continue;
         const item = entry as Record<string, unknown>;
         const panel: ProfilePanel = {
-            id: stringField(item, "id"),
+            id: idField(item),
             title: stringField(item, "title"),
             body: stringField(item, "body"),
             linkUrl: stringField(item, "linkUrl"),
