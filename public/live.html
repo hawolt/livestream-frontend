@@ -1303,9 +1303,8 @@
         .live-about-panels-actions { display: flex; align-items: center; gap: 12px; margin-left: auto; }
         .live-about-panels-actions[hidden] { display: none; }
         .live-about-panels {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-            gap: 14px;
+            columns: 220px;
+            column-gap: 14px;
         }
         .live-about-panels[hidden] { display: none; }
         .live-about-panel {
@@ -1315,6 +1314,8 @@
             padding: 12px;
             background: var(--surface);
             overflow: hidden;
+            break-inside: avoid;
+            margin-bottom: 14px;
         }
         .live-about-panel-img {
             display: block;
