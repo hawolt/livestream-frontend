@@ -55,6 +55,14 @@ export const CONTENT_PAGES: ContentPage[] = [
         summary: "Close a channel with a shared password.",
     },
     {
+        section: "guides",
+        slug: "badges",
+        heading: "Chat badges",
+        title: "Every chat badge and how to get it | ITZON",
+        description: "Every ITZON chat badge shown at three sizes, what each one means, and exactly how it is earned, bought or given by staff.",
+        summary: "What every badge means and how each one is earned.",
+    },
+    {
         section: "docs",
         slug: "api",
         heading: "Public API",

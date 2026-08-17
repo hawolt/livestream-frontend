@@ -102,6 +102,37 @@
 .content-guide { margin: 0 0 14px; }
 .content-guide video { display: block; width: 100%; max-width: 640px; background: #000; border: 1px solid var(--border); border-radius: 10px; }
 
+.badge-list { display: flex; flex-direction: column; gap: 12px; margin: 0 0 16px; }
+.badge-entry {
+    display: flex;
+    gap: 22px;
+    align-items: flex-start;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--surface);
+    padding: 18px;
+}
+.badge-art { display: flex; align-items: flex-end; gap: 14px; flex: 0 0 auto; }
+.badge-art span { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.badge-art img { display: block; image-rendering: auto; }
+.badge-art em {
+    font-family: var(--font-mono);
+    font-style: normal;
+    font-size: 10px;
+    color: var(--dim);
+    letter-spacing: .06em;
+}
+.badge-copy { flex: 1 1 auto; min-width: 0; }
+.content-body .badge-copy h3 { font-size: 15px; font-weight: 700; color: #fff; margin: 0 0 6px; }
+.content-body .badge-copy p { font-size: 13px; margin-bottom: 8px; }
+.content-body .badge-copy p:last-child { margin-bottom: 0; }
+.content-body .badge-how { color: var(--text); }
+
+@media (max-width: 620px) {
+    .badge-entry { flex-direction: column; gap: 16px; }
+    .badge-art { align-self: flex-start; }
+}
+
 .content-index-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; margin-top: 24px; }
 .content-index-card {
     display: block;

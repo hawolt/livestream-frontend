@@ -1,0 +1,239 @@
+<p class="intro">Every badge that can appear next to a name in chat, what it means, and how it is earned or given.</p>
+
+<p>
+    Badges come in two kinds. <strong>Cosmetic badges</strong> are yours to keep and yours to choose between:
+    you can own several and pick which one chat shows from the badge picker next to the chat input, or from the
+    dashboard <a href="/dashboard/settings">Settings</a> tab. <strong>Role badges</strong> are not owned and not
+    selectable; they describe what you are in that specific channel right now, and they appear on their own.
+</p>
+
+<p>
+    Every badge is a single vector asset drawn on the same 32 by 32 tile with a 7 pixel corner radius, one flat
+    glyph and one colour that no other badge uses. Each is shown below at 96 pixels, at its natural 32, and at
+    17, which is the size chat actually renders.
+</p>
+
+<h2>Cosmetic badges</h2>
+
+<div class="badge-list">
+    <div class="badge-entry">
+        <div class="badge-art">
+            <span><img src="/static/img/badge-regular.svg" width="96" height="96" alt="Regular badge" /><em>96</em></span>
+            <span><img src="/static/img/badge-regular.svg" width="32" height="32" alt="" /><em>32</em></span>
+            <span><img src="/static/img/badge-regular.svg" width="17" height="17" alt="" /><em>17</em></span>
+        </div>
+        <div class="badge-copy">
+            <h3>Regular</h3>
+            <p class="badge-how">Any subscription tier that includes a chat badge.</p>
+            <p>The baseline supporter badge. Every paid tier grants it, so it is the one you keep if you hold a
+            tier with no badge of its own.</p>
+        </div>
+    </div>
+
+    <div class="badge-entry">
+        <div class="badge-art">
+            <span><img src="/static/img/badge-baron.svg" width="96" height="96" alt="Baron badge" /><em>96</em></span>
+            <span><img src="/static/img/badge-baron.svg" width="32" height="32" alt="" /><em>32</em></span>
+            <span><img src="/static/img/badge-baron.svg" width="17" height="17" alt="" /><em>17</em></span>
+        </div>
+        <div class="badge-copy">
+            <h3>Baron</h3>
+            <p class="badge-how">Included with the Baron subscription tier.</p>
+            <p>Replaces Regular while the tier is active. See <a href="/pricing">pricing</a> for what else the tier
+            unlocks.</p>
+        </div>
+    </div>
+
+    <div class="badge-entry">
+        <div class="badge-art">
+            <span><img src="/static/img/badge-king.svg" width="96" height="96" alt="King badge" /><em>96</em></span>
+            <span><img src="/static/img/badge-king.svg" width="32" height="32" alt="" /><em>32</em></span>
+            <span><img src="/static/img/badge-king.svg" width="17" height="17" alt="" /><em>17</em></span>
+        </div>
+        <div class="badge-copy">
+            <h3>King</h3>
+            <p class="badge-how">Included with the King subscription tier.</p>
+            <p>The highest tier badge. See <a href="/pricing">pricing</a> for the full perk list.</p>
+        </div>
+    </div>
+
+    <div class="badge-entry">
+        <div class="badge-art">
+            <span><img src="/static/img/badge-founder.svg" width="96" height="96" alt="Founder badge" /><em>96</em></span>
+            <span><img src="/static/img/badge-founder.svg" width="32" height="32" alt="" /><em>32</em></span>
+            <span><img src="/static/img/badge-founder.svg" width="17" height="17" alt="" /><em>17</em></span>
+        </div>
+        <div class="badge-copy">
+            <h3>Founder</h3>
+            <p class="badge-how">A one time purchase, capped at a fixed number of seats. Once they are gone they are gone.</p>
+            <p>Not a subscription and it never expires. It outranks an empty or Regular badge but never replaces a
+            higher paid tier's own badge, so holding Founder and King together still shows King unless you pick
+            otherwise. Availability and remaining seats are on the <a href="/pricing">pricing</a> page.</p>
+        </div>
+    </div>
+
+    <div class="badge-entry">
+        <div class="badge-art">
+            <span><img src="/static/img/badge-ambassador.svg" width="96" height="96" alt="Ambassador badge" /><em>96</em></span>
+            <span><img src="/static/img/badge-ambassador.svg" width="32" height="32" alt="" /><em>32</em></span>
+            <span><img src="/static/img/badge-ambassador.svg" width="17" height="17" alt="" /><em>17</em></span>
+        </div>
+        <div class="badge-copy">
+            <h3>Ambassador</h3>
+            <p class="badge-how">Automatic, for the first 1000 accounts on the site.</p>
+            <p>Granted at signup while the site is still under a thousand registered accounts. Cannot be bought and
+            cannot be earned once the slots are used up.</p>
+        </div>
+    </div>
+
+    <div class="badge-entry">
+        <div class="badge-art">
+            <span><img src="/static/img/badge-invite.svg" width="96" height="96" alt="Recruiter badge" /><em>96</em></span>
+            <span><img src="/static/img/badge-invite.svg" width="32" height="32" alt="" /><em>32</em></span>
+            <span><img src="/static/img/badge-invite.svg" width="17" height="17" alt="" /><em>17</em></span>
+        </div>
+        <div class="badge-copy">
+            <h3>Recruiter</h3>
+            <p class="badge-how">Automatic, when someone signs up with your referral code and verifies their email. Capped at the first 100 people to manage it.</p>
+            <p>Your referral code and link are in the dashboard. The badge is granted once, on the first referral
+            that completes verification, not once per person you bring.</p>
+        </div>
+    </div>
+
+    <div class="badge-entry">
+        <div class="badge-art">
+            <span><img src="/static/img/badge-lucky.svg" width="96" height="96" alt="Lucky badge" /><em>96</em></span>
+            <span><img src="/static/img/badge-lucky.svg" width="32" height="32" alt="" /><em>32</em></span>
+            <span><img src="/static/img/badge-lucky.svg" width="17" height="17" alt="" /><em>17</em></span>
+        </div>
+        <div class="badge-copy">
+            <h3>Lucky</h3>
+            <p class="badge-how">Automatic, on a one in a million roll every time you send a chat message.</p>
+            <p>The rarest badge on the site and the only one that is pure chance. There is nothing to do but talk in
+            chat. Nobody can grant it to you and it cannot be bought.</p>
+        </div>
+    </div>
+
+    <div class="badge-entry">
+        <div class="badge-art">
+            <span><img src="/static/img/badge-bounty.svg" width="96" height="96" alt="Bug bounty badge" /><em>96</em></span>
+            <span><img src="/static/img/badge-bounty.svg" width="32" height="32" alt="" /><em>32</em></span>
+            <span><img src="/static/img/badge-bounty.svg" width="17" height="17" alt="" /><em>17</em></span>
+        </div>
+        <div class="badge-copy">
+            <h3>Bug bounty</h3>
+            <p class="badge-how">Given by staff for reporting a critical bug.</p>
+            <p>There is no automatic trigger and no form. Report something serious through the Discord in the navbar
+            and staff assign it by hand.</p>
+        </div>
+    </div>
+
+    <div class="badge-entry">
+        <div class="badge-art">
+            <span><img src="/static/img/badge-partner.svg" width="96" height="96" alt="Partner badge" /><em>96</em></span>
+            <span><img src="/static/img/badge-partner.svg" width="32" height="32" alt="" /><em>32</em></span>
+            <span><img src="/static/img/badge-partner.svg" width="17" height="17" alt="" /><em>17</em></span>
+        </div>
+        <div class="badge-copy">
+            <h3>Partner</h3>
+            <p class="badge-how">Given by staff to partnered channels.</p>
+            <p>Shown by default ahead of every other cosmetic badge you own, though you can still choose a different
+            one. It also marks the channel itself, not just your chat messages.</p>
+        </div>
+    </div>
+</div>
+
+<h2>Role badges</h2>
+
+<p>
+    These are not owned and cannot be selected. They reflect your standing in the channel you are currently
+    watching, so the same account can show a role badge in one chat and nothing in another.
+</p>
+
+<div class="badge-list">
+    <div class="badge-entry">
+        <div class="badge-art">
+            <span><img src="/static/img/badge-op.svg" width="96" height="96" alt="Owner badge" /><em>96</em></span>
+            <span><img src="/static/img/badge-op.svg" width="32" height="32" alt="" /><em>32</em></span>
+            <span><img src="/static/img/badge-op.svg" width="17" height="17" alt="" /><em>17</em></span>
+        </div>
+        <div class="badge-copy">
+            <h3>Owner</h3>
+            <p class="badge-how">Shown to the streamer in their own channel.</p>
+        </div>
+    </div>
+
+    <div class="badge-entry">
+        <div class="badge-art">
+            <span><img src="/static/img/badge-mod.svg" width="96" height="96" alt="Moderator badge" /><em>96</em></span>
+            <span><img src="/static/img/badge-mod.svg" width="32" height="32" alt="" /><em>32</em></span>
+            <span><img src="/static/img/badge-mod.svg" width="17" height="17" alt="" /><em>17</em></span>
+        </div>
+        <div class="badge-copy">
+            <h3>Moderator</h3>
+            <p class="badge-how">Given by the channel owner with the mod command.</p>
+        </div>
+    </div>
+
+    <div class="badge-entry">
+        <div class="badge-art">
+            <span><img src="/static/img/badge-vip.svg" width="96" height="96" alt="VIP badge" /><em>96</em></span>
+            <span><img src="/static/img/badge-vip.svg" width="32" height="32" alt="" /><em>32</em></span>
+            <span><img src="/static/img/badge-vip.svg" width="17" height="17" alt="" /><em>17</em></span>
+        </div>
+        <div class="badge-copy">
+            <h3>VIP</h3>
+            <p class="badge-how">Given by the channel owner with the vip command.</p>
+        </div>
+    </div>
+
+    <div class="badge-entry">
+        <div class="badge-art">
+            <span><img src="/static/img/badge-staff.svg" width="96" height="96" alt="Staff badge" /><em>96</em></span>
+            <span><img src="/static/img/badge-staff.svg" width="32" height="32" alt="" /><em>32</em></span>
+            <span><img src="/static/img/badge-staff.svg" width="17" height="17" alt="" /><em>17</em></span>
+        </div>
+        <div class="badge-copy">
+            <h3>Staff</h3>
+            <p class="badge-how">Site staff. Shown in every channel.</p>
+        </div>
+    </div>
+
+    <div class="badge-entry">
+        <div class="badge-art">
+            <span><img src="/static/img/badge-bot.svg" width="96" height="96" alt="Bot badge" /><em>96</em></span>
+            <span><img src="/static/img/badge-bot.svg" width="32" height="32" alt="" /><em>32</em></span>
+            <span><img src="/static/img/badge-bot.svg" width="17" height="17" alt="" /><em>17</em></span>
+        </div>
+        <div class="badge-copy">
+            <h3>Bot</h3>
+            <p class="badge-how">Marks an account registered as a chat bot. See the <a href="/docs/chat-bots">chat bot documentation</a>.</p>
+        </div>
+    </div>
+
+    <div class="badge-entry">
+        <div class="badge-art">
+            <span><img src="/static/img/badge-unverified.svg" width="96" height="96" alt="Unverified badge" /><em>96</em></span>
+            <span><img src="/static/img/badge-unverified.svg" width="32" height="32" alt="" /><em>32</em></span>
+            <span><img src="/static/img/badge-unverified.svg" width="17" height="17" alt="" /><em>17</em></span>
+        </div>
+        <div class="badge-copy">
+            <h3>Unverified</h3>
+            <p class="badge-how">Shown while an account has not confirmed its email address.</p>
+            <p>It disappears on its own once you click the link in the verification email. Resend it from the
+            dashboard if it never arrived.</p>
+        </div>
+    </div>
+</div>
+
+<h2>Choosing which badge shows</h2>
+
+<p>
+    Chat shows one cosmetic badge at a time. If you own several, open the badge picker next to the chat input and
+    choose. With no explicit choice, Partner wins if you have it, then your highest paid tier badge, then whatever
+    else you own. You can also choose to show none at all.
+</p>
+
+<p>
+    Role badges are separate and are not affected by that choice. Banned accounts show no badges of any kind.
+</p>
