@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en" class="live-host">
+<head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/png" href="/static/img/favicon.png" />
+    <link rel="apple-touch-icon" href="/static/img/icon.png" />
+    <link rel="manifest" href="/site.webmanifest" />
+    <meta name="theme-color" content="#0d0d0d" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Pricing and subscriptions | ITZON</title>
+    <link rel="canonical" href="https://itzon.tv/pricing" />
+    <meta name="description" content="Every ITZON purchase option in one place: subscription tiers, creator add-ons and passes. Streaming is free, watching in 2K and 4K is the paid part. No login needed to look." />
+    <meta property="og:site_name" content="ITZON" />
+    <meta property="og:locale" content="en_US" />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Pricing and subscriptions | ITZON" />
+    <meta property="og:description" content="Every ITZON purchase option in one place: subscription tiers, creator add-ons and passes. Streaming is free, watching in 2K and 4K is the paid part." />
+    <meta property="og:url" content="https://itzon.tv/pricing" />
+    <meta property="og:image" content="https://itzon.tv/api/live/site-preview.jpg?v=2" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:site" content="@itzonapp" />
+    <meta name="twitter:title" content="Pricing and subscriptions | ITZON" />
+    <meta name="twitter:description" content="Every ITZON purchase option in one place: subscription tiers, creator add-ons and passes. Streaming is free, watching in 2K and 4K is the paid part." />
+    <meta name="twitter:image" content="https://itzon.tv/api/live/site-preview.jpg?v=2" />
+    <link rel="preload" href="/fonts/inter-latin.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="stylesheet" href="/static/css/shared.css" />
+    <link rel="stylesheet" href="/static/css/site.css" />
+    <style>
+        .pricing-page { max-width: 1120px; margin: 0 auto; padding: 48px 24px 120px; }
+        .pricing-lede { max-width: 700px; }
+        .pricing-page h1 { font-size: clamp(26px, 6vw, 38px); font-weight: 700; color: #fff; margin: 0 0 14px; }
+        .pricing-page h2 { font-size: 20px; font-weight: 700; color: #fff; margin: 0 0 8px; }
+        .pricing-page h3 { font-size: 15px; font-weight: 700; color: var(--text); margin: 0 0 6px; }
+        .pricing-page p { color: var(--muted); font-size: 14px; line-height: 1.65; }
+        .pricing-section { margin-top: 52px; }
+        .pricing-section-note { max-width: 700px; margin: 0 0 20px; }
+        .pricing-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 14px; align-items: stretch; }
+        .pricing-card { position: relative; display: flex; flex-direction: column; gap: 4px; border: 1px solid var(--border); border-radius: 10px; padding: 22px 18px 18px; background: var(--surface); transition: transform .15s ease, border-color .15s ease, box-shadow .15s ease; }
+        .pricing-card:hover { transform: translateY(-3px); border-color: var(--accent-mid); box-shadow: 0 6px 18px rgba(0, 0, 0, .45); }
+        .pricing-card.featured { border-color: var(--accent-mid); background: linear-gradient(180deg, var(--accent-pale), var(--surface) 60%); }
+        .pricing-flag { position: absolute; top: -10px; right: 14px; background: var(--accent-mid); color: #04150a; font-size: 11px; font-weight: 700; padding: 2px 9px; border-radius: 999px; letter-spacing: .4px; }
+        .pricing-tier-name { font-size: 15px; font-weight: 700; color: var(--text); }
+        .pricing-price { font-size: 24px; font-weight: 700; color: var(--text); margin: 0 0 10px; }
+        .pricing-interval { font-size: 12px; font-weight: 500; color: var(--muted); }
+        .pricing-inherit { font-size: 13px; color: var(--text); margin: 0 0 4px; }
+        .pricing-perks { list-style: none; margin: 0 0 16px; padding: 0; display: flex; flex-direction: column; gap: 7px; }
+        .pricing-perks li { font-size: 13px; color: var(--muted); display: flex; gap: 8px; align-items: flex-start; }
+        .pricing-perks li::before { content: "\2713"; color: var(--accent); font-weight: 700; flex: 0 0 auto; }
+        .pricing-cta { margin-top: auto; }
+        .pricing-cta .btn { width: 100%; }
+        .pricing-pass { margin-top: 8px; font-size: 11px; color: var(--muted); text-align: center; }
+        .pricing-note { color: var(--dim); font-size: 12px; margin: 18px 0 0; }
+        .pricing-free { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; }
+        .pricing-free-item { border: 1px solid var(--border); border-radius: 10px; padding: 16px 18px; background: var(--surface); }
+        .pricing-free-item p { margin: 0; font-size: 13px; }
+        .pricing-addon-note { font-size: 13px; color: var(--muted); margin: 0 0 12px; }
+        .pricing-founder-seats { font-size: 12px; color: var(--accent); font-weight: 600; margin-top: 6px; }
+        .pricing-faq { max-width: 760px; }
+        .pricing-faq-item { border-top: 1px solid var(--border); padding: 18px 0; }
+        .pricing-faq-item:last-child { border-bottom: 1px solid var(--border); }
+        .pricing-faq-item p { margin: 0; }
+        .pricing-status { color: var(--muted); font-size: 14px; }
+    </style>
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "FAQPage",
+        "mainEntity": [
+            {
+                "@type": "Question",
+                "name": "Do I need an account to watch a stream on ITZON?",
+                "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "No. Every public channel plays without a login, without a download and without an extension. An account is only needed to chat, to follow channels and to stream yourself."
+                }
+            },
+            {
+                "@type": "Question",
+                "name": "Does it cost anything to stream on ITZON?",
+                "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "No. Creating an account and going live is free, and every account may publish up to 2160p at 240 FPS within the bitrate table. Restreaming to other platforms is included as well."
+                }
+            },
+            {
+                "@type": "Question",
+                "name": "What does a subscription actually unlock?",
+                "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "Subscriptions are mostly about watching. Higher tiers unlock watching in 2K and 4K and at 120 or 240 FPS, extra low latency playback, chat cosmetics such as a badge and a custom name colour, larger and animated profile images, and no ads. The exact perks per tier are listed on this page."
+                }
+            },
+            {
+                "@type": "Question",
+                "name": "How do I cancel a subscription?",
+                "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "Open the Subscription tab in your dashboard and use the Manage button, which opens the payment provider's customer portal. Cancelling stops the renewal and your perks stay active until the end of the period you already paid for."
+                }
+            },
+            {
+                "@type": "Question",
+                "name": "Can I buy access without a recurring subscription?",
+                "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "Where a pass is offered for a tier or an add-on it is a single payment that grants the same perks for a fixed number of days and then simply expires. Nothing renews and nothing is stored for a later charge."
+                }
+            }
+        ]
+    }
+    </script>
+</head>
+<body>
+<header class="site-nav">
+    <a class="site-brand" href="/" aria-label="ITZON"><img class="brand-o" src="/static/img/brand-o.png" alt=""><span class="brand-wm">ITZON</span></a>
+    <nav class="site-links">
+        <a class="site-link" href="/" data-nav="browse">Browse</a>
+    </nav>
+    <div class="site-nav-right" id="site-nav-right"></div>
+</header>
+<main class="pricing-page">
+    <div class="pricing-lede">
+        <h1>ITZON pricing</h1>
+        <p>Streaming is the free part. Watching above 1080p60 is the part you pay for. Everything that can be bought on ITZON is listed on this page, and you do not need an account to read it.</p>
+    </div>
+
+    <section class="pricing-section">
+        <h2>Free on every account</h2>
+        <p class="pricing-section-note">These are not trial limits and they do not expire.</p>
+        <div class="pricing-free">
+            <div class="pricing-free-item">
+                <h3>Watching without a login</h3>
+                <p>Every public channel plays in the browser with no account, no download and no extension.</p>
+            </div>
+            <div class="pricing-free-item">
+                <h3>Streaming up to 4K at 240 FPS</h3>
+                <p>Any account may publish up to 2160p at 240 FPS inside the bitrate table. There is no per streamer resolution unlock to buy.</p>
+            </div>
+            <div class="pricing-free-item">
+                <h3>Restreaming</h3>
+                <p>Send one publish to several RTMP destinations at once, included on the baseline account.</p>
+            </div>
+            <div class="pricing-free-item">
+                <h3>Chat, clips and overlays</h3>
+                <p>Public chat, clip creation, the chat and follow alert browser sources and the embeddable player cost nothing.</p>
+            </div>
+        </div>
+    </section>
+
+    <section class="pricing-section">
+        <h2>Subscription tiers</h2>
+        <p class="pricing-section-note">Recurring plans, mostly aimed at viewers. Cancel at any time and the perks stay until the end of the period you paid for.</p>
+        <div id="pricing-tiers" class="pricing-status">Loading plans...</div>
+    </section>
+
+    <section class="pricing-section" id="pricing-founder-section" hidden>
+        <h2>Founder</h2>
+        <p class="pricing-section-note">A one time, permanently capped purchase. Once the seats are gone they are gone.</p>
+        <div id="pricing-founder"></div>
+    </section>
+
+    <section class="pricing-section" id="pricing-addons-section" hidden>
+        <h2>Creator add-ons</h2>
+        <p class="pricing-section-note">Optional capabilities for people who stream. They attach to your account independently of any subscription tier.</p>
+        <div id="pricing-addons"></div>
+    </section>
+
+    <section class="pricing-section">
+        <h2>Questions</h2>
+        <div class="pricing-faq">
+            <div class="pricing-faq-item">
+                <h3>Do I need an account to watch a stream?</h3>
+                <p>No. Every public channel plays without a login, without a download and without an extension. An account is only needed to chat, to follow channels and to stream yourself.</p>
+            </div>
+            <div class="pricing-faq-item">
+                <h3>Does it cost anything to stream?</h3>
+                <p>No. Creating an account and going live is free, and every account may publish up to 2160p at 240 FPS within the bitrate table. Restreaming to other platforms is included as well.</p>
+            </div>
+            <div class="pricing-faq-item">
+                <h3>What does a subscription actually unlock?</h3>
+                <p>Subscriptions are mostly about watching. Higher tiers unlock watching in 2K and 4K and at 120 or 240 FPS, extra low latency playback, chat cosmetics such as a badge and a custom name colour, larger and animated profile images, and no ads. The exact perks per tier are listed above.</p>
+            </div>
+            <div class="pricing-faq-item">
+                <h3>How do I cancel?</h3>
+                <p>Open the Subscription tab in your dashboard and use the Manage button, which opens the payment provider's customer portal. Cancelling stops the renewal and your perks stay active until the end of the period you already paid for.</p>
+            </div>
+            <div class="pricing-faq-item">
+                <h3>Can I buy access without a recurring subscription?</h3>
+                <p>Where a pass is offered for a tier or an add-on it is a single payment that grants the same perks for a fixed number of days and then simply expires. Nothing renews and nothing is stored for a later charge.</p>
+            </div>
+        </div>
+    </section>
+
+    <p class="pricing-note" id="pricing-fee-note" hidden></p>
+</main>
+<script src="/pricing-n0vg7r37.js" type="module"></script>
+</body>
+</html>

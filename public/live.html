@@ -3,9 +3,13 @@
 <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/png" href="/static/img/favicon.png" />
+    <link rel="apple-touch-icon" href="/static/img/icon.png" />
+    <link rel="manifest" href="/site.webmanifest" />
+    <meta name="theme-color" content="#0d0d0d" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Live</title>
+    <!--LIVE_TITLE-->
     <!--LIVE_META-->
+    <link rel="preload" href="/fonts/inter-latin.woff2" as="font" type="font/woff2" crossorigin />
     <link rel="stylesheet" href="/static/css/shared.css" />
     <link rel="stylesheet" href="/static/css/site.css" />
     <style>
@@ -668,6 +672,8 @@
             padding: 4px 8px;
         }
         .live-quality-lock-dismiss:hover { color: var(--text); }
+        .live-quality-lock-plans { color: var(--muted); font-size: 13px; text-decoration: none; }
+        .live-quality-lock-plans:hover { color: var(--text); text-decoration: underline; }
         @media (max-width: 640px) {
             .live-quality-lock-card { padding: 24px 20px 16px; }
             .live-quality-lock-icon { width: 44px; height: 44px; padding: 10px; margin-bottom: 12px; }
@@ -2120,6 +2126,7 @@
                         <p id="live-quality-lock-info"></p>
                         <div class="live-quality-lock-actions">
                             <a id="live-quality-lock-cta" class="live-quality-lock-cta" href="/dashboard/subscription">View subscriptions</a>
+                            <a class="live-quality-lock-plans" href="/pricing">See all plans and prices</a>
                             <button id="live-quality-lock-dismiss" class="live-quality-lock-dismiss" type="button">Not now</button>
                         </div>
                     </div>
@@ -2370,6 +2377,6 @@
         </form>
     </div>
 </div>
-<script src="/live-xfygcv87.js" type="module"></script>
+<script src="/live-cn2x50kp.js" type="module"></script>
 </body>
 </html>

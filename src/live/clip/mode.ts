@@ -8,6 +8,7 @@ import {
     video,
 } from "../dom.ts";
 import { applyChannelChrome } from "../channel-chrome.ts";
+import { clipPageTitle } from "../page-title.ts";
 import { initOwnerCards, loadAboutClips, mountAboutCard } from "../about.ts";
 import { syncLayout } from "../layout.ts";
 import {
@@ -117,7 +118,7 @@ async function fetchChannelChrome(channel: string): Promise<ChannelChrome> {
 
 function renderClipRecord(route: ClipRoute, clip: ClipStatusRecord): void {
     clipTitle = clip.title;
-    document.title = clip.title ? `${clip.title} - ${route.channel}` : route.channel;
+    document.title = clipPageTitle(route.channel, clip.title);
     renderInfoBar();
 
     if (clip.status === "ready" && clip.url) {
@@ -142,7 +143,7 @@ function applyResult(route: ClipRoute, result: ClipStatusRecord | null | "not-fo
     if (result === "not-found") {
         stopClipStatusPolling();
         clipTitle = "";
-        document.title = route.channel;
+        document.title = clipPageTitle(route.channel);
         renderInfoBar();
         setClipPoster("This clip does not exist.", true);
         return;
@@ -154,7 +155,7 @@ function applyResult(route: ClipRoute, result: ClipStatusRecord | null | "not-fo
     if (result.channel && result.channel.toLowerCase() !== route.channel.toLowerCase()) {
         stopClipStatusPolling();
         clipTitle = "";
-        document.title = route.channel;
+        document.title = clipPageTitle(route.channel);
         renderInfoBar();
         setClipPoster("This clip does not exist.", true);
         return;
@@ -181,7 +182,7 @@ export async function bootClipMode(route: ClipRoute): Promise<void> {
     video.controls = false;
 
     nameEl.textContent = route.channel;
-    document.title = route.channel;
+    document.title = clipPageTitle(route.channel);
     setClipPoster("Loading clip...");
 
     wireClipPlayer();

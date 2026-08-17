@@ -3,25 +3,59 @@
 <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/png" href="/static/img/favicon.png" />
+    <link rel="apple-touch-icon" href="/static/img/icon.png" />
+    <link rel="manifest" href="/site.webmanifest" />
+    <meta name="theme-color" content="#0d0d0d" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Explore</title>
+    <title>Watch live streams | ITZON</title>
     <link rel="canonical" href="https://itzon.tv/" />
-    <meta name="description" content="Watch live streams, no login required." />
+    <meta name="description" content="Watch live streams in up to 4K at 240 FPS with low latency chat. No login, no download, nothing to install." />
     <meta property="og:site_name" content="ITZON" />
+    <meta property="og:locale" content="en_US" />
     <meta property="og:type" content="website" />
-    <meta property="og:title" content="ITZON" />
-    <meta property="og:description" content="Watch live streams, no login required." />
+    <meta property="og:title" content="Watch live streams | ITZON" />
+    <meta property="og:description" content="Watch live streams in up to 4K at 240 FPS with low latency chat. No login, no download, nothing to install." />
     <meta property="og:url" content="https://itzon.tv/" />
     <meta property="og:image" content="https://itzon.tv/api/live/site-preview.jpg?v=2" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="ITZON" />
-    <meta name="twitter:description" content="Watch live streams, no login required." />
+    <meta name="twitter:site" content="@itzonapp" />
+    <meta name="twitter:title" content="Watch live streams | ITZON" />
+    <meta name="twitter:description" content="Watch live streams in up to 4K at 240 FPS with low latency chat. No login, no download, nothing to install." />
     <meta name="twitter:image" content="https://itzon.tv/api/live/site-preview.jpg?v=2" />
+    <link rel="preload" href="/fonts/inter-latin.woff2" as="font" type="font/woff2" crossorigin />
     <link rel="stylesheet" href="/static/css/shared.css" />
     <link rel="stylesheet" href="/static/css/site.css" />
     <link rel="stylesheet" href="/static/css/explore.css" />
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@graph": [
+            {
+                "@type": "Organization",
+                "@id": "https://itzon.tv/#organization",
+                "name": "ITZON",
+                "url": "https://itzon.tv/",
+                "logo": "https://itzon.tv/static/img/icon.png",
+                "sameAs": [
+                    "https://x.com/itzonapp",
+                    "https://github.com/hawolt/livestream-frontend",
+                    "https://discord.gg/BfWqPZvEDv"
+                ]
+            },
+            {
+                "@type": "WebSite",
+                "@id": "https://itzon.tv/#website",
+                "name": "ITZON",
+                "url": "https://itzon.tv/",
+                "description": "Watch live streams in up to 4K at 240 FPS with low latency chat.",
+                "inLanguage": "en",
+                "publisher": { "@id": "https://itzon.tv/#organization" }
+            }
+        ]
+    }
+    </script>
 </head>
 <body>
 <header class="site-nav">
@@ -39,6 +73,7 @@
         </div>
     </aside>
     <div class="explore-content">
+        <h1 class="sr-only" id="explore-heading">Live streams on ITZON</h1>
         <div class="explore-modes">
             <button class="explore-mode-btn active" id="mode-streams" type="button">Streams</button>
             <button class="explore-mode-btn" id="mode-categories" type="button">Categories</button>
@@ -54,6 +89,6 @@
         </main>
     </div>
 </div>
-<script src="/explore-npebkkpw.js" type="module"></script>
+<script src="/explore-7wsr02z8.js" type="module"></script>
 </body>
 </html>

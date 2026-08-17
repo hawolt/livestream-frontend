@@ -93,6 +93,46 @@ export interface BillingFounder {
     owned: boolean;
 }
 
+export interface BillingAddonOption {
+    key: string;
+    label: string;
+    price: string;
+    note?: string;
+    regions?: string[];
+    family?: string | null;
+    rank?: number | null;
+    quantityAddon?: boolean;
+    maxQuantity?: number;
+    passAvailable?: boolean;
+    passPrice?: string;
+}
+
+export interface BillingCatalogFounder {
+    enabled: boolean;
+    label: string;
+    badge: string;
+    price: string;
+    cap: number;
+    taken: number;
+    available: number;
+}
+
+export interface BillingCatalog {
+    enabled: boolean;
+    tiers: BillingTier[];
+    addons: BillingAddonOption[];
+    currency?: string;
+    priceInterval?: string;
+    featuredTier?: string;
+    restreamDestinationCap?: number;
+    markets?: RegionOption[];
+    detectedRegion?: string;
+    region?: string;
+    feeNote?: string;
+    passDays?: number;
+    founder?: BillingCatalogFounder;
+}
+
 export interface RegionOption {
     id: string;
     label: string;

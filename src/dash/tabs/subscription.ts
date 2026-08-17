@@ -1,4 +1,5 @@
-import type { BillingFounder, BillingPerks, BillingTier, BillingTiers } from "../../api.ts";
+import type { BillingFounder, BillingTier, BillingTiers } from "../../api.ts";
+import { amountText, perkDelta, perkLines, perkTokens } from "../../billing/catalog.ts";
 import { esc, fmtDate } from "../format.ts";
 import { authFetch } from "../session.ts";
 
@@ -33,56 +34,6 @@ function featuredTierKey(tiers: BillingTier[]): string | null {
     if (!configured) return null;
     if (configured.toLowerCase() === "first") return tiers[0]?.key ?? null;
     return tiers.some(t => t.key === configured) ? configured : null;
-}
-
-const FALLBACK_ORDER = [
-    "badge", "chat_color", "ads_off", "large_uploads", "animated_avatar",
-];
-
-const PERK_FIELD: Record<string, keyof BillingPerks> = {
-    badge: "badge",
-    chat_color: "chatColor",
-    ads_off: "adsOff",
-    large_uploads: "largeUploads",
-    animated_avatar: "animatedAvatar",
-};
-
-const WATCH_PERK_LINES: Record<string, string[]> = {
-    watch_2k: ["Watch up to 120 FPS", "Watch in 2K"],
-    watch_4k: ["Watch up to 240 FPS", "Watch in 4K"],
-    watch_ll: ["Extra low latency streaming"],
-};
-
-function badgeTitle(token: string): string {
-    return token.slice("badge_".length).split("_")
-        .map(word => word === "vip" ? "VIP" : word ? word[0]!.toUpperCase() + word.slice(1) : word)
-        .join(" ");
-}
-
-function perkLabel(token: string): string {
-    switch (token) {
-        case "badge": return "Regular badge in chat";
-        case "chat_color": return "Custom chat name color";
-        case "ads_off": return "No ads";
-        case "large_uploads": return "Profile images up to 1 MiB";
-        case "animated_avatar": return "Animated GIF profile images";
-        case "watch_ll": return "Extra low latency";
-        default:
-            return token.startsWith("badge_") ? `Exclusive ${badgeTitle(token)} badge` : token;
-    }
-}
-
-function perkLines(token: string): string[] {
-    const watch = WATCH_PERK_LINES[token];
-    return watch ? watch : [perkLabel(token)];
-}
-
-function perkTokens(perks: BillingPerks | undefined): string[] {
-    if (!perks) return [];
-    if (Array.isArray(perks.order) && perks.order.length) {
-        return perks.order.filter(t => PERK_FIELD[t] !== undefined || t.startsWith("badge_") || WATCH_PERK_LINES[t] !== undefined);
-    }
-    return FALLBACK_ORDER.filter(t => perks[PERK_FIELD[t]!] === true);
 }
 
 function pendingCheckout(): boolean {
@@ -158,27 +109,13 @@ async function loadFounder(generation: number): Promise<void> {
     render();
 }
 
-const CURRENCY_SYMBOLS: Record<string, string> = {
-    EUR: "€",
-    USD: "$",
-    GBP: "£",
-};
-
 function amountHtml(rawPrice: string, currency: string): string {
-    const price = (rawPrice ?? "").trim();
-    if (!price) return "";
-    const configured = (currency ?? "").trim();
-    const symbol = configured ? CURRENCY_SYMBOLS[configured.toUpperCase()] ?? configured : "";
-    const amount = symbol && /^[\d.,\s]+$/.test(price) ? `${price} ${symbol}` : price;
-    return esc(amount);
+    return esc(amountText(rawPrice, currency));
 }
 
 function priceHtml(rawPrice: string): string {
-    const price = (rawPrice ?? "").trim();
-    if (!price) return "";
-    const configured = (cache?.currency ?? "").trim();
-    const symbol = configured ? CURRENCY_SYMBOLS[configured.toUpperCase()] ?? configured : "";
-    const amount = symbol && /^[\d.,\s]+$/.test(price) ? `${price} ${symbol}` : price;
+    const amount = amountText(rawPrice, cache?.currency ?? "");
+    if (!amount) return "";
     const interval = (cache?.priceInterval ?? "").trim();
     const suffix = interval ? ` <span class="sub-interval">/ ${esc(interval)}</span>` : "";
     return `${esc(amount)}${suffix}`;
@@ -206,23 +143,11 @@ function tierCard(tier: BillingTier, index: number, tiers: BillingTier[], tokenL
     const isPassHeld = isCurrent && current?.source === "pass";
     const currentRank = current ? tiers.find(t => t.key === current.tier)?.rank ?? null : null;
     const isFeatured = !isCurrent && tier.key === featuredTierKey(tiers);
-    const tokens = tokenLists[index]!;
-    let inherit = "";
-    let shown = tokens;
-    if (index > 0) {
-        const prev = tokenLists[index - 1]!;
-        const prevSet = new Set(prev);
-        const covers = (t: string): boolean =>
-            tokens.includes(t)
-            || (t === "badge" && tokens.some(x => x.startsWith("badge_")))
-            || (t.startsWith("badge_") && tokens.some(x => x.startsWith("badge_")))
-            || (t === "watch_2k" && tokens.includes("watch_4k"));
-        if (prev.length && prev.every(covers)) {
-            const delta = tokens.filter(t => !prevSet.has(t));
-            inherit = `<p class="sub-inherit">Everything in ${esc(tiers[index - 1]!.label)}${delta.length ? ", plus:" : ""}</p>`;
-            shown = delta;
-        }
-    }
+    const delta = perkDelta(index, tokenLists, tiers);
+    const shown = delta.shown;
+    const inherit = delta.inheritFrom === null
+        ? ""
+        : `<p class="sub-inherit">Everything in ${esc(delta.inheritFrom)}${shown.length ? ", plus:" : ""}</p>`;
     const perksHtml = shown.length
         ? `<ul class="sub-perks">${shown.flatMap(t => perkLines(t)).map(line => `<li>${esc(line)}</li>`).join("")}</ul>`
         : "";

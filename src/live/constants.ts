@@ -42,4 +42,4 @@ export const HCAPTCHA_SITEKEY = "ca58c42a-bf10-4fd4-b2f2-78a23bcccd04";
 export const HCAPTCHA_SCRIPT_SRC = "https://js.hcaptcha.com/1/api.js?render=explicit";
 export const HCAPTCHA_LOAD_TIMEOUT_MS = 10000;
 
-export const EXPLORE_TITLE = "Explore";
+export const EXPLORE_TITLE = "Watch live streams | ITZON";

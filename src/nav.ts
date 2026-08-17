@@ -95,6 +95,7 @@ const SOCIAL_LINKS: Array<[string, string, string]> = [
 
 function moreLinks(): Array<[string, string]> {
     return [
+        ["Pricing", "/pricing"],
         ["API", "/wiki"],
         ["Status", `https://status.${location.hostname}`],
         ["Terms of Service", "/terms"],

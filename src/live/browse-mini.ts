@@ -1,6 +1,7 @@
 import { browseIframeEl, browseMiniClose, browseMiniReturn } from "./dom.ts";
 import { ctx, nextGen } from "./player/context.ts";
 import { EXPLORE_TITLE } from "./constants.ts";
+import { channelPageTitle } from "./page-title.ts";
 import { markActive } from "../nav.ts";
 import { isPopoutMode, scheduleFullscreenSettle } from "./layout.ts";
 import { syncChannelRailVisibility } from "./channel-rail.ts";
@@ -68,7 +69,7 @@ export function applyBrowseMode(on: boolean, opts: { push?: boolean } = {}): voi
         browseIframeEl.style.display = "none";
         document.body.classList.remove("browse-mode", "browse-mini-closed");
         markActive(null);
-        document.title = ctx.username;
+        document.title = channelPageTitle(ctx.displayUsername || ctx.username);
         if (push) history.pushState({ liveChannel: true }, "", `/${encodeURIComponent(ctx.username)}`);
         if (miniParked) {
             miniParked = false;

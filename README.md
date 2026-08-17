@@ -9,6 +9,7 @@ Frontend for the itzon.tv livestreaming site. It provides every public surface o
 - a transparent **OBS chat overlay**
 - user **auth pages** (login, register, email verify, password reset)
 - a user **dashboard** (stream keys, channel settings, chat overlay builder, health telemetry, account settings)
+- a public **pricing page** listing every purchase option without a login
 - static **legal pages** and an **API documentation** page
 
 Everything is plain TypeScript compiled by Bun, one entry point per page, no framework and no runtime dependencies, with one sanctioned exception: `hls.js` is reachable only from `src/live.ts`, `src/embed.ts`, and `src/clip-editor.ts` (the channel viewer, the embed player, and the clip editor's preview player; see ARCHITECTURE.md's player and clip editor sections). Bundling stays per entry, so `hls.js` lands only in `public/live.js`, `public/embed.js`, and `public/clip-editor.js`; every other page stays dependency-free.
@@ -27,7 +28,7 @@ bunx tsc --noEmit
 
 `bun run build` runs two steps:
 
-- `build:pages` bundles each page entry (`explore`, `live`, `embed`, `chat-overlay`, `follow-alerts`, `user-login`, `register`, `verify`, `reset-password`, `legal`, `wiki`, `clip-editor`, `clip-embed`) to `public/<name>.js`
+- `build:pages` bundles each page entry (`explore`, `live`, `embed`, `chat-overlay`, `follow-alerts`, `user-login`, `register`, `verify`, `reset-password`, `legal`, `wiki`, `clip-editor`, `clip-embed`, `multichat`, `oauth-authorize`, `status`, `pricing`) to `public/<name>-<hash>.js`
 - `build:dash` bundles `src/dashboard.ts` to `public/dash/` with code splitting, so tab modules load on demand
 
 Build outputs (`public/*.js`, `public/dash/`) are gitignored; a fresh checkout has no servable bundles until the build runs. Both build steps delete their previous output first, so stale bundles never accumulate.
@@ -42,6 +43,7 @@ Build outputs (`public/*.js`, `public/dash/`) are gitignored; a fresh checkout h
 | `public/panes/` | Dashboard tab HTML fragments, fetched on first tab activation |
 | `public/static/css/` | Stylesheets (`shared.css`, `site.css`, `explore.css`) |
 | `public/static/img/` | Badge SVGs and favicon |
+| `public/robots.txt`, `public/sitemap*.xml`, `public/site.webmanifest` | Crawler and install metadata served straight off the docroot |
 | `public/fonts/` | Self-hosted woff2 fonts (Inter, JetBrains Mono) |
 
 ## Pages
@@ -59,6 +61,7 @@ Build outputs (`public/*.js`, `public/dash/`) are gitignored; a fresh checkout h
 | Verify | `src/verify.ts` | `verify.html` | Consumes the emailed verification token |
 | Reset password | `src/reset-password.ts` | `reset-password.html` | Consumes the emailed reset token |
 | Dashboard | `src/dashboard.ts` | `dashboard.html` | Tab shell at `/dashboard/<tab>`; tabs in `src/dash/tabs/` |
+| Pricing | `src/pricing.ts` | `pricing.html` | `/pricing`: every purchase option with no login, static copy plus tiers, add-ons, passes and founder seats hydrated from the public billing catalog |
 | API docs | `src/wiki.ts` | `wiki.html` | Hash-routed topic sections with a generated sidebar |
 | Legal | `src/legal.ts` | `terms.html`, `privacy.html`, `impressum.html` | Static pages, navbar only |
 | Clip editor | `src/clip-editor.ts` | `clip-editor.html` | `/clip/create?channel=<name>`: dedicated clip creation page opened in a new tab, plays a pinned window through an `hls.js`-backed HLS VOD player (one of the repo's three sanctioned `hls.js` entries), in/out selection, submits and polls until the clip is ready at `/<channel>/clip/<code>` |

@@ -24,7 +24,7 @@ function activate(topic: string): void {
     for (const a of Array.from(topicsNav?.querySelectorAll("a") ?? [])) {
         a.classList.toggle("active", a.dataset["topic"] === found.dataset["topic"]);
     }
-    document.title = `${found.dataset["title"] ?? "API"} - API Documentation`;
+    document.title = `${found.dataset["title"] ?? "API"} | API documentation | ITZON`;
 }
 
 if (topicsNav) {

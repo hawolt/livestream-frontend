@@ -31,6 +31,7 @@ import { parseClipRoute } from "./live/clip/route.ts";
 import { bootClipMode } from "./live/clip/mode.ts";
 import { promptStreamPassword } from "./live/stream-pass-gate.ts";
 import { applyChannelChrome } from "./live/channel-chrome.ts";
+import { channelPageTitle, chatPopoutTitle } from "./live/page-title.ts";
 import { installRaidHandover } from "./live/raid-handover.ts";
 import { parseViewerClaim } from "./player-shared/viewer-claim.ts";
 import { chooseTransport } from "./player-shared/transport-choice.ts";
@@ -107,7 +108,7 @@ async function boot(): Promise<void> {
     nameEl.textContent = ctx.displayUsername;
     let channelPartner = false;
     partnerBadgeEl.hidden = true;
-    document.title = ctx.displayUsername;
+    document.title = channelPageTitle(ctx.displayUsername);
     browseMiniUsername.textContent = ctx.displayUsername;
     if (!chatPopout) {
         startChannelRail();
@@ -137,7 +138,7 @@ async function boot(): Promise<void> {
             if (!isCurrentBoot(generation, request)) return;
             if (banned) {
                 nameEl.textContent = ctx.displayUsername;
-                document.title = ctx.displayUsername;
+                document.title = channelPageTitle(ctx.displayUsername);
                 bootCompleted = true;
                 enterTerminal("Banned");
                 return;
@@ -154,7 +155,7 @@ async function boot(): Promise<void> {
                 if (typeof info.username === "string" && info.username) {
                     ctx.displayUsername = info.username;
                     nameEl.textContent = ctx.displayUsername;
-                    document.title = ctx.displayUsername;
+                    document.title = channelPageTitle(ctx.displayUsername);
                 }
                 const unlocked = await promptStreamPassword(ctx.username, request.signal);
                 if (!unlocked || !isCurrentBoot(generation, request)) return;
@@ -212,7 +213,7 @@ async function boot(): Promise<void> {
     if (generation !== bootGeneration) return;
     nameEl.textContent = ctx.displayUsername;
     partnerBadgeEl.hidden = channelPartner !== true;
-    document.title = ctx.displayUsername;
+    document.title = channelPageTitle(ctx.displayUsername, title);
     browseMiniUsername.textContent = ctx.displayUsername;
     if (!chatPopout) {
         void loadProfile(ctx.username).then(profile => {
@@ -230,7 +231,7 @@ async function boot(): Promise<void> {
     startChat(ctx.username, emoteTwitchId, () => openLoginModal("chat"));
 
     if (chatPopout) {
-        document.title = `${ctx.displayUsername} - chat`;
+        document.title = chatPopoutTitle(ctx.displayUsername);
         bootCompleted = true;
         return;
     }

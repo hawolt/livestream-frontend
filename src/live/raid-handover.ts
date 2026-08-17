@@ -7,6 +7,7 @@ import { beginTransport, clearRetryTimer, fullTeardown, resetRetryBackoff, setOf
 import { resetStreamInfo, rewatchViewcount } from "./stream-info.ts";
 import { attachVideoElementListeners, updatePlayIcon, updateVolumeUI } from "./controls.ts";
 import { applyChannelChrome } from "./channel-chrome.ts";
+import { channelPageTitle } from "./page-title.ts";
 import { startChat } from "../live-chat.ts";
 import { msgsEl } from "../chat/dom.ts";
 import { openLoginModal } from "./login-modal.ts";
@@ -61,7 +62,7 @@ function performHandover(result: PrewarmResult): void {
 function repointPage(channel: PrewarmChannel): void {
     nameEl.textContent = ctx.displayUsername;
     partnerBadgeEl.hidden = !channel.partner;
-    document.title = ctx.displayUsername;
+    document.title = channelPageTitle(ctx.displayUsername);
     browseMiniUsername.textContent = ctx.displayUsername;
     applyChannelChrome(channel);
     msgsEl.replaceChildren();

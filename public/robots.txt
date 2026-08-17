@@ -1,0 +1,20 @@
+User-agent: *
+Disallow: /api/
+Disallow: /ws/
+Disallow: /hls/
+Disallow: /thumb/
+Disallow: /clips/
+Disallow: /desktop/
+Disallow: /embed/
+Disallow: /chat/
+Disallow: /alerts/
+Disallow: /oauth/
+Disallow: /clip/create
+Disallow: /dashboard
+Disallow: /details
+Disallow: /multichat
+Disallow: /verify
+Disallow: /reset-password
+Allow: /
+
+Sitemap: https://itzon.tv/sitemap.xml

@@ -39,6 +39,9 @@ function updateStreamCard(card: StreamCard, s: ExploreStream): void {
         title.textContent = text;
         title.setAttribute("title", text);
     }
+    card.image.alt = s.category
+        ? `${s.username} streaming ${s.category} live`
+        : `${s.username} streaming live`;
     const language = card.link.querySelector<HTMLElement>(".explore-card-language");
     const languageLabel = streamLanguageLabel(s.language);
     if (language) {
