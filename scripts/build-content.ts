@@ -30,6 +30,49 @@ function escapeJsonLd(json: string): string {
     return json.replace(/</g, "\\u003c").replace(/>/g, "\\u003e").replace(/&/g, "\\u0026");
 }
 
+export interface Heading {
+    id: string;
+    text: string;
+}
+
+export function headingId(text: string, taken: Set<string>): string {
+    const base = text
+        .toLowerCase()
+        .replace(/&[a-z]+;/g, " ")
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-+|-+$/g, "") || "section";
+    let id = base;
+    let suffix = 2;
+    while (taken.has(id)) {
+        id = `${base}-${suffix}`;
+        suffix += 1;
+    }
+    taken.add(id);
+    return id;
+}
+
+export function anchorHeadings(body: string): { body: string; headings: Heading[] } {
+    const headings: Heading[] = [];
+    const taken = new Set<string>();
+    const anchored = body.replace(/<h2>([^<]+)<\/h2>/g, (_match, text: string) => {
+        const id = headingId(text, taken);
+        headings.push({ id, text });
+        return `<h2 id="${id}">${text}<a class="content-anchor" href="#${id}" aria-label="Link to this section">#</a></h2>`;
+    });
+    return { body: anchored, headings };
+}
+
+function tableOfContents(headings: Heading[]): string {
+    if (headings.length < 3) return "";
+    const links = headings.map(entry =>
+        `            <a href="#${entry.id}">${escapeHtml(entry.text)}</a>`).join("\n");
+    return `        <div class="content-side-title">On this page</div>
+        <nav class="content-toc">
+${links}
+        </nav>
+`;
+}
+
 function head(title: string, description: string, canonical: string, jsonLd: string): string {
     return `<!DOCTYPE html>
 <html lang="en" class="live-host">
@@ -127,7 +170,7 @@ function indexJsonLd(section: ContentSectionMeta): string {
     });
 }
 
-function sidebar(section: ContentSectionMeta, current: ContentPage): string {
+function sidebar(section: ContentSectionMeta, current: ContentPage, headings: Heading[]): string {
     const links = pagesInSection(section.id).map((page) => {
         const active = page.slug === current.slug ? ' class="active"' : "";
         const aria = page.slug === current.slug ? ' aria-current="page"' : "";
@@ -138,7 +181,7 @@ function sidebar(section: ContentSectionMeta, current: ContentPage): string {
         <nav class="content-nav">
 ${links}
         </nav>
-    </aside>
+${tableOfContents(headings)}    </aside>
 `;
 }
 
@@ -149,14 +192,15 @@ function crossLink(section: ContentSectionMeta): string {
 }
 
 async function renderPage(page: ContentPage, section: ContentSectionMeta, bundle: string): Promise<string> {
-    const body = await readFile(join(contentDirectory, page.section, `${page.slug}.html`), "utf8");
+    const raw = await readFile(join(contentDirectory, page.section, `${page.slug}.html`), "utf8");
+    const { body, headings } = anchorHeadings(raw);
     const indented = body.trimEnd().split("\n")
         .map(line => line === "" ? line : `        ${line}`)
         .join("\n");
     const canonical = `${SITE_ORIGIN}${pageUrl(page)}`;
     return head(page.title, page.description, canonical, pageJsonLd(section, page))
         + `<div class="content-page">\n`
-        + sidebar(section, page)
+        + sidebar(section, page, headings)
         + `    <main class="content-body">\n`
         + `        <nav class="content-breadcrumb"><a href="/">ITZON</a><span>/</span><a href="${sectionUrl(section.id)}">${escapeHtml(section.heading)}</a><span>/</span>${escapeHtml(page.heading)}</nav>\n`
         + `        <h1>${escapeHtml(page.heading)}</h1>\n`
@@ -193,19 +237,21 @@ function sitemap(): string {
     return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${body}\n</urlset>\n`;
 }
 
-const bundle = await builtName(publicDirectory, "content-page");
-
-let written = 0;
-for (const section of CONTENT_SECTIONS) {
-    const directory = join(publicDirectory, section.id);
-    await mkdir(directory, { recursive: true });
-    await writeFile(join(directory, "index.html"), renderIndex(section, bundle));
-    written += 1;
-    for (const page of pagesInSection(section.id)) {
-        await writeFile(join(directory, `${page.slug}.html`), await renderPage(page, section, bundle));
+async function build(): Promise<void> {
+    const bundle = await builtName(publicDirectory, "content-page");
+    let written = 0;
+    for (const section of CONTENT_SECTIONS) {
+        const directory = join(publicDirectory, section.id);
+        await mkdir(directory, { recursive: true });
+        await writeFile(join(directory, "index.html"), renderIndex(section, bundle));
         written += 1;
+        for (const page of pagesInSection(section.id)) {
+            await writeFile(join(directory, `${page.slug}.html`), await renderPage(page, section, bundle));
+            written += 1;
+        }
     }
+    await writeFile(join(publicDirectory, "sitemap-content.xml"), sitemap());
+    console.log(`built ${written} content page(s) across ${CONTENT_SECTIONS.length} section(s)`);
 }
-await writeFile(join(publicDirectory, "sitemap-content.xml"), sitemap());
 
-console.log(`built ${written} content page(s) across ${CONTENT_SECTIONS.length} section(s)`);
+if (import.meta.main) await build();

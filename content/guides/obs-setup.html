@@ -79,6 +79,7 @@
     <li>Press Start Streaming in OBS and watch the status bar: green square, stable bitrate, 0 dropped frames.</li>
     <li>Open your channel page in a browser tab and confirm video and audio.</li>
     <li>Your channel appears on the front page automatically while you are live.</li>
+    <li>If nothing happens, open the dashboard <a href="/dashboard/activity">Activity</a> tab. Every rejected publish is logged there with the reason it was refused, which is the fastest way to find out why a stream did not go live.</li>
 </ul>
 <div class="content-guide">
     <video controls preload="none" src="/static/guides/obs-first-stream.mp4"></video>
@@ -87,10 +88,11 @@
 <h2>Common failures</h2>
 <table>
     <tr><th>Symptom</th><th>Cause and fix</th></tr>
-    <tr><td>Disconnected right after Start Streaming</td><td>The stream key was rotated and OBS still has the old one; copy the current key from the Stream tab. Also caused by a declared bitrate above the limit for your resolution and framerate (see the bitrate limits table); the exact reason appears in the dashboard Stream Activity tab.</td></tr>
+    <tr><td>Disconnected right after Start Streaming</td><td>The stream key was rotated and OBS still has the old one; copy the current key from the Stream tab. Also caused by a declared bitrate above the limit for your resolution and framerate (see the bitrate limits table); the exact reason appears in the dashboard <a href="/dashboard/activity">Activity</a> tab.</td></tr>
     <tr><td>OBS shows connected but the channel stays offline</td><td>Wrong Server URL, usually after a region change; re-copy the RTMP URL from the Stream tab.</td></tr>
     <tr><td>Stream drops when a second device connects</td><td>A new publish with the same key takes over the running stream; stop the other encoder.</td></tr>
     <tr><td>Stream rejected with an encoder error</td><td>HEVC or AV1 video, or non-AAC audio; switch to H.264 + AAC.</td></tr>
-    <tr><td>Stream killed at higher resolution or FPS</td><td>The declared bitrate exceeds the cap for that resolution and framerate; lower the bitrate or the output settings. The Stream Activity tab shows the exact numbers.</td></tr>
+    <tr><td>Stream killed at higher resolution or FPS</td><td>The declared bitrate exceeds the cap for that resolution and framerate; lower the bitrate or the output settings. The <a href="/dashboard/activity">Activity</a> tab shows the exact numbers.</td></tr>
+    <tr><td>Reconnecting straight after a failed start is rejected</td><td>The killed session is still holding your channel. A publish waits about 3 seconds for the slot and the old session lingers about 10 seconds after it ends, so an immediate retry answers <code>Stream key already publishing</code>. Wait roughly 15 seconds and start again.</td></tr>
     <tr><td>Viewers report high delay</td><td>Keyframe interval not set to 2 s, or the encoder is overloaded (check dropped frames in the OBS status bar).</td></tr>
 </table>
