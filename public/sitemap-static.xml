@@ -17,10 +17,6 @@
         <priority>0.7</priority>
     </url>
     <url>
-        <loc>https://itzon.tv/wiki</loc>
-        <priority>0.5</priority>
-    </url>
-    <url>
         <loc>https://itzon.tv/terms</loc>
         <priority>0.2</priority>
     </url>

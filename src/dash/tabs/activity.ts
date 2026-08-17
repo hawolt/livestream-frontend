@@ -73,7 +73,7 @@ function buildEventRow(e: FollowEvent): HTMLElement {
     if (streamEvent) {
         text.appendChild(document.createTextNode(" "));
         const link = document.createElement("a");
-        link.href = "/wiki#obs";
+        link.href = "/guides/obs-setup";
         link.target = "_blank";
         link.rel = "noopener";
         link.className = "act-ev-link";

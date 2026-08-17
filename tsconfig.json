@@ -9,5 +9,5 @@
     "skipLibCheck": true,
     "lib": ["ES2020", "DOM"]
   },
-  "include": ["src/**/*.ts"]
+  "include": ["src/**/*.ts", "content/**/*.ts", "scripts/**/*.ts"]
 }

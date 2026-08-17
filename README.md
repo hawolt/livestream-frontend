@@ -10,7 +10,7 @@ Frontend for the itzon.tv livestreaming site. It provides every public surface o
 - user **auth pages** (login, register, email verify, password reset)
 - a user **dashboard** (stream keys, channel settings, chat overlay builder, health telemetry, account settings)
 - a public **pricing page** listing every purchase option without a login
-- static **legal pages** and an **API documentation** page
+- static **legal pages**, streaming **guides** and **developer documentation**
 
 Everything is plain TypeScript compiled by Bun, one entry point per page, no framework and no runtime dependencies, with one sanctioned exception: `hls.js` is reachable only from `src/live.ts`, `src/embed.ts`, and `src/clip-editor.ts` (the channel viewer, the embed player, and the clip editor's preview player; see ARCHITECTURE.md's player and clip editor sections). Bundling stays per entry, so `hls.js` lands only in `public/live.js`, `public/embed.js`, and `public/clip-editor.js`; every other page stays dependency-free.
 
@@ -26,22 +26,25 @@ bun run build
 bunx tsc --noEmit
 ```
 
-`bun run build` runs two steps:
+`bun run build` runs four steps:
 
-- `build:pages` bundles each page entry (`explore`, `live`, `embed`, `chat-overlay`, `follow-alerts`, `user-login`, `register`, `verify`, `reset-password`, `legal`, `wiki`, `clip-editor`, `clip-embed`, `multichat`, `oauth-authorize`, `status`, `pricing`) to `public/<name>-<hash>.js`
+- `build:pages` bundles each page entry (`explore`, `live`, `embed`, `chat-overlay`, `follow-alerts`, `user-login`, `register`, `verify`, `reset-password`, `legal`, `clip-editor`, `clip-embed`, `multichat`, `oauth-authorize`, `status`, `pricing`, `content-page`) to `public/<name>-<hash>.js`
 - `build:dash` bundles `src/dashboard.ts` to `public/dash/` with code splitting, so tab modules load on demand
+- `content` generates the `/guides` and `/docs` pages from `content/` into `public/guides/` and `public/docs/`, plus `public/sitemap-content.xml`
+- `link` rewrites every page's script tag to the hashed bundle name and fails if a page references a bundle that was not built
 
-Build outputs (`public/*.js`, `public/dash/`) are gitignored; a fresh checkout has no servable bundles until the build runs. Both build steps delete their previous output first, so stale bundles never accumulate.
+Build outputs (`public/*.js`, `public/dash/`, `public/guides/`, `public/docs/`, `public/sitemap-content.xml`) are gitignored; a fresh checkout has no servable bundles and no guide or doc pages until the build runs. The bundle steps delete their previous output first, so stale bundles never accumulate.
 
 ## Layout
 
 | Path | Purpose |
 |---|---|
 | `src/` | TypeScript sources, one entry point per page |
+| `content/` | Source fragments plus the typed manifest for the generated `/guides` and `/docs` pages |
 | `src/dash/` | Dashboard shared runtime (`session.ts`, `modal.ts`, `format.ts`, `regions.ts`, `dom.ts`, `activity-events.ts`, `overlay-shared.ts`) and per-tab modules (`tabs/`) |
 | `public/` | Page HTML at the root; build output lands here |
 | `public/panes/` | Dashboard tab HTML fragments, fetched on first tab activation |
-| `public/static/css/` | Stylesheets (`shared.css`, `site.css`, `explore.css`) |
+| `public/static/css/` | Stylesheets (`shared.css`, `site.css`, `explore.css`, `content.css`) |
 | `public/static/img/` | Badge SVGs and favicon |
 | `public/robots.txt`, `public/sitemap*.xml`, `public/site.webmanifest` | Crawler and install metadata served straight off the docroot |
 | `public/fonts/` | Self-hosted woff2 fonts (Inter, JetBrains Mono) |
@@ -62,7 +65,7 @@ Build outputs (`public/*.js`, `public/dash/`) are gitignored; a fresh checkout h
 | Reset password | `src/reset-password.ts` | `reset-password.html` | Consumes the emailed reset token |
 | Dashboard | `src/dashboard.ts` | `dashboard.html` | Tab shell at `/dashboard/<tab>`; tabs in `src/dash/tabs/` |
 | Pricing | `src/pricing.ts` | `pricing.html` | `/pricing`: every purchase option with no login, static copy plus tiers, add-ons, passes and founder seats hydrated from the public billing catalog |
-| API docs | `src/wiki.ts` | `wiki.html` | Hash-routed topic sections with a generated sidebar |
+| Guides and docs | `src/content-page.ts` | generated | `/guides/<slug>` and `/docs/<slug>`, built from `content/` by `scripts/build-content.ts`; replaced the old hash-routed `/wiki` |
 | Legal | `src/legal.ts` | `terms.html`, `privacy.html`, `impressum.html` | Static pages, navbar only |
 | Clip editor | `src/clip-editor.ts` | `clip-editor.html` | `/clip/create?channel=<name>`: dedicated clip creation page opened in a new tab, plays a pinned window through an `hls.js`-backed HLS VOD player (one of the repo's three sanctioned `hls.js` entries), in/out selection, submits and polls until the clip is ready at `/<channel>/clip/<code>` |
 | Clip embed | `src/clip-embed.ts` | `clip-embed.html` | `/embed/clip/<channel>/<code>`: minimal cross-origin player X (Twitter) loads as its player-card iframe, native controls, muted autoplay, poster from `thumbnailUrl`, a small corner link to the full clip page |

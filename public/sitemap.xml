@@ -4,6 +4,9 @@
         <loc>https://itzon.tv/sitemap-static.xml</loc>
     </sitemap>
     <sitemap>
+        <loc>https://itzon.tv/sitemap-content.xml</loc>
+    </sitemap>
+    <sitemap>
         <loc>https://itzon.tv/sitemap-channels.xml</loc>
     </sitemap>
 </sitemapindex>

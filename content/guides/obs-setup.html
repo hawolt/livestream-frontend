@@ -1,0 +1,96 @@
+<p class="intro">How to go live with OBS Studio, from stream key to first broadcast.</p>
+
+<h2>1. Find your ingest URL and stream key</h2>
+<ul>
+    <li>Open the dashboard <a href="/dashboard/stream">Stream</a> tab. The Ingest card shows your <strong>RTMP URL</strong> and your <strong>Stream key</strong> (Reveal to see it, Copy to copy it).</li>
+    <li>If a Region selector is shown, pick the region closest to you; changing it updates the RTMP URL, so re-copy it afterwards.</li>
+    <li>The Rotate button invalidates the current key for the next publish. After rotating, every encoder that still has the old key stops being able to connect.</li>
+</ul>
+<div class="content-guide">
+    <video controls preload="none" src="/static/guides/obs-ingest-setup.mp4"></video>
+</div>
+
+<h2>2. Point OBS at the server</h2>
+<ul>
+    <li>OBS: Settings, then Stream.</li>
+    <li>Service: <code>Custom...</code></li>
+    <li>Server: the RTMP URL from the Stream tab.</li>
+    <li>Stream Key: the stream key from the Stream tab.</li>
+</ul>
+
+<h2>3. Encoder settings</h2>
+<p>Settings, then Output, set Output Mode to Advanced.</p>
+<table>
+    <tr><th>Setting</th><th>Value</th></tr>
+    <tr><td>Encoder</td><td>NVENC H.264 if you have an NVIDIA GPU, otherwise x264</td></tr>
+    <tr><td>Rate control</td><td>CBR</td></tr>
+    <tr><td>Bitrate</td><td>6000 to 8000 kbps for 1080p60; see the bitrate limits table below for higher resolutions and framerates</td></tr>
+    <tr><td>Keyframe interval</td><td>2 s</td></tr>
+    <tr><td>Preset</td><td>x264: veryfast (slower only if your CPU has headroom); NVENC: Quality (P5)</td></tr>
+    <tr><td>Profile</td><td>high</td></tr>
+</table>
+<h2 id="bitrate-limits">Bitrate limits</h2>
+<p>
+    Every account may stream at any resolution up to 4K and any framerate up to 240 fps. The declared
+    video bitrate is capped by the resolution and framerate your encoder announces; a stream that
+    declares a bitrate above its cap is disconnected immediately when the stream starts.
+</p>
+<table>
+    <tr><th>Resolution</th><th>Up to 60 fps</th><th>Up to 120 fps</th><th>Up to 240 fps</th></tr>
+    <tr><td>1080p and below</td><td>10000 kbps</td><td>20000 kbps</td><td>30000 kbps</td></tr>
+    <tr><td>1440p</td><td>20000 kbps</td><td>30000 kbps</td><td>40000 kbps</td></tr>
+    <tr><td>4K (2160p)</td><td>40000 kbps</td><td>60000 kbps</td><td>80000 kbps</td></tr>
+</table>
+<p>
+    Watching is where quality is unlocked: every viewer can watch up to 1080p60 for free, the Baron
+    subscription unlocks watching up to 1440p and 120 fps, and King unlocks everything up to 4K and
+    240 fps. If you stream above 1080p60, enable Enhanced Broadcasting (multitrack) in OBS or keep a
+    lower quality rendition so free viewers still have something to watch; without one they see a
+    subscribe prompt instead of your stream.
+</p>
+<p>
+    The keyframe interval matters: the player starts new viewers on a keyframe, so long intervals
+    mean slower joins and higher latency. Leave it at 2 s.
+</p>
+<p>Only H.264 video with AAC audio is accepted; HEVC and AV1 publishes are rejected.</p>
+<div class="content-guide">
+    <video controls preload="none" src="/static/guides/obs-encoder-settings.mp4"></video>
+</div>
+
+<h2>4. Audio</h2>
+<ul>
+    <li>Audio encoder: AAC.</li>
+    <li>Bitrate: 160 kbps is plenty for stereo.</li>
+    <li>Sample rate (Settings, Audio): 48 kHz.</li>
+</ul>
+
+<h2>5. Resolution and framerate</h2>
+<p>
+    Settings, then Video: any Output (Scaled) Resolution up to 3840x2160 and any FPS up to 240 work
+    for every account, as long as the bitrate stays inside the limits table above. Remember the
+    viewer side: only subscribed viewers can watch above 1080p60, so 1080p60 remains the best
+    default for reach.
+</p>
+
+<h2>6. Going live</h2>
+<ul>
+    <li>Set your title and category in the dashboard Stream Manager tab (or via the <a href="/docs/api">Public API</a>).</li>
+    <li>Check your scene: correct sources visible, audio meters moving, no muted mic.</li>
+    <li>Press Start Streaming in OBS and watch the status bar: green square, stable bitrate, 0 dropped frames.</li>
+    <li>Open your channel page in a browser tab and confirm video and audio.</li>
+    <li>Your channel appears on the front page automatically while you are live.</li>
+</ul>
+<div class="content-guide">
+    <video controls preload="none" src="/static/guides/obs-first-stream.mp4"></video>
+</div>
+
+<h2>Common failures</h2>
+<table>
+    <tr><th>Symptom</th><th>Cause and fix</th></tr>
+    <tr><td>Disconnected right after Start Streaming</td><td>The stream key was rotated and OBS still has the old one; copy the current key from the Stream tab. Also caused by a declared bitrate above the limit for your resolution and framerate (see the bitrate limits table); the exact reason appears in the dashboard Stream Activity tab.</td></tr>
+    <tr><td>OBS shows connected but the channel stays offline</td><td>Wrong Server URL, usually after a region change; re-copy the RTMP URL from the Stream tab.</td></tr>
+    <tr><td>Stream drops when a second device connects</td><td>A new publish with the same key takes over the running stream; stop the other encoder.</td></tr>
+    <tr><td>Stream rejected with an encoder error</td><td>HEVC or AV1 video, or non-AAC audio; switch to H.264 + AAC.</td></tr>
+    <tr><td>Stream killed at higher resolution or FPS</td><td>The declared bitrate exceeds the cap for that resolution and framerate; lower the bitrate or the output settings. The Stream Activity tab shows the exact numbers.</td></tr>
+    <tr><td>Viewers report high delay</td><td>Keyframe interval not set to 2 s, or the encoder is overloaded (check dropped frames in the OBS status bar).</td></tr>
+</table>

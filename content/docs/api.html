@@ -1,0 +1,145 @@
+<p class="intro">A JSON REST API for third-party tools: channel status, followers, categories, and stream info updates.</p>
+
+<h2>Authentication</h2>
+<p>
+    Every request carries one OAuth bearer token: <code>Authorization: Bearer &lt;token&gt;</code>.
+    There are two ways to get one, and the API treats them identically; what a token may do is decided
+    only by its scopes: <code>api:read</code> unlocks the read endpoints (channel, followers, categories, me),
+    <code>api:write</code> unlocks <code>PUT /me/stream-info</code>. Each endpoint below states its required scope.
+</p>
+<ul>
+    <li><strong>Personal tokens</strong>: created in the dashboard <a href="/dashboard/settings">Settings</a> tab, in the API tokens card. You pick the scopes when creating one, give it a label so you can tell tokens apart, and it acts as your own account. The 64-character hex secret is shown exactly once at creation; only its first 8 characters appear in the list afterwards, so store it like a password. Personal tokens never expire; deleting one revokes it immediately. You can hold up to 32.</li>
+    <li><strong>App tokens</strong>: access tokens minted through <a href="/docs/oauth">Sign in with itzon</a>. They act on behalf of the user who approved the grant, carry the scopes that user consented to, live for 1 hour, and are renewed with a refresh token.</li>
+</ul>
+<p>
+    Requests without a valid token answer <code>401</code>. Calling an endpoint the token's scopes do not
+    cover answers <code>403</code> with an <code>insufficient_scope</code> error naming the scope you need.
+</p>
+<p>Base URL: <code>https://<span data-fill="host">itzon.tv</span>/api/public/v1</code></p>
+
+<h2>Rate limits</h2>
+<ul>
+    <li>120 requests per minute per token (personal or app), plus a global cap shared by all callers.</li>
+    <li>Every authenticated response carries <code>X-RateLimit-Remaining</code>, the requests left in the current minute.</li>
+    <li>Over the limit, requests answer <code>429</code> with <code>X-RateLimit-Remaining: 0</code> until the window resets.</li>
+</ul>
+
+<h2>Errors</h2>
+<p>Failures return JSON in the shape <code>{"ok": false, "error": "..."}</code>.</p>
+<table>
+    <tr><th>Status</th><th>Meaning</th></tr>
+    <tr><td><code>400</code></td><td>invalid parameter, cursor, or body</td></tr>
+    <tr><td><code>401</code></td><td>missing, malformed, or revoked token</td></tr>
+    <tr><td><code>403</code></td><td>the token is missing the endpoint's scope (<code>insufficient_scope</code>), or the token owner lacks the required capability</td></tr>
+    <tr><td><code>404</code></td><td>unknown channel, or one you are not allowed to see</td></tr>
+    <tr><td><code>429</code></td><td>rate limited</td></tr>
+</table>
+
+<h2>GET /channel/{username}</h2>
+<p>Scope: <code>api:read</code>. Public info for a channel. <code>viewers</code> is only present while the channel is live; <code>category</code> and <code>categoryId</code> are <code>null</code> when unset; <code>language</code> is one or two comma-separated ISO 639-1 codes (e.g. <code>fr,en</code>) or <code>und</code>. Unknown, banned, and non-streaming accounts answer <code>404</code>. Password-protected channels answer <code>404</code> to everyone except a token owned by the channel itself.</p>
+<pre><code>curl https://<span data-fill="host">itzon.tv</span>/api/public/v1/channel/streamer \
+  -H "Authorization: Bearer $TOKEN"</code></pre>
+<pre><code>{
+  "username": "streamer",
+  "live": true,
+  "title": "Speedrun practice",
+  "category": "Retro",
+  "categoryId": 3,
+  "language": "en",
+  "followers": 1287,
+  "viewers": 341
+}</code></pre>
+
+<h2>GET /channel/{username}/followers</h2>
+<p>Scope: <code>api:read</code>. Follower list, newest first, with cursor pagination. Same privacy rule as the channel endpoint.</p>
+<table>
+    <tr><th>Param</th><th>Meaning</th></tr>
+    <tr><td><code>limit</code></td><td>page size, 1 to 100, default 50</td></tr>
+    <tr><td><code>cursor</code></td><td>the <code>nextCursor</code> value from the previous page</td></tr>
+</table>
+<pre><code>curl "https://<span data-fill="host">itzon.tv</span>/api/public/v1/channel/streamer/followers?limit=2" \
+  -H "Authorization: Bearer $TOKEN"</code></pre>
+<pre><code>{
+  "total": 1287,
+  "followers": [
+    { "username": "viewer1", "followedAt": "2026-08-05T18:24:11Z" },
+    { "username": "viewer2", "followedAt": "2026-08-04T09:02:58Z" }
+  ],
+  "nextCursor": "MTc1NDA2NzA1MTAwMDAwMC40Mg"
+}</code></pre>
+<p>
+    The cursor is an opaque string marking the position after the last entry of the page.
+    Pass it back as <code>cursor=</code> to fetch the next page and keep going until
+    <code>nextCursor</code> is <code>null</code>. Because pagination is keyed on the follow
+    itself rather than an offset, pages stay stable while people follow or unfollow between
+    requests. A garbled cursor answers <code>400</code>.
+</p>
+
+<h2>GET /categories</h2>
+<p>Scope: <code>api:read</code>.</p>
+<pre><code>curl https://<span data-fill="host">itzon.tv</span>/api/public/v1/categories \
+  -H "Authorization: Bearer $TOKEN"</code></pre>
+<pre><code>{ "categories": [ { "id": 3, "name": "Retro" }, { "id": 7, "name": "Music" } ] }</code></pre>
+
+<h2>GET /me</h2>
+<p>Scope: <code>api:read</code>. Identifies the token owner.</p>
+<pre><code>curl https://<span data-fill="host">itzon.tv</span>/api/public/v1/me \
+  -H "Authorization: Bearer $TOKEN"</code></pre>
+<pre><code>{ "id": 42, "username": "streamer" }</code></pre>
+
+<h2>PUT /me/stream-info</h2>
+<p>Scope: <code>api:write</code>. Updates the token owner's stream title, category, and language with exactly the validation the dashboard uses. Requires a streaming account; others get <code>403</code>.</p>
+<table>
+    <tr><th>Field</th><th>Rules</th></tr>
+    <tr><td><code>title</code></td><td>max 200 characters; omitted or empty clears the title</td></tr>
+    <tr><td><code>categoryId</code></td><td>must be an id from <code>/categories</code>; omitted or <code>null</code> clears the category</td></tr>
+    <tr><td><code>language</code></td><td>up to two ISO 639-1 codes, as a comma-separated string (<code>"fr,en"</code>) or an array (<code>["fr","en"]</code>); <code>null</code> resets to unspecified; omitted leaves it unchanged</td></tr>
+</table>
+<pre><code>curl -X PUT https://<span data-fill="host">itzon.tv</span>/api/public/v1/me/stream-info \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"title": "Speedrun practice", "categoryId": 3, "language": "en"}'</code></pre>
+<pre><code>{ "title": "Speedrun practice", "category": "Retro", "categoryId": 3, "language": "en" }</code></pre>
+<p>Note that <code>title</code> and <code>categoryId</code> are replaced on every call, so send the full desired state. Validation failures answer <code>400</code> with the reason.</p>
+
+<h2>GET /me/followers</h2>
+<p>Scope: <code>api:read</code>. The follower list of the token owner's own channel, same shape and pagination as the channel followers endpoint, without the privacy restriction.</p>
+
+<h2>Live status badge</h2>
+<p>
+    <strong>No token required.</strong> The badge endpoints are public so they can sit in a README:
+    <code>GET /badge/{username}.svg</code> renders a small image and
+    <code>GET /badge/{username}.json</code> returns the same state as JSON. Both are rate limited per IP,
+    cached for 30 seconds and answer <code>304</code> when your <code>If-None-Match</code> matches.
+</p>
+<table>
+    <tr><th>Param</th><th>Meaning</th></tr>
+    <tr><td><code>style</code></td><td><code>flat</code> (default) or <code>dot</code></td></tr>
+    <tr><td><code>label</code></td><td>custom left-hand text, max 24 characters, sanitized and XML-escaped; defaults to the channel name</td></tr>
+</table>
+<p>
+    The badge shows <code>LIVE</code> or <code>OFFLINE</code> and nothing else: no viewer count.
+    Password-protected channels always render <code>OFFLINE</code>, and so does an unknown
+    or banned channel, so a badge never reveals whether a private stream is running or whether an
+    account exists.
+</p>
+<p>Markdown for a README:</p>
+<pre><code>[![stream status](https://<span data-fill="host">itzon.tv</span>/api/public/v1/badge/streamer.svg)](https://<span data-fill="host">itzon.tv</span>/streamer)</code></pre>
+<p>Plain HTML:</p>
+<pre><code>&lt;a href="https://<span data-fill="host">itzon.tv</span>/streamer"&gt;
+  &lt;img src="https://<span data-fill="host">itzon.tv</span>/api/public/v1/badge/streamer.svg?style=dot&amp;label=my%20stream" alt="stream status" /&gt;
+&lt;/a&gt;</code></pre>
+<p>
+    The JSON variant speaks the shields.io endpoint schema, so shields.io can render the badge in its own
+    style while the live state still comes from here:
+</p>
+<pre><code>![stream status](https://img.shields.io/endpoint?url=https%3A%2F%2F<span data-fill="host">itzon.tv</span>%2Fapi%2Fpublic%2Fv1%2Fbadge%2Fstreamer.json)</code></pre>
+<pre><code>curl https://<span data-fill="host">itzon.tv</span>/api/public/v1/badge/streamer.json</code></pre>
+<pre><code>{
+  "schemaVersion": 1,
+  "label": "streamer",
+  "message": "LIVE",
+  "color": "2ecc71",
+  "live": true,
+  "username": "streamer"
+}</code></pre>

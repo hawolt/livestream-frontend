@@ -1,26 +1,17 @@
 import { readdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { builtName } from "./built-name.ts";
 
 const publicDirectory = fileURLToPath(new URL("../public/", import.meta.url));
 const dashDirectory = join(publicDirectory, "dash");
 
 const PAGE_ENTRIES = [
     "explore", "live", "embed", "chat-overlay", "follow-alerts", "user-login",
-    "register", "verify", "reset-password", "legal", "wiki", "clip-editor",
-    "clip-embed", "multichat", "oauth-authorize", "status", "pricing",
+    "register", "verify", "reset-password", "legal", "clip-editor",
+    "clip-embed", "multichat", "oauth-authorize", "status", "pricing", "content-page",
 ];
 const DASH_ENTRIES = ["dashboard"];
-
-async function builtName(directory: string, entry: string): Promise<string> {
-    const files = await readdir(directory);
-    const matches = files.filter(name => name.startsWith(`${entry}-`) && name.endsWith(".js")
-        && !name.slice(entry.length + 1, -3).includes("-"));
-    if (matches.length !== 1) {
-        throw new Error(`expected exactly one built file for ${entry}, found ${matches.length}: ${matches.join(", ")}`);
-    }
-    return matches[0]!;
-}
 
 function rewrite(html: string, prefix: string, entry: string, file: string): string {
     const pattern = new RegExp(`(src=")${prefix}${entry}(?:-[A-Za-z0-9]+)?\\.js(")`, "g");

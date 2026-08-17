@@ -1,0 +1,83 @@
+.content-page {
+    max-width: 1060px;
+    margin: 0 auto;
+    padding: 40px 24px 120px;
+    display: flex;
+    gap: 40px;
+    align-items: flex-start;
+}
+
+.content-side { flex: 0 0 200px; position: sticky; top: 72px; }
+.content-side-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .1em; color: var(--dim); margin-bottom: 10px; }
+.content-nav { display: block; }
+.content-nav a { display: flex; align-items: center; justify-content: flex-start; padding: 8px 10px; border-radius: 6px; color: var(--muted); font-size: 13px; text-decoration: none; text-align: left; }
+.content-nav a::before { content: "\00b7"; color: var(--dim); margin-right: 8px; }
+.content-nav a:hover { color: var(--text); background: var(--surface); text-decoration: none; }
+.content-nav a:hover::before { color: var(--muted); }
+.content-nav a.active { color: var(--green); background: var(--surface); font-weight: 600; }
+.content-nav a.active::before { color: var(--green); }
+
+.content-body { flex: 1; min-width: 0; }
+.content-breadcrumb { font-size: 12px; color: var(--dim); margin-bottom: 14px; }
+.content-breadcrumb a { color: var(--muted); text-decoration: none; }
+.content-breadcrumb a:hover { color: var(--text); text-decoration: underline; }
+.content-breadcrumb span { margin: 0 6px; }
+
+.content-body h1 { font-size: 22px; color: #fff; margin: 0 0 6px; }
+.content-body .intro { color: var(--muted); font-size: 13px; margin-bottom: 28px; }
+.content-body h2 {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .1em;
+    color: var(--green);
+    margin: 34px 0 10px;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 8px;
+}
+.content-body p { margin-bottom: 10px; font-size: 13px; line-height: 1.65; }
+.content-body ul { margin: 0 0 12px 18px; font-size: 13px; }
+.content-body ol { margin: 0 0 12px 18px; font-size: 13px; }
+.content-body li { margin-bottom: 6px; line-height: 1.6; }
+.content-body a { color: var(--green); text-underline-offset: 3px; }
+.content-body code { font-size: 12px; background: var(--surface); border: 1px solid var(--border); border-radius: 4px; padding: 1px 5px; }
+.content-body pre {
+    border: 1px solid var(--border);
+    background: var(--surface);
+    border-radius: 10px;
+    padding: 14px 16px;
+    margin: 0 0 12px;
+    font-size: 12px;
+    line-height: 1.7;
+    overflow-x: auto;
+}
+.content-body pre code { background: none; border: none; padding: 0; }
+.content-body table { width: 100%; border-collapse: collapse; font-size: 13px; margin-bottom: 12px; }
+.content-body th, .content-body td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+.content-body th { color: var(--dim); font-size: 11px; text-transform: uppercase; letter-spacing: .06em; }
+
+.content-guide { margin: 0 0 14px; }
+.content-guide video { display: block; width: 100%; max-width: 640px; background: #000; border: 1px solid var(--border); border-radius: 10px; }
+
+.content-index-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; margin-top: 24px; }
+.content-index-card {
+    display: block;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 18px;
+    background: var(--surface);
+    text-decoration: none;
+    transition: transform .15s ease, border-color .15s ease;
+}
+.content-index-card:hover { transform: translateY(-3px); border-color: var(--accent-mid); text-decoration: none; }
+.content-index-title { font-size: 15px; font-weight: 700; color: var(--text); margin-bottom: 6px; }
+.content-index-summary { font-size: 13px; color: var(--muted); line-height: 1.6; }
+.content-crosslink { margin-top: 40px; padding-top: 20px; border-top: 1px solid var(--border); font-size: 13px; color: var(--muted); }
+
+@media (max-width: 760px) {
+    .content-page { flex-direction: column; gap: 20px; }
+    .content-side { position: static; flex: none; width: 100%; }
+    .content-side-title { display: none; }
+    .content-nav { display: flex; flex-wrap: wrap; gap: 4px; }
+    .content-nav a::before { display: none; }
+}

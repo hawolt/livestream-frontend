@@ -1,6 +1,9 @@
 node_modules/
 public/*.js
 public/dash/
+public/guides/
+public/docs/
+public/sitemap-content.xml
 public/details.html
 public/static/css/details.css
 .env

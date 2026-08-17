@@ -1,0 +1,93 @@
+<p class="intro">Chat is plain IRC (RFC 1459 subset + IRCv3 tags). Any TCP or WebSocket client works.</p>
+
+<h2>Endpoints</h2>
+<table>
+    <tr><th>Transport</th><th>Endpoint</th><th>Framing</th></tr>
+    <tr><td>TCP</td><td><code><span data-fill="host">itzon.tv</span>:6667</code></td><td><code>\r\n</code>-terminated lines, max 512 bytes</td></tr>
+    <tr><td>WebSocket</td><td><code>wss://<span data-fill="host">itzon.tv</span>/ws/irc</code></td><td>one IRC line per text frame</td></tr>
+</table>
+
+<h2>Authentication</h2>
+<ul>
+    <li>Generate a token <a href="/dashboard/settings">here</a>.</li>
+    <li>Tokens do not expire. Rotating the token or an account suspension revokes access within 90 seconds.</li>
+    <li>The token grants chat access only, nothing else.</li>
+    <li>Send <code>PASS &lt;token&gt;</code> as the first command. The server assigns your account name and ignores whatever <code>NICK</code> you send.</li>
+    <li>Connections without <code>PASS</code> are read-only guests and cannot send messages.</li>
+</ul>
+
+<h2>Example session</h2>
+<p>Server lines start with <code>:</code> or <code>PING</code>.</p>
+<pre><code>PASS &lt;token&gt;
+NICK bot
+USER bot 0 * :bot
+:server 001 mybot :Welcome
+JOIN #streamer
+:mybot!mybot@host JOIN #streamer
+PRIVMSG #streamer :hello chat
+:go-irc PING go-irc
+PONG :go-irc</code></pre>
+<p>Unanswered <code>PING</code> disconnects after 90 s.</p>
+
+<h2>Receiving</h2>
+<pre><code>:alice!alice@host PRIVMSG #streamer :hello everyone
+:alice!alice@host PRIVMSG #streamer hi
+:go-irc PING go-irc</code></pre>
+<p>
+    The leading <code>:</code> on the trailing parameter is omitted when it contains no spaces,
+    and <code>PING</code> may arrive with a server prefix; parse both forms.
+</p>
+<p>
+    Joining a channel delivers the member list (<code>353</code>/<code>366</code>), a replay of the last
+    10 messages, and any pinned messages. Each name in the <code>353</code> list carries a role prefix:
+</p>
+<table>
+    <tr><th>Prefix</th><th>Role</th></tr>
+    <tr><td><code>%</code></td><td>staff</td></tr>
+    <tr><td><code>@</code></td><td>channel owner</td></tr>
+    <tr><td><code>&amp;</code></td><td>bot</td></tr>
+    <tr><td><code>+</code></td><td>moderator</td></tr>
+    <tr><td><code>~</code></td><td>VIP</td></tr>
+    <tr><td><code>=</code></td><td>unverified account</td></tr>
+    <tr><td><code>?</code></td><td>guest</td></tr>
+</table>
+
+<h2>Tags</h2>
+<p><code>CAP REQ :message-tags echo-message draft/message-redaction</code> before registration, then <code>CAP END</code>.</p>
+<table>
+    <tr><th>Tag</th><th>Meaning</th></tr>
+    <tr><td><code>msgid</code></td><td>stable message id (replies, deletion)</td></tr>
+    <tr><td><code>color</code></td><td>sender display color</td></tr>
+    <tr><td><code>+reply=&lt;msgid&gt;</code></td><td>reply marker; send as client tag to reply</td></tr>
+    <tr><td><code>sub-badge</code></td><td>sender's cosmetic badge name</td></tr>
+    <tr><td><code>partner</code></td><td><code>1</code> when the sender is a partner</td></tr>
+    <tr><td><code>user-id</code> / <code>avatar</code></td><td>sender's account id and avatar extension</td></tr>
+    <tr><td><code>REDACT</code> line</td><td>message deleted; drop it from logs</td></tr>
+</table>
+<p>
+    With <code>message-tags</code> negotiated, the same metadata tags also ride <code>JOIN</code>
+    broadcasts, and on joining a channel you receive one <code>META &lt;channel&gt; &lt;nick&gt;</code>
+    line per member that carries metadata. New metadata appears as additional tags over time; parse
+    what you know and ignore the rest.
+</p>
+
+<h2>Commands</h2>
+<table>
+    <tr><th>Command</th><th>Rank</th><th>Effect</th></tr>
+    <tr><td><code>.whisper &lt;user&gt; &lt;text&gt;</code> / <code>.w</code></td><td>any</td><td>private message</td></tr>
+    <tr><td><code>.ban &lt;user&gt;</code> <code>.timeout &lt;user&gt; &lt;min&gt;</code> <code>.unban &lt;user&gt;</code></td><td>mod</td><td>moderation</td></tr>
+    <tr><td><code>.delete &lt;msgid&gt;</code></td><td>mod</td><td>delete message</td></tr>
+    <tr><td><code>.pin &lt;msgid&gt;</code> <code>.unpin [msgid]</code></td><td>mod</td><td>pins</td></tr>
+    <tr><td><code>.mod .unmod .vip .unvip &lt;user&gt;</code></td><td>owner</td><td>roles</td></tr>
+</table>
+<p>Bots get mod rank only via <code>.mod</code> from the channel owner.</p>
+
+<h2>Limits</h2>
+<table>
+    <tr><th>Limit</th><th>Value</th></tr>
+    <tr><td>Line length</td><td>512 bytes incl. <code>\r\n</code>, longer is truncated</td></tr>
+    <tr><td>Message rate</td><td>~2/s below mod rank, excess dropped with NOTICE</td></tr>
+    <tr><td>Connections</td><td>8 per account, oldest evicted</td></tr>
+    <tr><td>Content</td><td>automod filters slurs server-side</td></tr>
+    <tr><td>WS close codes</td><td><code>4400</code> flood&ensp;<code>4401</code> ping timeout&ensp;<code>4402</code> queue overflow&ensp;<code>4403</code> auth revoked</td></tr>
+</table>
