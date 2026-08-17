@@ -1575,21 +1575,23 @@
         }
 
         .live-chat-clip {
-            display: inline-flex;
+            display: flex;
             align-items: center;
             gap: 8px;
-            max-width: 100%;
-            margin: 2px 0;
+            width: 100%;
+            box-sizing: border-box;
+            margin: 3px 0;
             padding: 4px;
             border: 1px solid var(--border);
             border-radius: var(--radius);
             background: var(--surface);
             color: var(--text);
+            line-height: 1.35;
             text-decoration: none;
-            vertical-align: middle;
         }
         .live-chat-clip:hover {
             border-color: var(--accent);
+            text-decoration: none;
         }
         .live-chat-clip:focus-visible {
             outline: 2px solid var(--accent);
@@ -1605,7 +1607,9 @@
         }
         .live-chat-clip-info {
             display: flex;
+            flex: 1 1 auto;
             flex-direction: column;
+            justify-content: center;
             gap: 2px;
             min-width: 0;
         }
@@ -1621,6 +1625,7 @@
         }
         .live-chat-clip-sub {
             font-size: 11px;
+            line-height: 1.35;
             color: var(--muted);
             white-space: nowrap;
             overflow: hidden;
