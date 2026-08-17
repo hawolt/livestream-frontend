@@ -30,7 +30,9 @@ import {
     SESSION_RENEWAL_CHECK_MS,
 } from "./chat/connection.ts";
 import { autoGrowInput, MAX_TEXT, renderPickerGrid, submit, togglePicker } from "./chat/composer.ts";
-import { clearReply, wireScrollPinning } from "./chat/messages.ts";
+import { clearReply } from "./chat/messages.ts";
+import { preserveMessagesScroll, wireScrollPinning } from "./chat/scroll.ts";
+import { setClipCardScrollGuard } from "./chat/clip-card.ts";
 import {
     applyAvatarPref,
     applyMutePingsPref,
@@ -67,6 +69,7 @@ export function startChat(user: string, emoteTwitchId?: string, onLoginRequested
     msgsEl.setAttribute("aria-live", "polite");
     msgsEl.setAttribute("aria-relevant", "additions text");
     wireScrollPinning();
+    setClipCardScrollGuard(preserveMessagesScroll);
     const panelAttributes: Array<[HTMLButtonElement, HTMLElement, string]> = [
         [usersBtnEl, document.getElementById("live-chat-userlist") as HTMLElement, "Viewers"],
         [helpBtnEl, document.getElementById("live-chat-help") as HTMLElement, "Chat commands"],

@@ -1,5 +1,13 @@
 import { emotes } from "./context.ts";
 import { MENTION_RE, splitTrailingPunctuation } from "./text.ts";
+import { currentChatHost, parseChatClipUrl } from "./clip-link.ts";
+import { upgradeToClipCard } from "./clip-card.ts";
+
+const MAX_CLIP_CARDS_PER_MESSAGE = 2;
+
+interface RenderBudget {
+    clipCards: number;
+}
 
 export function pad2(n: number): string {
     return n < 10 ? `0${n}` : String(n);
@@ -87,7 +95,17 @@ function buildMention(name: string): HTMLSpanElement {
     return span;
 }
 
-function renderToken(token: string): Node {
+function buildLink(core: string, budget: RenderBudget): HTMLAnchorElement {
+    const anchor = buildLinkAnchor(core);
+    if (budget.clipCards <= 0) return anchor;
+    const ref = parseChatClipUrl(core, currentChatHost());
+    if (!ref) return anchor;
+    budget.clipCards -= 1;
+    upgradeToClipCard(anchor, ref);
+    return anchor;
+}
+
+function renderToken(token: string, budget: RenderBudget): Node {
     const emoteUrl = emotes.get(token)?.url;
     if (emoteUrl) return buildEmoteImg(token, emoteUrl);
     const { core, trail } = splitTrailingPunctuation(token);
@@ -98,9 +116,9 @@ function renderToken(token: string): Node {
         return frag;
     }
     if (core && parseLinkUrl(core)) {
-        if (!trail) return buildLinkAnchor(core);
+        if (!trail) return buildLink(core, budget);
         const frag = document.createDocumentFragment();
-        frag.appendChild(buildLinkAnchor(core));
+        frag.appendChild(buildLink(core, budget));
         frag.appendChild(document.createTextNode(trail));
         return frag;
     }
@@ -109,6 +127,7 @@ function renderToken(token: string): Node {
 
 export function renderBody(text: string): DocumentFragment {
     const frag = document.createDocumentFragment();
+    const budget: RenderBudget = { clipCards: MAX_CLIP_CARDS_PER_MESSAGE };
     let lastStack: HTMLElement | null = null;
     let pendingWs = "";
     for (const token of text.split(/(\s+)/)) {
@@ -130,7 +149,7 @@ export function renderBody(text: string): DocumentFragment {
             frag.appendChild(document.createTextNode(pendingWs));
             pendingWs = "";
         }
-        const node = renderToken(token);
+        const node = renderToken(token, budget);
         if (url) {
             const stack = document.createElement("span");
             stack.className = "live-chat-emote-stack";

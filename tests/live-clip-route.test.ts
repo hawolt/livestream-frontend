@@ -27,8 +27,22 @@ describe("parseClipRoute", () => {
         expect(parseClipRoute("/ab/clip/AbCdEf")).toBeNull();
     });
 
-    test("rejects an uppercase channel segment", () => {
-        expect(parseClipRoute("/Streamer/clip/AbCdEf")).toBeNull();
+    test("accepts an uppercase channel segment and lowercases it", () => {
+        expect(parseClipRoute("/Streamer/clip/AbCdEf")).toEqual({
+            channel: "streamer",
+            code: "AbCdEf",
+        });
+    });
+
+    test("keeps the clip code case intact", () => {
+        expect(parseClipRoute("/STREAMER/clip/AbCdEf")).toEqual({
+            channel: "streamer",
+            code: "AbCdEf",
+        });
+    });
+
+    test("rejects an uppercase clip path segment", () => {
+        expect(parseClipRoute("/streamer/CLIP/AbCdEf")).toBeNull();
     });
 
     test("rejects a code that starts with a digit", () => {
