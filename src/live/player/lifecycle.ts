@@ -3,6 +3,7 @@ import { ctx, isCurrent, nextGen, runGenCleanup, type PlayerState } from "./cont
 import { PRUNE_KEEP_S, RETRY_MAX_MS, RETRY_MIN_MS, RETRY_MULT } from "../constants.ts";
 import { QUALITY_SOURCE } from "../../quality.ts";
 import { stopChase } from "./chase.ts";
+import { hidePlayerControls } from "./controls-decision.ts";
 import { destroyHls, stopHlsLoad, stopHLSBeacon, startHLSTransport } from "./hls.ts";
 import { clearWaitingTimer, healthCheck, startHealthTimer, stopHealthTimer } from "./health.ts";
 import { resetStreamInfo, setViewers } from "../stream-info.ts";
@@ -126,6 +127,8 @@ export function setState(next: PlayerState): void {
 
 export function renderPlayerUI(): void {
     if (ctx.terminal) return;
+    stageEl.classList.toggle("player-offline",
+        hidePlayerControls(ctx.state, document.body.classList.contains("clip-mode")));
     switch (ctx.state) {
         case "offline":
             setBadge(false);
