@@ -333,6 +333,16 @@ function handle(line: IrcLine): void {
             if (ctx.userlistOpen) renderUserlist();
             return;
         }
+        case "VERIFIED": {
+            if (line.params[0]?.toLowerCase() !== ctx.channel) return;
+            const who = line.params[1];
+            if (!who) return;
+            if (line.params[2] === "1") unverified.delete(who.toLowerCase());
+            else unverified.add(who.toLowerCase());
+            if (ctx.userlistOpen) renderUserlist();
+            updateComposer();
+            return;
+        }
         case "PIN": {
             if (line.params[0]?.toLowerCase() !== ctx.channel) return;
             const id = line.params[1] ?? "";

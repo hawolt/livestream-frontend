@@ -154,6 +154,14 @@ function handle(line: IrcLine): void {
             else partners.delete(who.toLowerCase());
             return;
         }
+        case "VERIFIED": {
+            if (line.params[0]?.toLowerCase() !== ctx.channel) return;
+            const who = line.params[1];
+            if (!who) return;
+            if (line.params[2] === "1") unverified.delete(who.toLowerCase());
+            else unverified.add(who.toLowerCase());
+            return;
+        }
         case "PRIVMSG":
             if (line.color !== undefined && line.nick) {
                 const key = line.nick.toLowerCase();
