@@ -48,6 +48,10 @@ function authorizeQuery(params: OAuthAuthorizeParams): string {
         scope: params.scope,
     });
     if (params.state) query.set("state", params.state);
+    if (params.codeChallenge) {
+        query.set("code_challenge", params.codeChallenge);
+        query.set("code_challenge_method", params.codeChallengeMethod);
+    }
     return query.toString();
 }
 

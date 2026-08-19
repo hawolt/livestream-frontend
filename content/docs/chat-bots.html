@@ -14,6 +14,7 @@
     <li>The token grants chat access only, nothing else.</li>
     <li>Send <code>PASS &lt;token&gt;</code> as the first command. The server assigns your account name and ignores whatever <code>NICK</code> you send.</li>
     <li>Connections without <code>PASS</code> are read-only guests and cannot send messages.</li>
+    <li>Third-party chat clients acting for OTHER users should not ask for chat bot tokens: an <a href="/docs/oauth">OAuth</a> access token with the <code>chat</code> scope works as <code>PASS</code> too and connects as the user who approved it. OAuth access tokens expire after 1 hour, so refresh and reconnect when the server revokes the session.</li>
 </ul>
 
 <h2>Example session</h2>

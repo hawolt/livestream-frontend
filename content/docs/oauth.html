@@ -2,9 +2,10 @@
 
 <h2>Registering your app</h2>
 <ul>
-    <li>Clients are registered by site staff; there is no self-service form. Reach out on the Discord linked in the navbar with your app name (max 64 characters) and up to 8 redirect URIs.</li>
-    <li>Redirect URIs must be absolute <code>http(s)</code> URLs without a fragment, max 512 characters, and are matched exactly, character for character, including any query string.</li>
-    <li>You receive a 32-hex <code>client_id</code> and a 64-hex <code>client_secret</code>. The secret is shown once; store it server-side and never ship it to a browser or app binary.</li>
+    <li>Clients are registered by site staff; there is no self-service form. Reach out on the Discord linked in the navbar with your app name (max 64 characters), up to 8 redirect URIs, and whether the client is confidential or public.</li>
+    <li>Redirect URIs must be absolute <code>http(s)</code> URLs without a fragment, max 512 characters, and are matched exactly, character for character, including any query string. The one exception is loopback: a registered <code>http://127.0.0.1:&lt;any port&gt;/path</code> or <code>http://[::1]:&lt;any port&gt;/path</code> URI matches on any port (RFC 8252), so a desktop app can bind an ephemeral port for its callback listener.</li>
+    <li>A <strong>confidential client</strong> (server-side app) receives a 32-hex <code>client_id</code> and a 64-hex <code>client_secret</code>. The secret is shown once; store it server-side and never ship it to a browser or app binary.</li>
+    <li>A <strong>public client</strong> (desktop app, open-source client, SPA; anything that cannot keep a secret) receives only a <code>client_id</code> and authenticates every code exchange with PKCE instead. See the Public clients section below.</li>
 </ul>
 
 <h2>Scopes</h2>
@@ -12,6 +13,7 @@
 <table>
     <tr><th>Scope</th><th>Grants</th></tr>
     <tr><td><code>identity</code></td><td>confirm who the user is: <code>GET /api/oauth/userinfo</code> (public username, user id, avatar). Every token has it.</td></tr>
+    <tr><td><code>chat</code></td><td>connect to <a href="/docs/chat-bots">chat</a> as the user: the access token works as the IRC <code>PASS</code> and the connection gets the user's own name, badges and roles</td></tr>
     <tr><td><code>api:read</code></td><td>the Public API read endpoints: channel, channel followers, categories, me, me/followers</td></tr>
     <tr><td><code>api:write</code></td><td><code>PUT /api/public/v1/me/stream-info</code> only; implies nothing else</td></tr>
 </table>
@@ -36,6 +38,8 @@
     <tr><td><code>response_type</code></td><td>required, exactly <code>code</code></td></tr>
     <tr><td><code>scope</code></td><td>space-separated scopes from the table above; omitted defaults to <code>identity</code></td></tr>
     <tr><td><code>state</code></td><td>optional, max 512 characters, echoed back untouched; use a random value to tie the callback to the session that started it</td></tr>
+    <tr><td><code>code_challenge</code></td><td>PKCE challenge, base64url of SHA-256 over your <code>code_verifier</code> (43 characters, no padding); required for public clients, optional for confidential ones</td></tr>
+    <tr><td><code>code_challenge_method</code></td><td>exactly <code>S256</code> whenever <code>code_challenge</code> is sent; <code>plain</code> is not supported</td></tr>
 </table>
 <p>A signed-out user is sent through login first and lands back on the consent page. The page shows your app name and a plain-language line per requested scope with Approve and Deny buttons.</p>
 
@@ -59,7 +63,42 @@
   "refresh_expires_in": 2592000,
   "scope": "identity"
 }</code></pre>
-<p>Form-encoded and JSON bodies are both accepted. <code>redirect_uri</code> must be the exact value used in step 1. Access tokens live for 1 hour; use the refresh token to get a new pair when one expires.</p>
+<p>Form-encoded and JSON bodies are both accepted. <code>redirect_uri</code> must be the exact value used in step 1. If the code was minted with a <code>code_challenge</code>, the exchange must also carry the matching <code>code_verifier</code>. Access tokens live for 1 hour; use the refresh token to get a new pair when one expires.</p>
+
+<h2>Public clients (PKCE)</h2>
+<p>
+    A public client holds no <code>client_secret</code> and proves itself with PKCE (RFC 7636) instead,
+    so an open-source desktop app or SPA can ship its <code>client_id</code> in the clear. Per
+    authorization: generate a random <code>code_verifier</code> (43-128 characters of
+    <code>A-Z a-z 0-9 - . _ ~</code>), send <code>code_challenge=BASE64URL(SHA256(code_verifier))</code>
+    with <code>code_challenge_method=S256</code> in step 1, then exchange the code with the verifier
+    and NO secret:
+</p>
+<pre><code>curl -X POST https://<span data-fill="host">itzon.tv</span>/api/oauth/token \
+  -d grant_type=authorization_code \
+  -d client_id=YOUR_CLIENT_ID \
+  -d code=AUTHORIZATION_CODE \
+  -d code_verifier=YOUR_CODE_VERIFIER \
+  -d redirect_uri=http://127.0.0.1:49152/callback</code></pre>
+<p>
+    Rules: the challenge is REQUIRED for a public client and rejected as <code>invalid_request</code>
+    when missing or not <code>S256</code>; sending a <code>client_secret</code> from a public client
+    answers <code>invalid_client</code>; a wrong or missing <code>code_verifier</code> answers
+    <code>invalid_grant</code> and the code is burned. The refresh grant needs only
+    <code>client_id</code> and the refresh token; rotation and reuse detection protect it the same
+    way as for confidential clients. Desktop apps should register a loopback redirect URI and use
+    whatever free port they bound at runtime, see Registering above.
+</p>
+
+<h2>Connecting to chat</h2>
+<p>
+    An access token whose scope includes <code>chat</code> doubles as an IRC credential: open the
+    <a href="/docs/chat-bots">chat connection</a> and send <code>PASS ACCESS_TOKEN</code> as the first
+    command. The connection is assigned the approving user's own username, badges and roles, exactly
+    as if they had signed in on the site. When the access token expires (1 hour) the server revokes
+    the chat session within its 90 second revalidation window (TCP kill / WS close <code>4403</code>);
+    refresh the token and reconnect with the new one.
+</p>
 
 <h2>Refreshing a token</h2>
 <pre><code>curl -X POST https://<span data-fill="host">itzon.tv</span>/api/oauth/token \
@@ -92,9 +131,9 @@
     <tr><td><code>invalid_request</code></td><td>authorize, token</td><td>missing or malformed parameter, or an unregistered redirect URI</td></tr>
     <tr><td><code>invalid_client</code></td><td>authorize, token</td><td>unknown <code>client_id</code> or wrong <code>client_secret</code></td></tr>
     <tr><td><code>unsupported_response_type</code></td><td>authorize</td><td><code>response_type</code> is not <code>code</code></td></tr>
-    <tr><td><code>invalid_scope</code></td><td>authorize</td><td>a scope outside <code>identity</code>, <code>api:read</code>, <code>api:write</code></td></tr>
+    <tr><td><code>invalid_scope</code></td><td>authorize</td><td>a scope outside <code>identity</code>, <code>chat</code>, <code>api:read</code>, <code>api:write</code></td></tr>
     <tr><td><code>unsupported_grant_type</code></td><td>token</td><td><code>grant_type</code> is not <code>authorization_code</code> or <code>refresh_token</code></td></tr>
-    <tr><td><code>invalid_grant</code></td><td>token</td><td>code or refresh token invalid, expired, already used, or bound to a different client (codes also check the redirect URI)</td></tr>
+    <tr><td><code>invalid_grant</code></td><td>token</td><td>code or refresh token invalid, expired, already used, or bound to a different client (codes also check the redirect URI and, when PKCE started the flow, the <code>code_verifier</code>)</td></tr>
     <tr><td><code>invalid_token</code></td><td>userinfo</td><td>access token invalid or expired</td></tr>
     <tr><td><code>login_required</code></td><td>authorize, consent</td><td>no signed-in session; the consent page handles this by redirecting to login</td></tr>
     <tr><td><code>access_denied</code></td><td>redirect</td><td>the user pressed Deny</td></tr>

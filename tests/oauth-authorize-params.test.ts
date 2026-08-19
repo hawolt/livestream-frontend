@@ -28,6 +28,8 @@ describe("parseAuthorizeParams", () => {
             responseType: "code",
             scope: "identity",
             state: "xyz",
+            codeChallenge: "",
+            codeChallengeMethod: "",
         });
     });
 
@@ -74,6 +76,26 @@ describe("parseAuthorizeParams", () => {
     test("rejects an oversized state", () => {
         expect(parseAuthorizeParams(search({ state: "x".repeat(513) }))).toBeNull();
         expect(parseAuthorizeParams(search({ state: "x".repeat(512) }))).not.toBeNull();
+    });
+
+    test("accepts the chat scope", () => {
+        expect(parseAuthorizeParams(search({ scope: "chat" }))?.scope).toBe("identity chat");
+        expect(parseAuthorizeParams(search({ scope: "api:read chat" }))?.scope).toBe("identity chat api:read");
+    });
+
+    test("carries a valid S256 code challenge through", () => {
+        const challenge = "E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM";
+        const parsed = parseAuthorizeParams(search({ code_challenge: challenge, code_challenge_method: "S256" }));
+        expect(parsed?.codeChallenge).toBe(challenge);
+        expect(parsed?.codeChallengeMethod).toBe("S256");
+    });
+
+    test("rejects a plain or malformed code challenge", () => {
+        const challenge = "E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM";
+        expect(parseAuthorizeParams(search({ code_challenge: challenge, code_challenge_method: "plain" }))).toBeNull();
+        expect(parseAuthorizeParams(search({ code_challenge: challenge }))).toBeNull();
+        expect(parseAuthorizeParams(search({ code_challenge: "short", code_challenge_method: "S256" }))).toBeNull();
+        expect(parseAuthorizeParams(search({ code_challenge_method: "S256" }))).toBeNull();
     });
 });
 

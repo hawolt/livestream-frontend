@@ -4,15 +4,19 @@ export interface OAuthAuthorizeParams {
     responseType: string;
     scope: string;
     state: string;
+    codeChallenge: string;
+    codeChallengeMethod: string;
 }
 
 const CLIENT_ID_PATTERN = /^[0-9a-f]{32}$/;
+const CODE_CHALLENGE_PATTERN = /^[A-Za-z0-9\-_]{43}$/;
 const MAX_STATE_CHARS = 512;
 
-export const SCOPE_ORDER = ["identity", "api:read", "api:write"] as const;
+export const SCOPE_ORDER = ["identity", "chat", "api:read", "api:write"] as const;
 
 export const SCOPE_DESCRIPTIONS: Record<string, string> = {
     "identity": "Confirm who you are: your public username, user id and avatar. The app never sees your password or email.",
+    "chat": "Connect to chat as you: read and send chat messages under your username.",
     "api:read": "Read your channel, followers and profile basics.",
     "api:write": "Update your stream title, category and language.",
 };
@@ -52,12 +56,16 @@ export function parseAuthorizeParams(search: string): OAuthAuthorizeParams | nul
     const responseType = params.get("response_type") ?? "";
     const scope = normalizeScope(params.get("scope") ?? "");
     const state = params.get("state") ?? "";
+    const codeChallenge = params.get("code_challenge") ?? "";
+    const codeChallengeMethod = params.get("code_challenge_method") ?? "";
     if (!CLIENT_ID_PATTERN.test(clientId)) return null;
     if (!isValidRedirectUri(redirectUri)) return null;
     if (responseType !== "code") return null;
     if (scope === null) return null;
     if (state.length > MAX_STATE_CHARS) return null;
-    return { clientId, redirectUri, responseType, scope, state };
+    if (codeChallenge && (codeChallengeMethod !== "S256" || !CODE_CHALLENGE_PATTERN.test(codeChallenge))) return null;
+    if (!codeChallenge && codeChallengeMethod) return null;
+    return { clientId, redirectUri, responseType, scope, state, codeChallenge, codeChallengeMethod };
 }
 
 export function isValidRedirectUri(redirectUri: string): boolean {
