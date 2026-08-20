@@ -52,7 +52,7 @@ const STUDIO_LINK_LABELS: Record<string, string> = {
     setup: "Korea Setup",
     ingests: "Ingests",
     "remote-obs": "Remote OBS",
-    restream: "Restream",
+    multistream: "Multistream",
     upgrades: "Upgrades",
 };
 
