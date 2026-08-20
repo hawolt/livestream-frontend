@@ -1,8 +1,10 @@
 import { hashColor } from "./chat/text.ts";
 import { PLATFORM_LABELS, PLATFORM_PATHS } from "./platform-icons.ts";
 import { normalizePanels, type ProfilePanel } from "./live/about/panels.ts";
+import { normalizeAchievements, type Achievement } from "./live/about/achievements.ts";
 
 export type { ProfilePanel } from "./live/about/panels.ts";
+export type { Achievement } from "./live/about/achievements.ts";
 
 export interface ProfileLink {
     label: string;
@@ -23,6 +25,7 @@ export interface Profile {
     badges: string[];
     streamer: boolean;
     createdAt: number | null;
+    achievements: Achievement[];
 }
 
 function isHttpsUrl(url: string): boolean {
@@ -67,6 +70,7 @@ export async function loadProfile(username: string): Promise<Profile | null> {
             badges: Array.isArray(data.badges) ? data.badges.filter((b): b is string => typeof b === "string") : [],
             streamer: data.streamer === true,
             createdAt: typeof data.createdAt === "number" ? data.createdAt : null,
+            achievements: normalizeAchievements(data.achievements),
         };
     } catch {
         return null;

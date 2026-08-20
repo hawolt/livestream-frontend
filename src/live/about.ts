@@ -1,5 +1,8 @@
-import { buildAvatar, buildProfileLinks, followerLabel, loadProfile, type Profile, type ProfilePanel } from "../profile-card.ts";
+import { buildAvatar, buildProfileLinks, followerLabel, loadProfile, type Profile, type ProfilePanel, type Achievement } from "../profile-card.ts";
 import { isSafeHttpLink } from "./about/panels.ts";
+import { achievementMedallionSvg } from "./about/achievement-medallion.ts";
+import { achievementTooltip } from "./about/achievements.ts";
+import { capAchievements, toRomanNumeral } from "./about/achievements-decision.ts";
 import { cardImageError, validateCardForm, type CardType } from "./about/card-form.ts";
 import { subscriberBadgeAssetPath, subscriberBadgeTitle } from "../chat/badges.ts";
 import { loadChannelClips, type AboutClip, type ClipsSort } from "./about/clips.ts";
@@ -23,6 +26,9 @@ import {
     aboutPanelsEl,
     aboutPanelsSectionEl,
     aboutAddCardBtnEl,
+    aboutAchievementsSectionEl,
+    aboutAchievementsGridEl,
+    aboutAchievementsMoreEl,
     cardModalCloseEl,
     cardModalBodyInputEl,
     cardModalErrorEl,
@@ -338,6 +344,57 @@ function renderClips(channel: string, clips: AboutClip[]): void {
     aboutClipsEl.hidden = false;
 }
 
+const ACHIEVEMENTS_CAP = 16;
+const ACHIEVEMENT_MEDALLION_SIZE = 52;
+
+let achievementsOverflow: Achievement[] = [];
+let achievementsMoreWired = false;
+
+function buildAchievementCard(achievement: Achievement): HTMLElement {
+    const card = document.createElement("div");
+    card.className = "live-about-achievement";
+    card.title = achievementTooltip(achievement.key, achievement.tier);
+    card.innerHTML = achievementMedallionSvg(achievement.key, achievement.tier, ACHIEVEMENT_MEDALLION_SIZE);
+    if (achievement.tier >= 2) {
+        const tier = document.createElement("span");
+        tier.className = "live-about-achievement-tier";
+        tier.textContent = toRomanNumeral(achievement.tier);
+        card.appendChild(tier);
+    }
+    return card;
+}
+
+function expandAchievements(): void {
+    for (const achievement of achievementsOverflow) aboutAchievementsGridEl.appendChild(buildAchievementCard(achievement));
+    achievementsOverflow = [];
+    aboutAchievementsMoreEl.hidden = true;
+}
+
+function wireAchievementsMoreOnce(): void {
+    if (achievementsMoreWired) return;
+    achievementsMoreWired = true;
+    aboutAchievementsMoreEl.addEventListener("click", expandAchievements);
+}
+
+function renderAchievements(achievements: Achievement[]): void {
+    aboutAchievementsGridEl.replaceChildren();
+    achievementsOverflow = [];
+    aboutAchievementsMoreEl.hidden = true;
+    if (!achievements.length) {
+        aboutAchievementsSectionEl.hidden = true;
+        return;
+    }
+    aboutAchievementsSectionEl.hidden = false;
+    const { visible, overflow } = capAchievements(achievements, ACHIEVEMENTS_CAP);
+    for (const achievement of visible) aboutAchievementsGridEl.appendChild(buildAchievementCard(achievement));
+    if (overflow.length) {
+        wireAchievementsMoreOnce();
+        achievementsOverflow = overflow;
+        aboutAchievementsMoreEl.hidden = false;
+        aboutAchievementsMoreEl.textContent = `+${overflow.length} more`;
+    }
+}
+
 export function mountAboutCard(profile: Profile | null): void {
     applyChannelIdentity(profile);
     const username = profile?.username || ctx.displayUsername;
@@ -364,6 +421,7 @@ export function mountAboutCard(profile: Profile | null): void {
     const links = profile ? buildProfileLinks(profile.links) : null;
     if (links) aboutLinksEl.appendChild(links);
     aboutBoxEl.hidden = !profile;
+    renderAchievements(profile?.achievements ?? []);
     renderPanels(profile?.panels ?? []);
 }
 
