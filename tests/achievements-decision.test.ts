@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { tierRingColor, toRomanNumeral, capAchievements } from "../src/live/about/achievements-decision.ts";
+import { tierRingColor, toRomanNumeral, capAchievements } from "../src/achievements/achievements-decision.ts";
 
 test("tierRingColor climbs through the metals as decided", () => {
     expect(tierRingColor(1)).toBe("#b45309");

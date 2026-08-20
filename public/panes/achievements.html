@@ -1,0 +1,67 @@
+<div id="pane-achievements" class="tab-pane">
+    <style>
+        #pane-achievements .ach-summary { color: var(--dim); font-size: 12.5px; margin-bottom: 16px; }
+        #pane-achievements .ach-empty { color: var(--dim); padding: 40px 0; text-align: center; }
+        #pane-achievements .ach-empty[hidden] { display: none; }
+        #pane-achievements .ach-section + .ach-section { margin-top: 24px; }
+        #pane-achievements .ach-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+            gap: 12px;
+        }
+        #pane-achievements .ach-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 14px 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+            text-align: center;
+            min-width: 0;
+        }
+        #pane-achievements .ach-card.locked { opacity: .8; }
+        #pane-achievements .ach-card-medallion svg { display: block; width: 48px; height: 48px; }
+        #pane-achievements .ach-card-name {
+            font-size: 12.5px;
+            font-weight: 600;
+            color: var(--text);
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            max-width: 100%;
+        }
+        #pane-achievements .ach-card-tier {
+            font-size: 10.5px;
+            font-weight: 700;
+            letter-spacing: .04em;
+            color: var(--dim);
+            margin-top: -4px;
+        }
+        #pane-achievements .ach-bar {
+            width: 100%;
+            height: 5px;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, .08);
+            overflow: hidden;
+            margin-top: 2px;
+        }
+        #pane-achievements .ach-bar-fill { height: 100%; background: var(--amber); border-radius: 999px; }
+        #pane-achievements .ach-bar-label {
+            font-size: 10.5px;
+            color: var(--dim);
+            font-variant-numeric: tabular-nums;
+        }
+        #pane-achievements .ach-state { font-size: 10.5px; font-weight: 600; }
+        #pane-achievements .ach-state-done { color: var(--accent); }
+        #pane-achievements .ach-state-max { color: var(--amber); }
+        #pane-achievements .ach-state-pending { color: var(--dim); font-weight: 400; }
+        @media (max-width: 640px) {
+            #pane-achievements .ach-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
+        }
+    </style>
+    <div class="ach-summary" id="ach-summary"></div>
+    <div class="ach-empty" id="ach-empty" hidden></div>
+    <div id="ach-sections"></div>
+</div>

@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test";
-import { achievementMedallionSvg } from "../src/live/about/achievement-medallion.ts";
-import { ACHIEVEMENT_GLYPHS, ACHIEVEMENT_NAMES } from "../src/live/about/achievement-catalog.ts";
+import { achievementMedallionSvg, lockedAchievementMedallionSvg } from "../src/achievements/achievement-medallion.ts";
+import { ACHIEVEMENT_GLYPHS, ACHIEVEMENT_NAMES } from "../src/achievements/achievement-catalog.ts";
 
 test("every known achievement key has both a display name and a glyph", () => {
     expect(Object.keys(ACHIEVEMENT_GLYPHS).sort()).toEqual(Object.keys(ACHIEVEMENT_NAMES).sort());

@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { normalizeAchievements, achievementDisplayName, achievementTooltip } from "../src/live/about/achievements.ts";
+import { normalizeAchievements, achievementDisplayName, achievementTooltip } from "../src/achievements/achievements.ts";
 
 test("normalizes a well formed achievement list", () => {
     const achievements = normalizeAchievements([

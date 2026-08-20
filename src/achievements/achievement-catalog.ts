@@ -126,3 +126,55 @@ export const ACHIEVEMENT_GLYPHS: Record<AchievementKey, string> = {
 };
 
 export const KNOWN_ACHIEVEMENT_KEYS: ReadonlySet<string> = new Set(Object.keys(ACHIEVEMENT_NAMES));
+
+export type AchievementCategory = "streamer" | "viewer" | "meta";
+
+export const ACHIEVEMENT_CATEGORY_ORDER: AchievementCategory[] = ["streamer", "viewer", "meta"];
+
+export const ACHIEVEMENT_CATEGORY_LABELS: Record<AchievementCategory, string> = {
+    streamer: "Streamer",
+    viewer: "Viewer",
+    meta: "Meta",
+};
+
+export const ACHIEVEMENT_CATEGORY: Record<AchievementKey, AchievementCategory> = {
+    audience: "streamer",
+    airtime: "streamer",
+    days_streamed: "streamer",
+    stream_streak: "streamer",
+    followers: "streamer",
+    channel_clips: "streamer",
+    channel_clip_views: "streamer",
+    multistream_sessions: "streamer",
+    categories: "streamer",
+    chat_received: "streamer",
+    first_stream: "streamer",
+    thumbnail_set: "streamer",
+    category_set: "streamer",
+    panels_added: "streamer",
+    points_renamed: "streamer",
+    alert_sound_set: "streamer",
+    watch_hours: "viewer",
+    follows: "viewer",
+    messages_sent: "viewer",
+    visit_streak: "viewer",
+    invites: "viewer",
+    clips_created: "viewer",
+    clip_views: "viewer",
+    channels_watched: "viewer",
+    avatar_set: "viewer",
+    bio_set: "viewer",
+    link_added: "viewer",
+    chat_color_set: "viewer",
+    email_verified: "viewer",
+    made_mod: "viewer",
+    made_vip: "viewer",
+    developer: "viewer",
+    first_follow: "viewer",
+    first_message: "viewer",
+    first_clip: "viewer",
+    collector: "meta",
+    completionist_profile: "meta",
+    completionist_setup: "meta",
+    early_bird: "meta",
+};
