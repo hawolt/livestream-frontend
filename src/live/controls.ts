@@ -54,6 +54,7 @@ import { renderQualityMenu, wireQualityMenu } from "./quality-menu.ts";
 import { startFpsMeter, updateQuality } from "./stream-info.ts";
 import { wireSeekBar } from "./seekbar.ts";
 import { closeDismissibleSurface, openDismissibleSurface } from "../dismissible-surface.ts";
+import { wireWatchBeacon } from "./watch-beacon.ts";
 
 function setChatOverflow(open: boolean, restoreFocus = false): void {
     chatOverflow.hidden = !open;
@@ -173,6 +174,7 @@ export function attachVideoElementListeners(el: HTMLVideoElement): void {
     el.addEventListener("timeupdate", trackPlaybackProgress);
     el.addEventListener("pointerdown", onVideoPointerDown);
     el.addEventListener("click", onVideoClickPause);
+    wireWatchBeacon(el);
 }
 
 let controlsHideTimer: number | null = null;
