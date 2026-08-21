@@ -238,9 +238,9 @@ a.explore-card:hover, a.explore-card:hover * { text-decoration: none; }
 .explore-card-language {
     flex-shrink: 0;
     border: 1px solid var(--border);
-    border-radius: 999px;
+    border-radius: 6px;
     padding: 2px 7px;
-    font-size: 11px;
+    font-size: 13px;
     line-height: 1.3;
     color: var(--muted);
     white-space: nowrap;
@@ -250,6 +250,7 @@ a.explore-card:hover, a.explore-card:hover * { text-decoration: none; }
 
 .explore-card-title {
     margin-top: 1px;
+    margin-bottom: 3px;
     font-size: 13px;
     line-height: 1.4;
     color: var(--muted);
