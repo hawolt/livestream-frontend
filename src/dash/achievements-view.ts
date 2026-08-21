@@ -87,5 +87,6 @@ export function medalRewardStatus(unlockedCount: number): MedalRewardStatus {
         return { earned: true, remaining: 0, message: "Medal chat badge earned." };
     }
     const remaining = MEDAL_ACHIEVEMENT_THRESHOLD - unlockedCount;
-    return { earned: false, remaining, message: `Unlock ${remaining} more achievements to earn the Medal chat badge.` };
+    const noun = remaining === 1 ? "achievement" : "achievements";
+    return { earned: false, remaining, message: `Unlock ${remaining} more ${noun} to earn the Medal chat badge.` };
 }

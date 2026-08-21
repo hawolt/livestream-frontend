@@ -139,7 +139,7 @@ test("medalRewardStatus reports one remaining just under the threshold", () => {
     expect(medalRewardStatus(9)).toEqual({
         earned: false,
         remaining: 1,
-        message: "Unlock 1 more achievements to earn the Medal chat badge.",
+        message: "Unlock 1 more achievement to earn the Medal chat badge.",
     });
 });
 
