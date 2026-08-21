@@ -50,6 +50,14 @@ import {
 import { acceptSelectedSuggestion, advanceTabCycle, hideSuggest, moveSuggest, updateSuggest } from "./chat/suggest.ts";
 import { GEAR_ICON } from "./nav/account-menu.ts";
 import { destroyBadgePicker, initBadgePicker } from "./chat/badge-picker.ts";
+import {
+    closeRedeemPop,
+    destroyRedeemPicker,
+    disarmHighlight,
+    initRedeemPicker,
+    isHighlightArmed,
+    isRedeemPopOpen,
+} from "./chat/redeem-picker.ts";
 
 let chatStarted = false;
 let teardownListeners: (() => void) | null = null;
@@ -83,6 +91,7 @@ export function startChat(user: string, emoteTwitchId?: string, onLoginRequested
     }
     settingsBtnEl.innerHTML = GEAR_ICON;
     initBadgePicker(settingsBtnEl);
+    initRedeemPicker(settingsBtnEl);
     emoteBtnEl.setAttribute("aria-haspopup", "dialog");
     emoteBtnEl.setAttribute("aria-expanded", "false");
     emoteBtnEl.setAttribute("aria-controls", document.getElementById("live-chat-picker")!.id);
@@ -176,8 +185,12 @@ export function startChat(user: string, emoteTwitchId?: string, onLoginRequested
     inputEl.addEventListener("keydown", onInputKeydown);
     const onDocumentKeydown = (e: KeyboardEvent): void => {
         if (e.key !== "Escape" || e.defaultPrevented || e.isComposing) return;
-        if (!suggestEl.hidden) {
+        if (isRedeemPopOpen()) {
+            closeRedeemPop();
+        } else if (!suggestEl.hidden) {
             hideSuggest();
+        } else if (isHighlightArmed()) {
+            disarmHighlight();
         } else if (ctx.replyTo) {
             clearReply();
             if (!inputEl.disabled) inputEl.focus();
@@ -209,6 +222,7 @@ export function startChat(user: string, emoteTwitchId?: string, onLoginRequested
         settingsBtnEl.removeEventListener("click", toggleSettings);
         settingsCloseEl.removeEventListener("click", onSettingsCloseClick);
         destroyBadgePicker();
+        destroyRedeemPicker();
         timestampToggleEl.removeEventListener("change", onTimestampToggleChange);
         avatarToggleEl.removeEventListener("change", onAvatarToggleChange);
         pingMuteToggleEl.removeEventListener("change", onMutePingsToggleChange);

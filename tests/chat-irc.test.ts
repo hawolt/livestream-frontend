@@ -40,6 +40,24 @@ test("sets the automod flag only when the tag key is present", () => {
     expect(plain?.automod).toBeUndefined();
 });
 
+test("sets the highlight flag only for highlight=1", () => {
+    const flagged = parse("@highlight=1 :alice!u@h PRIVMSG #chan :look at me");
+    expect(flagged?.highlight).toBe(true);
+    const zero = parse("@highlight=0 :alice!u@h PRIVMSG #chan :hi");
+    expect(zero?.highlight).toBeUndefined();
+    const bare = parse("@highlight :alice!u@h PRIVMSG #chan :hi");
+    expect(bare?.highlight).toBeUndefined();
+    const absent = parse(":alice!u@h PRIVMSG #chan :hi");
+    expect(absent?.highlight).toBeUndefined();
+});
+
+test("parses the highlight tag alongside other tags", () => {
+    const line = parse("@msgid=m1;highlight=1;color=#00ff00 :alice!u@h PRIVMSG #chan :redeemed line");
+    expect(line?.msgid).toBe("m1");
+    expect(line?.highlight).toBe(true);
+    expect(line?.color).toBe("#00ff00");
+});
+
 test("returns null for a tag block with no following space", () => {
     expect(parse("@msgid=abc")).toBeNull();
 });

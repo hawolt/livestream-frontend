@@ -17,6 +17,7 @@ import { addMessage, clearReply, updateReplyBar } from "./messages.ts";
 import { hideSuggest } from "./suggest.ts";
 import { closeDismissibleSurface, openDismissibleSurface } from "../dismissible-surface.ts";
 import { normalizedCommandWord } from "./text.ts";
+import { interceptComposerSubmit, syncRedeemPicker } from "./redeem-picker.ts";
 
 export const MAX_TEXT = 400;
 
@@ -62,6 +63,7 @@ function showVerifyEmail(): void {
 }
 
 export function updateComposer(): void {
+    syncRedeemPicker();
     if (ctx.banned) {
         inputRowEl.hidden = true;
         guestLoginEl.hidden = true;
@@ -186,9 +188,18 @@ export function autoGrowInput(): void {
     inputEl.style.height = Math.min(inputEl.scrollHeight, 120) + "px";
 }
 
+function finishSubmit(): void {
+    inputEl.value = "";
+    autoGrowInput();
+    clearReply();
+    hideSuggest();
+    msgsEl.scrollTop = msgsEl.scrollHeight;
+}
+
 export function submit(): void {
     const text = inputEl.value.replace(/[\r\n]/g, " ").trim().slice(0, MAX_TEXT);
     if (!text || !ctx.joined) return;
+    if (interceptComposerSubmit(text, finishSubmit)) return;
     const r = ctx.replyTo;
     const cmdWord = normalizedCommandWord(text);
     const isWhisper = cmdWord === ".whisper" || cmdWord === ".w";
@@ -197,9 +208,5 @@ export function submit(): void {
     const tag = r && !isWhisper ? `@+reply=${r.msgid} ` : "";
     send(`${tag}PRIVMSG ${ctx.channel} :${text}`);
     if (!ctx.capEcho && !serverHandles) addMessage(ctx.nick, text, undefined, r?.msgid);
-    inputEl.value = "";
-    autoGrowInput();
-    clearReply();
-    hideSuggest();
-    msgsEl.scrollTop = msgsEl.scrollHeight;
+    finishSubmit();
 }

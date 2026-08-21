@@ -11,6 +11,7 @@ export interface IrcLine {
     automod?: boolean;
     userId?: string;
     avatar?: string;
+    highlight?: boolean;
 }
 
 export function parse(line: string): IrcLine | null {
@@ -25,6 +26,7 @@ export function parse(line: string): IrcLine | null {
     let automod = false;
     let userId: string | undefined;
     let avatar: string | undefined;
+    let highlight = false;
     if (rest.startsWith("@")) {
         const sp = rest.indexOf(" ");
         if (sp < 0) return null;
@@ -41,6 +43,7 @@ export function parse(line: string): IrcLine | null {
             else if (key === "automod") automod = true;
             else if (key === "user-id") userId = val;
             else if (key === "avatar") avatar = val;
+            else if (key === "highlight") highlight = val === "1";
         }
         rest = rest.slice(sp + 1);
     }
@@ -78,5 +81,6 @@ export function parse(line: string): IrcLine | null {
     if (automod) out.automod = true;
     if (userId) out.userId = userId;
     if (avatar) out.avatar = avatar;
+    if (highlight) out.highlight = true;
     return out;
 }

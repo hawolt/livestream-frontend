@@ -169,6 +169,7 @@ export function addMessage(
     sentAt?: string,
     userId?: string,
     avatar?: string,
+    highlighted?: boolean,
 ): void {
     const line = document.createElement("div");
     line.className = "live-chat-msg";
@@ -189,6 +190,7 @@ export function addMessage(
     if (badges.length) line.append(...badges);
     line.append(who, document.createTextNode(": "), buildRenderedBody(text));
     if (from.toLowerCase() === myNickLower()) line.classList.add("live-chat-own");
+    if (highlighted) line.classList.add("live-chat-highlighted");
     if (msgid) {
         line.dataset["msgid"] = msgid;
         line.appendChild(buildActions(from, text, msgid));

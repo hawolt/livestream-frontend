@@ -301,7 +301,7 @@ function handle(line: IrcLine): void {
                         addHiddenMessage(line.nick, body, line.userId, line.avatar);
                     }
                 } else {
-                    addMessage(line.nick, body, line.msgid, line.reply, line.time, line.userId, line.avatar);
+                    addMessage(line.nick, body, line.msgid, line.reply, line.time, line.userId, line.avatar, line.highlight);
                 }
             } else {
                 addWhisper(line.nick, target, body, line.userId, line.avatar);

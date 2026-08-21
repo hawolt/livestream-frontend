@@ -12,8 +12,8 @@ import { studioBaseUrl, studioTabUrl } from "./dash/studio.ts";
 
 const TAB_LOADERS: Record<string, () => Promise<TabModule>> = {
     stream:           () => import("./dash/tabs/stream.ts"),
-    discord:          () => import("./dash/tabs/discord.ts"),
-    webhooks:         () => import("./dash/tabs/webhooks.ts"),
+    automation:       () => import("./dash/tabs/automation.ts"),
+    channelpoints:    () => import("./dash/tabs/channelpoints.ts"),
     "stream-manager": () => import("./dash/tabs/stream-manager.ts"),
     chatbox:          () => import("./dash/tabs/chatbox.ts"),
     alertbox:         () => import("./dash/tabs/alertbox.ts"),

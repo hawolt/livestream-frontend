@@ -66,6 +66,12 @@ async function seedBalance(channel: string): Promise<void> {
     } catch {}
 }
 
+export function applyRedeemedBalance(channel: string, balance: number): void {
+    if (channel.toLowerCase() !== chipChannel || ownChannel) return;
+    balanceKnown = true;
+    renderBalance(balance);
+}
+
 export function onPointsFrame(channel: string, gained: number, balance: number): void {
     if (channel.toLowerCase() !== chipChannel || ownChannel) return;
     balanceKnown = true;

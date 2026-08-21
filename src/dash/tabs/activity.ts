@@ -59,7 +59,8 @@ function buildEventRow(e: FollowEvent): HTMLElement {
     const type = document.createElement("span");
     type.className = eventTypeClass(e.type);
     const streamEvent = e.type === "reject" || e.type === "warn";
-    type.textContent = streamEvent ? "STREAM" : e.type.toUpperCase();
+    const redeemEvent = e.type === "points.redeem";
+    type.textContent = streamEvent ? "STREAM" : redeemEvent ? "REDEEM" : e.type.toUpperCase();
     const text = document.createElement("span");
     text.className = "act-ev-text";
     let label = e.username;
@@ -67,6 +68,8 @@ function buildEventRow(e: FollowEvent): HTMLElement {
         label = `${e.username} with ${e.viewers} ${e.viewers === 1 ? "viewer" : "viewers"}`;
     } else if (streamEvent) {
         label = rejectEventLabel(e);
+    } else if (redeemEvent) {
+        label = `${e.username} redeemed ${e.detail?.trim() || "a reward"}`;
     }
     text.textContent = label;
     text.title = label;
