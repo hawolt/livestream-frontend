@@ -11,6 +11,7 @@ function parseParams(): void {
     ctx.fadeMs = Number.isFinite(fadeSec) && fadeSec > 0 ? fadeSec * 1000 : 0;
     ctx.showBadges = qs.get("badges") !== "0";
     ctx.showEmotes = qs.get("emotes") !== "0";
+    ctx.showSystem = qs.get("system") === "1";
     if (qs.get("bg") === "1") document.body.dataset.bg = "1";
     if (qs.get("shadow") === "0") document.body.dataset.shadow = "0";
     if (qs.get("align") === "right") document.body.dataset.align = "right";

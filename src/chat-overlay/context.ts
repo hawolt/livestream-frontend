@@ -30,6 +30,7 @@ export const ctx = {
     banRetry: false,
     showBadges: true,
     showEmotes: true,
+    showSystem: false,
     fadeMs: 0,
     demoMode: false,
 };

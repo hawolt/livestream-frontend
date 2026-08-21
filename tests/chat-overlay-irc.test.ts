@@ -70,3 +70,12 @@ test("leaves color undefined when absent and empty when cleared", () => {
     expect(parse("@msgid=x :bob!u@h PRIVMSG #chan :hi")?.color).toBeUndefined();
     expect(parse("@color= :bob!u@h PRIVMSG #chan :hi")?.color).toBe("");
 });
+
+test("parses SYSMSG with the channel and trailing text as params", () => {
+    const line = parse(":server.local SYSMSG #chan :kestrel redeemed Highlight my message");
+    expect(line).toEqual({
+        nick: "server.local",
+        command: "SYSMSG",
+        params: ["#chan", "kestrel redeemed Highlight my message"],
+    });
+});

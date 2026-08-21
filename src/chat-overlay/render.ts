@@ -133,6 +133,13 @@ export function addMessage(from: string, text: string, msgid?: string): void {
     append(line);
 }
 
+export function addSystemMessage(text: string): void {
+    const line = document.createElement("div");
+    line.className = "msg sys";
+    line.textContent = text;
+    append(line);
+}
+
 function nickColor(from: string): string {
     const chosen = colors.get(from.toLowerCase());
     if (chosen && SAFE_COLOR.test(chosen)) return chosen;

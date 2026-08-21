@@ -2,7 +2,7 @@ import { BAN_RETRY_MS, RETRY_MS, colors, ctx, knownMembers, msgsEl, partners, ro
 import type { Role } from "./context.ts";
 import type { IrcLine } from "./irc.ts";
 import { parse } from "./irc.ts";
-import { addMessage } from "./render.ts";
+import { addMessage, addSystemMessage } from "./render.ts";
 import { sanitizeSubscriberBadgeName } from "../chat/badges.ts";
 
 const NAMES_REFRESH_DELAY_MS = 750;
@@ -181,6 +181,13 @@ function handle(line: IrcLine): void {
         case "474":
             enterBanned();
             return;
+        case "SYSMSG": {
+            if (!ctx.showSystem) return;
+            if (line.params[0]?.toLowerCase() !== ctx.channel) return;
+            const text = line.params[1];
+            if (text) addSystemMessage(text);
+            return;
+        }
         default:
             return;
     }

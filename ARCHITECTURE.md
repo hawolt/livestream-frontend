@@ -226,7 +226,7 @@ There is no chat, navbar, site nav, or analytics on this page, and no runtime de
 
 ## OBS chat overlay (`src/chat-overlay.ts`)
 
-`/chat/<username>` renders a transparent, read-only chat for use as an OBS browser source. It connects to `/ws/irc` as a fresh random guest, requests only `message-tags draft/message-redaction`, joins the channel, and renders `PRIVMSG` lines with the same badge and zero-width-emote logic as the main client. It sends nothing but the registration handshake, `PONG`, `JOIN`, and `NAMES`; NOTICEs are never rendered; a `REDACT` removes the line entirely (unlike the viewer's placeholder). Reconnects every 5 s, or 30 s after a 474/KICK.
+`/chat/<username>` renders a transparent, read-only chat for use as an OBS browser source. It connects to `/ws/irc` as a fresh random guest, requests only `message-tags draft/message-redaction`, joins the channel, and renders `PRIVMSG` lines with the same badge and zero-width-emote logic as the main client. It sends nothing but the registration handshake, `PONG`, `JOIN`, and `NAMES`; NOTICEs are never rendered; a `REDACT` removes the line entirely (unlike the viewer's placeholder). Reconnects every 5 s, or 30 s after a 474/KICK. `SYSMSG` lines (raids, channel point redemptions) render as a distinct accented line, plain text with no nick or badges, only when `system=1` is set.
 
 `src/chat-overlay/connection.ts` is its own standalone connect implementation (it does not import `src/chat/connection.ts`) and, unlike the main chat client, makes no API calls of its own before opening its socket. It deliberately keeps connecting to `/ws/irc` on the page origin only and does not fetch `/api/live/ws-config` or prefer a direct `chatWss`: the OBS browser source is meant to stay as simple as possible, and adding its first-ever API round trip purely to chase the direct-chat optimization was judged not worth it. If this module is ever merged into the shared one, it should pick up the same preference and fallback for free.
 
@@ -238,6 +238,7 @@ URL parameters:
 | `fade=N` | Fade each message out after N seconds |
 | `badges=0` | Hide badges |
 | `emotes=0` | Disable emote rendering (skips the 7TV fetch) |
+| `system=1` | Render `SYSMSG` lines (raids, channel point redemptions) |
 | `bg=1` | Dark background panel instead of transparency |
 | `shadow=0` | Disable text shadow |
 | `align=right` | Right-align messages |

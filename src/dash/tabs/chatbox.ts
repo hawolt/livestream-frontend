@@ -13,6 +13,7 @@ function buildOptionParams(): URLSearchParams {
     if (!el<HTMLInputElement>("ov-emotes").checked) params.set("emotes", "0");
     if (el<HTMLInputElement>("ov-bg").checked) params.set("bg", "1");
     if (!el<HTMLInputElement>("ov-shadow").checked) params.set("shadow", "0");
+    if (el<HTMLInputElement>("ov-system").checked) params.set("system", "1");
     if (el<HTMLSelectElement>("ov-align").value === "right") params.set("align", "right");
     return params;
 }
@@ -46,7 +47,7 @@ export function init(): void {
 
     wireStepper(el<HTMLInputElement>("ov-fade"));
 
-    for (const id of ["ov-size", "ov-fade", "ov-badges", "ov-emotes", "ov-bg", "ov-shadow", "ov-align"]) {
+    for (const id of ["ov-size", "ov-fade", "ov-badges", "ov-emotes", "ov-bg", "ov-shadow", "ov-system", "ov-align"]) {
         el(id).addEventListener("input", onChange);
     }
 }
