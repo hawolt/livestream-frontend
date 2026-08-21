@@ -1,4 +1,4 @@
-export const MAX_HIGHLIGHT_TEXT = 400;
+export const MAX_REDEEM_TEXT = 400;
 
 export interface ViewerReward {
     id: number;
@@ -6,6 +6,7 @@ export interface ViewerReward {
     title: string;
     cost: number;
     enabled: boolean;
+    requiresText: boolean;
 }
 
 export interface ArmedHighlight {
@@ -19,18 +20,20 @@ export function parseViewerRewards(payload: unknown): ViewerReward[] {
     if (!Array.isArray(list)) return [];
     const out: ViewerReward[] = [];
     for (const entry of list) {
-        const raw = entry as { id?: unknown; kind?: unknown; title?: unknown; cost?: unknown; enabled?: unknown } | null;
+        const raw = entry as { id?: unknown; kind?: unknown; title?: unknown; cost?: unknown; enabled?: unknown; requiresText?: unknown } | null;
         if (!raw) continue;
         if (typeof raw.id !== "number" || !Number.isInteger(raw.id)) continue;
         if (typeof raw.title !== "string" || raw.title === "") continue;
         if (typeof raw.cost !== "number" || !Number.isFinite(raw.cost) || raw.cost < 0) continue;
         if (raw.enabled === false) continue;
+        const kind = raw.kind === "highlight" ? "highlight" : "custom";
         out.push({
             id: raw.id,
-            kind: raw.kind === "highlight" ? "highlight" : "custom",
+            kind,
             title: raw.title,
             cost: raw.cost,
             enabled: true,
+            requiresText: kind === "highlight" || raw.requiresText === true,
         });
     }
     return out;
@@ -41,10 +44,14 @@ export function armHighlight(reward: ViewerReward): ArmedHighlight | null {
     return { rewardId: reward.id, title: reward.title, cost: reward.cost };
 }
 
-export function highlightRedeemText(raw: string): string | null {
+export function redeemText(raw: string): string | null {
     const text = raw.replace(/[\r\n]/g, " ").trim();
-    if (text.length < 1 || text.length > MAX_HIGHLIGHT_TEXT) return null;
+    if (text.length < 1 || text.length > MAX_REDEEM_TEXT) return null;
     return text;
+}
+
+export function promptsForText(reward: ViewerReward): boolean {
+    return reward.kind === "custom" && reward.requiresText;
 }
 
 export function redeemRequestBody(rewardId: number, text?: string): string {

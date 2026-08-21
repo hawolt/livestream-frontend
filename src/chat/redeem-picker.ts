@@ -7,10 +7,12 @@ import { removeNotice, showNotice } from "./notices.ts";
 import {
     armHighlight,
     canAfford,
-    highlightRedeemText,
+    MAX_REDEEM_TEXT,
     parseChipBalance,
     parseViewerRewards,
+    promptsForText,
     redeemRequestBody,
+    redeemText,
     type ArmedHighlight,
     type ViewerReward,
 } from "./redeem-wire.ts";
@@ -145,7 +147,68 @@ function redeemCustom(reward: ViewerReward, row: HTMLButtonElement): void {
     });
 }
 
-function buildRewardRow(reward: ViewerReward, balance: number | null): HTMLButtonElement {
+function renderPrompt(reward: ViewerReward, rewards: ViewerReward[]): void {
+    const pop = popEl;
+    if (!pop) return;
+    const form = document.createElement("form");
+    form.className = "live-chat-redeem-prompt";
+
+    const title = document.createElement("div");
+    title.className = "live-chat-redeem-prompt-title";
+    title.textContent = reward.title;
+
+    const input = document.createElement("input");
+    input.type = "text";
+    input.className = "live-chat-redeem-prompt-input";
+    input.maxLength = MAX_REDEEM_TEXT;
+    input.placeholder = "Your answer";
+    input.autocomplete = "off";
+
+    const error = document.createElement("div");
+    error.className = "live-chat-redeem-prompt-error";
+
+    const actions = document.createElement("div");
+    actions.className = "live-chat-redeem-prompt-actions";
+    const cancel = document.createElement("button");
+    cancel.type = "button";
+    cancel.className = "live-chat-redeem-prompt-cancel";
+    cancel.textContent = "Back";
+    cancel.addEventListener("click", () => renderRewardList(rewards));
+    const submit = document.createElement("button");
+    submit.type = "submit";
+    submit.className = "live-chat-redeem-prompt-submit";
+    submit.textContent = `Redeem for ${reward.cost.toLocaleString()}`;
+    actions.append(cancel, submit);
+
+    form.addEventListener("submit", (ev) => {
+        ev.preventDefault();
+        if (redeemInFlight) return;
+        const body = redeemText(input.value);
+        if (!body) {
+            error.textContent = `Enter 1 to ${MAX_REDEEM_TEXT} characters.`;
+            return;
+        }
+        error.textContent = "";
+        redeemInFlight = true;
+        submit.disabled = true;
+        void postRedeem(reward.id, body).then((result) => {
+            redeemInFlight = false;
+            if (!result.ok) {
+                submit.disabled = false;
+                showRedeemError(result.error);
+                return;
+            }
+            applyRedeemedBalance(channelName(), result.balance);
+            closeRedeemPop();
+        });
+    });
+
+    form.append(title, input, error, actions);
+    pop.replaceChildren(form);
+    input.focus();
+}
+
+function buildRewardRow(reward: ViewerReward, balance: number | null, rewards: ViewerReward[]): HTMLButtonElement {
     const row = document.createElement("button");
     row.type = "button";
     row.className = "live-chat-redeem-row";
@@ -162,9 +225,24 @@ function buildRewardRow(reward: ViewerReward, balance: number | null): HTMLButto
     }
     row.addEventListener("click", () => {
         if (reward.kind === "highlight") armForHighlight(reward);
+        else if (promptsForText(reward)) renderPrompt(reward, rewards);
         else redeemCustom(reward, row);
     });
     return row;
+}
+
+function renderRewardList(rewards: ViewerReward[]): void {
+    const pop = popEl;
+    if (!pop) return;
+    if (rewards.length === 0) {
+        const empty = document.createElement("span");
+        empty.className = "live-chat-redeem-empty";
+        empty.textContent = "No rewards available";
+        pop.replaceChildren(empty);
+        return;
+    }
+    const balance = parseChipBalance(document.getElementById("live-chat-points-value")?.textContent);
+    pop.replaceChildren(...rewards.map(reward => buildRewardRow(reward, balance, rewards)));
 }
 
 function renderPop(rewards: ViewerReward[]): void {
@@ -174,16 +252,6 @@ function renderPop(rewards: ViewerReward[]): void {
     pop.className = "live-chat-redeem-pop";
     pop.setAttribute("role", "dialog");
     pop.setAttribute("aria-label", "Redeem channel points");
-
-    if (rewards.length === 0) {
-        const empty = document.createElement("span");
-        empty.className = "live-chat-redeem-empty";
-        empty.textContent = "No rewards available";
-        pop.appendChild(empty);
-    } else {
-        const balance = parseChipBalance(document.getElementById("live-chat-points-value")?.textContent);
-        for (const reward of rewards) pop.appendChild(buildRewardRow(reward, balance));
-    }
 
     buttonEl.parentElement?.appendChild(pop);
     buttonEl.classList.add("active");
@@ -195,6 +263,7 @@ function renderPop(rewards: ViewerReward[]): void {
     };
     document.addEventListener("mousedown", outsideHandler);
     popEl = pop;
+    renderRewardList(rewards);
 }
 
 function togglePop(): void {
@@ -221,7 +290,7 @@ export function interceptComposerSubmit(text: string, onSent: () => void): boole
     const target = armed;
     if (!target) return false;
     if (redeemInFlight) return true;
-    const body = highlightRedeemText(text);
+    const body = redeemText(text);
     if (!body) return false;
     redeemInFlight = true;
     void postRedeem(target.rewardId, body).then((result) => {

@@ -2,9 +2,9 @@ import { describe, expect, test } from "bun:test";
 import { SOUND_SLOTS, soundSlotEndpoints } from "../src/dash/alert-sound-slots.ts";
 
 describe("soundSlotEndpoints", () => {
-    test("builds the three slots in order default, follow, raid", () => {
+    test("builds the four slots in order default, follow, raid, redeem", () => {
         const endpoints = soundSlotEndpoints();
-        expect(endpoints.map(e => e.slot)).toEqual(["default", "follow", "raid"]);
+        expect(endpoints.map(e => e.slot)).toEqual(["default", "follow", "raid", "redeem"]);
         expect(endpoints.map(e => e.slot)).toEqual([...SOUND_SLOTS]);
 
         expect(endpoints[0]!.upload).toBe("/api/profile/me/alert-sound");
@@ -15,6 +15,9 @@ describe("soundSlotEndpoints", () => {
 
         expect(endpoints[2]!.upload).toBe("/api/profile/me/alert-sound/raid");
         expect(endpoints[2]!.remove).toBe("/api/profile/me/alert-sound/raid");
+
+        expect(endpoints[3]!.upload).toBe("/api/profile/me/alert-sound/redeem");
+        expect(endpoints[3]!.remove).toBe("/api/profile/me/alert-sound/redeem");
     });
 
     test("every slot targets an owner scoped endpoint, never a public username path", () => {

@@ -6,6 +6,10 @@ import { SOUND_SLOTS, soundSlotEndpoints, type AlertSoundSlot } from "../alert-s
 import { DEFAULT_ALERT_STYLE, parseAlertStyle, type AlertStyle } from "../../alerts/style.ts";
 import { wireStepper } from "../stepper.ts";
 
+type TestAlertType = "follow" | "raid" | "redeem";
+
+const TEST_ALERT_TYPES: readonly TestAlertType[] = ["follow", "raid", "redeem"];
+
 let followPreviewTimer: number | null = null;
 let followToken: string | null = null;
 let revealed = false;
@@ -116,7 +120,7 @@ const STYLE_FIELD_IDS = [
     "fa-style-preset", "fa-style-animation", "fa-style-accent", "fa-style-bg", "fa-style-text",
     "fa-style-bgopacity", "fa-style-fontsize", "fa-style-scale",
     "fa-style-duration", "fa-style-fadein", "fa-style-fadeout",
-    "fa-style-tpl-follow", "fa-style-tpl-raid",
+    "fa-style-tpl-follow", "fa-style-tpl-raid", "fa-style-tpl-redeem", "fa-style-redeem",
 ];
 
 function styleForm(): AlertStyle {
@@ -132,9 +136,11 @@ function styleForm(): AlertStyle {
         durationMs: Number(el<HTMLInputElement>("fa-style-duration").value),
         fadeInMs: Number(el<HTMLInputElement>("fa-style-fadein").value),
         fadeOutMs: Number(el<HTMLInputElement>("fa-style-fadeout").value),
+        redeemAlerts: el<HTMLInputElement>("fa-style-redeem").checked,
         template: {
             follow: el<HTMLInputElement>("fa-style-tpl-follow").value,
             raid: el<HTMLInputElement>("fa-style-tpl-raid").value,
+            redeem: el<HTMLInputElement>("fa-style-tpl-redeem").value,
         },
     });
 }
@@ -153,12 +159,15 @@ function fillStyleForm(style: AlertStyle): void {
     el<HTMLInputElement>("fa-style-fadeout").value = String(style.fadeOutMs);
     el<HTMLInputElement>("fa-style-tpl-follow").value = style.template.follow;
     el<HTMLInputElement>("fa-style-tpl-raid").value = style.template.raid;
+    el<HTMLInputElement>("fa-style-tpl-redeem").value = style.template.redeem;
+    el<HTMLInputElement>("fa-style-redeem").checked = style.redeemAlerts;
     updateTemplateCounts();
 }
 
 function updateTemplateCounts(): void {
     el("fa-style-tpl-follow-count").textContent = String(el<HTMLInputElement>("fa-style-tpl-follow").value.length);
     el("fa-style-tpl-raid-count").textContent = String(el<HTMLInputElement>("fa-style-tpl-raid").value.length);
+    el("fa-style-tpl-redeem-count").textContent = String(el<HTMLInputElement>("fa-style-tpl-redeem").value.length);
 }
 
 function styleStatus(text: string, color: string): void {
@@ -222,7 +231,7 @@ function applyPreviewMuteButton(): void {
     btn.setAttribute("aria-pressed", previewMuted ? "true" : "false");
 }
 
-function previewAlert(kind: "follow" | "raid"): void {
+function previewAlert(kind: TestAlertType): void {
     if (!active) return;
     el<HTMLIFrameElement>("fa-preview-iframe").contentWindow
         ?.postMessage({ type: "preview-alert", kind }, location.origin);
@@ -292,8 +301,8 @@ async function loadFollowToken(generation: number): Promise<void> {
     updateFollowUrl();
 }
 
-async function sendTestAlert(type: "follow" | "raid"): Promise<void> {
-    const buttons = [el<HTMLButtonElement>("fa-test-follow-btn"), el<HTMLButtonElement>("fa-test-raid-btn")];
+async function sendTestAlert(type: TestAlertType): Promise<void> {
+    const buttons = TEST_ALERT_TYPES.map(kind => el<HTMLButtonElement>(`fa-test-${kind}-btn`));
     const status = el("fa-test-status");
     const generation = activationGeneration;
     const revision = ++testRevision;
@@ -362,10 +371,11 @@ export function init(): void {
         updateFollowUrl();
     });
     el("fa-token-btn").addEventListener("click", () => void rotateFollowToken());
-    el("fa-test-follow-btn").addEventListener("click", () => void sendTestAlert("follow"));
-    el("fa-test-raid-btn").addEventListener("click", () => void sendTestAlert("raid"));
+    for (const type of TEST_ALERT_TYPES) {
+        el(`fa-test-${type}-btn`).addEventListener("click", () => void sendTestAlert(type));
+    }
 
-    for (const slot of ["default", "follow", "raid"] as const) {
+    for (const slot of SOUND_SLOTS) {
         el(`fa-sound-upload-${slot}`).addEventListener("click", () => {
             pendingUploadSlot = slot;
             el<HTMLInputElement>("fa-sound-file").click();
@@ -421,6 +431,7 @@ export function init(): void {
     el("fa-style-save").addEventListener("click", () => void saveAlertStyle());
     el("fa-style-tpl-follow").addEventListener("input", updateTemplateCounts);
     el("fa-style-tpl-raid").addEventListener("input", updateTemplateCounts);
+    el("fa-style-tpl-redeem").addEventListener("input", updateTemplateCounts);
     const volumeValue = el("fa-volume-value");
     const volumeInput = el<HTMLInputElement>("fa-volume");
     const syncVolumeValue = (): void => { volumeValue.textContent = volumeInput.value; };
@@ -437,8 +448,7 @@ export function activate(): void {
     active = true;
     const generation = ++activationGeneration;
     testRevision += 1;
-    el<HTMLButtonElement>("fa-test-follow-btn").disabled = false;
-    el<HTMLButtonElement>("fa-test-raid-btn").disabled = false;
+    for (const type of TEST_ALERT_TYPES) el<HTMLButtonElement>(`fa-test-${type}-btn`).disabled = false;
     el("fa-test-status").textContent = "";
     setBackdrop("fa-preview-frame", "fa-bg-checker", "fa-bg-dark", "checker");
     applyPreviewMuteButton();

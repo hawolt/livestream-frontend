@@ -45,15 +45,19 @@
         <div class="card span-2">
             <div class="section-title">Rewards</div>
             <p style="font-size:13px;color:var(--muted);margin:0 0 12px">
-                Things viewers can spend their channel points on. The built-in highlight reward makes a chat message stand out; custom rewards post a line in chat when redeemed.
+                Things viewers can spend their channel points on. The built-in highlight reward makes a chat message stand out; custom rewards post a line in chat when redeemed. Tick "Requires input" and the viewer types an answer when redeeming, which is attached to that chat line and to the alert.
             </p>
             <form id="cp-reward-form" class="cp-reward-form">
-                <input id="cp-new-title" type="text" maxlength="48" autocomplete="off" spellcheck="false" placeholder="Reward title, e.g. Hydrate">
+                <input id="cp-new-title" type="text" maxlength="48" autocomplete="off" spellcheck="false" placeholder="Reward title, e.g. Pick my color">
                 <div class="stepper cp-cost-stepper">
                     <button type="button" class="stepper-btn" data-step="-1" aria-label="Decrease">&minus;</button>
                     <input id="cp-new-cost" type="number" min="1" max="1000000" step="1" value="100">
                     <button type="button" class="stepper-btn" data-step="1" aria-label="Increase">+</button>
                 </div>
+                <label class="cp-reward-toggle" title="Viewers type an answer when they redeem it.">
+                    <input id="cp-new-requires-text" type="checkbox">
+                    <span>Requires input</span>
+                </label>
                 <button type="submit" class="btn btn-primary" id="cp-reward-add">Add</button>
             </form>
             <div id="cp-rewards-limit" style="font-size:12px;color:var(--muted)"></div>

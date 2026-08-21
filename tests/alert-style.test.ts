@@ -124,3 +124,35 @@ describe("tokenizeTemplate", () => {
         expect(templateHasName("{name} followed")).toBe(true);
     });
 });
+
+describe("redemption alerts", () => {
+    test("redemptions are on by default and only an explicit false turns them off", () => {
+        expect(DEFAULT_ALERT_STYLE.redeemAlerts).toBe(true);
+        expect(parseAlertStyle({}).redeemAlerts).toBe(true);
+        expect(parseAlertStyle({ redeemAlerts: "no" }).redeemAlerts).toBe(true);
+        expect(parseAlertStyle({ redeemAlerts: false }).redeemAlerts).toBe(false);
+    });
+
+    test("the redeem template falls back like the other two", () => {
+        expect(parseAlertStyle({ template: { redeem: "" } }).template.redeem).toBe("{name}{linebreak}redeemed {reward}");
+        expect(parseAlertStyle({ template: { redeem: "x".repeat(121) } }).template.redeem).toBe("{name}{linebreak}redeemed {reward}");
+        expect(parseAlertStyle({ template: { redeem: "{name} bought {reward}" } }).template.redeem).toBe("{name} bought {reward}");
+    });
+
+    test("substitutes the reward title and the viewer message", () => {
+        expect(substituteTemplate("{name} redeemed {reward}: {message}", "Bob", 0, "Pick my color", "green"))
+            .toBe("Bob redeemed Pick my color: green");
+    });
+
+    test("tokenizes reward and message, and drops an empty message token", () => {
+        expect(tokenizeTemplate("{name} redeemed {reward}", "Bob", 0, "Hydrate")).toEqual([
+            { kind: "name", value: "Bob" },
+            { kind: "text", value: " redeemed " },
+            { kind: "reward", value: "Hydrate" },
+        ]);
+        expect(tokenizeTemplate("{message}", "Bob", 0, "Hydrate", "")).toEqual([]);
+        expect(tokenizeTemplate("{message}", "Bob", 0, "Hydrate", "green")).toEqual([
+            { kind: "message", value: "green" },
+        ]);
+    });
+});

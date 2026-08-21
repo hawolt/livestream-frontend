@@ -2,16 +2,18 @@ import { describe, expect, test } from "bun:test";
 import {
     armHighlight,
     canAfford,
-    highlightRedeemText,
-    MAX_HIGHLIGHT_TEXT,
+    MAX_REDEEM_TEXT,
     parseChipBalance,
     parseViewerRewards,
+    promptsForText,
     redeemRequestBody,
+    redeemText,
     type ViewerReward,
 } from "../src/chat/redeem-wire.ts";
 
-const highlight: ViewerReward = { id: 1, kind: "highlight", title: "Highlight my message", cost: 500, enabled: true };
-const custom: ViewerReward = { id: 7, kind: "custom", title: "Hydrate", cost: 100, enabled: true };
+const highlight: ViewerReward = { id: 1, kind: "highlight", title: "Highlight my message", cost: 500, enabled: true, requiresText: true };
+const custom: ViewerReward = { id: 7, kind: "custom", title: "Hydrate", cost: 100, enabled: true, requiresText: false };
+const prompted: ViewerReward = { id: 8, kind: "custom", title: "Pick my color", cost: 250, enabled: true, requiresText: true };
 
 describe("parseViewerRewards", () => {
     test("keeps valid rewards and normalizes unknown kinds to custom", () => {
@@ -21,10 +23,18 @@ describe("parseViewerRewards", () => {
                 { id: 7, kind: "weird", title: "Hydrate", cost: 100, enabled: true },
             ],
         });
-        expect(rewards).toEqual([
-            { id: 1, kind: "highlight", title: "Highlight my message", cost: 500, enabled: true },
-            { id: 7, kind: "custom", title: "Hydrate", cost: 100, enabled: true },
-        ]);
+        expect(rewards).toEqual([highlight, custom]);
+    });
+
+    test("reads requiresText and forces it on for the highlight reward", () => {
+        const rewards = parseViewerRewards({
+            rewards: [
+                { id: 1, kind: "highlight", title: "Highlight my message", cost: 500, enabled: true, requiresText: false },
+                { id: 8, kind: "custom", title: "Pick my color", cost: 250, enabled: true, requiresText: true },
+                { id: 9, kind: "custom", title: "Hydrate", cost: 100, enabled: true, requiresText: "yes" },
+            ],
+        });
+        expect(rewards.map(r => r.requiresText)).toEqual([true, true, false]);
     });
 
     test("drops malformed entries and disabled rewards", () => {
@@ -38,7 +48,7 @@ describe("parseViewerRewards", () => {
                 { id: 5, title: "ok", cost: 5 },
             ],
         });
-        expect(rewards).toEqual([{ id: 5, kind: "custom", title: "ok", cost: 5, enabled: true }]);
+        expect(rewards).toEqual([{ id: 5, kind: "custom", title: "ok", cost: 5, enabled: true, requiresText: false }]);
     });
 
     test("returns an empty list for a payload without a rewards array", () => {
@@ -55,17 +65,28 @@ describe("armHighlight", () => {
     });
 });
 
-describe("highlightRedeemText", () => {
+describe("redeemText", () => {
     test("trims and replaces newlines with spaces", () => {
-        expect(highlightRedeemText("  hello\nworld  ")).toBe("hello world");
-        expect(highlightRedeemText("a\r\nb")).toBe("a  b");
+        expect(redeemText("  hello\nworld  ")).toBe("hello world");
+        expect(redeemText("a\r\nb")).toBe("a  b");
     });
 
     test("rejects empty and over long text", () => {
-        expect(highlightRedeemText("")).toBeNull();
-        expect(highlightRedeemText("   ")).toBeNull();
-        expect(highlightRedeemText("a".repeat(MAX_HIGHLIGHT_TEXT + 1))).toBeNull();
-        expect(highlightRedeemText("a".repeat(MAX_HIGHLIGHT_TEXT))).toBe("a".repeat(MAX_HIGHLIGHT_TEXT));
+        expect(redeemText("")).toBeNull();
+        expect(redeemText("   ")).toBeNull();
+        expect(redeemText("a".repeat(MAX_REDEEM_TEXT + 1))).toBeNull();
+        expect(redeemText("a".repeat(MAX_REDEEM_TEXT))).toBe("a".repeat(MAX_REDEEM_TEXT));
+    });
+});
+
+describe("promptsForText", () => {
+    test("prompts only for a custom reward that requires input", () => {
+        expect(promptsForText(prompted)).toBe(true);
+        expect(promptsForText(custom)).toBe(false);
+    });
+
+    test("never prompts for the highlight reward, which arms the composer instead", () => {
+        expect(promptsForText(highlight)).toBe(false);
     });
 });
 

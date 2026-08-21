@@ -11,9 +11,11 @@ const ENTER_ANIMATION_NAME = "alert-in";
 const ALERT_WATCHDOG_MARGIN_MS = 1000;
 
 interface AlertEvent {
-    kind: "follow" | "raid";
+    kind: "follow" | "raid" | "redeem";
     username: string;
     viewers: number;
+    reward: string;
+    message: string;
 }
 
 let token = "";
@@ -87,29 +89,39 @@ async function loadStyle(username: string): Promise<void> {
 
 function captionText(ev: AlertEvent): string {
     if (hasStoredStyle) {
-        const tpl = ev.kind === "raid" ? effectiveStyle.template.raid : effectiveStyle.template.follow;
-        return substituteTemplate(tpl, ev.username, ev.viewers);
+        return substituteTemplate(currentTemplate(ev), ev.username, ev.viewers, ev.reward, ev.message);
     }
     if (ev.kind === "raid") {
         return ev.viewers > 0
             ? `just raided with ${ev.viewers} viewer${ev.viewers === 1 ? "" : "s"}!`
             : "just raided!";
     }
+    if (ev.kind === "redeem") {
+        return ev.message ? `redeemed ${ev.reward}: ${ev.message}` : `redeemed ${ev.reward}`;
+    }
     return "just followed!";
 }
 
 function currentTemplate(ev: AlertEvent): string {
-    return ev.kind === "raid" ? effectiveStyle.template.raid : effectiveStyle.template.follow;
+    if (ev.kind === "raid") return effectiveStyle.template.raid;
+    if (ev.kind === "redeem") return effectiveStyle.template.redeem;
+    return effectiveStyle.template.follow;
+}
+
+function cardClassFor(kind: AlertEvent["kind"]): string {
+    if (kind === "raid") return "alert-card alert-card-raid enter";
+    if (kind === "redeem") return "alert-card alert-card-redeem enter";
+    return "alert-card enter";
 }
 
 function buildCard(ev: AlertEvent): HTMLDivElement {
     const card = document.createElement("div");
-    card.className = ev.kind === "raid" ? "alert-card alert-card-raid enter" : "alert-card enter";
+    card.className = cardClassFor(ev.kind);
     const template = currentTemplate(ev);
     if (hasStoredStyle && templateHasName(template)) {
         const body = document.createElement("div");
         body.className = "alert-caption alert-body";
-        for (const token of tokenizeTemplate(template, ev.username, ev.viewers)) {
+        for (const token of tokenizeTemplate(template, ev.username, ev.viewers, ev.reward, ev.message)) {
             if (token.kind === "break") {
                 body.appendChild(document.createElement("br"));
             } else if (token.kind === "name") {
@@ -117,9 +129,14 @@ function buildCard(ev: AlertEvent): HTMLDivElement {
                 span.className = "alert-name-inline";
                 span.textContent = token.value;
                 body.appendChild(span);
-            } else if (token.kind === "viewers") {
+            } else if (token.kind === "viewers" || token.kind === "reward") {
                 const span = document.createElement("span");
                 span.className = "alert-viewers-inline";
+                span.textContent = token.value;
+                body.appendChild(span);
+            } else if (token.kind === "message") {
+                const span = document.createElement("span");
+                span.className = "alert-message-inline";
                 span.textContent = token.value;
                 body.appendChild(span);
             } else {
@@ -174,8 +191,21 @@ function showNext(): void {
 }
 
 function enqueueAlert(ev: AlertEvent): void {
+    if (ev.kind === "redeem" && !effectiveStyle.redeemAlerts) return;
     queue.push(ev);
     if (!showing) showNext();
+}
+
+function followEvent(username: string): AlertEvent {
+    return { kind: "follow", username, viewers: 0, reward: "", message: "" };
+}
+
+function raidEvent(username: string, viewers: number): AlertEvent {
+    return { kind: "raid", username, viewers, reward: "", message: "" };
+}
+
+function redeemEvent(username: string, reward: string, message: string): AlertEvent {
+    return { kind: "redeem", username, viewers: 0, reward, message };
 }
 
 function scheduleRetry(delayMs: number): void {
@@ -208,12 +238,15 @@ function connect(): void {
         if (!msg || typeof msg !== "object") return;
         const data = msg as Record<string, unknown>;
         if (data.type === "follow" && typeof data.username === "string") {
-            enqueueAlert({ kind: "follow", username: data.username, viewers: 0 });
+            enqueueAlert(followEvent(data.username));
         } else if (data.type === "raid" && typeof data.from === "string") {
             const viewers = typeof data.viewers === "number" && Number.isFinite(data.viewers)
                 ? Math.max(0, Math.floor(data.viewers))
                 : 0;
-            enqueueAlert({ kind: "raid", username: data.from, viewers });
+            enqueueAlert(raidEvent(data.from, viewers));
+        } else if (data.type === "redeem" && typeof data.username === "string" && typeof data.reward === "string") {
+            const message = typeof data.text === "string" ? data.text : "";
+            enqueueAlert(redeemEvent(data.username, data.reward, message));
         }
     };
     s.onclose = (ev) => {
@@ -233,12 +266,16 @@ const DEMO_NAMES = [
 ];
 const DEMO_INTERVAL_MS = 3000;
 
+const DEMO_REWARD = "Pick my color";
+const DEMO_REWARD_MESSAGE = "neon green";
+
 function startDemo(): void {
     let i = 0;
     const step = (): void => {
         const username = DEMO_NAMES[i % DEMO_NAMES.length]!;
-        if (i % 5 === 4) enqueueAlert({ kind: "raid", username, viewers: 12 + (i % 40) });
-        else enqueueAlert({ kind: "follow", username, viewers: 0 });
+        if (i % 5 === 4) enqueueAlert(raidEvent(username, 12 + (i % 40)));
+        else if (i % 5 === 2) enqueueAlert(redeemEvent(username, DEMO_REWARD, DEMO_REWARD_MESSAGE));
+        else enqueueAlert(followEvent(username));
         i++;
     };
     step();
@@ -247,8 +284,9 @@ function startDemo(): void {
         if (ev.origin !== location.origin) return;
         const data = ev.data as { type?: string; kind?: string } | null;
         if (!data || data.type !== "preview-alert") return;
-        const kind = data.kind === "raid" ? "raid" : "follow";
-        enqueueAlert({ kind, username: "TEST_USER", viewers: kind === "raid" ? 42 : 0 });
+        if (data.kind === "raid") enqueueAlert(raidEvent("TEST_USER", 42));
+        else if (data.kind === "redeem") enqueueAlert(redeemEvent("TEST_USER", DEMO_REWARD, DEMO_REWARD_MESSAGE));
+        else enqueueAlert(followEvent("TEST_USER"));
     });
 }
 
@@ -285,7 +323,7 @@ function promptSoundUnlock(): void {
     document.addEventListener("pointerdown", unlock);
 }
 
-const SOUND_KINDS: AlertEvent["kind"][] = ["follow", "raid"];
+const SOUND_KINDS: AlertEvent["kind"][] = ["follow", "raid", "redeem"];
 
 function setupSounds(username: string): void {
     if (!soundEnabled || soundVolume <= 0) return;

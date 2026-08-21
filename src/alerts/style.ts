@@ -13,7 +13,8 @@ export interface AlertStyle {
     durationMs: number;
     fadeInMs: number;
     fadeOutMs: number;
-    template: { follow: string; raid: string };
+    redeemAlerts: boolean;
+    template: { follow: string; raid: string; redeem: string };
 }
 
 export const DEFAULT_ALERT_STYLE: AlertStyle = {
@@ -28,7 +29,12 @@ export const DEFAULT_ALERT_STYLE: AlertStyle = {
     durationMs: 5000,
     fadeInMs: 500,
     fadeOutMs: 350,
-    template: { follow: "{name}{linebreak}just followed!", raid: "{name}{linebreak}just raided with {viewers} viewers!" },
+    redeemAlerts: true,
+    template: {
+        follow: "{name}{linebreak}just followed!",
+        raid: "{name}{linebreak}just raided with {viewers} viewers!",
+        redeem: "{name}{linebreak}redeemed {reward}",
+    },
 };
 
 const PRESETS: readonly AlertPreset[] = ["classic", "minimal", "banner"];
@@ -69,9 +75,11 @@ export function parseAlertStyle(raw: unknown): AlertStyle {
         durationMs: clampNum(o.durationMs, d.durationMs, 1000, 30000),
         fadeInMs: clampNum(o.fadeInMs, d.fadeInMs, 0, 5000),
         fadeOutMs: clampNum(o.fadeOutMs, d.fadeOutMs, 0, 5000),
+        redeemAlerts: typeof o.redeemAlerts === "boolean" ? o.redeemAlerts : d.redeemAlerts,
         template: {
             follow: template(t.follow, d.template.follow),
             raid: template(t.raid, d.template.raid),
+            redeem: template(t.redeem, d.template.redeem),
         },
     };
 }
@@ -109,9 +117,11 @@ export function cssVarsFor(style: AlertStyle): Record<string, string> {
     };
 }
 
-export function substituteTemplate(tpl: string, name: string, viewers: number): string {
+export function substituteTemplate(tpl: string, name: string, viewers: number, reward = "", message = ""): string {
     return tpl.split("{name}").join(name)
         .split("{viewers}").join(String(viewers))
+        .split("{reward}").join(reward)
+        .split("{message}").join(message)
         .split("{linebreak}").join("\n");
 }
 
@@ -119,16 +129,22 @@ export type TemplateToken =
     | { kind: "text"; value: string }
     | { kind: "name"; value: string }
     | { kind: "viewers"; value: string }
+    | { kind: "reward"; value: string }
+    | { kind: "message"; value: string }
     | { kind: "break" };
 
-export function tokenizeTemplate(tpl: string, name: string, viewers: number): TemplateToken[] {
+export function tokenizeTemplate(tpl: string, name: string, viewers: number, reward = "", message = ""): TemplateToken[] {
     const tokens: TemplateToken[] = [];
-    const parts = tpl.split(/(\{name\}|\{viewers\}|\{linebreak\})/g);
+    const parts = tpl.split(/(\{name\}|\{viewers\}|\{reward\}|\{message\}|\{linebreak\})/g);
     for (const part of parts) {
         if (part === "{name}") {
             tokens.push({ kind: "name", value: name });
         } else if (part === "{viewers}") {
             tokens.push({ kind: "viewers", value: String(viewers) });
+        } else if (part === "{reward}") {
+            tokens.push({ kind: "reward", value: reward });
+        } else if (part === "{message}") {
+            if (message !== "") tokens.push({ kind: "message", value: message });
         } else if (part === "{linebreak}") {
             tokens.push({ kind: "break" });
         } else if (part !== "") {

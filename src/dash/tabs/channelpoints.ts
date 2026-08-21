@@ -19,6 +19,7 @@ interface Reward {
     title: string;
     cost: number;
     enabled: boolean;
+    requiresText: boolean;
 }
 
 interface RewardsResponse {
@@ -89,7 +90,7 @@ function costStepper(id: string, value: number): HTMLDivElement {
     return wrap;
 }
 
-async function updateReward(reward: Reward, body: Partial<Pick<Reward, "title" | "cost" | "enabled">>, revert: () => void): Promise<void> {
+async function updateReward(reward: Reward, body: Partial<Pick<Reward, "title" | "cost" | "enabled" | "requiresText">>, revert: () => void): Promise<void> {
     const operation = beginOperation(`reward-update-${reward.id}`);
     rewardsError("");
     try {
@@ -135,6 +136,11 @@ function buildRewardRow(reward: Reward): HTMLElement {
         chip.textContent = "Built in";
         chip.title = "Highlights a chat message. Always available; only cost and availability can be changed.";
         row.appendChild(chip);
+        const asks = document.createElement("span");
+        asks.className = "cp-reward-chip";
+        asks.textContent = "Takes a message";
+        asks.title = "The highlight reward always takes the message it highlights.";
+        row.appendChild(asks);
     }
 
     const cost = costStepper(`cp-reward-cost-${reward.id}`, reward.cost);
@@ -167,6 +173,20 @@ function buildRewardRow(reward: Reward): HTMLElement {
     row.appendChild(toggle);
 
     if (reward.kind === "custom") {
+        const asks = document.createElement("label");
+        asks.className = "cp-reward-toggle";
+        asks.title = "Viewers type an answer when they redeem it, and it is attached to the chat message and the alert.";
+        const asksBox = document.createElement("input");
+        asksBox.type = "checkbox";
+        asksBox.checked = reward.requiresText;
+        const asksText = document.createElement("span");
+        asksText.textContent = "Requires input";
+        asks.append(asksBox, asksText);
+        asksBox.addEventListener("change", () => {
+            void updateReward(reward, { requiresText: asksBox.checked }, () => { asksBox.checked = reward.requiresText; });
+        });
+        row.appendChild(asks);
+
         const del = document.createElement("button");
         del.type = "button";
         del.className = "btn btn-sm btn-danger";
@@ -206,6 +226,7 @@ async function loadRewards(generation: number): Promise<void> {
 async function createReward(): Promise<void> {
     const titleInput = document.getElementById("cp-new-title") as HTMLInputElement | null;
     const costInput = document.getElementById("cp-new-cost") as HTMLInputElement | null;
+    const requiresTextInput = document.getElementById("cp-new-requires-text") as HTMLInputElement | null;
     const addBtn = document.getElementById("cp-reward-add") as HTMLButtonElement | null;
     if (!titleInput || !costInput || !addBtn) return;
     const title = validateRewardTitle(titleInput.value);
@@ -224,10 +245,15 @@ async function createReward(): Promise<void> {
     try {
         const res = await authFetch<RewardsResponse>("/api/live/points/rewards", {
             method: "POST",
-            body: JSON.stringify({ title: title.value, cost: cost.value }),
+            body: JSON.stringify({
+                title: title.value,
+                cost: cost.value,
+                requiresText: requiresTextInput?.checked === true,
+            }),
         });
         if (!isCurrentOperation(operation)) return;
         titleInput.value = "";
+        if (requiresTextInput) requiresTextInput.checked = false;
         applyRewards(res.rewards);
     } catch (e) {
         if (isCurrentOperation(operation)) rewardsError(e instanceof Error ? e.message : String(e));

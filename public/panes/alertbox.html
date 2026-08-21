@@ -119,6 +119,18 @@
                         <input id="fa-style-tpl-raid" type="text" maxlength="120" value="{name}{linebreak}just raided with {viewers} viewers!">
                         <div class="hint"><span id="fa-style-tpl-raid-count">52</span>/120. Placeholders: {name}, {viewers}, {linebreak}</div>
                     </label>
+                    <label>
+                        <span>Redemption text</span>
+                        <input id="fa-style-tpl-redeem" type="text" maxlength="120" value="{name}{linebreak}redeemed {reward}">
+                        <div class="hint"><span id="fa-style-tpl-redeem-count">33</span>/120. Placeholders: {name}, {reward}, {message}, {linebreak}. {message} is what the viewer typed, empty for rewards that take no input.</div>
+                    </label>
+                    <label class="ov-toggle">
+                        <input type="checkbox" id="fa-style-redeem" checked>
+                        <span>
+                            <span class="ov-toggle-name">Alert on channel point redemptions</span>
+                            <div class="hint">On by default. Turn it off to keep redemptions out of the overlay while follows and raids keep alerting. Saved with the appearance.</div>
+                        </span>
+                    </label>
                 </div>
                 <div class="ov-span-2">
                     <button class="btn btn-sm" id="fa-style-reset" type="button">Reset appearance</button>
@@ -158,13 +170,19 @@
                         <button class="btn btn-sm" id="fa-sound-remove-follow" type="button" disabled>Remove</button>
                         <span id="fa-sound-status-follow" style="font-size:13px"></span>
                     </div>
-                    <div style="display:flex;align-items:center;gap:8px">
+                    <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
                         <span style="min-width:64px">Raid</span>
                         <button class="btn btn-sm" id="fa-sound-upload-raid" type="button">Upload</button>
                         <button class="btn btn-sm" id="fa-sound-remove-raid" type="button" disabled>Remove</button>
                         <span id="fa-sound-status-raid" style="font-size:13px"></span>
                     </div>
-                    <div class="hint">mp3, ogg or wav, up to 2 MB per sound. Follow and Raid fall back to the Default sound when unset, and Default falls back to the built in sound. The Default sound also plays in the Stream Activity tab while it is open.</div>
+                    <div style="display:flex;align-items:center;gap:8px">
+                        <span style="min-width:64px">Redeem</span>
+                        <button class="btn btn-sm" id="fa-sound-upload-redeem" type="button">Upload</button>
+                        <button class="btn btn-sm" id="fa-sound-remove-redeem" type="button" disabled>Remove</button>
+                        <span id="fa-sound-status-redeem" style="font-size:13px"></span>
+                    </div>
+                    <div class="hint">mp3, ogg or wav, up to 2 MB per sound. Follow, Raid and Redeem fall back to the Default sound when unset, and Default falls back to the built in sound. The Default sound also plays in the Stream Activity tab while it is open.</div>
                 </div>
             </div>
 
@@ -183,6 +201,7 @@
                             <div class="sound-pop fa-test-pop" id="fa-test-pop">
                                 <button class="btn btn-sm" id="fa-test-follow-btn" type="button">Follow</button>
                                 <button class="btn btn-sm" id="fa-test-raid-btn" type="button">Raid</button>
+                                <button class="btn btn-sm" id="fa-test-redeem-btn" type="button">Redemption</button>
                                 <div id="fa-test-status"></div>
                             </div>
                         </span>
