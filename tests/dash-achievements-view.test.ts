@@ -7,8 +7,26 @@ import {
     formatMetric,
     progressLabel,
     sortAchievementEntries,
+    unwrapAchievementsPayload,
     type AchievementEntry,
 } from "../src/dash/achievements-view.ts";
+
+test("unwrapAchievementsPayload unwraps the achievements envelope", () => {
+    const inner = [{ key: "followers", tier: 1, current: 5, next: 10 }];
+    expect(unwrapAchievementsPayload({ achievements: inner })).toEqual(inner);
+});
+
+test("unwrapAchievementsPayload passes a bare array through", () => {
+    const inner = [{ key: "followers", tier: 1, current: 5, next: 10 }];
+    expect(unwrapAchievementsPayload(inner)).toEqual(inner);
+});
+
+test("unwrapAchievementsPayload answers empty for junk", () => {
+    expect(unwrapAchievementsPayload(null)).toEqual([]);
+    expect(unwrapAchievementsPayload("x")).toEqual([]);
+    expect(unwrapAchievementsPayload({ achievements: "x" })).toEqual([]);
+    expect(unwrapAchievementsPayload({})).toEqual([]);
+});
 
 function entry(key: string, tier: number, current: number, next: number | null): AchievementEntry {
     return { key: key as AchievementEntry["key"], tier, current, next };

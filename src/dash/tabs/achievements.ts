@@ -10,7 +10,7 @@ import {
 } from "../../achievements/achievement-catalog.ts";
 import { achievementMedallionSvg, lockedAchievementMedallionSvg } from "../../achievements/achievement-medallion.ts";
 import { toRomanNumeral } from "../../achievements/achievements-decision.ts";
-import { achievementDisplay, sortAchievementEntries, type AchievementEntry } from "../achievements-view.ts";
+import { achievementDisplay, sortAchievementEntries, unwrapAchievementsPayload, type AchievementEntry } from "../achievements-view.ts";
 
 const MEDALLION_SIZE = 48;
 const EMPTY_STATE_MESSAGE = "Achievements are being prepared.";
@@ -37,9 +37,8 @@ function normalizeEntry(raw: unknown): AchievementEntry | null {
 }
 
 function normalizeEntries(raw: unknown): AchievementEntry[] {
-    if (!Array.isArray(raw)) return [];
     const out: AchievementEntry[] = [];
-    for (const item of raw) {
+    for (const item of unwrapAchievementsPayload(raw)) {
         const entry = normalizeEntry(item);
         if (entry) out.push(entry);
     }

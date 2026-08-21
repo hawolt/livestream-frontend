@@ -7,6 +7,15 @@ export interface AchievementEntry {
     next: number | null;
 }
 
+export function unwrapAchievementsPayload(raw: unknown): unknown[] {
+    if (Array.isArray(raw)) return raw;
+    if (raw && typeof raw === "object") {
+        const inner = (raw as Record<string, unknown>)["achievements"];
+        if (Array.isArray(inner)) return inner;
+    }
+    return [];
+}
+
 export function clampFillRatio(current: number, next: number | null): number {
     if (next === null || next <= 0) return 1;
     return Math.max(0, Math.min(1, current / next));
