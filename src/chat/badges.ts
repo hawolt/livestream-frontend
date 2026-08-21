@@ -8,7 +8,7 @@ export const BADGE_TITLE: Record<BadgeName, string> = {
 };
 
 const SUBSCRIBER_BADGE_NAME_RE = /^[a-z0-9_]{1,24}$/;
-export const NON_PURCHASABLE_BADGES = new Set(["ambassador", "bounty", "invite", "lucky", "partner"]);
+export const NON_PURCHASABLE_BADGES = new Set(["ambassador", "bounty", "invite", "lucky", "medal", "partner", "streak_30", "streak_365", "twentyfour"]);
 
 export function sanitizeSubscriberBadgeName(raw: string | undefined): string {
     if (raw && SUBSCRIBER_BADGE_NAME_RE.test(raw)) return raw;
@@ -26,6 +26,9 @@ export function subscriberBadgeTitle(name: string): string {
     if (name === "invite") return "Recruiter - invited a friend";
     if (name === "lucky") return "Lucky - one in a million";
     if (name === "partner") return "Partner";
+    if (name === "streak_30") return "Every Day - 30 day visit streak";
+    if (name === "streak_365") return "Full Orbit - 365 day visit streak";
+    if (name === "twentyfour") return "Twenty-Four - streamed 24 hours straight";
     return name.split("_").filter(Boolean).map(w => w[0]!.toUpperCase() + w.slice(1)).join(" ");
 }
 
