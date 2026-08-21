@@ -165,6 +165,8 @@ export function openUserCard(username: string, anchor: DOMRect): void {
             const visit = document.createElement("a");
             visit.href = `/${encodeURIComponent(profile.username)}`;
             visit.textContent = "Visit channel";
+            visit.target = "_blank";
+            visit.rel = "noopener";
             actions.appendChild(visit);
         }
         positionCard(card, anchor);
