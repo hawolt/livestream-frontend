@@ -3,11 +3,20 @@ import {
     ACHIEVEMENT_CATEGORY,
     ACHIEVEMENT_CATEGORY_LABELS,
     ACHIEVEMENT_CATEGORY_ORDER,
+    ACHIEVEMENT_DESCRIPTIONS,
     ACHIEVEMENT_NAMES,
 } from "../src/achievements/achievement-catalog.ts";
 
 test("every catalog key has exactly one category and no extras exist", () => {
     expect(Object.keys(ACHIEVEMENT_CATEGORY).sort()).toEqual(Object.keys(ACHIEVEMENT_NAMES).sort());
+});
+
+test("every catalog key has a non empty description and no extras exist", () => {
+    expect(Object.keys(ACHIEVEMENT_DESCRIPTIONS).sort()).toEqual(Object.keys(ACHIEVEMENT_NAMES).sort());
+    for (const description of Object.values(ACHIEVEMENT_DESCRIPTIONS)) {
+        expect(typeof description).toBe("string");
+        expect(description.length).toBeGreaterThan(0);
+    }
 });
 
 test("every category value is one of the declared categories", () => {

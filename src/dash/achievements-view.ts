@@ -73,3 +73,19 @@ export function compareAchievementEntries(a: AchievementEntry, b: AchievementEnt
 export function sortAchievementEntries(entries: AchievementEntry[]): AchievementEntry[] {
     return [...entries].sort(compareAchievementEntries);
 }
+
+export const MEDAL_ACHIEVEMENT_THRESHOLD = 10;
+
+export interface MedalRewardStatus {
+    earned: boolean;
+    remaining: number;
+    message: string;
+}
+
+export function medalRewardStatus(unlockedCount: number): MedalRewardStatus {
+    if (unlockedCount >= MEDAL_ACHIEVEMENT_THRESHOLD) {
+        return { earned: true, remaining: 0, message: "Medal chat badge earned." };
+    }
+    const remaining = MEDAL_ACHIEVEMENT_THRESHOLD - unlockedCount;
+    return { earned: false, remaining, message: `Unlock ${remaining} more achievements to earn the Medal chat badge.` };
+}

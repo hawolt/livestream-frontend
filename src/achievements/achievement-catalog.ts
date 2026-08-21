@@ -81,6 +81,48 @@ export const ACHIEVEMENT_NAMES: Record<AchievementKey, string> = {
     early_bird: "Early Bird",
 };
 
+export const ACHIEVEMENT_DESCRIPTIONS: Record<AchievementKey, string> = {
+    audience: "Have more viewers watching your stream at the same time.",
+    airtime: "Stream more hours in total.",
+    days_streamed: "Stream on more separate days.",
+    stream_streak: "Stream on consecutive days without missing one.",
+    followers: "Grow your channel's followers.",
+    channel_clips: "Have viewers clip moments from your streams.",
+    channel_clip_views: "Collect views on clips taken from your channel.",
+    multistream_sessions: "Publish through Multistream more times.",
+    categories: "Stream in more different categories.",
+    chat_received: "Receive chat messages in your channel.",
+    first_stream: "Go live for the first time.",
+    thumbnail_set: "Upload a stream thumbnail.",
+    category_set: "Set a category for your stream.",
+    panels_added: "Add a panel to your channel page.",
+    points_renamed: "Give your channel points a custom name.",
+    alert_sound_set: "Upload a custom alert sound.",
+    watch_hours: "Watch streams while signed in.",
+    follows: "Follow more channels.",
+    messages_sent: "Send chat messages.",
+    visit_streak: "Visit the site every day without missing one.",
+    invites: "Invite friends who sign up and verify their email.",
+    clips_created: "Create clips from live streams.",
+    clip_views: "Collect views on clips you created.",
+    channels_watched: "Watch more different channels.",
+    avatar_set: "Upload a profile picture.",
+    bio_set: "Write a profile bio.",
+    link_added: "Add a link to your profile.",
+    chat_color_set: "Pick a chat color in settings.",
+    email_verified: "Verify your email address.",
+    made_mod: "Get made a moderator in a channel.",
+    made_vip: "Get made a VIP in a channel.",
+    developer: "Create an API token or connect an app.",
+    first_follow: "Follow a channel for the first time.",
+    first_message: "Send your first chat message.",
+    first_clip: "Create your first clip.",
+    collector: "Unlock more achievements. Collector II rewards the Medal chat badge.",
+    completionist_profile: "Complete every profile achievement.",
+    completionist_setup: "Complete every streamer setup achievement.",
+    early_bird: "Unlock any achievement during the launch month.",
+};
+
 const SPARK = '<path d="M27.2 8.5 L28.2 11.3 L31 12.3 L28.2 13.3 L27.2 16.1 L26.2 13.3 L23.4 12.3 L26.2 11.3 Z" fill="#fbbf24"/>';
 
 export const ACHIEVEMENT_GLYPHS: Record<AchievementKey, string> = {

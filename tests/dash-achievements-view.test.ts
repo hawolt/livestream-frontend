@@ -5,6 +5,7 @@ import {
     clampFillRatio,
     compareAchievementEntries,
     formatMetric,
+    medalRewardStatus,
     progressLabel,
     sortAchievementEntries,
     unwrapAchievementsPayload,
@@ -124,4 +125,36 @@ test("compareAchievementEntries is defensive against unusual data", () => {
     const a = entry("followers", 0, 0, 100);
     const b = entry("audience", 0, 0, 100);
     expect(compareAchievementEntries(a, b)).toBe(0);
+});
+
+test("medalRewardStatus counts down to ten unlocked", () => {
+    expect(medalRewardStatus(0)).toEqual({
+        earned: false,
+        remaining: 10,
+        message: "Unlock 10 more achievements to earn the Medal chat badge.",
+    });
+});
+
+test("medalRewardStatus reports one remaining just under the threshold", () => {
+    expect(medalRewardStatus(9)).toEqual({
+        earned: false,
+        remaining: 1,
+        message: "Unlock 1 more achievements to earn the Medal chat badge.",
+    });
+});
+
+test("medalRewardStatus reports earned exactly at the threshold", () => {
+    expect(medalRewardStatus(10)).toEqual({
+        earned: true,
+        remaining: 0,
+        message: "Medal chat badge earned.",
+    });
+});
+
+test("medalRewardStatus stays earned above the threshold", () => {
+    expect(medalRewardStatus(15)).toEqual({
+        earned: true,
+        remaining: 0,
+        message: "Medal chat badge earned.",
+    });
 });
