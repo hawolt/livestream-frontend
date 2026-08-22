@@ -34,20 +34,25 @@
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 :root {
+    --accent-rgb:  74, 222, 128;
+    --green-rgb:   74, 222, 128;
+    --red-rgb:     248, 113, 113;
+    --amber-rgb:   224, 179, 65;
+
     --bg:          #0d0d0d;
     --surface:     #141414;
     --border:      #2e2e2e;
     --text:        #c8c8c8;
     --dim:         #888;
-    --amber:       #e0b341;
+    --amber:       rgb(var(--amber-rgb));
     --rail-category: #aaa;
-    --green:       #4ade80;
-    --red:         #f87171;
+    --green:       rgb(var(--green-rgb));
+    --red:         rgb(var(--red-rgb));
     --radius:      6px;
     --muted:       #888;
-    --danger:      #f87171;
-    --success:     #4ade80;
-    --accent:      #4ade80;
+    --danger:      rgb(var(--red-rgb));
+    --success:     rgb(var(--green-rgb));
+    --accent:      rgb(var(--accent-rgb));
     --accent-mid:  #22c55e;
     --accent-pale: #0d1f12;
     --shadow:      0 1px 4px rgba(0,0,0,.5);
@@ -143,7 +148,7 @@ code { font-family: var(--font-mono); color: var(--green); font-size: 12px; }
     border-radius: var(--radius);
     padding: 7px 10px;
 }
-#error   { color: var(--red); border: 1px solid rgba(248,113,113,.25); }
+#error   { color: var(--red); border: 1px solid rgba(var(--red-rgb), .25); }
 #lockout { color: #fbbf24; border: 1px solid rgba(251,191,36,.25); }
 
 .footer-link { margin-top: 16px; font-size: 12.5px; text-align: center; color: var(--dim); }
@@ -321,7 +326,7 @@ a.btn:hover { text-decoration: none; }
 .dash-stat-label { font-size: 10px; letter-spacing: .1em; text-transform: uppercase; color: #5a5a5a; }
 .dash-stat-value { font-size: 16px; font-weight: 650; color: #e8e8e8; font-variant-numeric: tabular-nums; margin-top: 1px; }
 .dash-stat-value.live { color: var(--green); }
-.card.locked { border-style: dashed; border-color: rgba(224,179,65,.45); background: rgba(224,179,65,.045); }
+.card.locked { border-style: dashed; border-color: rgba(var(--amber-rgb), .45); background: rgba(var(--amber-rgb), .045); }
 .card.locked .section-title { color: var(--amber); }
 .lock-tag { font-size: 10px; letter-spacing: .07em; text-transform: uppercase; color: var(--amber); }
 .card.locked .card-actions .btn { flex: 1; justify-content: center; }
@@ -366,9 +371,9 @@ a.btn:hover { text-decoration: none; }
 }
 
 .badge-live {
-    background: rgba(74,222,128,.08);
+    background: rgba(var(--green-rgb),.08);
     color: var(--green);
-    border: 1px solid rgba(74,222,128,.3);
+    border: 1px solid rgba(var(--green-rgb),.3);
     padding: 5px 13px;
     font-size: 12px;
     letter-spacing: .6px;
@@ -414,12 +419,12 @@ a.btn:hover { text-decoration: none; }
 .flag-pill-on {
     border-color: var(--green);
     color: var(--green);
-    background: rgba(74,222,128,.08);
+    background: rgba(var(--green-rgb),.08);
 }
-.flag-pill-on:hover { background: rgba(74,222,128,.18); }
+.flag-pill-on:hover { background: rgba(var(--green-rgb),.18); }
 
 .flag-cells + td .btn { min-width: 52px; }
-.btn-saved { border-color: var(--green) !important; color: var(--green) !important; background: rgba(74,222,128,.12) !important; }
+.btn-saved { border-color: var(--green) !important; color: var(--green) !important; background: rgba(var(--green-rgb),.12) !important; }
 
 .settings-card { padding: 24px; max-width: 640px; margin: 0 auto; }
 
@@ -933,8 +938,8 @@ tr:last-child td { border-bottom: none; }
 
 .stream-warnings { display: flex; flex-direction: column; gap: 8px; }
 .stream-warning {
-    background: rgba(248,113,113,.08);
-    border: 1px solid rgba(248,113,113,.3);
+    background: rgba(var(--red-rgb), .08);
+    border: 1px solid rgba(var(--red-rgb), .3);
     border-radius: var(--radius);
     padding: 12px 16px;
     font-size: 13px;
@@ -1256,7 +1261,7 @@ input[type="checkbox"] {
     transition: border-color .15s, background .15s;
 }
 input[type="checkbox"]:hover { border-color: var(--accent-mid); }
-input[type="checkbox"]:focus-visible { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(74,222,128,.25); }
+input[type="checkbox"]:focus-visible { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(var(--accent-rgb),.25); }
 input[type="checkbox"]:checked {
     background: var(--accent);
     border-color: var(--accent);

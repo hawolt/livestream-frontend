@@ -129,8 +129,8 @@
             margin: 0 0 12px;
             padding: 8px 12px;
             border-radius: 6px;
-            background: rgba(248, 113, 113, .1);
-            border: 1px solid rgba(248, 113, 113, .3);
+            background: rgba(var(--red-rgb), .1);
+            border: 1px solid rgba(var(--red-rgb), .3);
             color: var(--text);
             font-size: 12.5px;
         }
@@ -267,7 +267,7 @@
             position: absolute;
             top: 0;
             bottom: 0;
-            background: rgba(74, 222, 128, .35);
+            background: rgba(var(--accent-rgb), .35);
             pointer-events: none;
         }
         .clip-editor-page .ce-overview-viewport {
@@ -304,13 +304,13 @@
             position: absolute;
             top: 0;
             bottom: 0;
-            background: rgba(74, 222, 128, .25);
+            background: rgba(var(--accent-rgb), .25);
             border-top: 2px solid var(--accent);
             border-bottom: 2px solid var(--accent);
             box-sizing: border-box;
             cursor: grab;
         }
-        .clip-editor-page .ce-detail-selection.ce-dragging { cursor: grabbing; background: rgba(74, 222, 128, .35); }
+        .clip-editor-page .ce-detail-selection.ce-dragging { cursor: grabbing; background: rgba(var(--accent-rgb), .35); }
         .clip-editor-page .ce-detail-handle {
             position: absolute;
             top: 0;
@@ -334,7 +334,7 @@
             background: repeating-linear-gradient(to right, rgba(0, 0, 0, .5) 0 1px, transparent 1px 3px);
         }
         .clip-editor-page .ce-detail-handle:hover { filter: brightness(1.15); }
-        .clip-editor-page .ce-detail-handle.ce-dragging { filter: brightness(1.3); box-shadow: 0 0 0 3px rgba(74, 222, 128, .35); }
+        .clip-editor-page .ce-detail-handle.ce-dragging { filter: brightness(1.3); box-shadow: 0 0 0 3px rgba(var(--accent-rgb), .35); }
         .clip-editor-page .ce-handle-tooltip {
             position: absolute;
             bottom: calc(100% + 8px);
@@ -453,12 +453,12 @@
             border-radius: var(--radius);
         }
         .clip-editor-page .ce-result-panel-success {
-            background: rgba(74, 222, 128, .08);
-            border: 1px solid rgba(74, 222, 128, .3);
+            background: rgba(var(--accent-rgb), .08);
+            border: 1px solid rgba(var(--accent-rgb), .3);
         }
         .clip-editor-page .ce-result-panel-error {
-            background: rgba(248, 113, 113, .08);
-            border: 1px solid rgba(248, 113, 113, .3);
+            background: rgba(var(--red-rgb), .08);
+            border: 1px solid rgba(var(--red-rgb), .3);
         }
         .clip-editor-page .ce-result-heading { font-size: 15px; font-weight: 700; margin: 0; }
         .clip-editor-page .ce-result-panel-success .ce-result-heading { color: var(--accent); }

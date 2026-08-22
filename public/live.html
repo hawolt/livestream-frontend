@@ -1000,7 +1000,7 @@
         .live-chat-quote:hover { color: var(--text); border-left-color: var(--accent); }
         .live-chat-quote-arrow { opacity: .7; margin-right: 3px; }
         .live-chat-quote-who { font-weight: 700; }
-        .live-chat-msg.live-chat-mentioned { background: rgba(74,222,128,.10); border-radius: 4px; }
+        .live-chat-msg.live-chat-mentioned { background: rgba(var(--accent-rgb), .10); border-radius: 4px; }
         .live-chat-msg.live-chat-highlighted { background: rgba(251,191,36,.14); border-radius: 4px; box-shadow: inset 2px 0 0 #fbbf24; }
         .live-chat-msg.live-chat-flash { animation: liveChatFlash 1.4s ease-out; }
         .live-chat-msg.live-chat-mentioned,
@@ -1014,7 +1014,7 @@
             margin-top: 1px;
             margin-bottom: 1px;
         }
-        @keyframes liveChatFlash { 0% { background: rgba(74,222,128,.28); } 100% { background: transparent; } }
+        @keyframes liveChatFlash { 0% { background: rgba(var(--accent-rgb), .28); } 100% { background: transparent; } }
         .live-chat-mention { color: var(--accent); font-weight: 700; }
         .live-chat-deleted { color: var(--muted); font-style: italic; }
         .live-partner-badge { width: 18px; height: 18px; vertical-align: middle; margin-left: 6px; }
@@ -1076,7 +1076,7 @@
             padding: 6px 12px;
             font-size: 12px;
             color: var(--muted);
-            background: rgba(74,222,128,.08);
+            background: rgba(var(--accent-rgb), .08);
         }
         .live-chat-pin + .live-chat-pin { border-top: 1px solid var(--border); }
         .live-chat-pin-icon { flex-shrink: 0; line-height: 1.4; }
@@ -1098,7 +1098,7 @@
         .live-chat-notices[hidden] { display: none; }
         .live-chat-notice { background: rgba(255,255,255,.04); }
         .live-chat-notice + .live-chat-notice { border-top: 1px solid var(--border); }
-        .live-chat-notice-raid { background: rgba(74,222,128,.10); }
+        .live-chat-notice-raid { background: rgba(var(--accent-rgb), .10); }
         .live-chat-notice-raid b { color: var(--accent); }
         .live-chat-notice-raid-body {
             display: flex;
@@ -1251,7 +1251,7 @@
             font-family: ui-monospace, monospace;
             font-size: 11.5px;
             color: var(--accent);
-            background: rgba(74,222,128,.1);
+            background: rgba(var(--accent-rgb), .1);
             border-radius: 4px;
             padding: 2px 6px;
             white-space: nowrap;
@@ -1662,7 +1662,7 @@
             font-style: normal;
             font-size: 13px;
             color: var(--text);
-            background: rgba(74,222,128,.12);
+            background: rgba(var(--accent-rgb), .12);
             border-radius: 4px;
             padding: 4px 8px;
             margin: 2px 0;
@@ -1807,7 +1807,7 @@
             padding: 0;
         }
         .live-chat-badge-tile:hover { border-color: var(--border); }
-        .live-chat-badge-tile.active { border-color: var(--accent); background: rgba(74, 222, 128, .08); }
+        .live-chat-badge-tile.active { border-color: var(--accent); background: rgba(var(--accent-rgb), .08); }
         .live-chat-badge-tile img { width: 22px; height: 22px; display: block; }
         .live-chat-badge-none { color: var(--muted); font-size: 18px; line-height: 1; }
         .live-chat-badge-none:hover { color: var(--text); }

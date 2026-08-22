@@ -25,7 +25,8 @@
             --border: #2e2e2e;
             --text: #c8c8c8;
             --dim: #888;
-            --green: #4ade80;
+            --green-rgb: 74, 222, 128;
+            --green: rgb(var(--green-rgb));
             --yellow: #fbbf24;
             --red: #f87171;
             --radius: 6px;
@@ -69,7 +70,7 @@
             color: #fff;
             background: var(--surface);
         }
-        .status-banner.operational { border-color: rgba(74, 222, 128, .5); background: rgba(74, 222, 128, .08); color: var(--green); }
+        .status-banner.operational { border-color: rgba(var(--green-rgb), .5); background: rgba(var(--green-rgb), .08); color: var(--green); }
         .status-banner.degraded { border-color: rgba(251, 191, 36, .5); background: rgba(251, 191, 36, .08); color: var(--yellow); }
         .status-banner.down { border-color: rgba(248, 113, 113, .5); background: rgba(248, 113, 113, .08); color: var(--red); }
         .status-banner.unknown { color: var(--dim); }
@@ -180,7 +181,7 @@
             border-radius: 4px;
             padding: 2px 8px;
         }
-        .incident-chip.resolved { color: var(--green); background: rgba(74, 222, 128, .12); }
+        .incident-chip.resolved { color: var(--green); background: rgba(var(--green-rgb), .12); }
         .incident-chip.ongoing { color: var(--red); background: rgba(248, 113, 113, .12); }
         .incident-meta {
             display: flex;
@@ -232,7 +233,7 @@
             min-width: 104px;
             text-align: center;
         }
-        .svc-chip.operational { color: var(--green); background: rgba(74, 222, 128, .12); }
+        .svc-chip.operational { color: var(--green); background: rgba(var(--green-rgb), .12); }
         .svc-chip.degraded { color: var(--yellow); background: rgba(251, 191, 36, .12); }
         .svc-chip.down { color: var(--red); background: rgba(248, 113, 113, .12); }
         .svc-chip.unknown { color: var(--dim); background: rgba(136, 136, 136, .12); }
