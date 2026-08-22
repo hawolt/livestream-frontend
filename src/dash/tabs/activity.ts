@@ -4,6 +4,18 @@ import { attachTypeahead, type TypeaheadOption } from "../../typeahead.ts";
 import { esc, fmtDate, fmtTime } from "../format.ts";
 import { authFetch, getMe, token } from "../session.ts";
 import { countNewFollowerEvents, eventTypeClass, followEventKey, mergeFollowEvents, rejectEventLabel, viewerCountLabel, type FollowEvent } from "../activity-events.ts";
+import {
+    ACTIVITY_BLOCK_IDS,
+    ACTIVITY_LAYOUT_KEY,
+    DEFAULT_ACTIVITY_LAYOUT,
+    clampWeight,
+    cloneActivityLayout,
+    parseActivityLayout,
+    swapBlocks,
+    type ActivityBlockId,
+    type ActivityLayoutState,
+} from "../activity-layout.ts";
+import { shouldPreviewRun } from "../activity-preview.ts";
 
 interface RecentFollowsResponse {
     events: FollowEvent[];
@@ -32,6 +44,317 @@ let eventsDead = true;
 let activationGeneration = 0;
 let liveEvents = new Map<string, FollowEvent>();
 let recentSnapshotPending = false;
+
+let layoutState: ActivityLayoutState = cloneActivityLayout(DEFAULT_ACTIVITY_LAYOUT);
+const desktopMedia = window.matchMedia("(min-width: 901px)");
+
+const SLOT_PLACEMENT: { col: string; row: string }[] = [
+    { col: "1", row: "1 / 6" },
+    { col: "3", row: "1" },
+    { col: "3", row: "3" },
+    { col: "3", row: "5" },
+];
+const COL_MIN_PX = 280;
+const ROW_MIN_PX = 60;
+
+function isDesktopLayout(): boolean {
+    return desktopMedia.matches;
+}
+
+function blockEl(id: ActivityBlockId): HTMLElement | null {
+    return document.querySelector<HTMLElement>(`.act-block[data-block="${id}"]`);
+}
+
+function loadLayout(): void {
+    try {
+        const raw = localStorage.getItem(ACTIVITY_LAYOUT_KEY);
+        if (!raw) return;
+        const parsed = parseActivityLayout(JSON.parse(raw));
+        if (parsed) layoutState = parsed;
+    } catch {}
+}
+
+function saveLayout(): void {
+    try {
+        localStorage.setItem(ACTIVITY_LAYOUT_KEY, JSON.stringify(layoutState));
+    } catch {}
+}
+
+function applyBlockPlacement(order: ActivityBlockId[]): void {
+    order.forEach((id, i) => {
+        const el = blockEl(id);
+        const slot = SLOT_PLACEMENT[i];
+        if (!el || !slot) return;
+        el.style.gridColumn = slot.col;
+        el.style.gridRow = slot.row;
+    });
+}
+
+function applyTrackSizes(state: ActivityLayoutState): void {
+    const container = document.getElementById("act-layout");
+    if (!container) return;
+    const [wide, narrow] = state.colWeights;
+    const [r1, r2, r3] = state.rowWeights;
+    container.style.gridTemplateColumns = `minmax(${COL_MIN_PX}px, ${wide}fr) 6px minmax(320px, ${narrow}fr)`;
+    container.style.gridTemplateRows = `minmax(0, ${r1}fr) 6px minmax(0, ${r2}fr) 6px minmax(0, ${r3}fr)`;
+}
+
+function applyLayout(): void {
+    if (!isDesktopLayout()) return;
+    applyBlockPlacement(layoutState.order);
+    applyTrackSizes(layoutState);
+}
+
+function setIframesInert(inert: boolean): void {
+    const chat = document.getElementById("act-chat-iframe") as HTMLIFrameElement | null;
+    if (chat) chat.style.pointerEvents = inert ? "none" : "";
+    if (previewIframe) previewIframe.style.pointerEvents = inert ? "none" : "";
+}
+
+function clearDropTargets(): void {
+    document.querySelectorAll(".act-drop-target").forEach(el => el.classList.remove("act-drop-target"));
+}
+
+function startReorderDrag(sourceId: ActivityBlockId, startEv: PointerEvent): void {
+    const sourceEl = blockEl(sourceId);
+    if (!sourceEl) return;
+    let targetId: ActivityBlockId | null = null;
+    sourceEl.classList.add("act-dragging");
+    setIframesInert(true);
+    document.body.style.userSelect = "none";
+
+    const findTarget = (x: number, y: number): ActivityBlockId | null => {
+        for (const id of ACTIVITY_BLOCK_IDS) {
+            if (id === sourceId) continue;
+            const el = blockEl(id);
+            if (!el) continue;
+            const rect = el.getBoundingClientRect();
+            if (x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom) return id;
+        }
+        return null;
+    };
+
+    const onMove = (ev: PointerEvent): void => {
+        clearDropTargets();
+        targetId = findTarget(ev.clientX, ev.clientY);
+        if (targetId) blockEl(targetId)?.classList.add("act-drop-target");
+    };
+
+    const finish = (): void => {
+        document.removeEventListener("pointermove", onMove);
+        document.removeEventListener("pointerup", finish);
+        document.removeEventListener("pointercancel", finish);
+        sourceEl.classList.remove("act-dragging");
+        clearDropTargets();
+        setIframesInert(false);
+        document.body.style.userSelect = "";
+        if (targetId && targetId !== sourceId) {
+            layoutState.order = swapBlocks(layoutState.order, sourceId, targetId);
+            applyBlockPlacement(layoutState.order);
+            saveLayout();
+        }
+    };
+
+    document.addEventListener("pointermove", onMove);
+    document.addEventListener("pointerup", finish);
+    document.addEventListener("pointercancel", finish);
+}
+
+function wireReorderDrag(): void {
+    document.querySelectorAll<HTMLElement>(".act-drag-handle, .act-block-handle").forEach(handle => {
+        handle.addEventListener("pointerdown", (ev) => {
+            if (!isDesktopLayout() || ev.button !== 0) return;
+            const sourceId = handle.dataset["block"] as ActivityBlockId | undefined;
+            if (!sourceId) return;
+            ev.preventDefault();
+            startReorderDrag(sourceId, ev);
+        });
+    });
+}
+
+function trackPixelSizes(value: string): number[] {
+    return value.trim().split(/\s+/).filter(Boolean).map(v => parseFloat(v));
+}
+
+function beginColResize(startEv: PointerEvent): void {
+    const container = document.getElementById("act-layout");
+    if (!container) return;
+    const cols = trackPixelSizes(getComputedStyle(container).gridTemplateColumns);
+    const startWide = cols[0] ?? 0;
+    const startNarrow = cols[2] ?? 0;
+    const total = startWide + startNarrow;
+    if (total <= COL_MIN_PX * 2) return;
+    const startX = startEv.clientX;
+    setIframesInert(true);
+    document.body.style.userSelect = "none";
+
+    function onMove(ev: PointerEvent): void {
+        const dx = ev.clientX - startX;
+        const newWide = Math.min(total - COL_MIN_PX, Math.max(COL_MIN_PX, startWide + dx));
+        const newNarrow = total - newWide;
+        layoutState.colWeights = [clampWeight(newWide), clampWeight(newNarrow)];
+        applyTrackSizes(layoutState);
+    }
+
+    function finish(): void {
+        document.removeEventListener("pointermove", onMove);
+        document.removeEventListener("pointerup", finish);
+        document.removeEventListener("pointercancel", finish);
+        setIframesInert(false);
+        document.body.style.userSelect = "";
+        saveLayout();
+    }
+
+    document.addEventListener("pointermove", onMove);
+    document.addEventListener("pointerup", finish);
+    document.addEventListener("pointercancel", finish);
+}
+
+function beginRowResize(startEv: PointerEvent, indexA: 0 | 1 | 2, indexB: 0 | 1 | 2): void {
+    const container = document.getElementById("act-layout");
+    if (!container) return;
+    const rows = trackPixelSizes(getComputedStyle(container).gridTemplateRows);
+    const rowTrackIndex = [0, 2, 4];
+    const startA = rows[rowTrackIndex[indexA]!] ?? 0;
+    const startB = rows[rowTrackIndex[indexB]!] ?? 0;
+    const total = startA + startB;
+    if (total <= ROW_MIN_PX * 2) return;
+    const startY = startEv.clientY;
+    setIframesInert(true);
+    document.body.style.userSelect = "none";
+
+    function onMove(ev: PointerEvent): void {
+        const dy = ev.clientY - startY;
+        const newA = Math.min(total - ROW_MIN_PX, Math.max(ROW_MIN_PX, startA + dy));
+        const newB = total - newA;
+        const weights = layoutState.rowWeights.slice() as [number, number, number];
+        weights[indexA] = clampWeight(newA);
+        weights[indexB] = clampWeight(newB);
+        layoutState.rowWeights = weights;
+        applyTrackSizes(layoutState);
+    }
+
+    function finish(): void {
+        document.removeEventListener("pointermove", onMove);
+        document.removeEventListener("pointerup", finish);
+        document.removeEventListener("pointercancel", finish);
+        setIframesInert(false);
+        document.body.style.userSelect = "";
+        saveLayout();
+    }
+
+    document.addEventListener("pointermove", onMove);
+    document.addEventListener("pointerup", finish);
+    document.addEventListener("pointercancel", finish);
+}
+
+function wireResizeHandles(): void {
+    document.getElementById("act-col-handle")?.addEventListener("pointerdown", (ev) => {
+        if (!isDesktopLayout() || ev.button !== 0) return;
+        ev.preventDefault();
+        beginColResize(ev);
+    });
+    document.getElementById("act-row-handle-1")?.addEventListener("pointerdown", (ev) => {
+        if (!isDesktopLayout() || ev.button !== 0) return;
+        ev.preventDefault();
+        beginRowResize(ev, 0, 1);
+    });
+    document.getElementById("act-row-handle-2")?.addEventListener("pointerdown", (ev) => {
+        if (!isDesktopLayout() || ev.button !== 0) return;
+        ev.preventDefault();
+        beginRowResize(ev, 1, 2);
+    });
+}
+
+function wireLayout(): void {
+    loadLayout();
+    wireReorderDrag();
+    wireResizeHandles();
+    applyLayout();
+    desktopMedia.addEventListener("change", applyLayout);
+    document.getElementById("act-reset-layout")?.addEventListener("click", () => {
+        layoutState = cloneActivityLayout(DEFAULT_ACTIVITY_LAYOUT);
+        saveLayout();
+        applyLayout();
+    });
+}
+
+let previewOn = false;
+let previewIframe: HTMLIFrameElement | null = null;
+let previewObserver: IntersectionObserver | null = null;
+let previewCardVisible = false;
+let previewSrcSet = false;
+let tabActive = false;
+
+function updatePreviewButton(): void {
+    const btn = document.getElementById("act-preview-toggle") as HTMLButtonElement | null;
+    if (!btn) return;
+    btn.disabled = !liveCache;
+    btn.textContent = previewOn ? "Stop preview" : "Live preview";
+    btn.classList.toggle("btn-primary", previewOn);
+    btn.setAttribute("aria-pressed", previewOn ? "true" : "false");
+}
+
+function syncPreviewIframe(): void {
+    if (!previewIframe) return;
+    const shouldRun = shouldPreviewRun({
+        toggledOn: previewOn,
+        tabActive,
+        documentVisible: document.visibilityState === "visible",
+        cardVisible: previewCardVisible,
+    });
+    if (shouldRun) {
+        if (!previewSrcSet) {
+            const username = getMe()?.username;
+            if (!username) return;
+            previewIframe.src = `/embed/${encodeURIComponent(username.toLowerCase())}?preview=1`;
+            previewSrcSet = true;
+        }
+    } else if (previewSrcSet) {
+        previewIframe.src = "about:blank";
+        previewSrcSet = false;
+    }
+}
+
+function observePreviewCard(): void {
+    previewObserver?.disconnect();
+    const card = blockEl("info");
+    if (!card) return;
+    previewObserver = new IntersectionObserver((entries) => {
+        previewCardVisible = entries.some(entry => entry.isIntersecting);
+        syncPreviewIframe();
+    }, { threshold: 0 });
+    previewObserver.observe(card);
+}
+
+function unobservePreviewCard(): void {
+    previewObserver?.disconnect();
+    previewObserver = null;
+    previewCardVisible = false;
+}
+
+function mountPreview(): void {
+    const el = document.getElementById("live-info-body");
+    if (!el) return;
+    el.replaceChildren();
+    const frame = document.createElement("iframe");
+    frame.title = "Your stream preview";
+    frame.style.cssText = "width:100%;aspect-ratio:16/9;border:0;display:block;background:#000";
+    frame.allow = "autoplay";
+    el.appendChild(frame);
+    previewIframe = frame;
+    previewSrcSet = false;
+    observePreviewCard();
+    syncPreviewIframe();
+}
+
+function unmountPreview(): void {
+    if (previewIframe) previewIframe.src = "about:blank";
+    previewIframe = null;
+    previewSrcSet = false;
+    unobservePreviewCard();
+    renderInfo();
+}
 
 function renderViewerChip(): void {
     const countEl = document.getElementById("act-viewer-count");
@@ -221,6 +544,7 @@ async function loadLive(generation: number): Promise<void> {
         liveCache = info;
         categoriesCache = cats.categories;
         renderInfo();
+        updatePreviewButton();
     } catch (e) {
         if (eventsDead || generation !== activationGeneration) return;
         if (el) el.textContent = String(e);
@@ -418,6 +742,15 @@ export function init(): void {
         sessionStorage.setItem(CONCEAL_KEY, concealed ? "1" : "0");
         renderViewerChip();
     });
+    document.getElementById("act-preview-toggle")?.addEventListener("click", () => {
+        previewOn = !previewOn;
+        updatePreviewButton();
+        if (previewOn) mountPreview();
+        else unmountPreview();
+    });
+    document.addEventListener("visibilitychange", syncPreviewIframe);
+    updatePreviewButton();
+    wireLayout();
     renderViewerChip();
     renderFollowerCount();
     renderEvents();
@@ -432,6 +765,8 @@ export function activate(): void {
     recentSnapshotPending = true;
     loadChat();
     eventsDead = false;
+    tabActive = true;
+    syncPreviewIframe();
     void loadRecentFollows(generation);
     void loadLive(generation);
     connectEvents(generation);
@@ -451,4 +786,10 @@ export function deactivate(): void {
     const iframe = document.getElementById("act-chat-iframe") as HTMLIFrameElement | null;
     if (iframe) iframe.src = "about:blank";
     chatLoaded = false;
+    tabActive = false;
+    if (previewIframe) {
+        previewOn = false;
+        updatePreviewButton();
+        unmountPreview();
+    }
 }

@@ -1,7 +1,6 @@
 <div id="pane-activity" class="tab-pane">
     <style>
-        #pane-activity .act-left-col,
-        #pane-activity .act-left-col .card { min-height: 0 }
+        #pane-activity .act-block .card { min-height: 0 }
         #pane-activity .section-title { margin: 8px 0 10px }
         #pane-activity .card > .section-title:first-child { margin-top: 0 }
         #pane-activity .form-grid { gap: 8px 16px }
@@ -14,33 +13,78 @@
         #pane-activity .act-ev-empty { color: var(--muted); padding: 10px 0 }
         #pane-activity #live-info-error { margin-top: 4px !important }
         #pane-activity #live-info-body > div:nth-child(2) { margin-top: 4px !important }
-        #pane-activity .act-main-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(420px, 520px); gap: 10px; align-items: stretch }
-        #pane-activity .act-right-col { display: flex; flex-direction: column; gap: 10px; min-height: 0; min-width: 0 }
-        #pane-activity .act-right-col .dash-strip { margin: 0; flex-shrink: 0 }
-        #pane-activity .act-right-col .dash-stat { flex: 1 1 0 }
-        #pane-activity #act-viewer-count { white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
-        #pane-activity .act-chat-card { flex: 1; min-height: 0; padding: 0; overflow: hidden }
-        #pane-activity .act-info-card { flex: 0 0 auto }
         #pane-activity .act-ev-type-raid { color: #c084fc; border-color: rgba(192, 132, 252, .40) }
         #pane-activity .act-ev-type-reject { color: #f87171; border-color: rgba(248, 113, 113, .40) }
         #pane-activity .act-ev-type-warn { color: #fbbf24; border-color: rgba(251, 191, 36, .40) }
         #pane-activity .act-ev-link { color: var(--accent); text-decoration: none; font-size: 12px; }
         #pane-activity.act-hide-time .act-ev-time { display: none }
         #pane-activity.act-hide-time .act-ev { grid-template-columns: 84px minmax(0, 1fr) }
+
+        #pane-activity .act-layout-tools { display: flex; justify-content: flex-end; margin-bottom: 6px }
+        #pane-activity .act-block { min-width: 0; min-height: 0 }
+        #pane-activity .act-block > .card { display: flex; flex-direction: column }
+        #pane-activity .act-block-activity #act-events-body { flex: 1; min-height: 0 }
+        #pane-activity .act-block-stats { display: flex; flex-direction: column; min-height: 0 }
+        #pane-activity .act-block-stats .dash-strip { margin: 0; flex-shrink: 0 }
+        #pane-activity .act-block-stats .dash-stat { flex: 1 1 0 }
+        #pane-activity #act-viewer-count { white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
+        #pane-activity .act-block-chat .card { padding: 0; overflow: hidden }
+        #pane-activity .act-chat-card { min-height: 0 }
+        #pane-activity .act-chat-card #act-chat-iframe { flex: 1; min-height: 0 }
+
+        #pane-activity .act-drag-handle,
+        #pane-activity .act-block-handle { display: inline-flex; align-items: center; gap: 6px; cursor: grab; touch-action: none; user-select: none }
+        #pane-activity .act-drag-handle:active,
+        #pane-activity .act-block-handle:active { cursor: grabbing }
+        #pane-activity .act-grip { flex-shrink: 0; opacity: .55 }
+        #pane-activity .act-block-handle { font-size: 10px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--dim); border-bottom: 1px solid var(--border); padding: 4px 2px 6px }
+        #pane-activity .act-block-chat .act-block-handle { padding: 8px 12px 6px }
+
+        #pane-activity .act-drop-target > .card,
+        #pane-activity .act-drop-target.act-block-stats .dash-strip { outline: 2px dashed var(--accent); outline-offset: -2px }
+        #pane-activity .act-dragging { opacity: .5 }
+
         @media (min-width: 901px) {
-            #pane-activity .act-main-row { height: calc(100dvh - 92px); min-height: 420px }
+            #pane-activity .act-main-row { display: grid; gap: 0; height: calc(100dvh - 128px); min-height: 420px }
+            #pane-activity .act-block > .card { height: 100% }
+            #pane-activity .act-block-chat { overflow: hidden }
+            #pane-activity .act-col-handle { grid-column: 2; grid-row: 1 / 6; cursor: col-resize; touch-action: none }
+            #pane-activity .act-row-handle { grid-column: 3; cursor: row-resize; touch-action: none }
+            #pane-activity #act-row-handle-1 { grid-row: 2 }
+            #pane-activity #act-row-handle-2 { grid-row: 4 }
+            #pane-activity .act-col-handle::after,
+            #pane-activity .act-row-handle::after { content: ""; display: block; background: var(--border); transition: background .15s }
+            #pane-activity .act-col-handle::after { width: 1px; height: 100%; margin: 0 auto }
+            #pane-activity .act-row-handle::after { height: 1px; width: 100%; margin: auto 0 }
+            #pane-activity .act-col-handle:hover::after,
+            #pane-activity .act-row-handle:hover::after { background: var(--accent) }
         }
         @media (max-width: 900px) {
-            #pane-activity .act-main-row { grid-template-columns: minmax(0, 1fr) }
-            #pane-activity .act-right-col { order: -1 }
+            #pane-activity .act-layout-tools { display: none }
+            #pane-activity .act-main-row { display: flex; flex-direction: column; gap: 10px; height: auto }
+            #pane-activity .act-block { grid-column: unset !important; grid-row: unset !important }
+            #pane-activity .act-col-handle, #pane-activity .act-row-handle { display: none }
+            #pane-activity .act-block-stats { order: 1 }
+            #pane-activity .act-block-info { order: 2 }
+            #pane-activity .act-block-chat { order: 3 }
+            #pane-activity .act-block-activity { order: 4 }
             #pane-activity .act-chat-card { height: min(560px, 70dvh) }
+            #pane-activity .act-drag-handle { cursor: default; pointer-events: none }
+            #pane-activity .act-drag-handle .act-grip { display: none }
+            #pane-activity .act-block-handle { display: none }
         }
     </style>
-    <div class="act-main-row">
-        <div class="act-left-col" style="display:flex;flex-direction:column;gap:10px">
-            <div class="card" style="flex:1">
+    <div class="act-layout-tools">
+        <button class="btn btn-sm" id="act-reset-layout" type="button">Reset layout</button>
+    </div>
+    <div class="act-main-row" id="act-layout">
+        <div class="act-block act-block-activity" data-block="activity">
+            <div class="card">
                 <div class="section-title" style="display:flex;align-items:center;justify-content:space-between;gap:10px">
-                    <span>Recent activity</span>
+                    <span class="act-drag-handle" data-block="activity" title="Drag to reorder">
+                        <svg class="act-grip" width="12" height="14" viewBox="0 0 24 24" fill="currentColor"><circle cx="8" cy="5" r="1.8"/><circle cx="8" cy="12" r="1.8"/><circle cx="8" cy="19" r="1.8"/><circle cx="16" cy="5" r="1.8"/><circle cx="16" cy="12" r="1.8"/><circle cx="16" cy="19" r="1.8"/></svg>
+                        <span>Recent activity</span>
+                    </span>
                     <span class="sound-pop-wrap">
                         <button class="btn btn-sm" id="act-sound-settings" type="button" title="Alert sound settings" aria-haspopup="true">
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:block"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
@@ -64,7 +108,11 @@
                 <div id="act-events-body" style="flex:1;overflow-y:auto;scrollbar-gutter:stable;padding-right:8px;min-height:0">Loading...</div>
             </div>
         </div>
-        <div class="act-right-col">
+        <div class="act-block act-block-stats" data-block="stats">
+            <div class="act-block-handle" data-block="stats" title="Drag to reorder">
+                <svg class="act-grip" width="12" height="14" viewBox="0 0 24 24" fill="currentColor"><circle cx="8" cy="5" r="1.8"/><circle cx="8" cy="12" r="1.8"/><circle cx="8" cy="19" r="1.8"/><circle cx="16" cy="5" r="1.8"/><circle cx="16" cy="12" r="1.8"/><circle cx="16" cy="19" r="1.8"/></svg>
+                <span>Stats</span>
+            </div>
             <div class="dash-strip">
                 <div class="dash-stat" id="act-viewer-chip" style="cursor:pointer;user-select:none">
                     <div class="dash-stat-label">Viewers · <span id="act-viewer-hint">Click to hide</span></div>
@@ -75,13 +123,30 @@
                     <div class="dash-stat-value" id="act-follower-count">-</div>
                 </div>
             </div>
+        </div>
+        <div class="act-block act-block-info" data-block="info">
             <div class="card act-info-card">
-                <div class="section-title">Stream info</div>
+                <div class="section-title" style="display:flex;align-items:center;justify-content:space-between;gap:10px">
+                    <span class="act-drag-handle" data-block="info" title="Drag to reorder">
+                        <svg class="act-grip" width="12" height="14" viewBox="0 0 24 24" fill="currentColor"><circle cx="8" cy="5" r="1.8"/><circle cx="8" cy="12" r="1.8"/><circle cx="8" cy="19" r="1.8"/><circle cx="16" cy="5" r="1.8"/><circle cx="16" cy="12" r="1.8"/><circle cx="16" cy="19" r="1.8"/></svg>
+                        <span>Stream info</span>
+                    </span>
+                    <button class="btn btn-sm" id="act-preview-toggle" type="button" aria-pressed="false" disabled>Live preview</button>
+                </div>
                 <div id="live-info-body" style="overflow-y:auto;min-height:0">Loading...</div>
             </div>
+        </div>
+        <div class="act-block act-block-chat" data-block="chat">
             <div class="card act-chat-card">
-                <iframe id="act-chat-iframe" title="Chat" style="width:100%;height:100%;border:0;display:block"></iframe>
+                <div class="act-block-handle" data-block="chat" title="Drag to reorder">
+                    <svg class="act-grip" width="12" height="14" viewBox="0 0 24 24" fill="currentColor"><circle cx="8" cy="5" r="1.8"/><circle cx="8" cy="12" r="1.8"/><circle cx="8" cy="19" r="1.8"/><circle cx="16" cy="5" r="1.8"/><circle cx="16" cy="12" r="1.8"/><circle cx="16" cy="19" r="1.8"/></svg>
+                    <span>Chat</span>
+                </div>
+                <iframe id="act-chat-iframe" title="Chat" style="width:100%;border:0;display:block"></iframe>
             </div>
         </div>
+        <div class="act-col-handle" id="act-col-handle"></div>
+        <div class="act-row-handle" id="act-row-handle-1"></div>
+        <div class="act-row-handle" id="act-row-handle-2"></div>
     </div>
 </div>
