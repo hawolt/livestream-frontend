@@ -1,5 +1,5 @@
 import { API_BASE } from "../api.ts";
-import { applyRedeemedBalance, viewerOwnsChannel } from "../live/points.ts";
+import { applyRedeemedBalance } from "../live/points.ts";
 import { ctx, myNickLower } from "./context.ts";
 import { inputEl } from "./dom.ts";
 import { guests } from "./members.ts";
@@ -34,8 +34,7 @@ function channelName(): string {
 
 function eligible(): boolean {
     if (!ctx.joined || !ctx.isAccount || !ctx.accountSessionToken) return false;
-    if (guests.has(myNickLower())) return false;
-    return !viewerOwnsChannel({ kind: "user", username: ctx.nick }, channelName());
+    return !guests.has(myNickLower());
 }
 
 function showRedeemError(message: string): void {
