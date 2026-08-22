@@ -4,6 +4,7 @@ import { buildSignedIn, buildSignedOut, buildViewMenu } from "./nav/account-menu
 import { buildBurger } from "./nav/burger.ts";
 import { wireDropdown } from "./nav/dropdown.ts";
 import { initStatusBanner } from "./status-banner.ts";
+import { syncAccent } from "./theme.ts";
 
 export type NavActive = "browse" | "dashboard" | null;
 
@@ -215,6 +216,7 @@ export async function initSiteNav(
     pageControls: HTMLElement[] = [],
     knownSession?: SessionInfo | null,
 ): Promise<void> {
+    syncAccent();
     markActive(active);
     insertMoreMenu();
     initStatusBanner();

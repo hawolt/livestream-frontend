@@ -2,6 +2,7 @@ import { readdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { builtName } from "./built-name.ts";
+import { renderPrePaintSnippet } from "../src/theme.ts";
 
 const publicDirectory = fileURLToPath(new URL("../public/", import.meta.url));
 const dashDirectory = join(publicDirectory, "dash");
@@ -30,12 +31,21 @@ const pages = (await readdir(publicDirectory, { withFileTypes: true }))
     .filter(item => item.isFile() && item.name.endsWith(".html"))
     .map(item => join(publicDirectory, item.name));
 
+const themeSnippetPattern = /<script>try\{.*?site_accent.*?\}catch\(e\)\{\}<\/script>/;
+const themeSnippet = renderPrePaintSnippet();
+
 let touched = 0;
+let rethemed = 0;
 for (const page of pages) {
     const original = await readFile(page, "utf8");
     let next = original;
     for (const { prefix, entry, file } of resolved) {
         next = rewrite(next, prefix, entry, file);
+    }
+    if (themeSnippetPattern.test(next)) {
+        const withSnippet = next.replace(themeSnippetPattern, themeSnippet);
+        if (withSnippet !== next) rethemed += 1;
+        next = withSnippet;
     }
     if (next !== original) {
         await writeFile(page, next);
@@ -57,4 +67,4 @@ if (missing.length) {
     throw new Error(`html references a bundle that was not built:\n  ${missing.join("\n  ")}`);
 }
 
-console.log(`linked ${resolved.length} entr${resolved.length === 1 ? "y" : "ies"}, rewrote ${touched} page(s)`);
+console.log(`linked ${resolved.length} entr${resolved.length === 1 ? "y" : "ies"}, rewrote ${touched} page(s), rethemed ${rethemed} page(s)`);

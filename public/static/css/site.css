@@ -294,7 +294,7 @@
     transition: transform .15s;
 }
 .site-burger-section.open .site-burger-chevron { transform: rotate(45deg); }
-.site-burger-group-list { display: none; flex-direction: column; padding-bottom: 4px; }
+.site-burger-group-list { display: none; flex-direction: column; padding-bottom: 4px; max-height: 260px; overflow-y: auto; }
 .site-burger-section.open .site-burger-group-list { display: flex; }
 .site-account-item.active {
     color: var(--accent);

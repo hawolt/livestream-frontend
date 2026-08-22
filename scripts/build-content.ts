@@ -2,6 +2,7 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { builtName } from "./built-name.ts";
+import { renderPrePaintSnippet } from "../src/theme.ts";
 import {
     CONTENT_PAGES,
     CONTENT_SECTIONS,
@@ -102,7 +103,7 @@ function head(title: string, description: string, canonical: string, jsonLd: str
     <meta name="twitter:image" content="${SOCIAL_IMAGE}" />
     <link rel="preload" href="/fonts/inter-latin.woff2" as="font" type="font/woff2" crossorigin />
     <link rel="stylesheet" href="/static/css/shared.css" />
-    <script>try{var a=localStorage.getItem("site_accent");if(a&&a!=="malachite"){document.documentElement.setAttribute("data-accent",a);var m={beacon:["/static/img/favicon-beacon.png","/static/img/icon-beacon.png"]}[a];if(m){var i=document.querySelector('link[rel="icon"]');if(i)i.href=m[0];var t=document.querySelector('link[rel="apple-touch-icon"]');if(t)t.href=m[1]}}}catch(e){}</script>
+    ${renderPrePaintSnippet()}
     <link rel="stylesheet" href="/static/css/site.css" />
     <link rel="stylesheet" href="/static/css/content.css" />
     <script type="application/ld+json">${escapeJsonLd(jsonLd)}</script>

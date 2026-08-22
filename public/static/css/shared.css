@@ -61,11 +61,95 @@
     --font-mono:   "JetBrains Mono", monospace;
 }
 
+:root[data-accent="verdigris"] {
+    --accent-rgb:  20, 224, 200;
+    --accent-mid:  #0e9e8d;
+    --accent-pale: #0e2220;
+    --accent-light: #52e9d7;
+}
+
+:root[data-accent="lagoon"] {
+    --accent-rgb:  34, 211, 238;
+    --accent-mid:  #0ea4ba;
+    --accent-pale: #0f2124;
+    --accent-light: #69ddee;
+}
+
+:root[data-accent="aquamarine"] {
+    --accent-rgb:  103, 232, 249;
+    --accent-mid:  #22def6;
+    --accent-pale: #162325;
+    --accent-light: #aef0f9;
+}
+
 :root[data-accent="beacon"] {
     --accent-rgb:  56, 189, 248;
     --accent-mid:  #089ee1;
     --accent-pale: #111f25;
     --accent-light: #7dd3fc;
+}
+
+:root[data-accent="glacier"] {
+    --accent-rgb:  125, 211, 252;
+    --accent-mid:  #37bbfa;
+    --accent-pale: #182125;
+    --accent-light: #c5eafc;
+}
+
+:root[data-accent="azurite"] {
+    --accent-rgb:  96, 165, 250;
+    --accent-mid:  #1b7ef8;
+    --accent-pale: #151c25;
+    --accent-light: #a8ccf9;
+}
+
+:root[data-accent="cornflower"] {
+    --accent-rgb:  123, 160, 255;
+    --accent-mid:  #346dff;
+    --accent-pale: #181c25;
+    --accent-light: #c4d4fd;
+}
+
+:root[data-accent="iris"] {
+    --accent-rgb:  165, 180, 252;
+    --accent-mid:  #607afa;
+    --accent-pale: #1c1e25;
+    --accent-light: #ebeefe;
+}
+
+:root[data-accent="amethyst"] {
+    --accent-rgb:  167, 139, 250;
+    --accent-mid:  #7347f7;
+    --accent-pale: #1c1a25;
+    --accent-light: #dcd1fb;
+}
+
+:root[data-accent="wisteria"] {
+    --accent-rgb:  196, 181, 253;
+    --accent-mid:  #8d6ffb;
+    --accent-pale: #1f1e25;
+    --accent-light: #f0ecfe;
+}
+
+:root[data-accent="orchid"] {
+    --accent-rgb:  232, 121, 249;
+    --accent-mid:  #dc35f6;
+    --accent-pale: #231825;
+    --accent-light: #f2bffa;
+}
+
+:root[data-accent="fuchsite"] {
+    --accent-rgb:  240, 171, 252;
+    --accent-mid:  #e466fa;
+    --accent-pale: #241d25;
+    --accent-light: #fbecfe;
+}
+
+:root[data-accent="moonstone"] {
+    --accent-rgb:  203, 213, 225;
+    --accent-mid:  #9eb0c7;
+    --accent-pale: #202122;
+    --accent-light: #f3f5f7;
 }
 
 html.live-host { --font-ui: "Inter", sans-serif; }
