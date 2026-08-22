@@ -36,7 +36,7 @@ document.getElementById("forgot-form")!.addEventListener("submit", async (e) => 
             body: JSON.stringify({ email }),
         });
         msg.textContent = "If that email is registered you will receive a reset link shortly.";
-        msg.style.color = "var(--green)";
+        msg.style.color = "var(--success)";
     } catch {
         msg.textContent = "Network error, please try again.";
         msg.style.color = "var(--red)";

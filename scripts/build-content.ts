@@ -102,14 +102,14 @@ function head(title: string, description: string, canonical: string, jsonLd: str
     <meta name="twitter:image" content="${SOCIAL_IMAGE}" />
     <link rel="preload" href="/fonts/inter-latin.woff2" as="font" type="font/woff2" crossorigin />
     <link rel="stylesheet" href="/static/css/shared.css" />
-    <script>try{var a=localStorage.getItem("site_accent");if(a&&a!=="malachite")document.documentElement.setAttribute("data-accent",a)}catch(e){}</script>
+    <script>try{var a=localStorage.getItem("site_accent");if(a&&a!=="malachite"){document.documentElement.setAttribute("data-accent",a);var m={beacon:["/static/img/favicon-beacon.png","/static/img/icon-beacon.png"]}[a];if(m){var i=document.querySelector('link[rel="icon"]');if(i)i.href=m[0];var t=document.querySelector('link[rel="apple-touch-icon"]');if(t)t.href=m[1]}}}catch(e){}</script>
     <link rel="stylesheet" href="/static/css/site.css" />
     <link rel="stylesheet" href="/static/css/content.css" />
     <script type="application/ld+json">${escapeJsonLd(jsonLd)}</script>
 </head>
 <body>
 <header class="site-nav">
-    <a class="site-brand" href="/" aria-label="ITZON"><img class="brand-o" src="/static/img/brand-o.png" alt=""><span class="brand-wm">ITZON</span></a>
+    <a class="site-brand" href="/" aria-label="ITZON"><svg class="brand-o" viewBox="0 0 64 64" aria-hidden="true"><rect x="4" y="4" width="56" height="56" rx="14" fill="currentColor"/><path d="M24 18 L44 32 L24 46 Z" fill="var(--bg)"/></svg><span class="brand-wm">ITZON</span></a>
     <nav class="site-links">
         <a class="site-link" href="/" data-nav="browse">Browse</a>
     </nav>

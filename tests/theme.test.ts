@@ -1,13 +1,31 @@
 import { expect, test } from "bun:test";
-import { ACCENT_THEMES, DEFAULT_ACCENT, accentLabel, normalizeAccent } from "../src/theme.ts";
+import { ACCENT_THEMES, DEFAULT_ACCENT, accentIcons, accentLabel, normalizeAccent } from "../src/theme.ts";
 
-test("every theme has a distinct id, a label and a hex swatch", () => {
+test("every theme has a distinct id, a label, a hex swatch and its own icons", () => {
     const ids = new Set(ACCENT_THEMES.map(t => t.id));
     expect(ids.size).toBe(ACCENT_THEMES.length);
+    const favicons = new Set(ACCENT_THEMES.map(t => t.favicon));
+    const touchIcons = new Set(ACCENT_THEMES.map(t => t.touchIcon));
+    expect(favicons.size).toBe(ACCENT_THEMES.length);
+    expect(touchIcons.size).toBe(ACCENT_THEMES.length);
     for (const theme of ACCENT_THEMES) {
         expect(theme.label.length).toBeGreaterThan(0);
         expect(theme.swatch).toMatch(/^#[0-9a-f]{6}$/);
+        expect(theme.favicon).toMatch(/^\/static\/img\/.+\.png$/);
+        expect(theme.touchIcon).toMatch(/^\/static\/img\/.+\.png$/);
     }
+});
+
+test("the default theme keeps the original icon filenames", () => {
+    const theme = ACCENT_THEMES.find(t => t.id === DEFAULT_ACCENT)!;
+    expect(theme.favicon).toBe("/static/img/favicon.png");
+    expect(theme.touchIcon).toBe("/static/img/icon.png");
+});
+
+test("accentIcons resolves the icon pair for known ids and falls back for unknown ones", () => {
+    expect(accentIcons("beacon")).toEqual({ favicon: "/static/img/favicon-beacon.png", touchIcon: "/static/img/icon-beacon.png" });
+    expect(accentIcons("malachite")).toEqual({ favicon: "/static/img/favicon.png", touchIcon: "/static/img/icon.png" });
+    expect(accentIcons("nonsense")).toEqual(accentIcons(DEFAULT_ACCENT));
 });
 
 test("the default accent is one of the defined themes", () => {

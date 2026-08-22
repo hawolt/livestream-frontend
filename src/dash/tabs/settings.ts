@@ -602,7 +602,7 @@ export function init(pane: HTMLElement): void {
             await authFetch("/api/auth/resend-verification", { method: "POST", body: "{}" });
             if (!isCurrentOperation(operation)) return;
             result.textContent = "Verification email sent, check your inbox.";
-            result.style.color = "var(--green)";
+            result.style.color = "var(--success)";
         } catch (e) {
             if (!isCurrentOperation(operation)) return;
             const msg = e instanceof Error ? e.message : String(e);

@@ -17,6 +17,10 @@ export function viewersIcon(): string {
     return `<svg viewBox="0 0 24 24"><circle cx="12" cy="7.2" r="4.2"/><path d="M12 13.4c-4.8 0-8 2.6-8 6.6h16c0-4-3.2-6.6-8-6.6z"/></svg>`;
 }
 
+export function partnerBadgeIcon(): string {
+    return `<svg viewBox="0 0 32 32" width="14" height="14" role="img" aria-label="Partner"><g transform="rotate(45 16 16)"><rect x="4.7" y="4.7" width="22.6" height="22.6" rx="6" fill="var(--accent)"/></g><rect x="4.7" y="4.7" width="22.6" height="22.6" rx="6" fill="var(--accent)"/><path d="M10.4 16.7 L14.3 20.6 L21.7 12" stroke="var(--bg)" stroke-width="3.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+}
+
 const streamCards = new Map<string, StreamCard>();
 
 export function updateStreamThumbnail(card: StreamCard, s: ExploreStream): void {
@@ -39,7 +43,7 @@ function updateStreamCard(card: StreamCard, s: ExploreStream): void {
         title.textContent = text;
         title.setAttribute("title", text);
     }
-    const partnerBadge = card.link.querySelector<HTMLImageElement>(".explore-card-partner-badge");
+    const partnerBadge = card.link.querySelector<HTMLElement>(".explore-card-partner-badge");
     if (partnerBadge) partnerBadge.hidden = !s.partner;
     card.image.alt = s.category
         ? `${s.username} streaming ${s.category} live`
@@ -79,10 +83,9 @@ function buildStreamCard(s: ExploreStream): StreamCard {
     const username = document.createElement("div");
     username.className = "explore-card-username";
     username.textContent = s.username;
-    const partnerBadge = document.createElement("img");
+    const partnerBadge = document.createElement("span");
     partnerBadge.className = "explore-card-partner-badge";
-    partnerBadge.src = "/static/img/badge-partner.svg";
-    partnerBadge.alt = "Partner";
+    partnerBadge.innerHTML = partnerBadgeIcon();
     partnerBadge.title = "Partner";
     partnerBadge.hidden = true;
     const name = document.createElement("div");

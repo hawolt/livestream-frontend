@@ -48,7 +48,7 @@ function dashboardUrl(kind?: string): string {
         if (res.ok && data.ok) {
             const dashboard = dashboardUrl(data.kind);
             msgEl.textContent = "Your email has been verified. Continue to your dashboard.";
-            msgEl.style.color = "var(--green)";
+            msgEl.style.color = "var(--success)";
             actionEl.innerHTML = `<a href="${dashboard}" class="btn-go-login">Continue</a>`;
             actionEl.style.display = "";
             setTimeout(() => { location.href = dashboard; }, 2500);
