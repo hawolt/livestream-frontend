@@ -13,8 +13,12 @@ describe("memberSince", () => {
 });
 
 describe("followingSinceLabel", () => {
-    test("formats a timestamp as month and year", () => {
-        expect(followingSinceLabel(Date.UTC(2024, 2, 15))).toBe("Following since Mar 2024");
+    test("formats a timestamp as a full day, month and year", () => {
+        expect(followingSinceLabel(new Date(2024, 2, 15).getTime())).toBe("Following since Mar 15, 2024");
+    });
+
+    test("keeps the day unpadded on single digit dates", () => {
+        expect(followingSinceLabel(new Date(2024, 11, 3).getTime())).toBe("Following since Dec 3, 2024");
     });
 
     test("returns empty for null", () => {

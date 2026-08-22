@@ -47,6 +47,10 @@ function monthYear(timestamp: number): string {
     return new Date(timestamp).toLocaleString("en", { month: "short", year: "numeric" });
 }
 
+function fullDate(timestamp: number): string {
+    return new Date(timestamp).toLocaleString("en", { day: "numeric", month: "short", year: "numeric" });
+}
+
 export function memberSince(createdAt: number | null): string {
     if (!createdAt) return "";
     return `Member since ${monthYear(createdAt)}`;
@@ -54,7 +58,7 @@ export function memberSince(createdAt: number | null): string {
 
 export function followingSinceLabel(followingSince: number | null): string {
     if (!followingSince || !Number.isFinite(followingSince)) return "";
-    return `Following since ${monthYear(followingSince)}`;
+    return `Following since ${fullDate(followingSince)}`;
 }
 
 export function openUserCard(username: string, anchor: DOMRect): void {
