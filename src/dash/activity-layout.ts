@@ -16,7 +16,7 @@ const FIT_EPSILON = 0.5;
 export const DEFAULT_ACTIVITY_LAYOUT: ActivityLayoutState = {
     order: ["chat", "stats", "info", "activity"],
     colSizes: [820, 380],
-    rowSizes: [160, 290, 460],
+    rowSizes: [126, 330, 388],
 };
 
 export const HANDLE_PX = 10;

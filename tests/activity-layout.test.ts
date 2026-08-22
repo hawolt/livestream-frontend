@@ -4,6 +4,7 @@ import {
     BLOCK_MIN_HEIGHT,
     BLOCK_MIN_WIDTH,
     DEFAULT_ACTIVITY_LAYOUT,
+    HANDLE_PX,
     colMinsFor,
     dragAdjustCols,
     dragAdjustPair,
@@ -131,6 +132,15 @@ test("apply is idempotent through the row size wrapper with the shipped default 
     const second = fitRowSizes(first, order, total);
     expect(second).toEqual(first);
     expect(fitRowSizes(second, order, total)).toEqual(first);
+});
+
+test("the default rows land untouched on a 1080p viewport and leave stream info room to finish", () => {
+    const order: ActivityBlockId[] = ["chat", "stats", "info", "activity"];
+    const total = 864 - HANDLE_PX * 2;
+    const [stats, info, activity] = fitRowSizes(DEFAULT_ACTIVITY_LAYOUT.rowSizes, order, total);
+    expect([stats, info, activity]).toEqual(DEFAULT_ACTIVITY_LAYOUT.rowSizes);
+    expect(stats).toBeLessThan(150);
+    expect(info).toBeGreaterThanOrEqual(315);
 });
 
 test("apply is idempotent through the col size wrapper with the shipped default order", () => {
