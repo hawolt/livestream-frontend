@@ -43,10 +43,18 @@ function wireDismiss(card: HTMLElement): void {
     }, 0);
 }
 
-function memberSince(createdAt: number | null): string {
+function monthYear(timestamp: number): string {
+    return new Date(timestamp).toLocaleString("en", { month: "short", year: "numeric" });
+}
+
+export function memberSince(createdAt: number | null): string {
     if (!createdAt) return "";
-    const date = new Date(createdAt);
-    return `Member since ${date.toLocaleString("en", { month: "short", year: "numeric" })}`;
+    return `Member since ${monthYear(createdAt)}`;
+}
+
+export function followingSinceLabel(followingSince: number | null): string {
+    if (!followingSince || !Number.isFinite(followingSince)) return "";
+    return `Following since ${monthYear(followingSince)}`;
 }
 
 export function openUserCard(username: string, anchor: DOMRect): void {
@@ -126,7 +134,7 @@ export function openUserCard(username: string, anchor: DOMRect): void {
     wireDismiss(card);
     cardEl = card;
 
-    void loadProfile(username).then(profile => {
+    void loadProfile(username, ctx.channel.replace(/^#/, "")).then(profile => {
         if (token !== cardToken || cardEl !== card) return;
         if (!profile) {
             meta.textContent = "Guest viewer";
@@ -141,13 +149,20 @@ export function openUserCard(username: string, anchor: DOMRect): void {
             img.addEventListener("error", () => img.replaceWith(fallback));
             fallback.replaceWith(img);
         }
-        const parts: string[] = [];
-        const since = memberSince(profile.createdAt);
-        if (since) parts.push(since);
+        meta.textContent = memberSince(profile.createdAt) || " ";
         if (profile.streamer) {
-            parts.push(profile.followers === 1 ? "1 follower" : `${profile.followers} followers`);
+            const followers = document.createElement("div");
+            followers.className = "live-user-card-meta";
+            followers.textContent = profile.followers === 1 ? "1 follower" : `${profile.followers} followers`;
+            id.appendChild(followers);
         }
-        meta.textContent = parts.join(" · ") || " ";
+        const followingLabel = followingSinceLabel(profile.followingSince);
+        if (followingLabel) {
+            const following = document.createElement("div");
+            following.className = "live-user-card-meta";
+            following.textContent = followingLabel;
+            id.appendChild(following);
+        }
         if (profile.badges.length) {
             const shelf = document.createElement("div");
             shelf.className = "live-user-card-badges";

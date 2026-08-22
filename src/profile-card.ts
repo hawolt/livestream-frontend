@@ -23,6 +23,7 @@ export interface Profile {
     badges: string[];
     streamer: boolean;
     createdAt: number | null;
+    followingSince: number | null;
 }
 
 function isHttpsUrl(url: string): boolean {
@@ -47,10 +48,11 @@ function parseLinks(raw: unknown): ProfileLink[] {
     return out;
 }
 
-export async function loadProfile(username: string): Promise<Profile | null> {
+export async function loadProfile(username: string, channel?: string): Promise<Profile | null> {
     if (!username) return null;
     try {
-        const res = await fetch(`/api/live/profile/${encodeURIComponent(username)}`);
+        const query = channel ? `?channel=${encodeURIComponent(channel)}` : "";
+        const res = await fetch(`/api/live/profile/${encodeURIComponent(username)}${query}`);
         if (!res.ok) return null;
         const data = await res.json() as Record<string, unknown>;
         if (typeof data.username !== "string" || !data.username) return null;
@@ -67,6 +69,8 @@ export async function loadProfile(username: string): Promise<Profile | null> {
             badges: Array.isArray(data.badges) ? data.badges.filter((b): b is string => typeof b === "string") : [],
             streamer: data.streamer === true,
             createdAt: typeof data.createdAt === "number" ? data.createdAt : null,
+            followingSince: typeof data.followingSince === "number" && Number.isFinite(data.followingSince)
+                ? data.followingSince : null,
         };
     } catch {
         return null;
