@@ -226,7 +226,7 @@ a.explore-card:hover, a.explore-card:hover * { text-decoration: none; }
 }
 
 .explore-card-username {
-    flex: 1;
+    flex: 0 1 auto;
     min-width: 0;
     font-size: 15px;
     line-height: 1.4;
