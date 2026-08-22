@@ -226,9 +226,10 @@ export function addHiddenMessage(from: string, text: string, userId?: string, av
     append(line);
 }
 
-export function addWhisper(from: string, target: string, text: string, userId?: string, avatar?: string): void {
+export function addWhisper(from: string, target: string, text: string, sentAt?: string, userId?: string, avatar?: string): void {
     const line = document.createElement("div");
     line.className = "live-chat-msg live-chat-whisper";
+    line.appendChild(buildTimeSpan(sentAt));
     line.appendChild(buildAvatar(from, userId, avatar));
     const tag = document.createElement("span");
     tag.className = "live-chat-whisper-tag";

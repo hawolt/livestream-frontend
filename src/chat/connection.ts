@@ -303,7 +303,7 @@ function handle(line: IrcLine): void {
                     addMessage(line.nick, body, line.msgid, line.reply, line.time, line.userId, line.avatar, line.highlight);
                 }
             } else {
-                addWhisper(line.nick, target, body, line.userId, line.avatar);
+                addWhisper(line.nick, target, body, line.time, line.userId, line.avatar);
             }
             return;
         }
