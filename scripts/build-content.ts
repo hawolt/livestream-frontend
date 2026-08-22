@@ -102,6 +102,7 @@ function head(title: string, description: string, canonical: string, jsonLd: str
     <meta name="twitter:image" content="${SOCIAL_IMAGE}" />
     <link rel="preload" href="/fonts/inter-latin.woff2" as="font" type="font/woff2" crossorigin />
     <link rel="stylesheet" href="/static/css/shared.css" />
+    <script>try{var a=localStorage.getItem("site_accent");if(a&&a!=="malachite")document.documentElement.setAttribute("data-accent",a)}catch(e){}</script>
     <link rel="stylesheet" href="/static/css/site.css" />
     <link rel="stylesheet" href="/static/css/content.css" />
     <script type="application/ld+json">${escapeJsonLd(jsonLd)}</script>

@@ -251,6 +251,6 @@ export async function initSiteNav(
     right.appendChild(signedIn
         ? buildSignedIn(info as SessionInfo, controlButtons)
         : buildSignedOut());
-    if (!signedIn && controlButtons.length) right.appendChild(buildViewMenu(controlButtons));
+    if (!signedIn) right.appendChild(buildViewMenu(controlButtons));
     right.appendChild(buildBurger(signedIn ? (info as SessionInfo) : null, pageControls));
 }

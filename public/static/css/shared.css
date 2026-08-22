@@ -60,6 +60,12 @@
     --font-mono:   "JetBrains Mono", monospace;
 }
 
+:root[data-accent="beacon"] {
+    --accent-rgb:  56, 189, 248;
+    --accent-mid:  #089ee1;
+    --accent-pale: #111f25;
+}
+
 html.live-host { --font-ui: "Inter", sans-serif; }
 
 html {
