@@ -2,7 +2,7 @@ import { BAN_RETRY_MS, RETRY_MS, colors, ctx, knownMembers, msgsEl, partners, ro
 import type { Role } from "./context.ts";
 import type { IrcLine } from "./irc.ts";
 import { parse } from "./irc.ts";
-import { addMessage, addSystemMessage } from "./render.ts";
+import { addMessage, addSystemMessage, type BadgeSnapshot } from "./render.ts";
 import { sanitizeSubscriberBadgeName } from "../chat/badges.ts";
 
 const NAMES_REFRESH_DELAY_MS = 750;
@@ -72,6 +72,19 @@ function applyNamesList(names: string): void {
     }
 }
 
+function applyMemberMeta(who: string, line: IrcLine): void {
+    const key = who.toLowerCase();
+    if (line.subBadge) {
+        subscribers.add(key);
+        subscriberBadges.set(key, sanitizeSubscriberBadgeName(line.subBadge));
+    }
+    if (line.partner) partners.add(key);
+}
+
+function badgeSnapshotFrom(line: IrcLine): BadgeSnapshot {
+    return { role: line.role, vip: line.vip, partner: line.partner, subBadge: line.subBadge, unverified: line.unverified };
+}
+
 function enterBanned(): void {
     ctx.banRetry = true;
     ctx.joined = false;
@@ -106,6 +119,7 @@ function handle(line: IrcLine): void {
             return;
         case "JOIN": {
             const joiner = line.nick;
+            applyMemberMeta(joiner, line);
             const firstOwnJoin = joiner.toLowerCase() === ctx.nick.toLowerCase() && !ctx.joined;
             if (firstOwnJoin) ctx.joined = true;
             const key = joiner.toLowerCase();
@@ -140,10 +154,20 @@ function handle(line: IrcLine): void {
             if (target.toLowerCase() === ctx.nick.toLowerCase()) enterBanned();
             return;
         }
+        case "META": {
+            if (line.params[0]?.toLowerCase() !== ctx.channel) return;
+            const who = line.params[1];
+            if (!who) return;
+            applyMemberMeta(who, line);
+            return;
+        }
         case "SUBBADGE": {
             if (line.params[0]?.toLowerCase() !== ctx.channel) return;
             const who = line.params[1];
-            if (who) subscriberBadges.set(who.toLowerCase(), sanitizeSubscriberBadgeName(line.params[2]));
+            if (!who) return;
+            const key = who.toLowerCase();
+            subscribers.add(key);
+            subscriberBadges.set(key, sanitizeSubscriberBadgeName(line.params[2]));
             return;
         }
         case "PARTNER": {
@@ -169,13 +193,15 @@ function handle(line: IrcLine): void {
                 else colors.delete(key);
             }
             if (line.subBadge !== undefined && line.nick) {
-                subscriberBadges.set(line.nick.toLowerCase(), sanitizeSubscriberBadgeName(line.subBadge));
+                const key = line.nick.toLowerCase();
+                subscribers.add(key);
+                subscriberBadges.set(key, sanitizeSubscriberBadgeName(line.subBadge));
             }
             if (line.partner && line.nick) {
                 partners.add(line.nick.toLowerCase());
             }
             if (line.params[0]?.toLowerCase() === ctx.channel && line.params[1]) {
-                addMessage(line.nick, line.params[1], line.msgid);
+                addMessage(line.nick, line.params[1], line.msgid, badgeSnapshotFrom(line));
             }
             return;
         case "474":

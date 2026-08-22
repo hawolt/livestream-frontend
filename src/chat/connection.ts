@@ -4,6 +4,7 @@ import { readLocalStorage, removeLocalStorage, writeLocalStorage } from "../stor
 import { ctx, emotes } from "./context.ts";
 import { updateComposer } from "./composer.ts";
 import { parse, type IrcLine } from "./irc.ts";
+import type { BadgeSnapshot } from "./badges.ts";
 import {
     addHiddenMessage,
     addMessage,
@@ -167,6 +168,10 @@ export function enterBanned(): void {
     ctx.sock?.close();
 }
 
+function badgeSnapshotFrom(line: IrcLine): BadgeSnapshot {
+    return { role: line.role, vip: line.vip, partner: line.partner, subBadge: line.subBadge, unverified: line.unverified };
+}
+
 function applyMemberMeta(who: string, line: IrcLine): void {
     const key = who.toLowerCase();
     if (line.subBadge) {
@@ -289,7 +294,9 @@ function handle(line: IrcLine): void {
                 else colors.delete(key);
             }
             if (line.subBadge !== undefined && line.nick) {
-                subscriberBadges.set(line.nick.toLowerCase(), sanitizeSubscriberBadgeName(line.subBadge));
+                const key = line.nick.toLowerCase();
+                subscribers.add(key);
+                subscriberBadges.set(key, sanitizeSubscriberBadgeName(line.subBadge));
             }
             if (line.partner && line.nick) {
                 partners.add(line.nick.toLowerCase());
@@ -300,7 +307,7 @@ function handle(line: IrcLine): void {
                         addHiddenMessage(line.nick, body, line.userId, line.avatar);
                     }
                 } else {
-                    addMessage(line.nick, body, line.msgid, line.reply, line.time, line.userId, line.avatar, line.highlight);
+                    addMessage(line.nick, body, line.msgid, line.reply, line.time, line.userId, line.avatar, line.highlight, badgeSnapshotFrom(line));
                 }
             } else {
                 addWhisper(line.nick, target, body, line.time, line.userId, line.avatar);
@@ -319,7 +326,9 @@ function handle(line: IrcLine): void {
             if (line.params[0]?.toLowerCase() !== ctx.channel) return;
             const who = line.params[1];
             if (!who) return;
-            subscriberBadges.set(who.toLowerCase(), sanitizeSubscriberBadgeName(line.params[2]));
+            const key = who.toLowerCase();
+            subscribers.add(key);
+            subscriberBadges.set(key, sanitizeSubscriberBadgeName(line.params[2]));
             if (ctx.userlistOpen) renderUserlist();
             return;
         }

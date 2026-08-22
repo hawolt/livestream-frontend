@@ -1,3 +1,6 @@
+export type BadgeRole = "staff" | "bot" | "mod";
+const BADGE_ROLES: BadgeRole[] = ["staff", "bot", "mod"];
+
 export interface IrcLine {
     nick: string;
     command: string;
@@ -12,6 +15,9 @@ export interface IrcLine {
     userId?: string;
     avatar?: string;
     highlight?: boolean;
+    role?: BadgeRole;
+    vip?: boolean;
+    unverified?: boolean;
 }
 
 export function parse(line: string): IrcLine | null {
@@ -27,6 +33,9 @@ export function parse(line: string): IrcLine | null {
     let userId: string | undefined;
     let avatar: string | undefined;
     let highlight = false;
+    let role: BadgeRole | undefined;
+    let vip = false;
+    let unverified = false;
     if (rest.startsWith("@")) {
         const sp = rest.indexOf(" ");
         if (sp < 0) return null;
@@ -44,6 +53,9 @@ export function parse(line: string): IrcLine | null {
             else if (key === "user-id") userId = val;
             else if (key === "avatar") avatar = val;
             else if (key === "highlight") highlight = val === "1";
+            else if (key === "role") role = BADGE_ROLES.includes(val as BadgeRole) ? (val as BadgeRole) : undefined;
+            else if (key === "vip") vip = val === "1";
+            else if (key === "unverified") unverified = val === "1";
         }
         rest = rest.slice(sp + 1);
     }
@@ -82,5 +94,8 @@ export function parse(line: string): IrcLine | null {
     if (userId) out.userId = userId;
     if (avatar) out.avatar = avatar;
     if (highlight) out.highlight = true;
+    if (role) out.role = role;
+    if (vip) out.vip = true;
+    if (unverified) out.unverified = true;
     return out;
 }

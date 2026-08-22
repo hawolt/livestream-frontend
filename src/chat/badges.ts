@@ -1,8 +1,26 @@
 import { isOwner } from "./context.ts";
-import { partners, roles, subscriberBadges, subscribers, unverified, vips } from "./members.ts";
+import { partners, roles, subscriberBadges, subscribers, unverified, vips, type Role } from "./members.ts";
 import { attachBadgeUpsell } from "./badge-upsell.ts";
+import type { BadgeRole } from "./irc.ts";
 
 export type BadgeName = "op" | "staff" | "bot" | "mod" | "vip" | "partner" | "regular" | "unverified";
+
+export interface BadgeSnapshot {
+    role?: BadgeRole;
+    vip?: boolean;
+    partner?: boolean;
+    subBadge?: string;
+    unverified?: boolean;
+}
+
+export interface ResolvedBadges {
+    role?: Role;
+    owner: boolean;
+    vip: boolean;
+    partner: boolean;
+    subBadgeName?: string;
+    unverified: boolean;
+}
 export const BADGE_TITLE: Record<BadgeName, string> = {
     op: "Owner", staff: "Staff", bot: "Bot", mod: "Mod", vip: "VIP", partner: "Partner", regular: "Regular", unverified: "Unverified",
 };
@@ -42,8 +60,8 @@ export function makeBadge(name: BadgeName): HTMLImageElement {
     return img;
 }
 
-export function makeSubscriberBadge(key: string): HTMLImageElement {
-    const name = sanitizeSubscriberBadgeName(subscriberBadges.get(key));
+function makeSubscriberBadgeForName(rawName: string): HTMLImageElement {
+    const name = sanitizeSubscriberBadgeName(rawName);
     const img = document.createElement("img");
     img.className = "live-chat-badge";
     img.src = subscriberBadgeAssetPath(name);
@@ -61,17 +79,43 @@ export function makeSubscriberBadge(key: string): HTMLImageElement {
     return img;
 }
 
-export function buildBadges(from: string): HTMLImageElement[] {
+export function makeSubscriberBadge(key: string): HTMLImageElement {
+    return makeSubscriberBadgeForName(subscriberBadges.get(key) ?? "");
+}
+
+function hasRoleSnapshot(snapshot: BadgeSnapshot | undefined): boolean {
+    return snapshot !== undefined && (snapshot.role !== undefined || snapshot.vip === true || snapshot.unverified === true);
+}
+
+export function resolveBadges(from: string, snapshot?: BadgeSnapshot): ResolvedBadges {
     const key = from.toLowerCase();
-    const role = roles.get(key);
+    const roleAware = hasRoleSnapshot(snapshot);
+    const subBadge = snapshot?.subBadge;
+    return {
+        role: roleAware ? snapshot!.role : roles.get(key),
+        owner: isOwner(from),
+        vip: roleAware ? snapshot!.vip === true : vips.has(key),
+        partner: snapshot?.partner ?? partners.has(key),
+        subBadgeName: subBadge !== undefined
+            ? sanitizeSubscriberBadgeName(subBadge)
+            : (subscribers.has(key) ? sanitizeSubscriberBadgeName(subscriberBadges.get(key)) : undefined),
+        unverified: roleAware ? snapshot!.unverified === true : unverified.has(key),
+    };
+}
+
+export function renderBadges(resolved: ResolvedBadges): HTMLImageElement[] {
     const badges: HTMLImageElement[] = [];
-    if (role === "staff") badges.push(makeBadge("staff"));
-    if (isOwner(from)) badges.push(makeBadge("op"));
-    if (role === "bot") badges.push(makeBadge("bot"));
-    if (role === "mod") badges.push(makeBadge("mod"));
-    if (partners.has(key)) badges.push(makeBadge("partner"));
-    if (vips.has(key)) badges.push(makeBadge("vip"));
-    if (subscribers.has(key)) badges.push(makeSubscriberBadge(key));
-    if (unverified.has(key)) badges.push(makeBadge("unverified"));
+    if (resolved.role === "staff") badges.push(makeBadge("staff"));
+    if (resolved.owner) badges.push(makeBadge("op"));
+    if (resolved.role === "bot") badges.push(makeBadge("bot"));
+    if (resolved.role === "mod") badges.push(makeBadge("mod"));
+    if (resolved.partner) badges.push(makeBadge("partner"));
+    if (resolved.vip) badges.push(makeBadge("vip"));
+    if (resolved.subBadgeName !== undefined) badges.push(makeSubscriberBadgeForName(resolved.subBadgeName));
+    if (resolved.unverified) badges.push(makeBadge("unverified"));
     return badges;
+}
+
+export function buildBadges(from: string): HTMLImageElement[] {
+    return renderBadges(resolveBadges(from));
 }

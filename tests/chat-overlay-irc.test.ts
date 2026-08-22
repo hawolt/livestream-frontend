@@ -71,6 +71,25 @@ test("leaves color undefined when absent and empty when cleared", () => {
     expect(parse("@color= :bob!u@h PRIVMSG #chan :hi")?.color).toBe("");
 });
 
+test("exposes role, vip and unverified tags", () => {
+    const line = parse("@role=mod;vip=1;unverified=1 :modu!u@h PRIVMSG #chan :hi");
+    expect(line?.role).toBe("mod");
+    expect(line?.vip).toBe(true);
+    expect(line?.unverified).toBe(true);
+});
+
+test("ignores an unknown or malformed role value instead of passing it through", () => {
+    expect(parse("@role=owner :x!u@h PRIVMSG #chan :hi")?.role).toBeUndefined();
+    expect(parse("@role= :x!u@h PRIVMSG #chan :hi")?.role).toBeUndefined();
+});
+
+test("omits role, vip and unverified when the tags are absent", () => {
+    const line = parse(":alice!u@h PRIVMSG #chan :hi");
+    expect(line?.role).toBeUndefined();
+    expect(line?.vip).toBeUndefined();
+    expect(line?.unverified).toBeUndefined();
+});
+
 test("parses SYSMSG with the channel and trailing text as params", () => {
     const line = parse(":server.local SYSMSG #chan :kestrel redeemed Highlight my message");
     expect(line).toEqual({

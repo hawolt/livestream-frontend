@@ -564,18 +564,25 @@ function startItzon(channelName: string): void {
         }
     };
 
-    const badgesFor = (from: string): Node[] => {
+    const badgesFor = (from: string, tags?: Map<string, string>): Node[] => {
         const key = from.toLowerCase();
         const out: Node[] = [];
-        const role = roles.get(key);
-        if (role === "staff") out.push(makeSiteBadge("staff"));
+        const tagRole = tags?.get("role");
+        const role = tagRole === "staff" || tagRole === "bot" || tagRole === "mod" ? tagRole : undefined;
+        const tagVip = tags?.get("vip") === "1";
+        const tagUnverified = tags?.get("unverified") === "1";
+        const roleAware = role !== undefined || tagVip || tagUnverified;
+        const effectiveRole = roleAware ? role : roles.get(key);
+        const effectiveVip = roleAware ? tagVip : vips.has(key);
+        const effectiveUnverified = roleAware ? tagUnverified : unverified.has(key);
+        if (effectiveRole === "staff") out.push(makeSiteBadge("staff"));
         if (key === channel.slice(1)) out.push(makeSiteBadge("op"));
-        if (role === "bot") out.push(makeSiteBadge("bot"));
-        if (role === "mod") out.push(makeSiteBadge("mod"));
+        if (effectiveRole === "bot") out.push(makeSiteBadge("bot"));
+        if (effectiveRole === "mod") out.push(makeSiteBadge("mod"));
         if (itzonPartners.has(key)) out.push(makeSiteBadge("partner"));
-        if (vips.has(key)) out.push(makeSiteBadge("vip"));
+        if (effectiveVip) out.push(makeSiteBadge("vip"));
         if (subscribers.has(key)) out.push(makeItzonSubBadge(sanitizeSubBadgeName(subscriberBadges.get(key))));
-        if (unverified.has(key)) out.push(makeSiteBadge("unverified"));
+        if (effectiveUnverified) out.push(makeSiteBadge("unverified"));
         return out;
     };
 
@@ -629,7 +636,7 @@ function startItzon(channelName: string): void {
                 if (line.tags.get("partner") === "1") {
                     itzonPartners.add(line.nick.toLowerCase());
                 }
-                const meta: MessageMeta = { badges: badgesFor(line.nick) };
+                const meta: MessageMeta = { badges: badgesFor(line.nick, line.tags) };
                 const color = line.tags.get("color");
                 if (color && /^#[0-9a-fA-F]{6}$/.test(color)) meta.color = color;
                 const msgid = line.tags.get("msgid");

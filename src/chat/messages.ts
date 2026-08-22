@@ -1,6 +1,6 @@
 import { ctx, myNickLower } from "./context.ts";
 import { inputEl, msgsEl, pickerFilterEl, replyBarEl, replyLabelEl, suggestEl } from "./dom.ts";
-import { buildBadges } from "./badges.ts";
+import { buildBadges, renderBadges, resolveBadges, type BadgeSnapshot, type ResolvedBadges } from "./badges.ts";
 import { hasModRole, nickColor } from "./members.ts";
 import { cssEsc, mentionsMe, truncate } from "./text.ts";
 import { buildAvatar, buildRenderedBody, buildTimeSpan, RENDERED_BODY_CLASS, renderBody } from "./render.ts";
@@ -15,6 +15,8 @@ import { openUserCard } from "./user-card.ts";
 import { preserveMessagesScroll, restickIfPinned } from "./scroll.ts";
 
 export const MAX_MESSAGES = 200;
+
+const messageBadges = new WeakMap<HTMLElement, ResolvedBadges>();
 
 export function append(node: HTMLElement): void {
     const empty = msgsEl.querySelector(".live-chat-empty");
@@ -158,6 +160,7 @@ export function addMessage(
     userId?: string,
     avatar?: string,
     highlighted?: boolean,
+    snapshot?: BadgeSnapshot,
 ): void {
     const line = document.createElement("div");
     line.className = "live-chat-msg";
@@ -174,7 +177,9 @@ export function addMessage(
     line.appendChild(buildTimeSpan(sentAt));
     line.appendChild(buildAvatar(from, userId, avatar));
     const who = buildNick(from);
-    const badges = buildBadges(from);
+    const resolved = resolveBadges(from, snapshot);
+    messageBadges.set(line, resolved);
+    const badges = renderBadges(resolved);
     if (badges.length) line.append(...badges);
     line.append(who, document.createTextNode(": "), buildRenderedBody(text));
     if (from.toLowerCase() === myNickLower()) line.classList.add("live-chat-own");
@@ -198,7 +203,8 @@ export function redactMessageEl(el: HTMLElement): void {
     el.replaceChildren();
     el.classList.remove("live-chat-mentioned");
     if (time) el.append(time);
-    const badges = buildBadges(from);
+    const resolved = messageBadges.get(el);
+    const badges = resolved ? renderBadges(resolved) : buildBadges(from);
     if (badges.length) el.append(...badges);
     const who = buildNick(from);
     const placeholder = document.createElement("span");

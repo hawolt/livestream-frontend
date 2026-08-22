@@ -82,6 +82,37 @@ test("keeps the full prefix as nick when there is no bang", () => {
     expect(line?.params).toEqual(["#chan", "+v", "alice"]);
 });
 
+test("exposes role, vip and unverified tags", () => {
+    const line = parse("@role=mod;vip=1;unverified=1 :modu!u@h PRIVMSG #chan :hi");
+    expect(line?.role).toBe("mod");
+    expect(line?.vip).toBe(true);
+    expect(line?.unverified).toBe(true);
+});
+
+test("accepts staff and bot as valid role values", () => {
+    expect(parse("@role=staff :s!u@h PRIVMSG #chan :hi")?.role).toBe("staff");
+    expect(parse("@role=bot :b!u@h PRIVMSG #chan :hi")?.role).toBe("bot");
+});
+
+test("ignores an unknown or malformed role value instead of passing it through", () => {
+    expect(parse("@role=owner :x!u@h PRIVMSG #chan :hi")?.role).toBeUndefined();
+    expect(parse("@role= :x!u@h PRIVMSG #chan :hi")?.role).toBeUndefined();
+    expect(parse("@role=MOD :x!u@h PRIVMSG #chan :hi")?.role).toBeUndefined();
+});
+
+test("omits role, vip and unverified when the tags are absent", () => {
+    const line = parse(":alice!u@h PRIVMSG #chan :hi");
+    expect(line?.role).toBeUndefined();
+    expect(line?.vip).toBeUndefined();
+    expect(line?.unverified).toBeUndefined();
+});
+
+test("only treats vip and unverified as set for an exact 1 value", () => {
+    expect(parse("@vip=0 :x!u@h PRIVMSG #chan :hi")?.vip).toBeUndefined();
+    expect(parse("@vip=true :x!u@h PRIVMSG #chan :hi")?.vip).toBeUndefined();
+    expect(parse("@unverified=0 :x!u@h PRIVMSG #chan :hi")?.unverified).toBeUndefined();
+});
+
 test("preserves an explicitly empty tag value as an empty string, distinct from an absent tag", () => {
     const line = parse("@color=;automod :alice!u@h PRIVMSG #chan :hi");
     expect(line?.color).toBe("");

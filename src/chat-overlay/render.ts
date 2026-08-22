@@ -1,10 +1,28 @@
 import { hashColor } from "../chat/text.ts";
 import { sanitizeSubscriberBadgeName, subscriberBadgeAssetPath, subscriberBadgeTitle } from "../chat/badges.ts";
-import { MAX_MESSAGES, RENDERED_BODY_CLASS, colors, ctx, emotes, isOwner, msgsEl, partners, roles, subscriberBadges, subscribers, unverified, vips } from "./context.ts";
+import type { BadgeRole } from "../chat/irc.ts";
+import { MAX_MESSAGES, RENDERED_BODY_CLASS, colors, ctx, emotes, isOwner, msgsEl, partners, roles, subscriberBadges, subscribers, unverified, vips, type Role } from "./context.ts";
 
 const SAFE_COLOR = /^#[0-9a-fA-F]{3,8}$/;
 
 type BadgeName = "op" | "staff" | "bot" | "mod" | "vip" | "partner" | "regular" | "unverified";
+
+export interface BadgeSnapshot {
+    role?: BadgeRole;
+    vip?: boolean;
+    partner?: boolean;
+    subBadge?: string;
+    unverified?: boolean;
+}
+
+export interface ResolvedBadges {
+    role?: Role;
+    owner: boolean;
+    vip: boolean;
+    partner: boolean;
+    subBadgeName?: string;
+    unverified: boolean;
+}
 
 function makeBadge(name: BadgeName): HTMLImageElement {
     const img = document.createElement("img");
@@ -14,8 +32,8 @@ function makeBadge(name: BadgeName): HTMLImageElement {
     return img;
 }
 
-function makeSubscriberBadge(key: string): HTMLImageElement {
-    const name = sanitizeSubscriberBadgeName(subscriberBadges.get(key));
+function makeSubscriberBadgeForName(rawName: string): HTMLImageElement {
+    const name = sanitizeSubscriberBadgeName(rawName);
     const img = document.createElement("img");
     img.className = "badge";
     img.src = subscriberBadgeAssetPath(name);
@@ -30,20 +48,42 @@ function makeSubscriberBadge(key: string): HTMLImageElement {
     return img;
 }
 
-function buildBadges(from: string): HTMLImageElement[] {
-    if (!ctx.showBadges) return [];
+function hasRoleSnapshot(snapshot: BadgeSnapshot | undefined): boolean {
+    return snapshot !== undefined && (snapshot.role !== undefined || snapshot.vip === true || snapshot.unverified === true);
+}
+
+export function resolveBadges(from: string, snapshot?: BadgeSnapshot): ResolvedBadges {
     const key = from.toLowerCase();
-    const role = roles.get(key);
+    const roleAware = hasRoleSnapshot(snapshot);
+    const subBadge = snapshot?.subBadge;
+    return {
+        role: roleAware ? snapshot!.role : roles.get(key),
+        owner: isOwner(from),
+        vip: roleAware ? snapshot!.vip === true : vips.has(key),
+        partner: snapshot?.partner ?? partners.has(key),
+        subBadgeName: subBadge !== undefined
+            ? sanitizeSubscriberBadgeName(subBadge)
+            : (subscribers.has(key) ? sanitizeSubscriberBadgeName(subscriberBadges.get(key)) : undefined),
+        unverified: roleAware ? snapshot!.unverified === true : unverified.has(key),
+    };
+}
+
+export function renderBadges(resolved: ResolvedBadges): HTMLImageElement[] {
     const badges: HTMLImageElement[] = [];
-    if (role === "staff") badges.push(makeBadge("staff"));
-    if (isOwner(from)) badges.push(makeBadge("op"));
-    if (role === "bot") badges.push(makeBadge("bot"));
-    if (role === "mod") badges.push(makeBadge("mod"));
-    if (partners.has(key)) badges.push(makeBadge("partner"));
-    if (vips.has(key)) badges.push(makeBadge("vip"));
-    if (subscribers.has(key)) badges.push(makeSubscriberBadge(key));
-    if (unverified.has(key)) badges.push(makeBadge("unverified"));
+    if (resolved.role === "staff") badges.push(makeBadge("staff"));
+    if (resolved.owner) badges.push(makeBadge("op"));
+    if (resolved.role === "bot") badges.push(makeBadge("bot"));
+    if (resolved.role === "mod") badges.push(makeBadge("mod"));
+    if (resolved.partner) badges.push(makeBadge("partner"));
+    if (resolved.vip) badges.push(makeBadge("vip"));
+    if (resolved.subBadgeName !== undefined) badges.push(makeSubscriberBadgeForName(resolved.subBadgeName));
+    if (resolved.unverified) badges.push(makeBadge("unverified"));
     return badges;
+}
+
+function buildBadges(from: string, snapshot?: BadgeSnapshot): HTMLImageElement[] {
+    if (!ctx.showBadges) return [];
+    return renderBadges(resolveBadges(from, snapshot));
 }
 
 function buildOverlayEmote(token: string, url: string): HTMLImageElement {
@@ -119,11 +159,11 @@ function append(node: HTMLElement): void {
     }
 }
 
-export function addMessage(from: string, text: string, msgid?: string): void {
+export function addMessage(from: string, text: string, msgid?: string, snapshot?: BadgeSnapshot): void {
     const line = document.createElement("div");
     line.className = "msg";
     if (msgid) line.dataset["msgid"] = msgid;
-    const badges = buildBadges(from);
+    const badges = buildBadges(from, snapshot);
     if (badges.length) line.append(...badges);
     const who = document.createElement("span");
     who.className = "nick";
