@@ -243,6 +243,12 @@ a.explore-card:hover, a.explore-card:hover * { text-decoration: none; }
     height: 14px;
 }
 
+.explore-card-partner-badge svg {
+    display: block;
+    width: 100%;
+    height: 100%;
+}
+
 .explore-card-partner-badge[hidden] { display: none; }
 
 .explore-card-identity {
