@@ -52,7 +52,7 @@ const TIKTOK_BADGE_CHIPS: Record<string, { label: string; color: string }> = {
 
 type SiteBadge = "op" | "staff" | "bot" | "mod" | "vip" | "partner" | "unverified";
 
-const TWITCH_BADGES_GLOBAL_URL = "https://badges.twitch.tv/v1/badges/global/display";
+const TWITCH_BADGES_GLOBAL_URL = "/api/live/twitch-badges/global";
 
 const KICK_BADGE_CHIPS: Record<string, { label: string; color: string }> = {
     broadcaster: { label: "HOST", color: "#e93d82" },
@@ -747,7 +747,7 @@ async function loadTwitchBadgeSets(roomID: string): Promise<void> {
     try {
         const [globalResult, channelResult] = await Promise.allSettled([
             fetchJSON(TWITCH_BADGES_GLOBAL_URL),
-            fetchJSON(`https://badges.twitch.tv/v1/badges/channels/${encodeURIComponent(roomID)}/display`),
+            fetchJSON(`/api/live/twitch-badges/channel/${encodeURIComponent(roomID)}`),
         ]);
         const globalSets = globalResult.status === "fulfilled" ? badgeSetsFromPayload(globalResult.value) : {};
         const channelSets = channelResult.status === "fulfilled" ? badgeSetsFromPayload(channelResult.value) : {};

@@ -32,15 +32,13 @@ describe("parseBadgeTagEntries", () => {
 });
 
 describe("badgeSetsFromPayload", () => {
-    test("reads versions out of the badges.tv display shape", () => {
+    test("reads versions out of the badge_sets shape", () => {
         const sets = badgeSetsFromPayload({
             badge_sets: {
                 vip: {
                     versions: {
                         "1": {
-                            image_url_1x: "a1x",
                             image_url_2x: "a2x",
-                            image_url_4x: "a4x",
                             title: "VIP",
                         },
                     },
@@ -48,13 +46,13 @@ describe("badgeSetsFromPayload", () => {
             },
         });
         expect(sets).toEqual({
-            vip: { "1": { image_url_1x: "a1x", image_url_2x: "a2x", image_url_4x: "a4x", title: "VIP" } },
+            vip: { "1": { image_url_2x: "a2x", title: "VIP" } },
         });
     });
 
-    test("drops a version missing an image url", () => {
+    test("drops a version missing the 2x image url", () => {
         const sets = badgeSetsFromPayload({
-            badge_sets: { vip: { versions: { "1": { image_url_1x: "a1x", title: "VIP" } } } },
+            badge_sets: { vip: { versions: { "1": { title: "VIP" } } } },
         });
         expect(sets).toEqual({});
     });
@@ -64,7 +62,7 @@ describe("badgeSetsFromPayload", () => {
             badge_sets: {
                 bits: {
                     versions: {
-                        "100": { image_url_1x: "a", image_url_2x: "b", image_url_4x: "c" },
+                        "100": { image_url_2x: "b" },
                     },
                 },
             },
@@ -82,17 +80,17 @@ describe("badgeSetsFromPayload", () => {
 describe("mergeBadgeSets", () => {
     const globalSets: TwitchBadgeSets = {
         subscriber: {
-            "0": { image_url_1x: "g1", image_url_2x: "g2", image_url_4x: "g4", title: "Sub" },
+            "0": { image_url_2x: "g2", title: "Sub" },
         },
         moderator: {
-            "1": { image_url_1x: "m1", image_url_2x: "m2", image_url_4x: "m4", title: "Moderator" },
+            "1": { image_url_2x: "m2", title: "Moderator" },
         },
     };
 
     test("channel versions win over global versions in the same set", () => {
         const channelSets: TwitchBadgeSets = {
             subscriber: {
-                "0": { image_url_1x: "c1", image_url_2x: "c2", image_url_4x: "c4", title: "Channel Sub" },
+                "0": { image_url_2x: "c2", title: "Channel Sub" },
             },
         };
         const merged = mergeBadgeSets(globalSets, channelSets);
@@ -108,7 +106,7 @@ describe("mergeBadgeSets", () => {
     test("adds channel-only sets that have no global counterpart", () => {
         const channelSets: TwitchBadgeSets = {
             "bits-leader": {
-                "1": { image_url_1x: "b1", image_url_2x: "b2", image_url_4x: "b4", title: "Bits Leader" },
+                "1": { image_url_2x: "b2", title: "Bits Leader" },
             },
         };
         const merged = mergeBadgeSets(globalSets, channelSets);
@@ -117,13 +115,54 @@ describe("mergeBadgeSets", () => {
     });
 });
 
+describe("acceptance: path-of-exile-2-badge from room 171402081", () => {
+    const helixShapedFixture = {
+        badge_sets: {
+            "path-of-exile-2-badge": {
+                versions: {
+                    "1": {
+                        image_url_2x: "https://static-cdn.jtvnw.net/badges/v1/8bebe4ce-6c15-4746-8c33-42312c250ceb/1",
+                        title: "Path of Exile 2",
+                    },
+                },
+            },
+        },
+    };
+
+    test("resolves the captured IRC tag to the exact captured CDN image when it ships in the global set and the channel set is empty", () => {
+        const globalSets = badgeSetsFromPayload(helixShapedFixture);
+        const channelSets = badgeSetsFromPayload({ badge_sets: {} });
+        const merged = mergeBadgeSets(globalSets, channelSets);
+        expect(resolveTwitchBadges("path-of-exile-2-badge/1", merged)).toEqual([
+            {
+                name: "path-of-exile-2-badge",
+                url: "https://static-cdn.jtvnw.net/badges/v1/8bebe4ce-6c15-4746-8c33-42312c250ceb/1",
+                title: "Path of Exile 2",
+            },
+        ]);
+    });
+
+    test("resolves the same way when the campaign badge ships in the channel set instead of global", () => {
+        const globalSets = badgeSetsFromPayload({ badge_sets: {} });
+        const channelSets = badgeSetsFromPayload(helixShapedFixture);
+        const merged = mergeBadgeSets(globalSets, channelSets);
+        expect(resolveTwitchBadges("path-of-exile-2-badge/1", merged)).toEqual([
+            {
+                name: "path-of-exile-2-badge",
+                url: "https://static-cdn.jtvnw.net/badges/v1/8bebe4ce-6c15-4746-8c33-42312c250ceb/1",
+                title: "Path of Exile 2",
+            },
+        ]);
+    });
+});
+
 describe("resolveTwitchBadges", () => {
     const sets: TwitchBadgeSets = {
         moderator: {
-            "1": { image_url_1x: "m1", image_url_2x: "m2", image_url_4x: "m4", title: "Moderator" },
+            "1": { image_url_2x: "m2", title: "Moderator" },
         },
         subscriber: {
-            "3": { image_url_1x: "s1", image_url_2x: "s2", image_url_4x: "s4", title: "3-Month Subscriber" },
+            "3": { image_url_2x: "s2", title: "3-Month Subscriber" },
         },
     };
 

@@ -1,7 +1,5 @@
 export interface TwitchBadgeVersion {
-    image_url_1x: string;
     image_url_2x: string;
-    image_url_4x: string;
     title: string;
 }
 
@@ -17,11 +15,9 @@ export function badgeSetsFromPayload(payload: unknown): TwitchBadgeSets {
         const versionMap: Record<string, TwitchBadgeVersion> = {};
         for (const [versionId, versionValue] of Object.entries(versions as Record<string, unknown>)) {
             const v = versionValue as any;
-            if (typeof v?.image_url_1x !== "string" || typeof v?.image_url_2x !== "string" || typeof v?.image_url_4x !== "string") continue;
+            if (typeof v?.image_url_2x !== "string") continue;
             versionMap[versionId] = {
-                image_url_1x: v.image_url_1x,
                 image_url_2x: v.image_url_2x,
-                image_url_4x: v.image_url_4x,
                 title: typeof v.title === "string" && v.title ? v.title : setId,
             };
         }
