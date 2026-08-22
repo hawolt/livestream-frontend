@@ -236,7 +236,8 @@ URL parameters:
 
 | Param | Effect |
 |---|---|
-| `size=s\|l\|xl` | Smaller, larger or extra large text (default medium) |
+| `size=s\|l\|xl\|<px>` | Smaller, larger or extra large text, or an exact pixel size (default medium) |
+| `font=roboto\|sans\|serif\|mono\|condensed\|handwriting` | Overrides the default system font stack; `roboto` uses the self-hosted files, everything else is a real-font-plus-fallback stack (unknown or missing keeps the default) |
 | `fade=N` | Fade each message out after N seconds |
 | `badges=0` | Hide badges |
 | `emotes=0` | Disable emote rendering (skips the 7TV fetch) |

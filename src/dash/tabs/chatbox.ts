@@ -1,12 +1,28 @@
 import { PREVIEW_DEBOUNCE_MS, el, username, setBackdrop, wireCopy } from "../overlay-shared.ts";
 import { wireStepper } from "../stepper.ts";
 
+const MIN_SIZE_PX = 10;
+const MAX_SIZE_PX = 120;
+
 let previewTimer: number | null = null;
+
+function customSizePx(): number {
+    const raw = Number(el<HTMLInputElement>("ov-size-px").value);
+    const v = Number.isFinite(raw) ? raw : 48;
+    return Math.min(MAX_SIZE_PX, Math.max(MIN_SIZE_PX, Math.round(v)));
+}
+
+function syncSizeCustomVisibility(): void {
+    el("ov-size-px-wrap").hidden = el<HTMLSelectElement>("ov-size").value !== "custom";
+}
 
 function buildOptionParams(): URLSearchParams {
     const params = new URLSearchParams();
     const size = el<HTMLSelectElement>("ov-size").value;
-    if (size !== "m") params.set("size", size);
+    if (size === "custom") params.set("size", String(customSizePx()));
+    else if (size !== "m") params.set("size", size);
+    const font = el<HTMLSelectElement>("ov-font").value;
+    if (font !== "system") params.set("font", font);
     const fade = Number(el<HTMLInputElement>("ov-fade").value);
     if (Number.isFinite(fade) && fade > 0) params.set("fade", String(fade));
     if (!el<HTMLInputElement>("ov-badges").checked) params.set("badges", "0");
@@ -36,6 +52,7 @@ function schedulePreview(): void {
 }
 
 function onChange(): void {
+    syncSizeCustomVisibility();
     updateUrl();
     schedulePreview();
 }
@@ -46,14 +63,16 @@ export function init(): void {
     wireCopy("ov-url-copy", () => el("ov-url").textContent ?? "");
 
     wireStepper(el<HTMLInputElement>("ov-fade"));
+    wireStepper(el<HTMLInputElement>("ov-size-px"));
 
-    for (const id of ["ov-size", "ov-fade", "ov-badges", "ov-emotes", "ov-bg", "ov-shadow", "ov-system", "ov-align"]) {
+    for (const id of ["ov-size", "ov-size-px", "ov-font", "ov-fade", "ov-badges", "ov-emotes", "ov-bg", "ov-shadow", "ov-system", "ov-align"]) {
         el(id).addEventListener("input", onChange);
     }
 }
 
 export function activate(): void {
     setBackdrop("ov-preview-frame", "ov-bg-checker", "ov-bg-dark", "checker");
+    syncSizeCustomVisibility();
     updateUrl();
     updatePreview();
 }

@@ -15,6 +15,7 @@
                         <option value="m" selected>Medium</option>
                         <option value="l">Large</option>
                         <option value="xl">Extra large</option>
+                        <option value="custom">Custom</option>
                     </select>
                 </label>
                 <label>
@@ -22,6 +23,27 @@
                     <select id="ov-align">
                         <option value="left" selected>Left</option>
                         <option value="right">Right</option>
+                    </select>
+                </label>
+                <label class="ov-span-2" id="ov-size-px-wrap" hidden>
+                    <span>Custom size (px)</span>
+                    <div class="stepper">
+                        <button type="button" class="stepper-btn" data-step="-1" aria-label="Decrease">&minus;</button>
+                        <input id="ov-size-px" type="number" min="10" max="120" value="48">
+                        <button type="button" class="stepper-btn" data-step="1" aria-label="Increase">+</button>
+                    </div>
+                    <div class="hint">Exact text size in pixels, 10 to 120.</div>
+                </label>
+                <label>
+                    <span>Font</span>
+                    <select id="ov-font">
+                        <option value="system" selected>System default</option>
+                        <option value="roboto">Roboto</option>
+                        <option value="sans">Sans-serif</option>
+                        <option value="serif">Serif</option>
+                        <option value="mono">Monospace</option>
+                        <option value="condensed">Condensed</option>
+                        <option value="handwriting">Handwriting</option>
                     </select>
                 </label>
                 <label class="ov-span-2">

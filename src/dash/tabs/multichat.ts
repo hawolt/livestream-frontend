@@ -2,8 +2,20 @@ import { PREVIEW_DEBOUNCE_MS, el, username, setBackdrop, wireCopy } from "../ove
 import { wireStepper } from "../stepper.ts";
 
 const STORAGE_KEY = "multichat_sources";
+const MIN_SIZE_PX = 10;
+const MAX_SIZE_PX = 120;
 
 let previewTimer: number | null = null;
+
+function customSizePx(): number {
+    const raw = Number(el<HTMLInputElement>("mc-size-px").value);
+    const v = Number.isFinite(raw) ? raw : 48;
+    return Math.min(MAX_SIZE_PX, Math.max(MIN_SIZE_PX, Math.round(v)));
+}
+
+function syncSizeCustomVisibility(): void {
+    el("mc-size-px-wrap").hidden = el<HTMLSelectElement>("mc-size").value !== "custom";
+}
 
 function cleanName(value: string, pattern: RegExp): string {
     const v = value.trim().replace(/^[@#]/, "");
@@ -55,7 +67,10 @@ function buildParams(): URLSearchParams {
 
     if (el<HTMLSelectElement>("mc-mode").value === "overlay") params.set("overlay", "1");
     const size = el<HTMLSelectElement>("mc-size").value;
-    if (size !== "m") params.set("size", size);
+    if (size === "custom") params.set("size", String(customSizePx()));
+    else if (size !== "m") params.set("size", size);
+    const font = el<HTMLSelectElement>("mc-font").value;
+    if (font !== "system") params.set("font", font);
     const fade = Number(el<HTMLInputElement>("mc-fade").value);
     if (Number.isFinite(fade) && fade > 0) params.set("fade", String(fade));
     if (!el<HTMLInputElement>("mc-icons").checked) params.set("icons", "0");
@@ -87,6 +102,7 @@ function schedulePreview(): void {
 }
 
 function onChange(): void {
+    syncSizeCustomVisibility();
     persist();
     updateUrl();
     schedulePreview();
@@ -102,14 +118,16 @@ export function init(): void {
     });
 
     wireStepper(el<HTMLInputElement>("mc-fade"));
+    wireStepper(el<HTMLInputElement>("mc-size-px"));
 
-    for (const id of ["mc-twitch", "mc-youtube", "mc-ytvideo", "mc-kick", "mc-tiktok", "mc-mode", "mc-size", "mc-fade", "mc-icons", "mc-badges", "mc-emotes", "mc-linebg", "mc-shadow"]) {
+    for (const id of ["mc-twitch", "mc-youtube", "mc-ytvideo", "mc-kick", "mc-tiktok", "mc-mode", "mc-size", "mc-size-px", "mc-font", "mc-fade", "mc-icons", "mc-badges", "mc-emotes", "mc-linebg", "mc-shadow"]) {
         el(id).addEventListener("input", onChange);
     }
 }
 
 export function activate(): void {
     setBackdrop("mc-preview-frame", "mc-bg-checker", "mc-bg-dark", "checker");
+    syncSizeCustomVisibility();
     updateUrl();
     updatePreview();
 }

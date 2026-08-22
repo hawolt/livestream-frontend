@@ -1,5 +1,12 @@
 import { ChatEmoteCatalog, type ChatEmoteScope } from "./chat-emotes.ts";
+import { parseOverlayFont } from "./overlay-font.ts";
 import { parseOverlaySize } from "./overlay-size.ts";
+import {
+    badgeSetsFromPayload,
+    mergeBadgeSets,
+    resolveTwitchBadges,
+    type TwitchBadgeSets,
+} from "./twitch-badges.ts";
 
 const scrollEl = document.getElementById("chat-scroll") as HTMLElement;
 const msgsEl = document.getElementById("chat-messages") as HTMLElement;
@@ -43,17 +50,7 @@ const TIKTOK_BADGE_CHIPS: Record<string, { label: string; color: string }> = {
 
 type SiteBadge = "op" | "staff" | "bot" | "mod" | "vip" | "partner" | "unverified";
 
-const TWITCH_BADGE_IDS: Record<string, string> = {
-    broadcaster: "5527c58c-fb7d-422d-b71b-f309dcb85cc1",
-    moderator: "3267646d-33f0-4b17-b3df-f923a41db1d0",
-    vip: "b817aba4-fad8-49e2-b88a-7cc744dfa6ec",
-    partner: "d12a2e27-16f6-41d0-ab77-b780518f00a3",
-    staff: "d97c37bd-a6f5-4c38-8f57-4e4bef88af34",
-    subscriber: "5d9f2208-5dd8-11e7-8513-2ff4adfae661",
-    founder: "511b78a9-ab37-472f-9569-457753bbe7d3",
-    premium: "bbbe0db0-a598-423e-86d0-f9fb98ca1933",
-    turbo: "bd444ec6-8f34-4bf9-91f4-af1e3428d80f",
-};
+const TWITCH_BADGES_GLOBAL_URL = "https://badges.twitch.tv/v1/badges/global/display";
 
 const KICK_BADGE_CHIPS: Record<string, { label: string; color: string }> = {
     broadcaster: { label: "HOST", color: "#e93d82" },
@@ -91,7 +88,12 @@ interface Sources {
 function parseParams(): Sources {
     const qs = new URLSearchParams(location.search);
     const size = parseOverlaySize(qs.get("size"));
-    if (size) document.body.dataset["size"] = size;
+    if (size) {
+        if ("step" in size) document.body.dataset["size"] = size.step;
+        else document.body.style.fontSize = `${size.px}px`;
+    }
+    const font = parseOverlayFont(qs.get("font"));
+    if (font) document.body.style.fontFamily = font;
     showEmotes = qs.get("emotes") !== "0";
     showBadges = qs.get("badges") !== "0";
     showIcons = qs.get("icons") !== "0";
@@ -730,15 +732,31 @@ function renderTwitchBody(text: string, emotesTag: string): DocumentFragment {
     return frag;
 }
 
-function parseTwitchBadges(badgesTag: string): Node[] {
-    const out: Node[] = [];
-    for (const entry of badgesTag.split(",")) {
-        const slash = entry.indexOf("/");
-        const name = slash < 0 ? entry : entry.slice(0, slash);
-        const id = TWITCH_BADGE_IDS[name];
-        if (id) out.push(makeBadgeImg(`https://static-cdn.jtvnw.net/badges/v1/${id}/2`, name));
+let twitchBadgeSets: TwitchBadgeSets = {};
+let twitchBadgesReady = false;
+let twitchBadgesLoading = false;
+
+async function loadTwitchBadgeSets(roomID: string): Promise<void> {
+    if (twitchBadgesLoading) return;
+    twitchBadgesLoading = true;
+    try {
+        const [globalResult, channelResult] = await Promise.allSettled([
+            fetchJSON(TWITCH_BADGES_GLOBAL_URL),
+            fetchJSON(`https://badges.twitch.tv/v1/badges/channels/${encodeURIComponent(roomID)}/display`),
+        ]);
+        const globalSets = globalResult.status === "fulfilled" ? badgeSetsFromPayload(globalResult.value) : {};
+        const channelSets = channelResult.status === "fulfilled" ? badgeSetsFromPayload(channelResult.value) : {};
+        if (globalResult.status === "fulfilled" || channelResult.status === "fulfilled") {
+            twitchBadgeSets = mergeBadgeSets(globalSets, channelSets);
+            twitchBadgesReady = true;
+        }
+    } finally {
+        twitchBadgesLoading = false;
     }
-    return out;
+}
+
+function parseTwitchBadges(badgesTag: string): Node[] {
+    return resolveTwitchBadges(badgesTag, twitchBadgeSets).map((badge) => makeBadgeImg(badge.url, badge.title));
 }
 
 function startTwitch(channelName: string): void {
@@ -760,9 +778,12 @@ function startTwitch(channelName: string): void {
                 return;
             case "ROOMSTATE": {
                 const roomID = line.tags.get("room-id");
-                if (roomID && /^\d+$/.test(roomID) && !emotesLoaded && showEmotes) {
-                    emotesLoaded = true;
-                    void loadTwitchThirdPartyEmotes(roomID);
+                if (roomID && /^\d+$/.test(roomID)) {
+                    if (!emotesLoaded && showEmotes) {
+                        emotesLoaded = true;
+                        void loadTwitchThirdPartyEmotes(roomID);
+                    }
+                    if (showBadges && !twitchBadgesReady) void loadTwitchBadgeSets(roomID);
                 }
                 return;
             }
@@ -1136,7 +1157,7 @@ function showHint(): void {
     const p2 = document.createElement("p");
     p2.append("Optional: ");
     const code2 = document.createElement("code");
-    code2.textContent = "ytvideo=<video id>, size=s|l|xl, badges=0, emotes=0, icons=0, overlay=1, bg=1, shadow=0, fade=<seconds>";
+    code2.textContent = "ytvideo=<video id>, size=s|l|xl|<px>, font=roboto|sans|serif|mono|condensed|handwriting, badges=0, emotes=0, icons=0, overlay=1, bg=1, shadow=0, fade=<seconds>";
     p2.appendChild(code2);
     hintEl.append(p, p2);
 }
