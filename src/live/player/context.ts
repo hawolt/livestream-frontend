@@ -53,6 +53,7 @@ export const ctx = {
     username: "",
     displayUsername: "",
     clipsDisabled: false,
+    clipMode: false,
 };
 
 export function nextGen(): number {

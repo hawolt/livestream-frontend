@@ -4,6 +4,10 @@ import { formatUptime } from "./format.ts";
 import { VIEWCOUNT_RETRY_MS } from "./constants.ts";
 import { API_BASE } from "../api.ts";
 import { onPointsFrame } from "./points.ts";
+import { parseStreamInfoFrame } from "./stream-info-wire.ts";
+import { applyChannelChrome } from "./channel-chrome.ts";
+import { channelPageTitle } from "./page-title.ts";
+import { syncStreamInfoState } from "./stream-info-edit.ts";
 
 export function updateInfoBar(): void {}
 
@@ -161,6 +165,13 @@ export function connectViewcount(): void {
         } else if (msg.type === "points" && typeof msg.channel === "string"
                 && typeof msg.gained === "number" && typeof msg.balance === "number") {
             onPointsFrame(msg.channel, msg.gained, msg.balance);
+        } else if (msg.type === "stream-info") {
+            const frame = parseStreamInfoFrame(msg);
+            if (frame && !ctx.clipMode) {
+                applyChannelChrome(frame);
+                document.title = channelPageTitle(ctx.displayUsername, frame.title);
+                syncStreamInfoState(frame);
+            }
         }
     };
 

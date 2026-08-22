@@ -428,7 +428,7 @@
 
         .live-channel-header {
             display: flex;
-            align-items: flex-start;
+            align-items: center;
             gap: 14px;
             padding: 10px 16px 14px;
             flex-shrink: 0;
@@ -461,6 +461,25 @@
             text-align: left;
             cursor: default;
         }
+        .live-edit-info-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            vertical-align: middle;
+            margin-left: 8px;
+            width: 20px;
+            height: 20px;
+            padding: 0;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            background: var(--bg);
+            color: var(--muted);
+            cursor: pointer;
+            transition: color .15s, border-color .15s;
+        }
+        .live-edit-info-btn svg { display: block; }
+        .live-edit-info-btn:hover { color: var(--accent); border-color: var(--accent); }
+        .live-edit-info-btn.hidden { display: none; }
         .live-channel-title {
             margin-top: 2px;
             font-size: 13.5px;
@@ -500,6 +519,7 @@
             flex: none;
             display: flex;
             align-items: center;
+            align-self: flex-start;
             gap: 14px;
             margin-top: 6px;
         }
@@ -2020,7 +2040,7 @@
         .live-app.is-vertical .live-channel-id,
         .live-app.is-vertical .live-about { display: none; }
         .live-app.is-vertical .live-channel-header { align-items: center; padding: 8px 16px; }
-        .live-app.is-vertical .live-channel-header-right { flex: 1; justify-content: flex-end; margin-top: 0; }
+        .live-app.is-vertical .live-channel-header-right { flex: 1; justify-content: flex-end; align-self: center; margin-top: 0; }
         body.is-vertical .live-chat-overflow-divider,
         body.is-vertical .live-chat-overflow-window-label,
         body.is-vertical #btn-chat-side,
@@ -2289,7 +2309,7 @@
             <div class="live-channel-header hidden" id="live-info-bar">
                 <div class="live-channel-avatar-wrap" id="live-channel-avatar-wrap"></div>
                 <div class="live-channel-id">
-                    <span id="live-name" class="live-channel-name"></span><img id="live-partner-badge" class="live-partner-badge" src="/static/img/badge-partner.svg" alt="Partner" title="Partner" hidden />
+                    <span id="live-name" class="live-channel-name"></span><img id="live-partner-badge" class="live-partner-badge" src="/static/img/badge-partner.svg" alt="Partner" title="Partner" hidden /><button id="live-edit-info-btn" type="button" class="live-edit-info-btn hidden" title="Edit stream info" aria-label="Edit stream info"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg></button>
                     <div id="live-title-text" class="live-channel-title"></div>
                     <div class="live-channel-meta">
                         <a id="live-category" class="hidden"></a>
@@ -2491,6 +2511,20 @@
         </form>
     </div>
 </div>
-<script src="/live-7bgzs5vq.js" type="module"></script>
+<div id="live-streaminfo-modal" class="login-modal" role="dialog" aria-modal="true" aria-labelledby="live-streaminfo-modal-heading" hidden>
+    <div class="login-modal-box" tabindex="-1">
+        <button type="button" id="live-streaminfo-modal-close" class="login-modal-close" aria-label="Close">&times;</button>
+        <h3 id="live-streaminfo-modal-heading">Edit stream info</h3>
+        <form id="live-streaminfo-modal-form" class="login-modal-form" aria-describedby="live-streaminfo-modal-error" aria-busy="false">
+            <input id="live-streaminfo-title-input" type="text" placeholder="Now streaming..." aria-label="Title" maxlength="200" autocomplete="off" />
+            <input id="live-streaminfo-category-input" type="text" placeholder="Other (no category)" aria-label="Category" autocomplete="off" />
+            <input id="live-streaminfo-language-input" type="text" placeholder="Unspecified" aria-label="Language" autocomplete="off" />
+            <input id="live-streaminfo-language2-input" type="text" placeholder="None" aria-label="Second language" autocomplete="off" />
+            <div id="live-streaminfo-modal-error" class="login-modal-error" role="alert" aria-live="polite" aria-atomic="true"></div>
+            <button type="submit" id="live-streaminfo-modal-submit" class="login-modal-submit">Save</button>
+        </form>
+    </div>
+</div>
+<script src="/live-87bem1pw.js" type="module"></script>
 </body>
 </html>

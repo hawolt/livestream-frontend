@@ -31,6 +31,7 @@ import { parseClipRoute } from "./live/clip/route.ts";
 import { bootClipMode } from "./live/clip/mode.ts";
 import { promptStreamPassword } from "./live/stream-pass-gate.ts";
 import { applyChannelChrome } from "./live/channel-chrome.ts";
+import { initStreamInfoEdit } from "./live/stream-info-edit.ts";
 import { channelPageTitle, chatPopoutTitle } from "./live/page-title.ts";
 import { installRaidHandover } from "./live/raid-handover.ts";
 import { parseViewerClaim } from "./player-shared/viewer-claim.ts";
@@ -224,6 +225,7 @@ async function boot(): Promise<void> {
         loadAboutClips(ctx.username);
         loadStreamActivity(ctx.username);
         initOwnerCards(ctx.username);
+        initStreamInfoEdit(ctx.username, { title, category, categoryId, language });
     }
     applyChannelChrome({ title, category, categoryId, language });
 

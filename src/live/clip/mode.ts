@@ -175,6 +175,7 @@ export async function bootClipMode(route: ClipRoute): Promise<void> {
 
     ctx.username = route.channel;
     ctx.displayUsername = route.channel;
+    ctx.clipMode = true;
 
     video.removeAttribute("autoplay");
     video.removeAttribute("muted");
