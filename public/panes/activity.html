@@ -24,7 +24,6 @@
         #pane-activity .act-block { min-width: 0; min-height: 0 }
         #pane-activity .act-block > .card { display: flex; flex-direction: column }
         #pane-activity .act-block-activity #act-events-body { flex: 1; min-height: 0 }
-        #pane-activity .act-block-stats { display: flex; flex-direction: column; min-height: 0 }
         #pane-activity .act-block-stats .dash-strip { margin: 0; flex-shrink: 0 }
         #pane-activity .act-block-stats .dash-stat { flex: 1 1 0 }
         #pane-activity #act-viewer-count { white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
@@ -40,8 +39,7 @@
         #pane-activity .act-block-handle { font-size: 10px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--dim); border-bottom: 1px solid var(--border); padding: 4px 2px 6px }
         #pane-activity .act-block-chat .act-block-handle { padding: 8px 12px 6px }
 
-        #pane-activity .act-drop-target > .card,
-        #pane-activity .act-drop-target.act-block-stats .dash-strip { outline: 2px dashed var(--accent); outline-offset: -2px }
+        #pane-activity .act-drop-target > .card { outline: 2px dashed var(--accent); outline-offset: -2px }
         #pane-activity .act-dragging { opacity: .5 }
 
         @media (min-width: 901px) {
@@ -53,11 +51,22 @@
             #pane-activity #act-row-handle-1 { grid-row: 2 }
             #pane-activity #act-row-handle-2 { grid-row: 4 }
             #pane-activity .act-col-handle::after,
-            #pane-activity .act-row-handle::after { content: ""; display: block; background: var(--border); transition: background .15s }
-            #pane-activity .act-col-handle::after { width: 1px; height: 100%; margin: 0 auto }
-            #pane-activity .act-row-handle::after { height: 1px; width: 100%; margin: auto 0 }
+            #pane-activity .act-row-handle::after { content: ""; display: block; background: var(--dim); opacity: .4; border-radius: 2px; transition: background .15s, opacity .15s }
+            #pane-activity .act-col-handle::after { width: 2px; height: 100%; margin: 0 auto }
+            #pane-activity .act-row-handle::after { height: 2px; width: 100%; margin: auto 0 }
             #pane-activity .act-col-handle:hover::after,
-            #pane-activity .act-row-handle:hover::after { background: var(--accent) }
+            #pane-activity .act-row-handle:hover::after { background: var(--accent); opacity: .8 }
+            #pane-activity .act-col-handle.act-handle-active::after,
+            #pane-activity .act-row-handle.act-handle-active::after { background: var(--accent); opacity: 1 }
+
+            #pane-activity .act-block.act-slot-wide > .card { padding-right: 14px }
+            #pane-activity .act-block.act-slot-narrow-top > .card,
+            #pane-activity .act-block.act-slot-narrow-mid > .card,
+            #pane-activity .act-block.act-slot-narrow-bottom > .card { padding-left: 14px }
+            #pane-activity .act-block.act-slot-narrow-top > .card,
+            #pane-activity .act-block.act-slot-narrow-mid > .card { padding-bottom: 14px }
+            #pane-activity .act-block.act-slot-narrow-mid > .card,
+            #pane-activity .act-block.act-slot-narrow-bottom > .card { padding-top: 14px }
         }
         @media (max-width: 900px) {
             #pane-activity .act-layout-tools { display: none }
@@ -109,18 +118,22 @@
             </div>
         </div>
         <div class="act-block act-block-stats" data-block="stats">
-            <div class="act-block-handle" data-block="stats" title="Drag to reorder">
-                <svg class="act-grip" width="12" height="14" viewBox="0 0 24 24" fill="currentColor"><circle cx="8" cy="5" r="1.8"/><circle cx="8" cy="12" r="1.8"/><circle cx="8" cy="19" r="1.8"/><circle cx="16" cy="5" r="1.8"/><circle cx="16" cy="12" r="1.8"/><circle cx="16" cy="19" r="1.8"/></svg>
-                <span>Stats</span>
-            </div>
-            <div class="dash-strip">
-                <div class="dash-stat" id="act-viewer-chip" style="cursor:pointer;user-select:none">
-                    <div class="dash-stat-label">Viewers · <span id="act-viewer-hint">Click to hide</span></div>
-                    <div class="dash-stat-value" id="act-viewer-count">-</div>
+            <div class="card">
+                <div class="section-title">
+                    <span class="act-drag-handle" data-block="stats" title="Drag to reorder">
+                        <svg class="act-grip" width="12" height="14" viewBox="0 0 24 24" fill="currentColor"><circle cx="8" cy="5" r="1.8"/><circle cx="8" cy="12" r="1.8"/><circle cx="8" cy="19" r="1.8"/><circle cx="16" cy="5" r="1.8"/><circle cx="16" cy="12" r="1.8"/><circle cx="16" cy="19" r="1.8"/></svg>
+                        <span>Stats</span>
+                    </span>
                 </div>
-                <div class="dash-stat">
-                    <div class="dash-stat-label">Followers</div>
-                    <div class="dash-stat-value" id="act-follower-count">-</div>
+                <div class="dash-strip">
+                    <div class="dash-stat" id="act-viewer-chip" style="cursor:pointer;user-select:none">
+                        <div class="dash-stat-label">Viewers · <span id="act-viewer-hint">Click to hide</span></div>
+                        <div class="dash-stat-value" id="act-viewer-count">-</div>
+                    </div>
+                    <div class="dash-stat">
+                        <div class="dash-stat-label">Followers</div>
+                        <div class="dash-stat-value" id="act-follower-count">-</div>
+                    </div>
                 </div>
             </div>
         </div>

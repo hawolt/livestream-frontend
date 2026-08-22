@@ -8,9 +8,13 @@ import {
     ACTIVITY_BLOCK_IDS,
     ACTIVITY_LAYOUT_KEY,
     DEFAULT_ACTIVITY_LAYOUT,
-    clampWeight,
+    HANDLE_PX,
+    clampColWeights,
+    clampRowWeights,
     cloneActivityLayout,
+    colMinsFor,
     parseActivityLayout,
+    rowMinsFor,
     swapBlocks,
     type ActivityBlockId,
     type ActivityLayoutState,
@@ -54,8 +58,7 @@ const SLOT_PLACEMENT: { col: string; row: string }[] = [
     { col: "3", row: "3" },
     { col: "3", row: "5" },
 ];
-const COL_MIN_PX = 280;
-const ROW_MIN_PX = 60;
+const SLOT_CLASSES = ["act-slot-wide", "act-slot-narrow-top", "act-slot-narrow-mid", "act-slot-narrow-bottom"];
 
 function isDesktopLayout(): boolean {
     return desktopMedia.matches;
@@ -87,16 +90,28 @@ function applyBlockPlacement(order: ActivityBlockId[]): void {
         if (!el || !slot) return;
         el.style.gridColumn = slot.col;
         el.style.gridRow = slot.row;
+        SLOT_CLASSES.forEach((cls, si) => el.classList.toggle(cls, si === i));
     });
 }
 
 function applyTrackSizes(state: ActivityLayoutState): void {
     const container = document.getElementById("act-layout");
     if (!container) return;
-    const [wide, narrow] = state.colWeights;
-    const [r1, r2, r3] = state.rowWeights;
-    container.style.gridTemplateColumns = `minmax(${COL_MIN_PX}px, ${wide}fr) 6px minmax(320px, ${narrow}fr)`;
-    container.style.gridTemplateRows = `minmax(0, ${r1}fr) 6px minmax(0, ${r2}fr) 6px minmax(0, ${r3}fr)`;
+    const [minWide, minNarrow] = colMinsFor(state.order);
+    const [minR1, minR2, minR3] = rowMinsFor(state.order);
+    const colTotal = container.clientWidth;
+    const rowTotal = container.clientHeight;
+    const [wide, narrow] = colTotal > 0
+        ? clampColWeights(state.colWeights, state.order, colTotal - HANDLE_PX)
+        : state.colWeights;
+    const [r1, r2, r3] = rowTotal > 0
+        ? clampRowWeights(state.rowWeights, state.order, rowTotal - HANDLE_PX * 2)
+        : state.rowWeights;
+    state.colWeights = [wide, narrow];
+    state.rowWeights = [r1, r2, r3];
+    container.style.gridTemplateColumns = `minmax(${minWide}px, ${wide}fr) ${HANDLE_PX}px minmax(${minNarrow}px, ${narrow}fr)`;
+    container.style.gridTemplateRows =
+        `minmax(${minR1}px, ${r1}fr) ${HANDLE_PX}px minmax(${minR2}px, ${r2}fr) ${HANDLE_PX}px minmax(${minR3}px, ${r3}fr)`;
 }
 
 function applyLayout(): void {
@@ -183,16 +198,18 @@ function beginColResize(startEv: PointerEvent): void {
     const startWide = cols[0] ?? 0;
     const startNarrow = cols[2] ?? 0;
     const total = startWide + startNarrow;
-    if (total <= COL_MIN_PX * 2) return;
+    const [minWide, minNarrow] = colMinsFor(layoutState.order);
+    if (total <= minWide + minNarrow) return;
     const startX = startEv.clientX;
+    const handle = startEv.currentTarget as HTMLElement | null;
+    handle?.classList.add("act-handle-active");
     setIframesInert(true);
     document.body.style.userSelect = "none";
 
     function onMove(ev: PointerEvent): void {
         const dx = ev.clientX - startX;
-        const newWide = Math.min(total - COL_MIN_PX, Math.max(COL_MIN_PX, startWide + dx));
-        const newNarrow = total - newWide;
-        layoutState.colWeights = [clampWeight(newWide), clampWeight(newNarrow)];
+        const rawWide = startWide + dx;
+        layoutState.colWeights = [rawWide, total - rawWide];
         applyTrackSizes(layoutState);
     }
 
@@ -200,6 +217,7 @@ function beginColResize(startEv: PointerEvent): void {
         document.removeEventListener("pointermove", onMove);
         document.removeEventListener("pointerup", finish);
         document.removeEventListener("pointercancel", finish);
+        handle?.classList.remove("act-handle-active");
         setIframesInert(false);
         document.body.style.userSelect = "";
         saveLayout();
@@ -218,18 +236,20 @@ function beginRowResize(startEv: PointerEvent, indexA: 0 | 1 | 2, indexB: 0 | 1 
     const startA = rows[rowTrackIndex[indexA]!] ?? 0;
     const startB = rows[rowTrackIndex[indexB]!] ?? 0;
     const total = startA + startB;
-    if (total <= ROW_MIN_PX * 2) return;
+    const rowMins = rowMinsFor(layoutState.order);
+    if (total <= rowMins[indexA] + rowMins[indexB]) return;
     const startY = startEv.clientY;
+    const handle = startEv.currentTarget as HTMLElement | null;
+    handle?.classList.add("act-handle-active");
     setIframesInert(true);
     document.body.style.userSelect = "none";
 
     function onMove(ev: PointerEvent): void {
         const dy = ev.clientY - startY;
-        const newA = Math.min(total - ROW_MIN_PX, Math.max(ROW_MIN_PX, startA + dy));
-        const newB = total - newA;
+        const rawA = startA + dy;
         const weights = layoutState.rowWeights.slice() as [number, number, number];
-        weights[indexA] = clampWeight(newA);
-        weights[indexB] = clampWeight(newB);
+        weights[indexA] = rawA;
+        weights[indexB] = total - rawA;
         layoutState.rowWeights = weights;
         applyTrackSizes(layoutState);
     }
@@ -238,6 +258,7 @@ function beginRowResize(startEv: PointerEvent, indexA: 0 | 1 | 2, indexB: 0 | 1 
         document.removeEventListener("pointermove", onMove);
         document.removeEventListener("pointerup", finish);
         document.removeEventListener("pointercancel", finish);
+        handle?.classList.remove("act-handle-active");
         setIframesInert(false);
         document.body.style.userSelect = "";
         saveLayout();
@@ -759,6 +780,7 @@ export function init(): void {
 export function activate(): void {
     const generation = ++activationGeneration;
     applyTimePref();
+    applyLayout();
     alertAudio = null;
     alertAudioFailed = false;
     liveEvents = new Map();
