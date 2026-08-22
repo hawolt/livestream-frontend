@@ -77,11 +77,6 @@ function onStay(): void {
     removeNotice("raid");
 }
 
-function onJoin(): void {
-    send(`PRIVMSG ${ctx.channel} :.raidjoin`);
-    stayed = false;
-}
-
 function buildRaidNotice(root: HTMLDivElement): void {
     root.classList.add("live-chat-notice-raid");
     const body = document.createElement("span");
@@ -114,17 +109,12 @@ function buildRaidNotice(root: HTMLDivElement): void {
     body.append(headline, meta);
     const actions = document.createElement("span");
     actions.className = "live-chat-notice-actions";
-    const join = document.createElement("button");
-    join.type = "button";
-    join.className = "live-chat-notice-btn live-chat-notice-btn-primary";
-    join.textContent = "Join";
-    join.addEventListener("click", onJoin);
     const stayBtn = document.createElement("button");
     stayBtn.type = "button";
     stayBtn.className = "live-chat-notice-btn";
     stayBtn.textContent = "Stay";
     stayBtn.addEventListener("click", onStay);
-    actions.append(join, stayBtn);
+    actions.append(stayBtn);
     root.append(body, actions);
 }
 

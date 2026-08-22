@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { MAX_RAID_SECONDS, parseRaidCount, parseRaidIncoming, parseRaidStart, parseRaidTarget } from "../src/chat/raid-wire.ts";
+import { MAX_RAID_SECONDS, parseRaidCount, parseRaidStart, parseRaidTarget } from "../src/chat/raid-wire.ts";
 
 describe("parseRaidStart", () => {
     test("accepts a valid target and countdown", () => {
@@ -48,32 +48,6 @@ describe("parseRaidStart", () => {
 
     test("accepts the maximum countdown", () => {
         expect(parseRaidStart("target", String(MAX_RAID_SECONDS))?.seconds).toBe(MAX_RAID_SECONDS);
-    });
-});
-
-describe("parseRaidIncoming", () => {
-    test("accepts a valid raider and viewer count", () => {
-        expect(parseRaidIncoming("Raider_1", "42")).toEqual({ raider: "Raider_1", viewers: 42 });
-    });
-
-    test("keeps the raider display casing", () => {
-        expect(parseRaidIncoming("BigStreamer", "3")?.raider).toBe("BigStreamer");
-    });
-
-    test("clamps missing or invalid viewer counts to zero", () => {
-        expect(parseRaidIncoming("raider", undefined)?.viewers).toBe(0);
-        expect(parseRaidIncoming("raider", "nope")?.viewers).toBe(0);
-        expect(parseRaidIncoming("raider", "-4")?.viewers).toBe(0);
-    });
-
-    test("floors fractional viewer counts", () => {
-        expect(parseRaidIncoming("raider", "7.9")?.viewers).toBe(7);
-    });
-
-    test("rejects invalid raider names", () => {
-        expect(parseRaidIncoming(undefined, "5")).toBeNull();
-        expect(parseRaidIncoming("ab", "5")).toBeNull();
-        expect(parseRaidIncoming("bad name", "5")).toBeNull();
     });
 });
 

@@ -4,11 +4,6 @@ export interface RaidStart {
     count: number;
 }
 
-export interface RaidIncoming {
-    raider: string;
-    viewers: number;
-}
-
 const CHANNEL_NAME_RE = /^[a-z0-9_-]{3,32}$/;
 export const MAX_RAID_SECONDS = 600;
 const MAX_RAID_COUNT = 1_000_000;
@@ -35,11 +30,4 @@ export function parseRaidCount(param: string | undefined): number | null {
 export function parseRaidTarget(param: string | undefined): string | null {
     const target = (param ?? "").toLowerCase();
     return CHANNEL_NAME_RE.test(target) ? target : null;
-}
-
-export function parseRaidIncoming(raiderParam: string | undefined, viewersParam: string | undefined): RaidIncoming | null {
-    const raider = (raiderParam ?? "").trim();
-    if (!CHANNEL_NAME_RE.test(raider.toLowerCase())) return null;
-    const viewers = Number(viewersParam);
-    return { raider, viewers: Number.isFinite(viewers) && viewers > 0 ? Math.floor(viewers) : 0 };
 }

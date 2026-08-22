@@ -7,7 +7,6 @@ import { parse, type IrcLine } from "./irc.ts";
 import {
     addHiddenMessage,
     addMessage,
-    addRaidIncoming,
     addSystem,
     addSystemHighlight,
     addWhisper,
@@ -34,7 +33,7 @@ import {
 import { sanitizeSubscriberBadgeName } from "./badges.ts";
 import { addPin, clearPins, dismissedPins, removePin } from "./pins.ts";
 import { hideRaidBanner, raidGo, showRaidStart, updateRaidCount } from "./raid.ts";
-import { parseRaidCount, parseRaidIncoming, parseRaidStart, parseRaidTarget } from "./raid-wire.ts";
+import { parseRaidCount, parseRaidStart, parseRaidTarget } from "./raid-wire.ts";
 import { renderUserlist, setHelp, setSettings, setUserlist } from "./panels.ts";
 import { getChatWssBase } from "./ws-config.ts";
 import { toWsOrigin } from "../player-shared/ws-url.ts";
@@ -383,12 +382,6 @@ function handle(line: IrcLine): void {
             if (line.params[0]?.toLowerCase() !== ctx.channel) return;
             const text = line.params[line.params.length - 1];
             if (text) addSystemHighlight(text);
-            return;
-        }
-        case "RAIDINCOMING": {
-            if (line.params[0]?.toLowerCase() !== ctx.channel) return;
-            const incoming = parseRaidIncoming(line.params[1], line.params[2]);
-            if (incoming) addRaidIncoming(incoming.raider, incoming.viewers);
             return;
         }
         case "NOTICE": {
