@@ -2,6 +2,7 @@ import { followBellEl, followBtnEl, followWrapEl } from "./dom.ts";
 import { ctx } from "./player/context.ts";
 import { API_BASE } from "../api.ts";
 import { openLoginModal } from "./login-modal.ts";
+import { resolveFollowResponse } from "./follow-wire.ts";
 
 let followLoggedIn = false;
 let followOwn = false;
@@ -65,14 +66,16 @@ function wireFollow(): void {
         followBtnEl.disabled = true;
         followError = null;
         try {
-            const method = following ? "DELETE" : "POST";
+            const wasFollowing = following;
+            const method = wasFollowing ? "DELETE" : "POST";
             const r = await fetch(`${API_BASE}/follows/${encodeURIComponent(ctx.username)}`, { method, credentials: "include" });
-            if (r.ok) {
-                const j = await r.json();
-                following = !!j.following;
-                if (following) followNotify = j.notify !== false;
+            const bodyText = await r.text();
+            const result = resolveFollowResponse({ ok: r.ok, status: r.status, bodyText }, wasFollowing ? { kind: "unfollow" } : { kind: "follow" });
+            if (result.kind === "follow") {
+                following = result.following;
+                if (following) followNotify = result.notify;
                 window.dispatchEvent(new CustomEvent("follow-changed"));
-            } else if (r.status === 401) {
+            } else if (result.kind === "login-required") {
                 followLoggedIn = false;
                 openLoginModal("follow");
             } else {
@@ -96,10 +99,11 @@ function wireFollow(): void {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ enabled: next }),
             });
-            if (r.ok) {
-                const j = await r.json();
-                followNotify = !!j.notify;
-            } else if (r.status === 401) {
+            const bodyText = await r.text();
+            const result = resolveFollowResponse({ ok: r.ok, status: r.status, bodyText }, { kind: "notify", enabled: next });
+            if (result.kind === "notify") {
+                followNotify = result.notify;
+            } else if (result.kind === "login-required") {
                 followLoggedIn = false;
                 openLoginModal("follow");
             } else {
