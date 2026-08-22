@@ -1,4 +1,5 @@
 import { ChatEmoteCatalog, type ChatEmoteScope } from "./chat-emotes.ts";
+import { parseOverlaySize } from "./overlay-size.ts";
 
 const scrollEl = document.getElementById("chat-scroll") as HTMLElement;
 const msgsEl = document.getElementById("chat-messages") as HTMLElement;
@@ -89,8 +90,8 @@ interface Sources {
 
 function parseParams(): Sources {
     const qs = new URLSearchParams(location.search);
-    const size = qs.get("size");
-    if (size === "s" || size === "l") document.body.dataset["size"] = size;
+    const size = parseOverlaySize(qs.get("size"));
+    if (size) document.body.dataset["size"] = size;
     showEmotes = qs.get("emotes") !== "0";
     showBadges = qs.get("badges") !== "0";
     showIcons = qs.get("icons") !== "0";
@@ -1135,7 +1136,7 @@ function showHint(): void {
     const p2 = document.createElement("p");
     p2.append("Optional: ");
     const code2 = document.createElement("code");
-    code2.textContent = "ytvideo=<video id>, size=s|l, badges=0, emotes=0, icons=0, overlay=1, bg=1, shadow=0, fade=<seconds>";
+    code2.textContent = "ytvideo=<video id>, size=s|l|xl, badges=0, emotes=0, icons=0, overlay=1, bg=1, shadow=0, fade=<seconds>";
     p2.appendChild(code2);
     hintEl.append(p, p2);
 }

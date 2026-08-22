@@ -2,11 +2,12 @@ import { ctx } from "./chat-overlay/context.ts";
 import { connect } from "./chat-overlay/connection.ts";
 import { startDemo } from "./chat-overlay/demo.ts";
 import { loadChannelEmotes } from "./chat-overlay/emote-source.ts";
+import { parseOverlaySize } from "./overlay-size.ts";
 
 function parseParams(): void {
     const qs = new URLSearchParams(location.search);
-    const size = qs.get("size");
-    if (size === "s" || size === "l") document.body.dataset.size = size;
+    const size = parseOverlaySize(qs.get("size"));
+    if (size) document.body.dataset.size = size;
     const fadeSec = Number(qs.get("fade"));
     ctx.fadeMs = Number.isFinite(fadeSec) && fadeSec > 0 ? fadeSec * 1000 : 0;
     ctx.showBadges = qs.get("badges") !== "0";

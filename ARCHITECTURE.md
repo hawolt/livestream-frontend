@@ -236,7 +236,7 @@ URL parameters:
 
 | Param | Effect |
 |---|---|
-| `size=s\|l` | Smaller or larger text (default medium) |
+| `size=s\|l\|xl` | Smaller, larger or extra large text (default medium) |
 | `fade=N` | Fade each message out after N seconds |
 | `badges=0` | Hide badges |
 | `emotes=0` | Disable emote rendering (skips the 7TV fetch) |
