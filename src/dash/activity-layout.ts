@@ -4,19 +4,19 @@ export const ACTIVITY_BLOCK_IDS: readonly ActivityBlockId[] = ["activity", "stat
 
 export interface ActivityLayoutState {
     order: ActivityBlockId[];
-    colWeights: [number, number];
-    rowWeights: [number, number, number];
+    colSizes: [number, number];
+    rowSizes: [number, number, number];
 }
 
 export const ACTIVITY_LAYOUT_KEY = "activity_layout";
 
-export const ACTIVITY_WEIGHT_MIN = 0.05;
-export const ACTIVITY_WEIGHT_MAX = 10000;
+export const ACTIVITY_SIZE_MAX = 20000;
+const FIT_EPSILON = 0.5;
 
 export const DEFAULT_ACTIVITY_LAYOUT: ActivityLayoutState = {
     order: ["chat", "stats", "info", "activity"],
-    colWeights: [2.2, 1],
-    rowWeights: [0.55, 1, 1.6],
+    colSizes: [820, 380],
+    rowSizes: [160, 290, 460],
 };
 
 export const HANDLE_PX = 10;
@@ -46,12 +46,7 @@ function isValidOrder(v: unknown): v is ActivityBlockId[] {
 }
 
 function isFiniteNumberTuple(v: unknown, length: number): v is number[] {
-    return Array.isArray(v) && v.length === length && v.every(x => typeof x === "number" && Number.isFinite(x));
-}
-
-export function clampWeight(value: number): number {
-    if (!Number.isFinite(value)) return ACTIVITY_WEIGHT_MIN;
-    return Math.min(ACTIVITY_WEIGHT_MAX, Math.max(ACTIVITY_WEIGHT_MIN, value));
+    return Array.isArray(v) && v.length === length && v.every(x => typeof x === "number" && Number.isFinite(x) && x > 0);
 }
 
 export function colMinsFor(order: ActivityBlockId[]): [number, number] {
@@ -69,64 +64,105 @@ export function rowMinsFor(order: ActivityBlockId[]): [number, number, number] {
     return [BLOCK_MIN_HEIGHT[first], BLOCK_MIN_HEIGHT[second], BLOCK_MIN_HEIGHT[third]];
 }
 
-export function clampAxisWeights(weights: number[], mins: number[], total: number): number[] {
+function degradeToMins(mins: number[], total: number): number[] {
     const minTotal = mins.reduce((a, b) => a + b, 0);
+    if (minTotal <= 0) return mins.map(() => 0);
+    const scale = Math.max(total, 0) / minTotal;
+    return mins.map(m => m * scale);
+}
+
+export function fitAxisTracks(sizes: number[], mins: number[], total: number): number[] {
     const safeTotal = Math.max(total, 0);
-    if (safeTotal <= minTotal) {
-        if (minTotal <= 0) return mins.slice();
-        const scale = safeTotal / minTotal;
-        return mins.map(m => m * scale);
-    }
-    const rawTotal = weights.reduce((a, b) => a + Math.max(b, 0), 0);
-    const surplus = safeTotal - minTotal;
-    if (rawTotal <= 0) return mins.map(m => m + surplus / weights.length);
-    return mins.map((m, i) => m + (Math.max(weights[i]!, 0) / rawTotal) * surplus);
-}
-
-export function clampColWeights(weights: [number, number], order: ActivityBlockId[], total: number): [number, number] {
-    const [a, b] = clampAxisWeights(weights, colMinsFor(order), total);
-    return [a!, b!];
-}
-
-export function clampRowWeights(
-    weights: [number, number, number], order: ActivityBlockId[], total: number,
-): [number, number, number] {
-    const [a, b, c] = clampAxisWeights(weights, rowMinsFor(order), total);
-    return [a!, b!, c!];
-}
-
-function clampStoredAxisWeights(weights: number[], mins: number[]): number[] {
-    const total = weights.reduce((a, b) => a + b, 0);
+    const currentTotal = sizes.reduce((a, b) => a + b, 0);
+    const totalMatches = Math.abs(currentTotal - safeTotal) < FIT_EPSILON;
+    const everyAboveMin = sizes.every((s, i) => s >= (mins[i] ?? 0) - FIT_EPSILON);
+    if (totalMatches && everyAboveMin) return sizes.slice();
     const minTotal = mins.reduce((a, b) => a + b, 0);
-    if (total < minTotal) return weights;
-    return clampAxisWeights(weights, mins, total);
+    if (safeTotal <= minTotal) return degradeToMins(mins, safeTotal);
+    const surplus = safeTotal - minTotal;
+    const rawTotal = sizes.reduce((a, b) => a + Math.max(b, 0), 0);
+    if (rawTotal <= 0) return mins.map(m => m + surplus / sizes.length);
+    return mins.map((m, i) => m + (Math.max(sizes[i]!, 0) / rawTotal) * surplus);
 }
 
-export function clampStoredColWeights(weights: [number, number], order: ActivityBlockId[]): [number, number] {
-    const [a, b] = clampStoredAxisWeights(weights, colMinsFor(order));
+export function fitColSizes(sizes: [number, number], order: ActivityBlockId[], total: number): [number, number] {
+    const [a, b] = fitAxisTracks(sizes, colMinsFor(order), total);
     return [a!, b!];
 }
 
-export function clampStoredRowWeights(
-    weights: [number, number, number], order: ActivityBlockId[],
+export function fitRowSizes(
+    sizes: [number, number, number], order: ActivityBlockId[], total: number,
 ): [number, number, number] {
-    const [a, b, c] = clampStoredAxisWeights(weights, rowMinsFor(order));
+    const [a, b, c] = fitAxisTracks(sizes, rowMinsFor(order), total);
     return [a!, b!, c!];
+}
+
+export function dragAdjustPair(sizes: number[], mins: number[], indexA: number, indexB: number, delta: number): number[] {
+    const next = sizes.slice();
+    const sum = sizes[indexA]! + sizes[indexB]!;
+    const minA = mins[indexA]!;
+    const minB = mins[indexB]!;
+    const maxA = Math.max(minA, sum - minB);
+    const a = Math.min(maxA, Math.max(minA, sizes[indexA]! + delta));
+    next[indexA] = a;
+    next[indexB] = sum - a;
+    return next;
+}
+
+export function dragAdjustCols(sizes: [number, number], order: ActivityBlockId[], delta: number): [number, number] {
+    const [a, b] = dragAdjustPair(sizes, colMinsFor(order), 0, 1, delta);
+    return [a!, b!];
+}
+
+export function dragAdjustRows(
+    sizes: [number, number, number], order: ActivityBlockId[], indexA: 0 | 1, indexB: 0 | 1 | 2, delta: number,
+): [number, number, number] {
+    const [a, b, c] = dragAdjustPair(sizes, rowMinsFor(order), indexA, indexB, delta);
+    return [a!, b!, c!];
+}
+
+function sanitizeStoredAxisSizes(sizes: number[], mins: number[]): number[] {
+    const total = sizes.reduce((a, b) => a + b, 0);
+    const minTotal = mins.reduce((a, b) => a + b, 0);
+    if (total < minTotal) return sizes;
+    return fitAxisTracks(sizes, mins, total);
+}
+
+export function sanitizeStoredColSizes(sizes: [number, number], order: ActivityBlockId[]): [number, number] {
+    const [a, b] = sanitizeStoredAxisSizes(sizes, colMinsFor(order));
+    return [a!, b!];
+}
+
+export function sanitizeStoredRowSizes(
+    sizes: [number, number, number], order: ActivityBlockId[],
+): [number, number, number] {
+    const [a, b, c] = sanitizeStoredAxisSizes(sizes, rowMinsFor(order));
+    return [a!, b!, c!];
+}
+
+function boundedSize(value: number): number {
+    if (!Number.isFinite(value) || value <= 0) return 1;
+    return Math.min(ACTIVITY_SIZE_MAX, value);
 }
 
 export function parseActivityLayout(raw: unknown): ActivityLayoutState | null {
     if (!raw || typeof raw !== "object") return null;
     const data = raw as Record<string, unknown>;
     if (!isValidOrder(data["order"])) return null;
-    if (!isFiniteNumberTuple(data["colWeights"], 2)) return null;
-    if (!isFiniteNumberTuple(data["rowWeights"], 3)) return null;
     const order = data["order"] as ActivityBlockId[];
-    const colWeights = (data["colWeights"] as number[]).map(clampWeight) as [number, number];
-    const rowWeights = (data["rowWeights"] as number[]).map(clampWeight) as [number, number, number];
+    if (!isFiniteNumberTuple(data["colSizes"], 2) || !isFiniteNumberTuple(data["rowSizes"], 3)) {
+        return {
+            order,
+            colSizes: [DEFAULT_ACTIVITY_LAYOUT.colSizes[0], DEFAULT_ACTIVITY_LAYOUT.colSizes[1]],
+            rowSizes: [DEFAULT_ACTIVITY_LAYOUT.rowSizes[0], DEFAULT_ACTIVITY_LAYOUT.rowSizes[1], DEFAULT_ACTIVITY_LAYOUT.rowSizes[2]],
+        };
+    }
+    const colSizes = (data["colSizes"] as number[]).map(boundedSize) as [number, number];
+    const rowSizes = (data["rowSizes"] as number[]).map(boundedSize) as [number, number, number];
     return {
         order,
-        colWeights: clampStoredColWeights(colWeights, order),
-        rowWeights: clampStoredRowWeights(rowWeights, order),
+        colSizes: sanitizeStoredColSizes(colSizes, order),
+        rowSizes: sanitizeStoredRowSizes(rowSizes, order),
     };
 }
 
@@ -144,7 +180,7 @@ export function swapBlocks(order: ActivityBlockId[], a: ActivityBlockId, b: Acti
 export function cloneActivityLayout(state: ActivityLayoutState): ActivityLayoutState {
     return {
         order: state.order.slice(),
-        colWeights: [state.colWeights[0], state.colWeights[1]],
-        rowWeights: [state.rowWeights[0], state.rowWeights[1], state.rowWeights[2]],
+        colSizes: [state.colSizes[0], state.colSizes[1]],
+        rowSizes: [state.rowSizes[0], state.rowSizes[1], state.rowSizes[2]],
     };
 }

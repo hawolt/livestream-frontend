@@ -9,10 +9,12 @@ import {
     ACTIVITY_LAYOUT_KEY,
     DEFAULT_ACTIVITY_LAYOUT,
     HANDLE_PX,
-    clampColWeights,
-    clampRowWeights,
     cloneActivityLayout,
     colMinsFor,
+    dragAdjustCols,
+    dragAdjustRows,
+    fitColSizes,
+    fitRowSizes,
     parseActivityLayout,
     rowMinsFor,
     swapBlocks,
@@ -102,13 +104,13 @@ function applyTrackSizes(state: ActivityLayoutState): void {
     const colTotal = container.clientWidth;
     const rowTotal = container.clientHeight;
     const [wide, narrow] = colTotal > 0
-        ? clampColWeights(state.colWeights, state.order, colTotal - HANDLE_PX)
-        : state.colWeights;
+        ? fitColSizes(state.colSizes, state.order, colTotal - HANDLE_PX)
+        : state.colSizes;
     const [r1, r2, r3] = rowTotal > 0
-        ? clampRowWeights(state.rowWeights, state.order, rowTotal - HANDLE_PX * 2)
-        : state.rowWeights;
-    state.colWeights = [wide, narrow];
-    state.rowWeights = [r1, r2, r3];
+        ? fitRowSizes(state.rowSizes, state.order, rowTotal - HANDLE_PX * 2)
+        : state.rowSizes;
+    state.colSizes = [wide, narrow];
+    state.rowSizes = [r1, r2, r3];
     container.style.gridTemplateColumns = `minmax(${minWide}px, ${wide}fr) ${HANDLE_PX}px minmax(${minNarrow}px, ${narrow}fr)`;
     container.style.gridTemplateRows =
         `minmax(${minR1}px, ${r1}fr) ${HANDLE_PX}px minmax(${minR2}px, ${r2}fr) ${HANDLE_PX}px minmax(${minR3}px, ${r3}fr)`;
@@ -195,11 +197,10 @@ function beginColResize(startEv: PointerEvent): void {
     const container = document.getElementById("act-layout");
     if (!container) return;
     const cols = trackPixelSizes(getComputedStyle(container).gridTemplateColumns);
-    const startWide = cols[0] ?? 0;
-    const startNarrow = cols[2] ?? 0;
-    const total = startWide + startNarrow;
+    const startSizes: [number, number] = [cols[0] ?? 0, cols[2] ?? 0];
     const [minWide, minNarrow] = colMinsFor(layoutState.order);
-    if (total <= minWide + minNarrow) return;
+    if (startSizes[0] + startSizes[1] <= minWide + minNarrow) return;
+    layoutState.colSizes = startSizes;
     const startX = startEv.clientX;
     const handle = startEv.currentTarget as HTMLElement | null;
     handle?.classList.add("act-handle-active");
@@ -208,8 +209,7 @@ function beginColResize(startEv: PointerEvent): void {
 
     function onMove(ev: PointerEvent): void {
         const dx = ev.clientX - startX;
-        const rawWide = startWide + dx;
-        layoutState.colWeights = [rawWide, total - rawWide];
+        layoutState.colSizes = dragAdjustCols(startSizes, layoutState.order, dx);
         applyTrackSizes(layoutState);
     }
 
@@ -228,16 +228,19 @@ function beginColResize(startEv: PointerEvent): void {
     document.addEventListener("pointercancel", finish);
 }
 
-function beginRowResize(startEv: PointerEvent, indexA: 0 | 1 | 2, indexB: 0 | 1 | 2): void {
+function beginRowResize(startEv: PointerEvent, indexA: 0 | 1, indexB: 0 | 1 | 2): void {
     const container = document.getElementById("act-layout");
     if (!container) return;
     const rows = trackPixelSizes(getComputedStyle(container).gridTemplateRows);
     const rowTrackIndex = [0, 2, 4];
-    const startA = rows[rowTrackIndex[indexA]!] ?? 0;
-    const startB = rows[rowTrackIndex[indexB]!] ?? 0;
-    const total = startA + startB;
+    const startSizes: [number, number, number] = [
+        rows[rowTrackIndex[0]!] ?? 0,
+        rows[rowTrackIndex[1]!] ?? 0,
+        rows[rowTrackIndex[2]!] ?? 0,
+    ];
     const rowMins = rowMinsFor(layoutState.order);
-    if (total <= rowMins[indexA] + rowMins[indexB]) return;
+    if (startSizes[indexA] + startSizes[indexB] <= rowMins[indexA] + rowMins[indexB]) return;
+    layoutState.rowSizes = startSizes;
     const startY = startEv.clientY;
     const handle = startEv.currentTarget as HTMLElement | null;
     handle?.classList.add("act-handle-active");
@@ -246,11 +249,7 @@ function beginRowResize(startEv: PointerEvent, indexA: 0 | 1 | 2, indexB: 0 | 1 
 
     function onMove(ev: PointerEvent): void {
         const dy = ev.clientY - startY;
-        const rawA = startA + dy;
-        const weights = layoutState.rowWeights.slice() as [number, number, number];
-        weights[indexA] = rawA;
-        weights[indexB] = total - rawA;
-        layoutState.rowWeights = weights;
+        layoutState.rowSizes = dragAdjustRows(startSizes, layoutState.order, indexA, indexB, dy);
         applyTrackSizes(layoutState);
     }
 

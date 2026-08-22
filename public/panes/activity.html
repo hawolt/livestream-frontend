@@ -47,13 +47,13 @@
             #pane-activity .act-block > .card { height: 100% }
             #pane-activity .act-block-chat { overflow: hidden }
             #pane-activity .act-col-handle { grid-column: 2; grid-row: 1 / 6; cursor: col-resize; touch-action: none }
-            #pane-activity .act-row-handle { grid-column: 3; cursor: row-resize; touch-action: none }
+            #pane-activity .act-row-handle { grid-column: 3; cursor: row-resize; touch-action: none; display: flex; align-items: center }
             #pane-activity #act-row-handle-1 { grid-row: 2 }
             #pane-activity #act-row-handle-2 { grid-row: 4 }
             #pane-activity .act-col-handle::after,
             #pane-activity .act-row-handle::after { content: ""; display: block; background: var(--dim); opacity: .4; border-radius: 2px; transition: background .15s, opacity .15s }
             #pane-activity .act-col-handle::after { width: 2px; height: 100%; margin: 0 auto }
-            #pane-activity .act-row-handle::after { height: 2px; width: 100%; margin: auto 0 }
+            #pane-activity .act-row-handle::after { height: 2px; width: 100% }
             #pane-activity .act-col-handle:hover::after,
             #pane-activity .act-row-handle:hover::after { background: var(--accent); opacity: .8 }
             #pane-activity .act-col-handle.act-handle-active::after,
