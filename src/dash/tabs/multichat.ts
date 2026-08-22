@@ -71,13 +71,16 @@ function buildParams(): URLSearchParams {
     else if (size !== "m") params.set("size", size);
     const font = el<HTMLSelectElement>("mc-font").value;
     if (font !== "system") params.set("font", font);
+    const weight = el<HTMLSelectElement>("mc-weight").value;
+    if (weight !== "default") params.set("weight", weight);
     const fade = Number(el<HTMLInputElement>("mc-fade").value);
     if (Number.isFinite(fade) && fade > 0) params.set("fade", String(fade));
     if (!el<HTMLInputElement>("mc-icons").checked) params.set("icons", "0");
     if (!el<HTMLInputElement>("mc-badges").checked) params.set("badges", "0");
     if (!el<HTMLInputElement>("mc-emotes").checked) params.set("emotes", "0");
     if (el<HTMLInputElement>("mc-linebg").checked) params.set("bg", "1");
-    if (!el<HTMLInputElement>("mc-shadow").checked) params.set("shadow", "0");
+    const shadow = el<HTMLSelectElement>("mc-shadow").value;
+    if (shadow !== "default") params.set("shadow", shadow);
     return params;
 }
 
@@ -120,7 +123,7 @@ export function init(): void {
     wireStepper(el<HTMLInputElement>("mc-fade"));
     wireStepper(el<HTMLInputElement>("mc-size-px"));
 
-    for (const id of ["mc-twitch", "mc-youtube", "mc-ytvideo", "mc-kick", "mc-tiktok", "mc-mode", "mc-size", "mc-size-px", "mc-font", "mc-fade", "mc-icons", "mc-badges", "mc-emotes", "mc-linebg", "mc-shadow"]) {
+    for (const id of ["mc-twitch", "mc-youtube", "mc-ytvideo", "mc-kick", "mc-tiktok", "mc-mode", "mc-size", "mc-size-px", "mc-font", "mc-weight", "mc-fade", "mc-icons", "mc-badges", "mc-emotes", "mc-linebg", "mc-shadow"]) {
         el(id).addEventListener("input", onChange);
     }
 }

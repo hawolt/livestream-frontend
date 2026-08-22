@@ -23,12 +23,15 @@ function buildOptionParams(): URLSearchParams {
     else if (size !== "m") params.set("size", size);
     const font = el<HTMLSelectElement>("ov-font").value;
     if (font !== "system") params.set("font", font);
+    const weight = el<HTMLSelectElement>("ov-weight").value;
+    if (weight !== "default") params.set("weight", weight);
     const fade = Number(el<HTMLInputElement>("ov-fade").value);
     if (Number.isFinite(fade) && fade > 0) params.set("fade", String(fade));
     if (!el<HTMLInputElement>("ov-badges").checked) params.set("badges", "0");
     if (!el<HTMLInputElement>("ov-emotes").checked) params.set("emotes", "0");
     if (el<HTMLInputElement>("ov-bg").checked) params.set("bg", "1");
-    if (!el<HTMLInputElement>("ov-shadow").checked) params.set("shadow", "0");
+    const shadow = el<HTMLSelectElement>("ov-shadow").value;
+    if (shadow !== "default") params.set("shadow", shadow);
     if (el<HTMLInputElement>("ov-system").checked) params.set("system", "1");
     if (el<HTMLSelectElement>("ov-align").value === "right") params.set("align", "right");
     return params;
@@ -65,7 +68,7 @@ export function init(): void {
     wireStepper(el<HTMLInputElement>("ov-fade"));
     wireStepper(el<HTMLInputElement>("ov-size-px"));
 
-    for (const id of ["ov-size", "ov-size-px", "ov-font", "ov-fade", "ov-badges", "ov-emotes", "ov-bg", "ov-shadow", "ov-system", "ov-align"]) {
+    for (const id of ["ov-size", "ov-size-px", "ov-font", "ov-weight", "ov-fade", "ov-badges", "ov-emotes", "ov-bg", "ov-shadow", "ov-system", "ov-align"]) {
         el(id).addEventListener("input", onChange);
     }
 }

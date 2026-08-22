@@ -3,7 +3,9 @@ import { connect } from "./chat-overlay/connection.ts";
 import { startDemo } from "./chat-overlay/demo.ts";
 import { loadChannelEmotes } from "./chat-overlay/emote-source.ts";
 import { parseOverlayFont } from "./overlay-font.ts";
+import { parseOverlayShadow } from "./overlay-shadow.ts";
 import { parseOverlaySize } from "./overlay-size.ts";
+import { parseOverlayWeight } from "./overlay-weight.ts";
 
 function parseParams(): void {
     const qs = new URLSearchParams(location.search);
@@ -14,13 +16,16 @@ function parseParams(): void {
     }
     const font = parseOverlayFont(qs.get("font"));
     if (font) document.body.style.fontFamily = font;
+    const weight = parseOverlayWeight(qs.get("weight"));
+    if (weight) document.body.dataset.weight = weight;
     const fadeSec = Number(qs.get("fade"));
     ctx.fadeMs = Number.isFinite(fadeSec) && fadeSec > 0 ? fadeSec * 1000 : 0;
     ctx.showBadges = qs.get("badges") !== "0";
     ctx.showEmotes = qs.get("emotes") !== "0";
     ctx.showSystem = qs.get("system") === "1";
     if (qs.get("bg") === "1") document.body.dataset.bg = "1";
-    if (qs.get("shadow") === "0") document.body.dataset.shadow = "0";
+    const shadow = parseOverlayShadow(qs.get("shadow"));
+    if (shadow) document.body.dataset.shadow = shadow;
     if (qs.get("align") === "right") document.body.dataset.align = "right";
     ctx.demoMode = qs.get("demo") === "1";
 }

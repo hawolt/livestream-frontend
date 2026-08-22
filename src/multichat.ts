@@ -1,6 +1,8 @@
 import { ChatEmoteCatalog, type ChatEmoteScope } from "./chat-emotes.ts";
 import { parseOverlayFont } from "./overlay-font.ts";
+import { parseOverlayShadow } from "./overlay-shadow.ts";
 import { parseOverlaySize } from "./overlay-size.ts";
+import { parseOverlayWeight } from "./overlay-weight.ts";
 import {
     badgeSetsFromPayload,
     mergeBadgeSets,
@@ -94,12 +96,15 @@ function parseParams(): Sources {
     }
     const font = parseOverlayFont(qs.get("font"));
     if (font) document.body.style.fontFamily = font;
+    const weight = parseOverlayWeight(qs.get("weight"));
+    if (weight) document.body.dataset["weight"] = weight;
     showEmotes = qs.get("emotes") !== "0";
     showBadges = qs.get("badges") !== "0";
     showIcons = qs.get("icons") !== "0";
     if (qs.get("overlay") === "1") document.body.dataset["overlay"] = "1";
     if (qs.get("bg") === "1") document.body.dataset["linebg"] = "1";
-    if (qs.get("shadow") === "0") document.body.dataset["shadow"] = "0";
+    const shadow = parseOverlayShadow(qs.get("shadow"));
+    if (shadow) document.body.dataset["shadow"] = shadow;
     const fadeSec = Number(qs.get("fade"));
     fadeMs = Number.isFinite(fadeSec) && fadeSec > 0 ? fadeSec * 1000 : 0;
     demoMode = qs.get("demo") === "1";
@@ -1157,7 +1162,7 @@ function showHint(): void {
     const p2 = document.createElement("p");
     p2.append("Optional: ");
     const code2 = document.createElement("code");
-    code2.textContent = "ytvideo=<video id>, size=s|l|xl|<px>, font=roboto|sans|serif|mono|condensed|handwriting, badges=0, emotes=0, icons=0, overlay=1, bg=1, shadow=0, fade=<seconds>";
+    code2.textContent = "ytvideo=<video id>, size=s|l|xl|<px>, font=roboto|sans|serif|mono|condensed|handwriting, weight=normal|bold|extrabold, badges=0, emotes=0, icons=0, overlay=1, bg=1, shadow=0|dropsm|dropmd|droplg, fade=<seconds>";
     p2.appendChild(code2);
     hintEl.append(p, p2);
 }

@@ -66,6 +66,16 @@
                         <option value="handwriting">Handwriting</option>
                     </select>
                 </label>
+                <label>
+                    <span>Weight</span>
+                    <select id="mc-weight">
+                        <option value="default" selected>Default</option>
+                        <option value="normal">Normal</option>
+                        <option value="bold">Bold</option>
+                        <option value="extrabold">Extra bold</option>
+                    </select>
+                    <div class="hint">Applies to the whole line, name and text together.</div>
+                </label>
                 <label class="ov-span-2" id="mc-size-px-wrap" hidden>
                     <span>Custom size (px)</span>
                     <div class="stepper">
@@ -105,12 +115,16 @@
                         <div class="hint">Native + 7TV/BTTV/FFZ images.</div>
                     </span>
                 </label>
-                <label class="ov-toggle">
-                    <input type="checkbox" id="mc-shadow" checked>
-                    <span>
-                        <span class="ov-toggle-name">Text shadow</span>
-                        <div class="hint">Legibility in overlay mode.</div>
-                    </span>
+                <label>
+                    <span>Shadow</span>
+                    <select id="mc-shadow">
+                        <option value="default" selected>Default</option>
+                        <option value="0">None</option>
+                        <option value="dropsm">Drop small</option>
+                        <option value="dropmd">Drop medium</option>
+                        <option value="droplg">Drop large</option>
+                    </select>
+                    <div class="hint">Overlay mode only. Drop tiers halo badges and emotes too.</div>
                 </label>
                 <label class="ov-toggle ov-span-2">
                     <input type="checkbox" id="mc-linebg">

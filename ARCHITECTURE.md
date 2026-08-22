@@ -237,13 +237,14 @@ URL parameters:
 | Param | Effect |
 |---|---|
 | `size=s\|l\|xl\|<px>` | Smaller, larger or extra large text, or an exact pixel size (default medium) |
-| `font=roboto\|sans\|serif\|mono\|condensed\|handwriting` | Overrides the default system font stack; `roboto` uses the self-hosted files, everything else is a real-font-plus-fallback stack (unknown or missing keeps the default) |
+| `font=roboto\|sans\|serif\|mono\|condensed\|handwriting` | Overrides the default system font stack; `roboto` uses the self-hosted variable font, everything else is a real-font-plus-fallback stack (unknown or missing keeps the default) |
+| `weight=normal\|bold\|extrabold` | Sets the weight of the whole message line, name and text together, at 400/700/800 (default keeps the text at 400 and only `.nick` at 700, unknown or missing keeps the default) |
 | `fade=N` | Fade each message out after N seconds |
 | `badges=0` | Hide badges |
 | `emotes=0` | Disable emote rendering (skips the 7TV fetch) |
 | `system=1` | Render `SYSMSG` lines (raids, channel point redemptions) |
 | `bg=1` | Dark background panel instead of transparency |
-| `shadow=0` | Disable text shadow |
+| `shadow=0\|dropsm\|dropmd\|droplg` | `0` disables the shadow; `dropsm`/`dropmd`/`droplg` swap the default text shadow for a `filter: drop-shadow()` halo (0.2/0.35/0.5rem blur, 2px 2px offset) that also covers badges and emote images, applied per message line and suppressed under `bg=1` where the line already has an opaque panel (default keeps today's text shadow, unknown keeps the default) |
 | `align=right` | Right-align messages |
 | `demo=1` | No connection; loops a scripted set of sample messages (used by the dashboard's overlay preview) |
 
