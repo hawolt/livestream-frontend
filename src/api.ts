@@ -250,6 +250,12 @@ export function buildRequestHeaders(headers?: HeadersInit): HeadersInit {
     return { "Content-Type": "application/json", ...headers };
 }
 
+export async function readJsonBody<T>(res: Response): Promise<T | undefined> {
+    const text = await res.text();
+    if (!text) return undefined;
+    return JSON.parse(text) as T;
+}
+
 export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
     const url = path.replace(/^\/api\//, `${API_BASE}/`);
     const res = await fetch(url, {
@@ -262,6 +268,5 @@ export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> 
         error.status = res.status;
         throw error;
     }
-    if (res.status === 204 || res.headers.get("content-length") === "0") return undefined as unknown as T;
-    return res.json() as Promise<T>;
+    return (await readJsonBody<T>(res)) as T;
 }

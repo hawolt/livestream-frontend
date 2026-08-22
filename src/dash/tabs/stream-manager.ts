@@ -8,6 +8,10 @@ const fmtUnix = (t: number | null | undefined): string =>
 let modsCache: LiveMod[] = [];
 let bansCache: LiveBan[] = [];
 
+export function banRemovable(bannedByRank: number): boolean {
+    return bannedByRank !== 3 && bannedByRank < 30;
+}
+
 async function loadMods(): Promise<void> {
     const tbody = document.getElementById("live-mods-body");
     if (tbody) tbody.innerHTML = `<tr><td colspan="3" class="empty">Loading...</td></tr>`;
@@ -78,9 +82,9 @@ function renderBans(): void {
     for (const b of bansCache) {
         const tr = document.createElement("tr");
         const expiry = b.expiresAt ? fmtUnix(b.expiresAt) : "Permanent";
-        const action = b.bannedByRank > 2
-            ? `<span style="color:var(--muted);font-size:12px">Staff ban</span>`
-            : `<button class="btn btn-sm btn-danger" data-ban-remove="${b.id}">Remove</button>`;
+        const action = banRemovable(b.bannedByRank)
+            ? `<button class="btn btn-sm btn-danger" data-ban-remove="${b.id}">Remove</button>`
+            : `<span style="color:var(--muted);font-size:12px">Staff ban</span>`;
         tr.innerHTML = `
             <td data-label="Label">${esc(b.label)}</td>
             <td data-label="Banned by">${esc(b.bannedBy)}</td>

@@ -74,6 +74,12 @@ export function sortAchievementEntries(entries: AchievementEntry[]): Achievement
     return [...entries].sort(compareAchievementEntries);
 }
 
+export const MEDAL_EXCLUDED_KEY: AchievementKey = "collector";
+
+export function medalEligibleUnlockedCount(entries: AchievementEntry[]): number {
+    return entries.filter(entry => entry.tier >= 1 && entry.key !== MEDAL_EXCLUDED_KEY).length;
+}
+
 export const MEDAL_ACHIEVEMENT_THRESHOLD = 10;
 
 export interface MedalRewardStatus {

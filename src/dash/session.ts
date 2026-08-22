@@ -1,4 +1,4 @@
-import { apiFetch, API_BASE } from "../api.ts";
+import { apiFetch, readJsonBody, API_BASE } from "../api.ts";
 import { sessionResponseIdentity, sessionTokenMetadata } from "../session-token.ts";
 
 export interface TabInfo { id: string; label: string; pane: string; group?: string; }
@@ -103,18 +103,28 @@ let sessionRenewalStarted = false;
 
 async function requestSessionFromCookie(): Promise<SessionBootstrap> {
     const requestRevision = tokenRevision;
+    let res: Response;
     try {
-        const res = await fetch(`${API_BASE}/auth/session`, { credentials: "include" });
-        if (res.status === 401) return "unauthenticated";
-        if (!res.ok) return "unavailable";
-        const data = await res.json() as { token?: string; kind?: string; id?: number; tenantId?: number };
-        if (!data.token || !data.kind || typeof data.id !== "number") return "unavailable";
-        const meIdentity = me ? sessionResponseIdentity(me) : "";
-        if (meIdentity && sessionResponseIdentity(data) !== meIdentity) {
-            return "mismatch";
-        }
-        const incoming = sessionTokenMetadata(data.token);
-        if (!incoming) return "unavailable";
+        res = await fetch(`${API_BASE}/auth/session`, { credentials: "include" });
+    } catch {
+        return "unavailable";
+    }
+    if (res.status === 401) return "unauthenticated";
+    if (!res.ok) return "unavailable";
+    let data: { token?: string; kind?: string; id?: number; tenantId?: number } | undefined;
+    try {
+        data = await readJsonBody<{ token?: string; kind?: string; id?: number; tenantId?: number }>(res);
+    } catch {
+        return "unavailable";
+    }
+    if (!data || !data.token || !data.kind || typeof data.id !== "number") return "unavailable";
+    const meIdentity = me ? sessionResponseIdentity(me) : "";
+    if (meIdentity && sessionResponseIdentity(data) !== meIdentity) {
+        return "mismatch";
+    }
+    const incoming = sessionTokenMetadata(data.token);
+    if (!incoming) return "unavailable";
+    try {
         if (requestRevision !== tokenRevision) {
             const current = sessionTokenMetadata(TOKEN);
             if (!current) return "mismatch";
@@ -195,13 +205,19 @@ async function fetchMe(): Promise<Response | null> {
 async function dashboardResult(res: Response | null): Promise<DashboardSession> {
     const outcome = decideDashboardStatus(res);
     if (outcome !== "continue") return { state: outcome };
+    let data: (MeInfo & { token?: string }) | undefined;
     try {
-        const data = await res!.json() as MeInfo & { token?: string };
-        if (data.token) setToken(data.token);
-        return { state: "ready", me: data };
+        data = await readJsonBody<MeInfo & { token?: string }>(res!);
     } catch {
         return { state: "unavailable" };
     }
+    if (!data) return { state: "unavailable" };
+    try {
+        if (data.token) setToken(data.token);
+    } catch {
+        return { state: "unavailable" };
+    }
+    return { state: "ready", me: data };
 }
 
 export async function loadDashboardSession(): Promise<DashboardSession> {

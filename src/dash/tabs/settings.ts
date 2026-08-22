@@ -1,12 +1,15 @@
 import type { AccountSettings, ApiTokenCreated, ApiTokenInfo, OAuthGrantInfo } from "../../api.ts";
 import { copyText } from "../../clipboard.ts";
-import { $ } from "../dom.ts";
 import { authFetch, getMe, setToken } from "../session.ts";
 
 let usernameCooldownRemaining = 0;
 let activationGeneration = 0;
 let settingsLoadRevision = 0;
 let active = false;
+let settingsPane: HTMLElement | null = null;
+let integrationPane: HTMLElement | null = null;
+const wiredPanes = new WeakSet<HTMLElement>();
+const dirtyFields = new WeakSet<HTMLElement>();
 const operationRevisions = new Map<string, number>();
 const loadingControlStates = new Map<SettingsControl, boolean>();
 
@@ -33,14 +36,46 @@ function isCurrentOperation(operation: SettingsOperation): boolean {
         && operationRevisions.get(operation.key) === operation.revision;
 }
 
+function managedPanes(): HTMLElement[] {
+    return [settingsPane, integrationPane].filter((p): p is HTMLElement => p !== null);
+}
+
+function loadErrorElements(): HTMLElement[] {
+    const out: HTMLElement[] = [];
+    const fromSettings = settingsPane?.querySelector<HTMLElement>("#st-load-error");
+    if (fromSettings) out.push(fromSettings);
+    const fromIntegration = integrationPane?.querySelector<HTMLElement>("#it-load-error");
+    if (fromIntegration) out.push(fromIntegration);
+    return out;
+}
+
+function shouldSkipRefresh(el: HTMLElement | null): boolean {
+    return !!el && (document.activeElement === el || dirtyFields.has(el));
+}
+
+function markDirty(el: HTMLElement | null): void {
+    if (el) dirtyFields.add(el);
+}
+
+function clearDirty(el: HTMLElement | null): void {
+    if (el) dirtyFields.delete(el);
+}
+
+function trackDirtyOnInput(el: HTMLElement | null): void {
+    el?.addEventListener("input", () => markDirty(el));
+}
+
 function setSettingsLoading(loading: boolean): void {
-    const pane = $("pane-settings");
-    pane.setAttribute("aria-busy", String(loading));
+    const panes = managedPanes();
+    for (const pane of panes) pane.setAttribute("aria-busy", String(loading));
     if (loading) {
         if (loadingControlStates.size === 0) {
-            pane.querySelectorAll<SettingsControl>("button, input, select, textarea").forEach(control => {
-                loadingControlStates.set(control, control.disabled);
-            });
+            for (const pane of panes) {
+                pane.querySelectorAll<SettingsControl>("button, input, select, textarea").forEach(control => {
+                    if (shouldSkipRefresh(control)) return;
+                    loadingControlStates.set(control, control.disabled);
+                });
+            }
         }
         loadingControlStates.forEach((_disabled, control) => {
             if (control.isConnected) control.disabled = true;
@@ -54,10 +89,19 @@ function setSettingsLoading(loading: boolean): void {
 }
 
 function markSettingsLoadFailed(error: unknown): void {
-    $("pane-settings").setAttribute("aria-busy", "false");
-    const saved = $("st-saved");
-    saved.textContent = error instanceof Error ? error.message : String(error);
-    saved.style.color = "var(--red)";
+    for (const pane of managedPanes()) pane.setAttribute("aria-busy", "false");
+    const message = error instanceof Error ? error.message : String(error);
+    for (const el of loadErrorElements()) {
+        el.textContent = message;
+        el.style.display = "";
+    }
+}
+
+function clearSettingsLoadFailed(): void {
+    for (const el of loadErrorElements()) {
+        el.textContent = "";
+        el.style.display = "none";
+    }
 }
 
 function invalidateSettingsLoads(): void {
@@ -100,15 +144,18 @@ async function loadSettings(generation = activationGeneration): Promise<void> {
     try {
         const s = await authFetch<AccountSettings>("/api/settings");
         if (!isCurrentActivation(generation) || revision !== settingsLoadRevision) return;
-        ($("st-email") as HTMLInputElement).value = s.email ?? "";
+        clearSettingsLoadFailed();
+        const emailInput = document.getElementById("st-email") as HTMLInputElement | null;
+        if (emailInput && !shouldSkipRefresh(emailInput)) emailInput.value = s.email ?? "";
         const banner = document.getElementById("settings-verify-banner");
         if (banner) banner.style.display = s.emailVerified === false ? "" : "none";
-        applyChatColor(s.chatColor);
+        const colorInput = document.getElementById("st-chat-color") as HTMLInputElement | null;
+        if (!shouldSkipRefresh(colorInput)) applyChatColor(s.chatColor);
         const usernameCurrent = document.getElementById("st-username-current") as HTMLInputElement | null;
         if (usernameCurrent) usernameCurrent.value = s.username ?? getMe()?.username ?? "";
         renderBotCard(typeof s.chatBotToken === "string" ? s.chatBotToken : null);
         const liveNotify = document.getElementById("st-live-notify") as HTMLInputElement | null;
-        if (liveNotify) liveNotify.checked = s.liveNotify !== false;
+        if (liveNotify && !shouldSkipRefresh(liveNotify)) liveNotify.checked = s.liveNotify !== false;
         setSettingsLoading(false);
         applyChatColorAllowed(s.chatColorAllowed !== false);
         formatUsernameHint(s);
@@ -518,30 +565,35 @@ async function loadReferrals(): Promise<void> {
     }
 }
 
-export function init(): void {
+export function init(pane: HTMLElement): void {
+    if (wiredPanes.has(pane)) return;
+    wiredPanes.add(pane);
+    if (pane.id === "pane-settings") settingsPane = pane;
+    else if (pane.id === "pane-integration") integrationPane = pane;
+
     const me = getMe();
     const flags = new Set((me?.flags ?? "").split(",").map(f => f.trim()).filter(Boolean));
-    const inviteLinkEl = document.getElementById("st-invite-link") as HTMLInputElement | null;
+    const inviteLinkEl = pane.querySelector<HTMLInputElement>("#st-invite-link");
     if (inviteLinkEl && me?.username) {
         inviteLinkEl.value = `${location.origin}/register?ref=${encodeURIComponent(me.username)}`;
     }
-    void loadReferrals();
-    document.getElementById("btn-invite-copy")?.addEventListener("click", () => {
-        const copied = document.getElementById("st-invite-copied") as HTMLElement | null;
+    if (pane.querySelector("#st-referrals")) void loadReferrals();
+    pane.querySelector("#btn-invite-copy")?.addEventListener("click", () => {
+        const copied = pane.querySelector<HTMLElement>("#st-invite-copied");
         void copyText(inviteLinkEl?.value ?? "").then(ok => {
             if (!copied) return;
             copied.style.visibility = ok ? "visible" : "hidden";
             window.setTimeout(() => { copied.style.visibility = "hidden"; }, 2000);
         });
     });
-    const pendingBanner = document.getElementById("settings-pending-banner");
+    const pendingBanner = pane.querySelector<HTMLElement>("#settings-pending-banner");
     if (pendingBanner) {
         pendingBanner.style.display = (me?.kind === "user" && flags.size === 0) ? "" : "none";
     }
 
-    document.getElementById("btn-resend-verify")?.addEventListener("click", async () => {
-        const btn    = document.getElementById("btn-resend-verify") as HTMLButtonElement;
-        const result = document.getElementById("resend-result")!;
+    pane.querySelector("#btn-resend-verify")?.addEventListener("click", async () => {
+        const btn    = pane.querySelector("#btn-resend-verify") as HTMLButtonElement;
+        const result = pane.querySelector<HTMLElement>("#resend-result")!;
         const operation = beginOperation("resend-verification");
         btn.disabled = true;
         result.textContent = "Sending…";
@@ -561,16 +613,18 @@ export function init(): void {
         }
     });
 
-    document.getElementById("settings-account-form")?.addEventListener("submit", async (e) => {
+    const emailInput = pane.querySelector<HTMLInputElement>("#st-email");
+    trackDirtyOnInput(emailInput);
+    pane.querySelector("#settings-account-form")?.addEventListener("submit", async (e) => {
         e.preventDefault();
         const form = e.currentTarget as HTMLFormElement;
         const btn = form.querySelector<HTMLButtonElement>('button[type="submit"]');
         if (btn?.disabled) return;
         const operation = beginOperation("account");
-        const email = ($("st-email") as HTMLInputElement).value.trim();
-        const passwordInput = $("st-email-password") as HTMLInputElement;
+        const email = (pane.querySelector("#st-email") as HTMLInputElement).value.trim();
+        const passwordInput = pane.querySelector("#st-email-password") as HTMLInputElement;
         const currentPassword = passwordInput.value;
-        const saved = $("st-saved");
+        const saved = pane.querySelector("#st-saved") as HTMLElement;
         if (!currentPassword) {
             saved.textContent = "Enter your current password to change your email address.";
             saved.style.color = "var(--red)";
@@ -582,13 +636,14 @@ export function init(): void {
             const res = await authFetch<{ ok: boolean; emailVerified?: boolean; message?: string }>(
                 "/api/settings", { method: "PUT", body: JSON.stringify(body) });
             if (isCurrentOperation(operation) && btn) btn.disabled = false;
+            clearDirty(emailInput);
             invalidateSettingsLoads();
             if (!isCurrentOperation(operation)) return;
             passwordInput.value = "";
             saved.style.color = "var(--success)";
 
             if (res.emailVerified === false) {
-                const banner = document.getElementById("settings-verify-banner");
+                const banner = pane.querySelector<HTMLElement>("#settings-verify-banner");
                 if (banner) banner.style.display = "";
                 saved.textContent = res.message ?? "Saved, check your inbox to verify your new email.";
             } else {
@@ -605,19 +660,21 @@ export function init(): void {
         }
     });
 
-    document.getElementById("settings-api-token-form")?.addEventListener("submit", (e) => {
+    pane.querySelector("#settings-api-token-form")?.addEventListener("submit", (e) => {
         e.preventDefault();
         void createApiToken();
     });
-    document.getElementById("st-api-scope-read")?.addEventListener("change", updateTokenScopeState);
-    document.getElementById("st-api-scope-write")?.addEventListener("change", updateTokenScopeState);
+    pane.querySelector("#st-api-scope-read")?.addEventListener("change", updateTokenScopeState);
+    pane.querySelector("#st-api-scope-write")?.addEventListener("change", updateTokenScopeState);
 
-    document.getElementById("st-chat-color")?.addEventListener("input", syncColorPreview);
-    document.getElementById("st-username-new")?.addEventListener("input", updateUsernameSaveState);
+    const colorInput = pane.querySelector<HTMLInputElement>("#st-chat-color");
+    colorInput?.addEventListener("input", syncColorPreview);
+    trackDirtyOnInput(colorInput);
+    pane.querySelector("#st-username-new")?.addEventListener("input", updateUsernameSaveState);
 
-    document.getElementById("st-live-notify")?.addEventListener("change", async (e) => {
+    pane.querySelector("#st-live-notify")?.addEventListener("change", async (e) => {
         const cb = e.target as HTMLInputElement;
-        const saved = document.getElementById("st-live-notify-saved");
+        const saved = pane.querySelector<HTMLElement>("#st-live-notify-saved");
         const operation = beginOperation("live-notify");
         cb.disabled = true;
         try {
@@ -642,10 +699,11 @@ export function init(): void {
     });
 
     async function saveChatColor(color: string | null): Promise<void> {
-        const saved = document.getElementById("st-color-saved");
+        const saved = pane.querySelector<HTMLElement>("#st-color-saved");
         const operation = beginOperation("chat-color");
         try {
             await authFetch("/api/settings/chat-color", { method: "PUT", body: JSON.stringify({ color: color ?? "" }) });
+            clearDirty(colorInput);
             invalidateSettingsLoads();
             if (!isCurrentOperation(operation)) return;
             if (color === null) applyChatColor(null);
@@ -660,20 +718,20 @@ export function init(): void {
         }, 3000);
     }
 
-    document.getElementById("settings-color-form")?.addEventListener("submit", (e) => {
+    pane.querySelector("#settings-color-form")?.addEventListener("submit", (e) => {
         e.preventDefault();
-        void saveChatColor((document.getElementById("st-chat-color") as HTMLInputElement).value);
+        void saveChatColor((pane.querySelector("#st-chat-color") as HTMLInputElement).value);
     });
-    document.getElementById("btn-color-reset")?.addEventListener("click", () => void saveChatColor(null));
+    pane.querySelector("#btn-color-reset")?.addEventListener("click", () => void saveChatColor(null));
 
-    document.getElementById("settings-username-form")?.addEventListener("submit", async (e) => {
+    pane.querySelector("#settings-username-form")?.addEventListener("submit", async (e) => {
         e.preventDefault();
-        const btn = document.getElementById("btn-username-save") as HTMLButtonElement | null;
+        const btn = pane.querySelector("#btn-username-save") as HTMLButtonElement | null;
         if (btn?.disabled) return;
         const operation = beginOperation("username");
-        const username = ($("st-username-new") as HTMLInputElement).value.trim();
-        const password = ($("st-username-password") as HTMLInputElement).value;
-        const status   = $("st-username-saved");
+        const username = (pane.querySelector("#st-username-new") as HTMLInputElement).value.trim();
+        const password = (pane.querySelector("#st-username-password") as HTMLInputElement).value;
+        const status   = pane.querySelector("#st-username-saved") as HTMLElement;
         if (!username || !password) {
             status.textContent = "Enter a new username and your current password.";
             status.style.color = "var(--red)";
@@ -687,9 +745,9 @@ export function init(): void {
             const me = getMe();
             if (me) me.username = res.username;
             if (isCurrentOperation(operation)) {
-                ($("st-username-current") as HTMLInputElement).value = res.username;
-                ($("st-username-new") as HTMLInputElement).value = "";
-                ($("st-username-password") as HTMLInputElement).value = "";
+                (pane.querySelector("#st-username-current") as HTMLInputElement).value = res.username;
+                (pane.querySelector("#st-username-new") as HTMLInputElement).value = "";
+                (pane.querySelector("#st-username-password") as HTMLInputElement).value = "";
                 updateUsernameSaveState();
             }
             invalidateSettingsLoads();
@@ -709,15 +767,15 @@ export function init(): void {
         }
     });
 
-    document.getElementById("settings-password-form")?.addEventListener("submit", async (e) => {
+    pane.querySelector("#settings-password-form")?.addEventListener("submit", async (e) => {
         e.preventDefault();
         const form = e.currentTarget as HTMLFormElement;
         const btn = form.querySelector<HTMLButtonElement>('button[type="submit"]');
         if (btn?.disabled) return;
         const operation = beginOperation("password");
-        const current = ($("st-pw-current") as HTMLInputElement).value;
-        const next    = ($("st-pw-new") as HTMLInputElement).value;
-        const confirmPw = ($("st-pw-confirm") as HTMLInputElement).value;
+        const current = (pane.querySelector("#st-pw-current") as HTMLInputElement).value;
+        const next    = (pane.querySelector("#st-pw-new") as HTMLInputElement).value;
+        const confirmPw = (pane.querySelector("#st-pw-confirm") as HTMLInputElement).value;
         if (next !== confirmPw) { alert("New passwords do not match."); return; }
         if (next.length < 8)  { alert("Password must be at least 8 characters."); return; }
         if (btn) btn.disabled = true;
@@ -726,11 +784,13 @@ export function init(): void {
             if (res.token) {
                 setToken(res.token);
             }
+            void loadApiTokens(operation.generation);
+            void loadOAuthGrants(operation.generation);
             if (!isCurrentOperation(operation)) return;
-            ($("st-pw-current") as HTMLInputElement).value = "";
-            ($("st-pw-new") as HTMLInputElement).value = "";
-            ($("st-pw-confirm") as HTMLInputElement).value = "";
-            const saved = $("st-pw-saved");
+            (pane.querySelector("#st-pw-current") as HTMLInputElement).value = "";
+            (pane.querySelector("#st-pw-new") as HTMLInputElement).value = "";
+            (pane.querySelector("#st-pw-confirm") as HTMLInputElement).value = "";
+            const saved = pane.querySelector("#st-pw-saved") as HTMLElement;
             saved.textContent = "Password changed";
             window.setTimeout(() => {
                 if (isCurrentOperation(operation)) saved.textContent = "";

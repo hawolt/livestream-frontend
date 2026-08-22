@@ -11,7 +11,7 @@ import {
 } from "../../achievements/achievement-catalog.ts";
 import { achievementMedallionSvg, lockedAchievementMedallionSvg } from "../../achievements/achievement-medallion.ts";
 import { toRomanNumeral } from "../../achievements/achievements-decision.ts";
-import { achievementDisplay, medalRewardStatus, sortAchievementEntries, unwrapAchievementsPayload, type AchievementEntry } from "../achievements-view.ts";
+import { achievementDisplay, medalEligibleUnlockedCount, medalRewardStatus, sortAchievementEntries, unwrapAchievementsPayload, type AchievementEntry } from "../achievements-view.ts";
 
 const MEDALLION_SIZE = 48;
 const EMPTY_STATE_MESSAGE = "Achievements are being prepared.";
@@ -171,7 +171,7 @@ function renderAchievements(entries: AchievementEntry[]): void {
     empty.hidden = true;
     const unlocked = entries.filter(entry => entry.tier >= 1).length;
     summary.textContent = `${unlocked} of ${entries.length} unlocked`;
-    renderMedalCallout(unlocked);
+    renderMedalCallout(medalEligibleUnlockedCount(entries));
     sections.replaceChildren(renderSections(entries));
 }
 

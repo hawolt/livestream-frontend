@@ -3,7 +3,7 @@ import { STREAM_LANGUAGE_OPTIONS, streamLanguageCodes } from "../../stream-langu
 import { attachTypeahead, type TypeaheadOption } from "../../typeahead.ts";
 import { esc, fmtDate, fmtTime } from "../format.ts";
 import { authFetch, getMe, token } from "../session.ts";
-import { countNewLiveEvents, eventTypeClass, followEventKey, mergeFollowEvents, rejectEventLabel, viewerCountLabel, type FollowEvent } from "../activity-events.ts";
+import { countNewFollowerEvents, eventTypeClass, followEventKey, mergeFollowEvents, rejectEventLabel, viewerCountLabel, type FollowEvent } from "../activity-events.ts";
 
 interface RecentFollowsResponse {
     events: FollowEvent[];
@@ -123,7 +123,7 @@ async function loadRecentFollows(generation: number): Promise<void> {
         if (eventsDead || generation !== activationGeneration) return;
         const currentLiveEvents = Array.from(liveEvents.values());
         events = mergeFollowEvents(res.events, currentLiveEvents, MAX_EVENTS);
-        followerCount = res.count + countNewLiveEvents(res.events, currentLiveEvents);
+        followerCount = res.count + countNewFollowerEvents(res.events, currentLiveEvents);
         recentSnapshotPending = false;
         liveEvents.clear();
         renderEvents();

@@ -12,6 +12,7 @@ const TEST_ALERT_TYPES: readonly TestAlertType[] = ["follow", "raid", "redeem"];
 
 let followPreviewTimer: number | null = null;
 let followToken: string | null = null;
+let followTokenLoadFailed = false;
 let revealed = false;
 let activationGeneration = 0;
 let tokenRevision = 0;
@@ -176,14 +177,30 @@ function styleStatus(text: string, color: string): void {
     status.style.color = color;
 }
 
+function setStyleSaveEnabled(enabled: boolean): void {
+    el<HTMLButtonElement>("fa-style-save").disabled = !enabled;
+}
+
 async function loadAlertStyle(generation: number): Promise<void> {
-    let style = DEFAULT_ALERT_STYLE;
+    setStyleSaveEnabled(false);
+    styleStatus("Loading...", "var(--muted)");
     try {
         const raw = await authFetch<unknown>("/api/profile/me/alert-style");
-        style = parseAlertStyle(raw);
-    } catch {}
-    if (!isCurrentActivation(generation)) return;
-    fillStyleForm(style);
+        if (!isCurrentActivation(generation)) return;
+        fillStyleForm(parseAlertStyle(raw));
+        styleStatus("", "var(--muted)");
+        setStyleSaveEnabled(true);
+    } catch (e) {
+        if (!isCurrentActivation(generation)) return;
+        if ((e as { status?: number }).status === 404) {
+            fillStyleForm(DEFAULT_ALERT_STYLE);
+            styleStatus("", "var(--muted)");
+            setStyleSaveEnabled(true);
+            return;
+        }
+        styleStatus("Could not load your saved appearance. Save is disabled until this loads.", "var(--red)");
+        setStyleSaveEnabled(false);
+    }
 }
 
 async function saveAlertStyle(): Promise<void> {
@@ -215,6 +232,11 @@ function reloadPreview(): void {
     previewNonce += 1;
     params.set("r", String(previewNonce));
     el<HTMLIFrameElement>("fa-preview-iframe").src = `/alerts/${username()}?${params.toString()}`;
+}
+
+function updateFollowPreview(): void {
+    followPreviewTimer = null;
+    reloadPreview();
 }
 
 function schedulePreviewStyle(): void {
@@ -255,18 +277,18 @@ function buildFollowUrl(overlayToken: string): string {
 }
 
 function updateFollowUrl(): void {
+    const retryBtn = el<HTMLButtonElement>("fa-url-retry");
+    if (followTokenLoadFailed) {
+        el("fa-url").textContent = "Could not load your overlay link.";
+        retryBtn.style.display = "";
+        return;
+    }
+    retryBtn.style.display = "none";
     if (!followToken) {
         el("fa-url").textContent = "Loading...";
         return;
     }
     el("fa-url").textContent = revealed ? followUrl() : maskedFollowUrl();
-}
-
-function updateFollowPreview(): void {
-    followPreviewTimer = null;
-    if (!active) return;
-    const params = buildPreviewParams();
-    el<HTMLIFrameElement>("fa-preview-iframe").src = `/alerts/${username()}?${params.toString()}`;
 }
 
 function scheduleFollowPreview(): void {
@@ -288,6 +310,7 @@ function setTokenControlsEnabled(enabled: boolean): void {
 async function loadFollowToken(generation: number): Promise<void> {
     if (pendingTokenWrites.size > 0) return;
     setTokenControlsEnabled(false);
+    followTokenLoadFailed = false;
     const revision = ++tokenRevision;
     try {
         const s = await authFetch<AccountSettings>("/api/settings");
@@ -296,6 +319,7 @@ async function loadFollowToken(generation: number): Promise<void> {
     } catch {
         if (!isCurrentActivation(generation) || revision !== tokenRevision) return;
         followToken = null;
+        followTokenLoadFailed = true;
     }
     setTokenControlsEnabled(followToken !== null);
     updateFollowUrl();
@@ -371,6 +395,7 @@ export function init(): void {
         updateFollowUrl();
     });
     el("fa-token-btn").addEventListener("click", () => void rotateFollowToken());
+    el("fa-url-retry").addEventListener("click", () => void loadFollowToken(activationGeneration));
     for (const type of TEST_ALERT_TYPES) {
         el(`fa-test-${type}-btn`).addEventListener("click", () => void sendTestAlert(type));
     }
@@ -453,6 +478,7 @@ export function activate(): void {
     setBackdrop("fa-preview-frame", "fa-bg-checker", "fa-bg-dark", "checker");
     applyPreviewMuteButton();
     revealed = false;
+    followTokenLoadFailed = false;
     el<HTMLButtonElement>("fa-url-reveal").textContent = "Reveal";
     updateFollowUrl();
     updateFollowPreview();

@@ -1,7 +1,8 @@
 import { describe, expect, test } from "bun:test";
-import { countNewLiveEvents, mergeFollowEvents, viewerCountLabel, type FollowEvent } from "../src/dash/activity-events.ts";
+import { countNewFollowerEvents, countNewLiveEvents, mergeFollowEvents, viewerCountLabel, type FollowEvent } from "../src/dash/activity-events.ts";
 
 const event = (username: string, at: number): FollowEvent => ({ type: "follow", username, at });
+const raid = (username: string, at: number): FollowEvent => ({ type: "raid", username, at });
 
 describe("activity event reconciliation", () => {
     test("retains live events that arrive before the snapshot", () => {
@@ -23,6 +24,25 @@ describe("activity event reconciliation", () => {
     test("sorts newest first and caps the result", () => {
         expect(mergeFollowEvents([event("alice", 10)], [event("bob", 30), event("carol", 20)], 2))
             .toEqual([event("bob", 30), event("carol", 20)]);
+    });
+});
+
+describe("countNewFollowerEvents", () => {
+    test("counts a new follow that arrived before the snapshot", () => {
+        expect(countNewFollowerEvents([event("alice", 10)], [event("bob", 20)])).toBe(1);
+    });
+
+    test("ignores a raid that arrived before the snapshot", () => {
+        expect(countNewFollowerEvents([event("alice", 10)], [raid("bob", 20)])).toBe(0);
+    });
+
+    test("counts only the follow out of a mixed batch of live events", () => {
+        const live = [event("bob", 20), raid("carol", 25)];
+        expect(countNewFollowerEvents([event("alice", 10)], live)).toBe(1);
+    });
+
+    test("does not double count a follow already present in the snapshot", () => {
+        expect(countNewFollowerEvents([event("bob", 20)], [event("bob", 20)])).toBe(0);
     });
 });
 

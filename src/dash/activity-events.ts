@@ -29,6 +29,10 @@ export function countNewLiveEvents(snapshot: FollowEvent[], live: FollowEvent[])
     return new Set(live.filter(event => !snapshotKeys.has(followEventKey(event))).map(followEventKey)).size;
 }
 
+export function countNewFollowerEvents(snapshot: FollowEvent[], live: FollowEvent[]): number {
+    return countNewLiveEvents(snapshot, live.filter(event => event.type === "follow"));
+}
+
 export function eventTypeClass(type: string): string {
     const key = type.toLowerCase().replace(/[^a-z0-9]/g, "");
     return key ? `act-ev-type act-ev-type-${key}` : "act-ev-type";

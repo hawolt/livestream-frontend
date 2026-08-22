@@ -5,6 +5,7 @@ import {
     clampFillRatio,
     compareAchievementEntries,
     formatMetric,
+    medalEligibleUnlockedCount,
     medalRewardStatus,
     progressLabel,
     sortAchievementEntries,
@@ -149,6 +150,24 @@ test("medalRewardStatus reports earned exactly at the threshold", () => {
         remaining: 0,
         message: "Medal chat badge earned.",
     });
+});
+
+test("medalEligibleUnlockedCount excludes the collector key itself", () => {
+    const entries = [
+        entry("collector", 1, 5, 10),
+        entry("followers", 1, 100, null),
+        entry("audience", 1, 100, null),
+        entry("airtime", 0, 0, 100),
+    ];
+    expect(medalEligibleUnlockedCount(entries)).toBe(2);
+});
+
+test("medalEligibleUnlockedCount ignores a locked collector row", () => {
+    const entries = [
+        entry("collector", 0, 3, 5),
+        entry("followers", 1, 100, null),
+    ];
+    expect(medalEligibleUnlockedCount(entries)).toBe(1);
 });
 
 test("medalRewardStatus stays earned above the threshold", () => {

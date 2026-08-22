@@ -24,6 +24,8 @@ let loadRevision = 0;
 let upgradeRevision = 0;
 let founderRevision = 0;
 let active = false;
+let pendingUpgradeTier: string | null = null;
+const UPGRADE_CONFIRM_DELAYS_MS = [3000, 8000, 15000];
 
 function isCurrentActivation(generation: number): boolean {
     return active && generation === activationGeneration;
@@ -166,7 +168,9 @@ function tierCard(tier: BillingTier, index: number, tiers: BillingTier[], tokenL
     } else if (currentRank === null) {
         action = `<div class="sub-cta"><button class="btn btn-primary" data-sub-tier="${esc(tier.key)}">Subscribe</button></div>${passCtaHtml(tier)}`;
     } else if (tier.rank > currentRank) {
-        action = `<div class="sub-cta"><button class="btn btn-primary" data-sub-upgrade="${esc(tier.key)}">Upgrade</button></div>${passCtaHtml(tier)}`;
+        action = pendingUpgradeTier === tier.key
+            ? `<div class="sub-current-label" style="color:var(--muted)">Upgrade submitted, confirming...</div>`
+            : `<div class="sub-cta"><button class="btn btn-primary" data-sub-upgrade="${esc(tier.key)}">Upgrade</button></div>${passCtaHtml(tier)}`;
     } else {
         action = `<div class="sub-current-label" style="color:var(--muted)">Included in your plan</div>`;
     }
@@ -214,14 +218,15 @@ function render(): void {
     const pendingBanner = !activePlan && pendingCheckout()
         ? `<div class="sub-pending">Waiting for the payment provider to confirm your subscription. This usually takes a few seconds. If you cancelled the checkout, ignore this message.</div>`
         : "";
-    const showPortal = !isPassHeld || (cache.portalProviders?.length ?? 0) > 0;
+    const portalButtons = portalButtonsHtml();
+    const tierLabel = current ? cache.tiers.find(t => t.key === current.tier)?.label ?? current.tier : "";
     const statusBlock = activePlan
         ? `<div class="sub-status">
-            <b>${esc(current!.tier)}</b>
+            <b>${esc(tierLabel)}</b>
             <span>${esc(isPassHeld ? "Pass" : current!.status)}</span>
             <span>${isPassHeld ? "Pass active until " + esc(renewalDate) : "Renews " + esc(renewalDate)}</span>
-            ${showPortal ? portalButtonsHtml() : ""}
-            ${showPortal ? `<span>Downgrades and cancellation are handled there.</span>` : ""}
+            ${portalButtons}
+            ${portalButtons ? `<span>Downgrades and cancellation are handled there.</span>` : ""}
         </div>`
         : "";
     const tiers = [...cache.tiers].sort((a, b) => a.rank - b.rank);
@@ -288,7 +293,8 @@ async function checkoutFounder(btn: HTMLButtonElement): Promise<void> {
     const generation = activationGeneration;
     btn.disabled = true;
     try {
-        const res = await authFetch<{ url: string }>("/api/billing/founder/checkout", { method: "POST" });
+        const res = await authFetch<{ url?: string }>("/api/billing/founder/checkout", { method: "POST" });
+        if (!res.url) throw new Error("The server did not return a payment link.");
         sessionStorage.setItem(PENDING_KEY, String(Date.now()));
         location.href = res.url;
     } catch (e) {
@@ -318,15 +324,26 @@ async function upgrade(btn: HTMLButtonElement): Promise<void> {
             location.href = res.url;
             return;
         }
-        const refresh = () => {
-            if (!active) return;
-            void loadTiers(activationGeneration);
-        };
-        refresh();
-        window.setTimeout(refresh, 3000);
-        window.setTimeout(refresh, 8000);
+        pendingUpgradeTier = tier;
+        render();
+        for (const delay of UPGRADE_CONFIRM_DELAYS_MS) {
+            await new Promise<void>(resolve => window.setTimeout(resolve, delay));
+            if (!isCurrentActivation(generation) || revision !== upgradeRevision || pendingUpgradeTier !== tier) return;
+            await loadTiers(activationGeneration);
+            if (!isCurrentActivation(generation) || revision !== upgradeRevision || pendingUpgradeTier !== tier) return;
+            if (cache?.current?.tier === tier) {
+                pendingUpgradeTier = null;
+                render();
+                return;
+            }
+        }
+        if (pendingUpgradeTier === tier) {
+            pendingUpgradeTier = null;
+            render();
+        }
     } catch (e) {
         if (revision === upgradeRevision) {
+            if (pendingUpgradeTier === tier) pendingUpgradeTier = null;
             if (isCurrentActivation(generation)) {
                 alert("Could not upgrade: " + (e instanceof Error ? e.message : String(e)));
             }
@@ -341,10 +358,11 @@ async function checkout(btn: HTMLButtonElement): Promise<void> {
     const generation = activationGeneration;
     btn.disabled = true;
     try {
-        const res = await authFetch<{ url: string }>("/api/billing/checkout", {
+        const res = await authFetch<{ url?: string }>("/api/billing/checkout", {
             method: "POST",
             body: JSON.stringify({ tier }),
         });
+        if (!res.url) throw new Error("The server did not return a payment link.");
         sessionStorage.setItem(PENDING_KEY, String(Date.now()));
         location.href = res.url;
     } catch (e) {
@@ -360,10 +378,11 @@ async function checkoutPass(btn: HTMLButtonElement, tier: string | undefined): P
     const generation = activationGeneration;
     btn.disabled = true;
     try {
-        const res = await authFetch<{ url: string }>("/api/billing/checkout", {
+        const res = await authFetch<{ url?: string }>("/api/billing/checkout", {
             method: "POST",
             body: JSON.stringify({ tier, pass: true }),
         });
+        if (!res.url) throw new Error("The server did not return a payment link.");
         sessionStorage.setItem(PENDING_KEY, String(Date.now()));
         location.href = res.url;
     } catch (e) {
@@ -378,10 +397,11 @@ async function openPortal(btn: HTMLButtonElement): Promise<void> {
     const provider = btn.dataset["portalProvider"] ?? "";
     btn.disabled = true;
     try {
-        const res = await authFetch<{ url: string }>("/api/billing/portal", {
+        const res = await authFetch<{ url?: string }>("/api/billing/portal", {
             method: "POST",
             body: provider ? JSON.stringify({ provider }) : undefined,
         });
+        if (!res.url) throw new Error("The server did not return a portal link.");
         location.href = res.url;
     } catch (e) {
         alert("Could not open the billing portal: " + (e instanceof Error ? e.message : String(e)));
@@ -403,7 +423,9 @@ export function deactivate(): void {
     active = false;
     activationGeneration += 1;
     loadRevision += 1;
+    upgradeRevision += 1;
     founderRevision += 1;
+    pendingUpgradeTier = null;
     stopPolling();
     pollStartedAt = 0;
 }
