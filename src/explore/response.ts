@@ -30,6 +30,7 @@ function streamFrom(value: unknown): ExploreStream | null {
         viewers: typeof stream["viewers"] === "number" && Number.isFinite(stream["viewers"])
             ? Math.max(0, Math.floor(stream["viewers"]))
             : 0,
+        partner: stream["partner"] === true,
         mediaBase: typeof stream["mediaBase"] === "string" ? stream["mediaBase"] : undefined,
         thumbnail: sameOriginPath(stream["thumbnail"]),
     };

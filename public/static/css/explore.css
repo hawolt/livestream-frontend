@@ -217,6 +217,14 @@ a.explore-card:hover, a.explore-card:hover * { text-decoration: none; }
     padding: 9px 13px 10px;
 }
 
+.explore-card-name {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    flex: 1;
+    min-width: 0;
+}
+
 .explore-card-username {
     flex: 1;
     min-width: 0;
@@ -228,6 +236,14 @@ a.explore-card:hover, a.explore-card:hover * { text-decoration: none; }
     overflow: hidden;
     text-overflow: ellipsis;
 }
+
+.explore-card-partner-badge {
+    flex-shrink: 0;
+    width: 14px;
+    height: 14px;
+}
+
+.explore-card-partner-badge[hidden] { display: none; }
 
 .explore-card-identity {
     display: flex;

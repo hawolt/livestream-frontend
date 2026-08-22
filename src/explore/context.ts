@@ -8,6 +8,7 @@ export interface ExploreStream {
     categoryId: number | null;
     language: string;
     viewers: number;
+    partner: boolean;
     mediaBase?: string;
     thumbnail?: string;
 }

@@ -39,6 +39,8 @@ function updateStreamCard(card: StreamCard, s: ExploreStream): void {
         title.textContent = text;
         title.setAttribute("title", text);
     }
+    const partnerBadge = card.link.querySelector<HTMLImageElement>(".explore-card-partner-badge");
+    if (partnerBadge) partnerBadge.hidden = !s.partner;
     card.image.alt = s.category
         ? `${s.username} streaming ${s.category} live`
         : `${s.username} streaming live`;
@@ -77,11 +79,20 @@ function buildStreamCard(s: ExploreStream): StreamCard {
     const username = document.createElement("div");
     username.className = "explore-card-username";
     username.textContent = s.username;
+    const partnerBadge = document.createElement("img");
+    partnerBadge.className = "explore-card-partner-badge";
+    partnerBadge.src = "/static/img/badge-partner.svg";
+    partnerBadge.alt = "Partner";
+    partnerBadge.title = "Partner";
+    partnerBadge.hidden = true;
+    const name = document.createElement("div");
+    name.className = "explore-card-name";
+    name.append(username, partnerBadge);
     const language = document.createElement("span");
     language.className = "explore-card-language";
     const identity = document.createElement("div");
     identity.className = "explore-card-identity";
-    identity.append(username, language);
+    identity.append(name, language);
     const title = document.createElement("div");
     title.className = "explore-card-title";
     body.append(title, identity);

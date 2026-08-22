@@ -13,7 +13,7 @@ describe("parseExploreData", () => {
     test("normalizes valid entries and drops unusable ones", () => {
         expect(parseExploreData({
             streams: [
-                { username: " Alice ", title: 7, category: "Games", categoryId: 2, language: null, viewers: 4.8 },
+                { username: " Alice ", title: 7, category: "Games", categoryId: 2, language: null, viewers: 4.8, partner: true },
                 { username: "", viewers: 10 },
             ],
             categories: [
@@ -29,6 +29,7 @@ describe("parseExploreData", () => {
                 categoryId: 2,
                 language: "und",
                 viewers: 4,
+                partner: true,
                 mediaBase: undefined,
             }],
             categories: [{ id: 2, name: "Games", liveStreamCount: 1, viewerCount: 0, imageUrl: null }],
@@ -78,5 +79,25 @@ describe("parseExploreData", () => {
             categories: [{ id: 4, name: "Music", liveStreamCount: 0, viewerCount: 0, imageUrl: null }],
             mediaBase: undefined,
         });
+    });
+
+    test("defaults partner to false when absent or not a boolean", () => {
+        const parsed = parseExploreData({
+            streams: [
+                { username: "nopartner" },
+                { username: "stringpartner", partner: "true" },
+                { username: "numberpartner", partner: 1 },
+                { username: "explicitfalse", partner: false },
+                { username: "realpartner", partner: true },
+            ],
+            categories: [],
+        });
+        expect(parsed.streams.map((stream) => stream.partner)).toEqual([
+            false,
+            false,
+            false,
+            false,
+            true,
+        ]);
     });
 });

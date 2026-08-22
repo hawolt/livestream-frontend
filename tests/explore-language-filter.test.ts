@@ -3,7 +3,7 @@ import { filterStreamsByLanguage } from "../src/explore/language-filter.ts";
 import type { ExploreStream } from "../src/explore/context.ts";
 
 function stream(username: string, language: string): ExploreStream {
-    return { username, title: "", category: null, categoryId: null, language, viewers: 0 };
+    return { username, title: "", category: null, categoryId: null, language, viewers: 0, partner: false };
 }
 
 const STREAMS = [
