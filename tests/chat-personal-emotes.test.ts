@@ -50,7 +50,7 @@ class StubElement {
     },
 };
 
-const { parsePersonalEmoteTag, splicePersonalEmotes, buildPersonalEmoteImg, personalEmoteUrl } =
+const { parsePersonalEmoteTag, splicePersonalEmotes, buildPersonalEmoteImg, personalEmoteUrl, resolveOwnPersonalEmoteTag } =
     await import("../src/chat-personal-emotes.ts");
 
 describe("parsePersonalEmoteTag", () => {
@@ -137,6 +137,42 @@ describe("splicePersonalEmotes", () => {
             () => new StubElement("img") as unknown as Node,
         );
         expect(flatten(frag)).toEqual([{ el: "img" }]);
+    });
+});
+
+describe("resolveOwnPersonalEmoteTag", () => {
+    test("empty owned map yields an empty tag", () => {
+        expect(resolveOwnPersonalEmoteTag("hello Foo world", new Map())).toBe("");
+    });
+
+    test("resolves a single owned name mid message", () => {
+        const owned = new Map([["Foo", "42"]]);
+        expect(resolveOwnPersonalEmoteTag("hello Foo world", owned)).toBe("Foo:42:6-8");
+    });
+
+    test("resolves a name at the start of the message", () => {
+        const owned = new Map([["Foo", "1"]]);
+        expect(resolveOwnPersonalEmoteTag("Foo hello", owned)).toBe("Foo:1:0-2");
+    });
+
+    test("ignores tokens that are not owned", () => {
+        const owned = new Map([["Foo", "1"]]);
+        expect(resolveOwnPersonalEmoteTag("Bar and Baz only", owned)).toBe("");
+    });
+
+    test("is case sensitive", () => {
+        const owned = new Map([["Foo", "1"]]);
+        expect(resolveOwnPersonalEmoteTag("foo FOO Foo", owned)).toBe("Foo:1:8-10");
+    });
+
+    test("groups repeated occurrences under one entry", () => {
+        const owned = new Map([["Foo", "1"]]);
+        expect(resolveOwnPersonalEmoteTag("Foo Foo Foo", owned)).toBe("Foo:1:0-2,4-6,8-10");
+    });
+
+    test("joins multiple distinct names with a slash", () => {
+        const owned = new Map([["Foo", "1"], ["Bar", "2"]]);
+        expect(resolveOwnPersonalEmoteTag("Foo and Bar", owned)).toBe("Foo:1:0-2/Bar:2:8-10");
     });
 });
 

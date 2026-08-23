@@ -14,6 +14,7 @@ interface EmoteEntry {
     enabled: boolean;
     disabledReason: string | null;
     locked: boolean;
+    incomplete: boolean;
     renditions: Record<Rendition, boolean>;
     previewUrl: string | null;
 }
@@ -68,7 +69,8 @@ function buildRenditionCell(emote: EmoteEntry, rendition: Rendition): HTMLElemen
     } else {
         const fileInput = document.createElement("input");
         fileInput.type = "file";
-        fileInput.accept = emote.pool === "gif" ? "image/gif" : "image/png,image/jpeg";
+        fileInput.id = `em-file-${emote.id}-${rendition}`;
+        fileInput.accept = emote.pool === "gif" ? "image/gif,image/webp,image/avif" : "image/png,image/jpeg,image/webp,image/avif";
         fileInput.style.display = "none";
         fileInput.addEventListener("change", () => {
             const file = fileInput.files?.[0] ?? null;
@@ -88,7 +90,10 @@ function buildRenditionCell(emote: EmoteEntry, rendition: Rendition): HTMLElemen
 
 function buildEmoteRow(emote: EmoteEntry, index: number, poolSize: number): HTMLElement {
     const row = document.createElement("div");
-    row.className = "em-row" + (emote.locked ? " em-locked" : "") + (!emote.enabled ? " em-disabled" : "");
+    row.className = "em-row"
+        + (emote.locked ? " em-locked" : "")
+        + (!emote.enabled ? " em-disabled" : "")
+        + (emote.incomplete ? " em-incomplete" : "");
 
     const head = document.createElement("div");
     head.className = "em-row-head";
@@ -149,6 +154,22 @@ function buildEmoteRow(emote: EmoteEntry, index: number, poolSize: number): HTML
             : "Taken down by staff.";
         row.appendChild(hint);
     }
+    if (emote.incomplete) {
+        const hint = document.createElement("div");
+        hint.className = "em-hint em-hint-incomplete";
+        const text = document.createElement("span");
+        text.textContent = "Incomplete: no usable image yet, so this emote will not appear in chat.";
+        hint.appendChild(text);
+        const finish = document.createElement("button");
+        finish.type = "button";
+        finish.className = "btn btn-sm";
+        finish.textContent = "Finish uploading";
+        finish.addEventListener("click", () => {
+            document.getElementById(`em-file-${emote.id}-2x`)?.click();
+        });
+        hint.appendChild(finish);
+        row.appendChild(hint);
+    }
 
     const rowError = document.createElement("div");
     rowError.className = "field-error";
@@ -203,21 +224,42 @@ function refreshIfActive(): void {
     if (active) void reload(activationGeneration);
 }
 
-async function createEmote(pool: Pool, name: string): Promise<void> {
+async function createEmote(pool: Pool, name: string, file: File | null): Promise<void> {
     setError(`em-add-error-${pool}`, "");
     if (!NAME_PATTERN.test(name)) {
         setError(`em-add-error-${pool}`, "Name must be 2-24 letters, digits or underscores.");
         return;
     }
+    if (!file) {
+        setError(`em-add-error-${pool}`, "Choose an image to upload with the new emote.");
+        return;
+    }
+    if (file.size > MAX_RENDITION_BYTES) {
+        setError(`em-add-error-${pool}`, "File is too large.");
+        return;
+    }
+    let created: EmoteEntry;
     try {
-        await authFetch(`/api/profile/me/emotes`, {
+        created = await authFetch<EmoteEntry>(`/api/profile/me/emotes`, {
             method: "POST",
             body: JSON.stringify({ name, pool }),
         });
-        refreshIfActive();
     } catch (e) {
         setError(`em-add-error-${pool}`, e instanceof Error ? e.message : String(e));
+        return;
     }
+    try {
+        const bytes = await file.arrayBuffer();
+        await authFetch(`/api/profile/me/emotes/${created.id}/rendition/2x`, {
+            method: "POST",
+            headers: { "Content-Type": file.type },
+            body: bytes,
+        });
+    } catch (e) {
+        setError(`em-add-error-${pool}`,
+            `Created ${name}, but the image failed to upload: ${e instanceof Error ? e.message : String(e)}. Finish uploading below.`);
+    }
+    refreshIfActive();
 }
 
 async function renameEmote(emote: EmoteEntry, name: string): Promise<void> {
@@ -296,11 +338,21 @@ async function deleteRendition(emote: EmoteEntry, rendition: Rendition): Promise
 function wirePool(pool: Pool): void {
     const section = $(`em-pool-${pool}`);
     const nameInput = section.querySelector(".em-add-name") as HTMLInputElement;
+    const fileInput = section.querySelector(".em-add-file") as HTMLInputElement;
+    const fileBtn = section.querySelector(".em-add-file-btn") as HTMLButtonElement;
+    const fileLabel = section.querySelector(".em-add-file-label") as HTMLElement;
     const addBtn = section.querySelector(".em-add-btn") as HTMLButtonElement;
+    fileBtn.addEventListener("click", () => fileInput.click());
+    fileInput.addEventListener("change", () => {
+        fileLabel.textContent = fileInput.files?.[0]?.name ?? "No file chosen";
+    });
     addBtn.addEventListener("click", () => {
         const name = nameInput.value.trim();
+        const file = fileInput.files?.[0] ?? null;
         nameInput.value = "";
-        void createEmote(pool, name);
+        fileInput.value = "";
+        fileLabel.textContent = "No file chosen";
+        void createEmote(pool, name, file);
     });
 }
 

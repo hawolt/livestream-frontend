@@ -62,6 +62,32 @@ export function splicePersonalEmotes(
     return frag;
 }
 
+export function resolveOwnPersonalEmoteTag(text: string, owned: Map<string, string>): string {
+    if (owned.size === 0) return "";
+    const cps = Array.from(text);
+    const order: string[] = [];
+    const spansByName = new Map<string, string[]>();
+    let i = 0;
+    while (i < cps.length) {
+        if (/\s/.test(cps[i]!)) {
+            i++;
+            continue;
+        }
+        const start = i;
+        while (i < cps.length && !/\s/.test(cps[i]!)) i++;
+        const end = i - 1;
+        const token = cps.slice(start, i).join("");
+        const id = owned.get(token);
+        if (id === undefined) continue;
+        if (!spansByName.has(token)) order.push(token);
+        const spans = spansByName.get(token) ?? [];
+        spans.push(`${start}-${end}`);
+        spansByName.set(token, spans);
+    }
+    if (!order.length) return "";
+    return order.map((name) => `${name}:${owned.get(name)}:${spansByName.get(name)!.join(",")}`).join("/");
+}
+
 const PERSONAL_EMOTE_RENDITIONS = ["2x", "1x", "4x"];
 
 export function personalEmoteUrl(id: string, rendition: string): string {

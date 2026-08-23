@@ -19,12 +19,13 @@ import { hideSuggest } from "./suggest.ts";
 import { closeDismissibleSurface, openDismissibleSurface } from "../dismissible-surface.ts";
 import { normalizedCommandWord } from "./text.ts";
 import { interceptComposerSubmit, syncRedeemPicker } from "./redeem-picker.ts";
+import { resolveOwnPersonalEmoteTag } from "../chat-personal-emotes.ts";
 
 export const MAX_TEXT = 400;
 
 let pickerReturnFocus: HTMLElement | null = null;
 
-let myEmotes = new Map<string, string>();
+let myEmotes = new Map<string, { id: string; url: string }>();
 let myEmotesLoaded = false;
 
 async function ensureMyEmotesLoaded(): Promise<void> {
@@ -34,12 +35,12 @@ async function ensureMyEmotesLoaded(): Promise<void> {
         const res = await fetch(`${API_BASE}/profile/me/emotes`, { credentials: "include" });
         if (!res.ok) return;
         const payload: any = await res.json();
-        const next = new Map<string, string>();
+        const next = new Map<string, { id: string; url: string }>();
         for (const pool of Object.values(payload?.pools ?? {})) {
             for (const emote of (pool as any)?.emotes ?? []) {
-                if (emote?.locked || emote?.enabled === false) continue;
-                if (typeof emote?.name === "string" && typeof emote?.previewUrl === "string") {
-                    next.set(emote.name, emote.previewUrl);
+                if (emote?.locked || emote?.enabled === false || emote?.incomplete) continue;
+                if (typeof emote?.name === "string" && typeof emote?.previewUrl === "string" && emote?.id !== undefined) {
+                    next.set(emote.name, { id: String(emote.id), url: emote.previewUrl });
                 }
             }
         }
@@ -115,6 +116,7 @@ export function updateComposer(): void {
         showVerifyEmail();
     } else {
         showComposerInput(true);
+        void ensureMyEmotesLoaded();
     }
     updateReplyBar();
 }
@@ -125,7 +127,7 @@ function buildEmoteCell(name: string): HTMLButtonElement {
     cell.className = "live-chat-picker-cell";
     if (myEmotes.has(name)) cell.classList.add("live-chat-picker-cell-mine");
     const img = document.createElement("img");
-    img.src = myEmotes.get(name) ?? emotes.get(name)?.url ?? "";
+    img.src = myEmotes.get(name)?.url ?? emotes.get(name)?.url ?? "";
     img.referrerPolicy = "no-referrer";
     img.alt = name;
     img.title = myEmotes.has(name) ? `${name} (yours)` : name;
@@ -240,6 +242,11 @@ export function submit(): void {
     const serverHandles = isWhisper || isRaidCmd || (cmdWord !== "" && hasModRole());
     const tag = r && !isWhisper ? `@+reply=${r.msgid} ` : "";
     send(`${tag}PRIVMSG ${ctx.channel} :${text}`);
-    if (!ctx.capEcho && !serverHandles) addMessage(ctx.nick, text, undefined, r?.msgid);
+    if (!ctx.capEcho && !serverHandles) {
+        const ownIds = new Map<string, string>();
+        for (const [name, entry] of myEmotes) ownIds.set(name, entry.id);
+        const personalEmotes = resolveOwnPersonalEmoteTag(text, ownIds) || undefined;
+        addMessage(ctx.nick, text, undefined, r?.msgid, undefined, undefined, undefined, undefined, undefined, personalEmotes);
+    }
     finishSubmit();
 }
