@@ -1,4 +1,5 @@
 import { ChatEmoteCatalog, type ChatEmoteScope } from "./chat-emotes.ts";
+import { buildPersonalEmoteImg, parsePersonalEmoteTag, splicePersonalEmotes, type PersonalEmoteGroup } from "./chat-personal-emotes.ts";
 import { parseOverlayFont } from "./overlay-font.ts";
 import { parseOverlayShadow } from "./overlay-shadow.ts";
 import { parseOverlaySize } from "./overlay-size.ts";
@@ -309,11 +310,11 @@ function buildEmoteImg(token: string, url: string): HTMLImageElement {
     return img;
 }
 
-function renderSevenTvBody(text: string): DocumentFragment {
+function renderSevenTvPlainSegment(segment: string): DocumentFragment {
     const frag = document.createDocumentFragment();
     let lastStack: HTMLElement | null = null;
     let pendingWs = "";
-    for (const token of text.split(/(\s+)/)) {
+    for (const token of segment.split(/(\s+)/)) {
         if (!token) continue;
         if (/^\s+$/.test(token)) {
             pendingWs += token;
@@ -347,17 +348,35 @@ function renderSevenTvBody(text: string): DocumentFragment {
     return frag;
 }
 
-function buildRenderedBody(text: string): HTMLSpanElement {
+function renderSevenTvBody(text: string, personalEmotes: PersonalEmoteGroup[] = []): DocumentFragment {
+    return splicePersonalEmotes(
+        text,
+        personalEmotes,
+        (segment) => renderSevenTvPlainSegment(segment),
+        (name, id) => {
+            const stack = document.createElement("span");
+            stack.className = "emote-stack";
+            stack.appendChild(buildPersonalEmoteImg(name, id, "emote"));
+            return stack;
+        },
+    );
+}
+
+const personalEmotesByBody = new WeakMap<HTMLElement, PersonalEmoteGroup[]>();
+
+function buildRenderedBody(text: string, personalEmotesTag?: string): HTMLSpanElement {
     const body = document.createElement("span");
     body.className = RENDERED_BODY_CLASS;
     body.dataset["rawText"] = text;
-    body.appendChild(renderSevenTvBody(text));
+    const groups = parsePersonalEmoteTag(personalEmotesTag);
+    if (groups.length) personalEmotesByBody.set(body, groups);
+    body.appendChild(renderSevenTvBody(text, groups));
     return body;
 }
 
 function refreshEmoteRendering(): void {
     for (const body of Array.from(msgsEl.querySelectorAll<HTMLElement>(`.${RENDERED_BODY_CLASS}`))) {
-        body.replaceChildren(renderSevenTvBody(body.dataset["rawText"] ?? ""));
+        body.replaceChildren(renderSevenTvBody(body.dataset["rawText"] ?? "", personalEmotesByBody.get(body) ?? []));
     }
 }
 
@@ -641,7 +660,7 @@ function startItzon(channelName: string): void {
                 if (color && /^#[0-9a-fA-F]{6}$/.test(color)) meta.color = color;
                 const msgid = line.tags.get("msgid");
                 if (msgid) meta.id = msgid;
-                addChat("itzon", line.nick, buildRenderedBody(line.params[1]), meta);
+                addChat("itzon", line.nick, buildRenderedBody(line.params[1], line.tags.get("personal-emotes")), meta);
                 return;
             }
             case "REDACT": {

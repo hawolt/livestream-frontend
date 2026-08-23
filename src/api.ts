@@ -101,10 +101,16 @@ export interface BillingAddonOption {
     regions?: string[];
     family?: string | null;
     rank?: number | null;
+    category?: string | null;
     quantityAddon?: boolean;
     maxQuantity?: number;
     passAvailable?: boolean;
     passPrice?: string;
+}
+
+export interface BillingCategory {
+    id: string;
+    label: string;
 }
 
 export interface BillingCatalogFounder {
@@ -126,6 +132,7 @@ export interface BillingCatalog {
     featuredTier?: string;
     restreamDestinationCap?: number;
     markets?: RegionOption[];
+    categories?: BillingCategory[];
     detectedRegion?: string;
     region?: string;
     feeNote?: string;
@@ -184,6 +191,10 @@ export interface BillingAddon {
     active: boolean;
     family?: string | null;
     rank?: number | null;
+    category?: string | null;
+    quantityAddon?: boolean;
+    maxQuantity?: number;
+    quantity?: number;
     upgrade?: boolean;
     downgrade?: boolean;
 }
@@ -193,6 +204,7 @@ export interface BillingAddons {
     addons: BillingAddon[];
     currency?: string;
     priceInterval?: string;
+    categories?: BillingCategory[];
 }
 
 export interface LiveChannelInfo {

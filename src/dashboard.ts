@@ -27,6 +27,7 @@ const TAB_LOADERS: Record<string, () => Promise<TabModule>> = {
     clips:            () => import("./dash/tabs/clips.ts"),
     subscription:     () => import("./dash/tabs/subscription.ts"),
     achievements:     () => import("./dash/tabs/achievements.ts"),
+    emotes:           () => import("./dash/tabs/emotes.ts"),
 };
 
 const tabById = new Map<string, TabInfo>();

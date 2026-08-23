@@ -1,3 +1,4 @@
+import { API_BASE } from "../api.ts";
 import { ctx, emotes } from "./context.ts";
 import {
     emoteBtnEl,
@@ -22,6 +23,35 @@ import { interceptComposerSubmit, syncRedeemPicker } from "./redeem-picker.ts";
 export const MAX_TEXT = 400;
 
 let pickerReturnFocus: HTMLElement | null = null;
+
+let myEmotes = new Map<string, string>();
+let myEmotesLoaded = false;
+
+async function ensureMyEmotesLoaded(): Promise<void> {
+    if (myEmotesLoaded || !ctx.isAccount) return;
+    myEmotesLoaded = true;
+    try {
+        const res = await fetch(`${API_BASE}/profile/me/emotes`, { credentials: "include" });
+        if (!res.ok) return;
+        const payload: any = await res.json();
+        const next = new Map<string, string>();
+        for (const pool of Object.values(payload?.pools ?? {})) {
+            for (const emote of (pool as any)?.emotes ?? []) {
+                if (emote?.locked || emote?.enabled === false) continue;
+                if (typeof emote?.name === "string" && typeof emote?.previewUrl === "string") {
+                    next.set(emote.name, emote.previewUrl);
+                }
+            }
+        }
+        myEmotes = next;
+        if (ctx.pickerOpen) renderPickerGrid(pickerFilterEl.value);
+    } catch {}
+}
+
+function resetMyEmotesCache(): void {
+    myEmotes = new Map();
+    myEmotesLoaded = false;
+}
 
 function isGuestNow(): boolean {
     return !ctx.isAccount || guests.has(ctx.nick.toLowerCase());
@@ -73,6 +103,7 @@ export function updateComposer(): void {
         updateReplyBar();
         return;
     }
+    if (!ctx.isAccount) resetMyEmotesCache();
     if (!ctx.joined) {
         showComposerInput(false);
         updateReplyBar();
@@ -92,11 +123,12 @@ function buildEmoteCell(name: string): HTMLButtonElement {
     const cell = document.createElement("button");
     cell.type = "button";
     cell.className = "live-chat-picker-cell";
+    if (myEmotes.has(name)) cell.classList.add("live-chat-picker-cell-mine");
     const img = document.createElement("img");
-    img.src = emotes.get(name)?.url ?? "";
+    img.src = myEmotes.get(name) ?? emotes.get(name)?.url ?? "";
     img.referrerPolicy = "no-referrer";
     img.alt = name;
-    img.title = name;
+    img.title = myEmotes.has(name) ? `${name} (yours)` : name;
     img.loading = "lazy";
     cell.appendChild(img);
     cell.addEventListener("click", () => insertEmoteAtCaret(name));
@@ -112,12 +144,12 @@ function pickerEmpty(text: string): HTMLDivElement {
 
 export function renderPickerGrid(filter: string): void {
     pickerGridEl.replaceChildren();
-    if (emotes.size === 0) {
+    if (emotes.size === 0 && myEmotes.size === 0) {
         pickerGridEl.appendChild(pickerEmpty("Emotes unavailable"));
         return;
     }
     const lower = filter.trim().toLowerCase();
-    const names = Array.from(emotes.names())
+    const names = Array.from(new Set([...emotes.names(), ...myEmotes.keys()]))
         .filter((name) => !lower || name.toLowerCase().includes(lower))
         .sort((a, b) => a.localeCompare(b));
     if (!names.length) {
@@ -146,6 +178,7 @@ export function openPicker(): void {
     openDismissibleSurface(pickerEl, () => closePicker(true));
     document.addEventListener("mousedown", onPickerOutsideMouseDown, true);
     pickerFilterEl.focus();
+    void ensureMyEmotesLoaded();
 }
 
 export function closePicker(restoreFocus = false): void {

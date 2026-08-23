@@ -3,7 +3,7 @@ import { inputEl, msgsEl, pickerFilterEl, replyBarEl, replyLabelEl, suggestEl } 
 import { buildBadges, renderBadges, resolveBadges, type BadgeSnapshot, type ResolvedBadges } from "./badges.ts";
 import { hasModRole, nickColor } from "./members.ts";
 import { cssEsc, mentionsMe, truncate } from "./text.ts";
-import { buildAvatar, buildRenderedBody, buildTimeSpan, RENDERED_BODY_CLASS, renderBody } from "./render.ts";
+import { buildAvatar, buildRenderedBody, buildTimeSpan, personalEmotesFor, RENDERED_BODY_CLASS, renderBody } from "./render.ts";
 import { send } from "./connection.ts";
 import { renderPickerGrid } from "./composer.ts";
 import { updateSuggest } from "./suggest.ts";
@@ -161,6 +161,7 @@ export function addMessage(
     avatar?: string,
     highlighted?: boolean,
     snapshot?: BadgeSnapshot,
+    personalEmotes?: string,
 ): void {
     const line = document.createElement("div");
     line.className = "live-chat-msg";
@@ -181,7 +182,7 @@ export function addMessage(
     messageBadges.set(line, resolved);
     const badges = renderBadges(resolved);
     if (badges.length) line.append(...badges);
-    line.append(who, document.createTextNode(": "), buildRenderedBody(text));
+    line.append(who, document.createTextNode(": "), buildRenderedBody(text, personalEmotes));
     if (from.toLowerCase() === myNickLower()) line.classList.add("live-chat-own");
     if (highlighted) line.classList.add("live-chat-highlighted");
     if (msgid) {
@@ -253,7 +254,7 @@ export function updateModTools(): void {
 export function refreshEmoteRendering(): void {
     preserveMessagesScroll(() => {
         for (const body of Array.from(document.querySelectorAll<HTMLElement>(`.${RENDERED_BODY_CLASS}`))) {
-            body.replaceChildren(renderBody(body.dataset["rawText"] ?? ""));
+            body.replaceChildren(renderBody(body.dataset["rawText"] ?? "", personalEmotesFor(body)));
         }
         if (ctx.pickerOpen) renderPickerGrid(pickerFilterEl.value);
         if (!suggestEl.hidden) updateSuggest();

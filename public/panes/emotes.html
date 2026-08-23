@@ -1,0 +1,66 @@
+<div id="pane-emotes" class="tab-pane">
+    <style>
+        #pane-emotes .em-intro { color: var(--dim); font-size: 12.5px; margin-bottom: 16px; }
+        #pane-emotes .em-pool { margin-bottom: 28px; }
+        #pane-emotes .em-pool-head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 4px; }
+        #pane-emotes .em-pool-count { color: var(--dim); font-size: 12px; }
+        #pane-emotes .em-pool-list { display: flex; flex-direction: column; gap: 12px; margin: 12px 0; }
+        #pane-emotes .em-empty { color: var(--dim); padding: 16px 0; font-size: 12.5px; }
+        #pane-emotes .em-row {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 14px 16px;
+        }
+        #pane-emotes .em-row.em-locked, #pane-emotes .em-row.em-disabled { opacity: .7; }
+        #pane-emotes .em-row-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+        #pane-emotes .em-name-input { flex: 0 0 180px; }
+        #pane-emotes .em-hint { font-size: 11.5px; margin-top: 6px; }
+        #pane-emotes .em-hint-locked { color: var(--amber); }
+        #pane-emotes .em-hint-disabled { color: var(--red); }
+        #pane-emotes .em-renditions { display: flex; gap: 14px; margin-top: 10px; flex-wrap: wrap; }
+        #pane-emotes .em-rendition { display: flex; flex-direction: column; align-items: center; gap: 6px; width: 84px; }
+        #pane-emotes .em-rendition-label { font-size: 10.5px; color: var(--dim); letter-spacing: .04em; text-transform: uppercase; }
+        #pane-emotes .em-rendition-preview {
+            width: 48px;
+            height: 48px;
+            object-fit: contain;
+            background: rgba(255, 255, 255, .04);
+            border-radius: var(--radius);
+        }
+        #pane-emotes .em-add-row { display: flex; gap: 8px; align-items: center; }
+        #pane-emotes .em-add-name { flex: 0 0 200px; }
+    </style>
+    <div class="em-intro">
+        Emotes usable only by you, visible to everyone in chat. Static slots come in the Personal Emotes add-on,
+        animated (GIF) slots in the separate Personal Emotes: Animated add-on. Losing the add-on locks your extra
+        emotes without deleting them; reorder or repurchase to bring them back.
+    </div>
+    <div class="field-error" id="em-error"></div>
+
+    <div class="em-pool" id="em-pool-static">
+        <div class="em-pool-head">
+            <div class="section-title" style="margin:0">Static emotes</div>
+            <div class="em-pool-count">0 / 0 slots used</div>
+        </div>
+        <div class="em-pool-list"></div>
+        <div class="em-add-row">
+            <input class="em-add-name" type="text" maxlength="24" placeholder="NewEmoteName" aria-label="New static emote name" />
+            <button type="button" class="btn btn-primary btn-sm em-add-btn">Add emote</button>
+        </div>
+        <div class="field-error" id="em-add-error-static"></div>
+    </div>
+
+    <div class="em-pool" id="em-pool-gif">
+        <div class="em-pool-head">
+            <div class="section-title" style="margin:0">Animated emotes</div>
+            <div class="em-pool-count">0 / 0 slots used</div>
+        </div>
+        <div class="em-pool-list"></div>
+        <div class="em-add-row">
+            <input class="em-add-name" type="text" maxlength="24" placeholder="NewEmoteName" aria-label="New animated emote name" />
+            <button type="button" class="btn btn-primary btn-sm em-add-btn">Add emote</button>
+        </div>
+        <div class="field-error" id="em-add-error-gif"></div>
+    </div>
+</div>

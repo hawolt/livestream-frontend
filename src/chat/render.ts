@@ -2,6 +2,7 @@ import { emotes } from "./context.ts";
 import { MENTION_RE, splitTrailingPunctuation } from "./text.ts";
 import { currentChatHost, parseChatClipUrl } from "./clip-link.ts";
 import { upgradeToClipCard } from "./clip-card.ts";
+import { buildPersonalEmoteImg, parsePersonalEmoteTag, splicePersonalEmotes, type PersonalEmoteGroup } from "../chat-personal-emotes.ts";
 
 const MAX_CLIP_CARDS_PER_MESSAGE = 2;
 
@@ -125,12 +126,11 @@ function renderToken(token: string, budget: RenderBudget): Node {
     return document.createTextNode(token);
 }
 
-export function renderBody(text: string): DocumentFragment {
+function renderPlainSegment(segment: string, budget: RenderBudget): DocumentFragment {
     const frag = document.createDocumentFragment();
-    const budget: RenderBudget = { clipCards: MAX_CLIP_CARDS_PER_MESSAGE };
     let lastStack: HTMLElement | null = null;
     let pendingWs = "";
-    for (const token of text.split(/(\s+)/)) {
+    for (const token of segment.split(/(\s+)/)) {
         if (!token) continue;
         if (/^\s+$/.test(token)) {
             pendingWs += token;
@@ -165,12 +165,35 @@ export function renderBody(text: string): DocumentFragment {
     return frag;
 }
 
+export function renderBody(text: string, personalEmotes: PersonalEmoteGroup[] = []): DocumentFragment {
+    const budget: RenderBudget = { clipCards: MAX_CLIP_CARDS_PER_MESSAGE };
+    return splicePersonalEmotes(
+        text,
+        personalEmotes,
+        (segment) => renderPlainSegment(segment, budget),
+        (name, id) => {
+            const stack = document.createElement("span");
+            stack.className = "live-chat-emote-stack";
+            stack.appendChild(buildPersonalEmoteImg(name, id, "live-chat-emote"));
+            return stack;
+        },
+    );
+}
+
 export const RENDERED_BODY_CLASS = "live-chat-rendered-body";
 
-export function buildRenderedBody(text: string): HTMLSpanElement {
+const personalEmotesByBody = new WeakMap<HTMLElement, PersonalEmoteGroup[]>();
+
+export function buildRenderedBody(text: string, personalEmotesTag?: string): HTMLSpanElement {
     const body = document.createElement("span");
     body.className = RENDERED_BODY_CLASS;
     body.dataset["rawText"] = text;
-    body.appendChild(renderBody(text));
+    const groups = parsePersonalEmoteTag(personalEmotesTag);
+    if (groups.length) personalEmotesByBody.set(body, groups);
+    body.appendChild(renderBody(text, groups));
     return body;
+}
+
+export function personalEmotesFor(body: HTMLElement): PersonalEmoteGroup[] {
+    return personalEmotesByBody.get(body) ?? [];
 }

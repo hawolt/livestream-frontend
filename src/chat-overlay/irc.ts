@@ -12,6 +12,7 @@ export interface IrcLine {
     role?: BadgeRole;
     vip?: boolean;
     unverified?: boolean;
+    personalEmotes?: string;
 }
 
 export function parse(line: string): IrcLine | null {
@@ -24,6 +25,7 @@ export function parse(line: string): IrcLine | null {
     let role: BadgeRole | undefined;
     let vip = false;
     let unverified = false;
+    let personalEmotes: string | undefined;
     if (rest.startsWith("@")) {
         const sp = rest.indexOf(" ");
         if (sp < 0) return null;
@@ -38,6 +40,7 @@ export function parse(line: string): IrcLine | null {
             else if (key === "role") role = BADGE_ROLES.includes(val as BadgeRole) ? (val as BadgeRole) : undefined;
             else if (key === "vip") vip = val === "1";
             else if (key === "unverified") unverified = val === "1";
+            else if (key === "personal-emotes") personalEmotes = val;
         }
         rest = rest.slice(sp + 1);
     }
@@ -73,5 +76,6 @@ export function parse(line: string): IrcLine | null {
     if (role) out.role = role;
     if (vip) out.vip = true;
     if (unverified) out.unverified = true;
+    if (personalEmotes) out.personalEmotes = personalEmotes;
     return out;
 }

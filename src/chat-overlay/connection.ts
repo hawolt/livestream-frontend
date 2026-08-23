@@ -201,7 +201,7 @@ function handle(line: IrcLine): void {
                 partners.add(line.nick.toLowerCase());
             }
             if (line.params[0]?.toLowerCase() === ctx.channel && line.params[1]) {
-                addMessage(line.nick, line.params[1], line.msgid, badgeSnapshotFrom(line));
+                addMessage(line.nick, line.params[1], line.msgid, badgeSnapshotFrom(line), line.personalEmotes);
             }
             return;
         case "474":

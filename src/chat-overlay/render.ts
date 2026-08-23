@@ -1,6 +1,7 @@
 import { hashColor } from "../chat/text.ts";
 import { sanitizeSubscriberBadgeName, subscriberBadgeAssetPath, subscriberBadgeTitle } from "../chat/badges.ts";
 import type { BadgeRole } from "../chat/irc.ts";
+import { buildPersonalEmoteImg, parsePersonalEmoteTag, splicePersonalEmotes, type PersonalEmoteGroup } from "../chat-personal-emotes.ts";
 import { MAX_MESSAGES, RENDERED_BODY_CLASS, colors, ctx, emotes, isOwner, msgsEl, partners, roles, subscriberBadges, subscribers, unverified, vips, type Role } from "./context.ts";
 
 const SAFE_COLOR = /^#[0-9a-fA-F]{3,8}$/;
@@ -96,11 +97,11 @@ function buildOverlayEmote(token: string, url: string): HTMLImageElement {
     return img;
 }
 
-function renderBody(text: string): DocumentFragment {
+function renderPlainSegment(segment: string): DocumentFragment {
     const frag = document.createDocumentFragment();
     let lastStack: HTMLElement | null = null;
     let pendingWs = "";
-    for (const token of text.split(/(\s+)/)) {
+    for (const token of segment.split(/(\s+)/)) {
         if (!token) continue;
         if (/^\s+$/.test(token)) {
             pendingWs += token;
@@ -134,17 +135,35 @@ function renderBody(text: string): DocumentFragment {
     return frag;
 }
 
-function buildRenderedBody(text: string): HTMLSpanElement {
+function renderBody(text: string, personalEmotes: PersonalEmoteGroup[] = []): DocumentFragment {
+    return splicePersonalEmotes(
+        text,
+        personalEmotes,
+        (segment) => renderPlainSegment(segment),
+        (name, id) => {
+            const stack = document.createElement("span");
+            stack.className = "emote-stack";
+            stack.appendChild(buildPersonalEmoteImg(name, id, "emote"));
+            return stack;
+        },
+    );
+}
+
+const personalEmotesByBody = new WeakMap<HTMLElement, PersonalEmoteGroup[]>();
+
+function buildRenderedBody(text: string, personalEmotesTag?: string): HTMLSpanElement {
     const body = document.createElement("span");
     body.className = RENDERED_BODY_CLASS;
     body.dataset["rawText"] = text;
-    body.appendChild(renderBody(text));
+    const groups = parsePersonalEmoteTag(personalEmotesTag);
+    if (groups.length) personalEmotesByBody.set(body, groups);
+    body.appendChild(renderBody(text, groups));
     return body;
 }
 
 export function refreshEmoteRendering(): void {
     for (const body of Array.from(msgsEl.querySelectorAll<HTMLElement>(`.${RENDERED_BODY_CLASS}`))) {
-        body.replaceChildren(renderBody(body.dataset["rawText"] ?? ""));
+        body.replaceChildren(renderBody(body.dataset["rawText"] ?? "", personalEmotesByBody.get(body) ?? []));
     }
 }
 
@@ -159,7 +178,7 @@ function append(node: HTMLElement): void {
     }
 }
 
-export function addMessage(from: string, text: string, msgid?: string, snapshot?: BadgeSnapshot): void {
+export function addMessage(from: string, text: string, msgid?: string, snapshot?: BadgeSnapshot, personalEmotes?: string): void {
     const line = document.createElement("div");
     line.className = "msg";
     if (msgid) line.dataset["msgid"] = msgid;
@@ -169,7 +188,7 @@ export function addMessage(from: string, text: string, msgid?: string, snapshot?
     who.className = "nick";
     who.textContent = from;
     who.style.color = nickColor(from);
-    line.append(who, document.createTextNode(": "), buildRenderedBody(text));
+    line.append(who, document.createTextNode(": "), buildRenderedBody(text, personalEmotes));
     append(line);
 }
 

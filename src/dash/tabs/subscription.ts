@@ -1,7 +1,8 @@
-import type { BillingFounder, BillingTier, BillingTiers } from "../../api.ts";
+import type { BillingAddon, BillingAddons, BillingCategory, BillingFounder, BillingTier, BillingTiers } from "../../api.ts";
 import { amountText, perkDelta, perkLines, perkTokens } from "../../billing/catalog.ts";
 import { esc, fmtDate } from "../format.ts";
 import { authFetch } from "../session.ts";
+import { wireStepper } from "../stepper.ts";
 
 const CHANNEL_RETURN_RE = /^\/[A-Za-z0-9_-]{3,32}$/;
 
@@ -17,6 +18,9 @@ const POLL_MAX_MS = 120000;
 
 let cache: BillingTiers | null = null;
 let founderCache: BillingFounder | null = null;
+let addonsCache: BillingAddons | null = null;
+let addonsRevision = 0;
+let addonActionKey: string | null = null;
 let pollTimer: number | null = null;
 let pollStartedAt = 0;
 let activationGeneration = 0;
@@ -95,6 +99,7 @@ async function loadTiers(generation: number): Promise<void> {
     render();
     if (pendingCheckout()) schedulePoll(generation);
     void loadFounder(generation);
+    void loadAddons(generation);
 }
 
 async function loadFounder(generation: number): Promise<void> {
@@ -108,6 +113,20 @@ async function loadFounder(generation: number): Promise<void> {
     }
     if (!isCurrentActivation(generation) || revision !== founderRevision) return;
     founderCache = loaded;
+    render();
+}
+
+async function loadAddons(generation: number): Promise<void> {
+    if (!isCurrentActivation(generation)) return;
+    const revision = ++addonsRevision;
+    let loaded: BillingAddons;
+    try {
+        loaded = await authFetch<BillingAddons>("/api/billing/addons");
+    } catch {
+        return;
+    }
+    if (!isCurrentActivation(generation) || revision !== addonsRevision) return;
+    addonsCache = loaded;
     render();
 }
 
@@ -235,7 +254,25 @@ function render(): void {
         ? `<div class="sub-grid">${tiers.map((t, i) => tierCard(t, i, tiers, tokenLists)).join("")}</div>`
         : `<p style="color:var(--muted);font-size:13px;margin:0">No plans configured.</p>`;
     const feeNote = cache.feeNote ? `<p class="sub-fee">${esc(cache.feeNote)}</p>` : "";
-    el.innerHTML = backLink + head + pendingBanner + statusBlock + grid + founderCardHtml() + feeNote;
+    el.innerHTML = backLink + head + pendingBanner + statusBlock + grid + founderCardHtml() + addonsSectionHtml() + feeNote;
+    el.querySelectorAll<HTMLInputElement>("[id^='sub-addon-qty-']").forEach(input => wireStepper(input));
+    el.querySelectorAll<HTMLButtonElement>("[data-sub-addon-get]").forEach(btn => {
+        btn.addEventListener("click", () => void getAddon(btn.dataset["subAddonGet"]!));
+    });
+    el.querySelectorAll<HTMLButtonElement>("[data-sub-addon-upgrade]").forEach(btn => {
+        btn.addEventListener("click", () => void upgradeAddon(btn.dataset["subAddonUpgrade"]!));
+    });
+    el.querySelectorAll<HTMLButtonElement>("[data-sub-addon-qty-submit]").forEach(btn => {
+        btn.addEventListener("click", () => {
+            const key = btn.dataset["subAddonQtySubmit"]!;
+            const input = document.getElementById(`sub-addon-qty-${key}`) as HTMLInputElement | null;
+            const quantity = Math.round(Number(input?.value ?? "1"));
+            if (!Number.isFinite(quantity) || quantity < 1) return;
+            const addon = addonsCache?.addons.find(a => a.key === key);
+            if (addon?.active) void changeAddonQuantity(key, quantity);
+            else void getAddon(key, quantity);
+        });
+    });
     el.querySelectorAll<HTMLButtonElement>("[data-portal-provider]").forEach(btn => {
         btn.addEventListener("click", () => void openPortal(btn));
     });
@@ -251,6 +288,146 @@ function render(): void {
     el.querySelector<HTMLButtonElement>("#sub-founder-buy")?.addEventListener("click", function () {
         void checkoutFounder(this);
     });
+}
+
+function groupAddonsByCategory(addons: BillingAddon[], categories: BillingCategory[]): { label: string | null; addons: BillingAddon[] }[] {
+    const labelById = new Map(categories.map(c => [c.id, c.label]));
+    const groups = new Map<string, BillingAddon[]>();
+    const order: string[] = [];
+    for (const addon of addons) {
+        const key = addon.category ?? "";
+        if (!groups.has(key)) {
+            groups.set(key, []);
+            order.push(key);
+        }
+        groups.get(key)!.push(addon);
+    }
+    return order.map(key => ({ label: key ? labelById.get(key) ?? key : null, addons: groups.get(key)! }));
+}
+
+function addonCardHtml(addon: BillingAddon): string {
+    const price = amountHtml(addon.price, addonsCache?.currency ?? cache?.currency ?? "");
+    const interval = (addonsCache?.priceInterval ?? cache?.priceInterval ?? "").trim();
+    const note = addon.note ? `<p class="sub-addon-note">${esc(addon.note)}</p>` : "";
+    const busy = addonActionKey === addon.key;
+    let action: string;
+    if (addon.quantityAddon) {
+        const max = addon.maxQuantity ?? 16;
+        const current = addon.active ? Math.max(1, addon.quantity ?? 1) : 1;
+        action = `
+            <div class="sub-addon-qty">
+                <span>Amount</span>
+                <div class="stepper">
+                    <button type="button" class="stepper-btn" data-step="-1" aria-label="Decrease">&minus;</button>
+                    <input type="number" min="1" max="${max}" step="1" value="${current}" id="sub-addon-qty-${esc(addon.key)}" ${busy ? "disabled" : ""} />
+                    <button type="button" class="stepper-btn" data-step="1" aria-label="Increase">+</button>
+                </div>
+            </div>
+            <div class="sub-cta"><button class="btn btn-primary" data-sub-addon-qty-submit="${esc(addon.key)}" ${busy ? "disabled" : ""}>${addon.active ? "Update amount" : "Get this"}</button></div>`;
+    } else if (addon.active) {
+        action = `<div class="sub-current-label">Active</div>`;
+    } else if (addon.upgrade) {
+        action = `<div class="sub-cta"><button class="btn btn-primary" data-sub-addon-upgrade="${esc(addon.key)}" ${busy ? "disabled" : ""}>Upgrade to this</button></div>`;
+    } else if (addon.downgrade) {
+        action = `<div class="sub-current-label" style="color:var(--muted)">You have a higher tier of this already</div>`;
+    } else {
+        action = `<div class="sub-cta"><button class="btn btn-primary" data-sub-addon-get="${esc(addon.key)}" ${busy ? "disabled" : ""}>Get this</button></div>`;
+    }
+    return `<div class="sub-card${addon.active ? " current" : ""}">
+        <div class="sub-tier-name">${esc(addon.label)}</div>
+        <div class="sub-price">${price}${interval ? ` <span class="sub-interval">/ ${esc(interval)}</span>` : ""}</div>
+        ${note}
+        ${action}
+    </div>`;
+}
+
+function addonsSectionHtml(): string {
+    const addons = addonsCache?.addons ?? [];
+    if (!addonsCache?.enabled || !addons.length) return "";
+    const groups = groupAddonsByCategory(addons, addonsCache.categories ?? []);
+    const body = groups.map(group => {
+        const heading = group.label ? `<div class="sub-addon-group-title">${esc(group.label)}</div>` : "";
+        return `${heading}<div class="sub-grid">${group.addons.map(addonCardHtml).join("")}</div>`;
+    }).join("");
+    return `<div class="sub-addons-section">
+        <div class="section-title">Add-ons</div>
+        <div class="sub-addon-groups">${body}</div>
+    </div>`;
+}
+
+async function getAddon(key: string, quantity?: number): Promise<void> {
+    const generation = activationGeneration;
+    addonActionKey = key;
+    render();
+    try {
+        const body: Record<string, unknown> = { addon: key };
+        if (quantity !== undefined) body["quantity"] = quantity;
+        const res = await authFetch<{ url?: string }>("/api/billing/checkout", {
+            method: "POST",
+            body: JSON.stringify(body),
+        });
+        if (!res.url) throw new Error("The server did not return a payment link.");
+        sessionStorage.setItem(PENDING_KEY, String(Date.now()));
+        location.href = res.url;
+    } catch (e) {
+        if (isCurrentActivation(generation)) {
+            alert("Could not start checkout: " + (e instanceof Error ? e.message : String(e)));
+        }
+    } finally {
+        if (isCurrentActivation(generation)) {
+            addonActionKey = null;
+            render();
+        }
+    }
+}
+
+async function changeAddonQuantity(key: string, quantity: number): Promise<void> {
+    const generation = activationGeneration;
+    addonActionKey = key;
+    render();
+    try {
+        await authFetch("/api/billing/upgrade", {
+            method: "POST",
+            body: JSON.stringify({ addon: key, quantity }),
+        });
+        await loadAddons(generation);
+    } catch (e) {
+        if (isCurrentActivation(generation)) {
+            alert("Could not change the amount: " + (e instanceof Error ? e.message : String(e)));
+        }
+    } finally {
+        if (isCurrentActivation(generation)) {
+            addonActionKey = null;
+            render();
+        }
+    }
+}
+
+async function upgradeAddon(key: string): Promise<void> {
+    const generation = activationGeneration;
+    addonActionKey = key;
+    render();
+    try {
+        const res = await authFetch<{ ok?: boolean; url?: string }>("/api/billing/upgrade", {
+            method: "POST",
+            body: JSON.stringify({ addon: key }),
+        });
+        if (res.url) {
+            sessionStorage.setItem(PENDING_KEY, String(Date.now()));
+            location.href = res.url;
+            return;
+        }
+        await loadAddons(generation);
+    } catch (e) {
+        if (isCurrentActivation(generation)) {
+            alert("Could not upgrade: " + (e instanceof Error ? e.message : String(e)));
+        }
+    } finally {
+        if (isCurrentActivation(generation)) {
+            addonActionKey = null;
+            render();
+        }
+    }
 }
 
 function founderCardHtml(): string {
@@ -425,6 +602,8 @@ export function deactivate(): void {
     loadRevision += 1;
     upgradeRevision += 1;
     founderRevision += 1;
+    addonsRevision += 1;
+    addonActionKey = null;
     pendingUpgradeTier = null;
     stopPolling();
     pollStartedAt = 0;

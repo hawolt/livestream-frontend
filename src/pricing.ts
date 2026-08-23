@@ -1,4 +1,4 @@
-import type { BillingAddonOption, BillingCatalog, BillingCatalogFounder, BillingTier } from "./api.ts";
+import type { BillingAddonOption, BillingCatalog, BillingCatalogFounder, BillingCategory, BillingTier } from "./api.ts";
 import { amountText, perkDelta, perkLines, perkTokens } from "./billing/catalog.ts";
 import { initSiteNav, type SessionInfo } from "./nav.ts";
 import { API_BASE } from "./api.ts";
@@ -89,6 +89,21 @@ function addonCard(addon: BillingAddonOption, catalog: BillingCatalog): HTMLElem
     return card;
 }
 
+function groupByCategory(addons: BillingAddonOption[], categories: BillingCategory[]): { label: string | null; addons: BillingAddonOption[] }[] {
+    const labelById = new Map(categories.map(c => [c.id, c.label]));
+    const groups = new Map<string, BillingAddonOption[]>();
+    const order: string[] = [];
+    for (const addon of addons) {
+        const key = addon.category ?? "";
+        if (!groups.has(key)) {
+            groups.set(key, []);
+            order.push(key);
+        }
+        groups.get(key)!.push(addon);
+    }
+    return order.map(key => ({ label: key ? labelById.get(key) ?? key : null, addons: groups.get(key)! }));
+}
+
 function founderCard(founder: BillingCatalogFounder, catalog: BillingCatalog): HTMLElement {
     const card = element("div", "pricing-card featured");
     card.append(element("div", "pricing-tier-name", founder.label || "Founder"));
@@ -159,9 +174,14 @@ function renderCatalog(catalog: BillingCatalog): void {
 
     const addons = catalog.addons ?? [];
     if (addons.length) {
-        const addonGrid = element("div", "pricing-grid");
-        for (const addon of addons) addonGrid.append(addonCard(addon, catalog));
-        addonsEl.replaceChildren(addonGrid);
+        const wrap = element("div", "pricing-addon-groups");
+        for (const group of groupByCategory(addons, catalog.categories ?? [])) {
+            if (group.label) wrap.append(element("h3", "pricing-addon-group-title", group.label));
+            const addonGrid = element("div", "pricing-grid");
+            for (const addon of group.addons) addonGrid.append(addonCard(addon, catalog));
+            wrap.append(addonGrid);
+        }
+        addonsEl.replaceChildren(wrap);
         addonsSectionEl.hidden = false;
     }
 
