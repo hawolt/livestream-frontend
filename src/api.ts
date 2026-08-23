@@ -12,6 +12,7 @@ export interface AccountSettings {
     usernameChangedAt?: number | null;
     usernameCooldownRemaining?: number;
     liveNotify?: boolean;
+    patronPublic?: boolean;
 }
 
 export interface ApiTokenInfo {

@@ -5,7 +5,7 @@
   "scripts": {
     "clean": "bun scripts/clean-build.ts",
     "build": "bun run clean && bun run build:pages && bun run build:dash && bun run content && bun run link",
-    "build:pages": "bun build src/explore.ts src/live.ts src/embed.ts src/chat-overlay.ts src/follow-alerts.ts src/user-login.ts src/register.ts src/verify.ts src/reset-password.ts src/legal.ts src/content-page.ts src/clip-editor.ts src/clip-embed.ts src/multichat.ts src/oauth-authorize.ts src/status.ts src/pricing.ts --outdir public --entry-naming \"[name]-[hash].[ext]\"",
+    "build:pages": "bun build src/explore.ts src/live.ts src/embed.ts src/chat-overlay.ts src/follow-alerts.ts src/user-login.ts src/register.ts src/verify.ts src/reset-password.ts src/legal.ts src/content-page.ts src/clip-editor.ts src/clip-embed.ts src/multichat.ts src/oauth-authorize.ts src/status.ts src/pricing.ts src/patron.ts --outdir public --entry-naming \"[name]-[hash].[ext]\"",
     "build:dash": "bun build src/dashboard.ts --outdir public/dash --splitting --entry-naming \"[name]-[hash].[ext]\" --chunk-naming \"chunk-[name]-[hash].[ext]\"",
     "link": "bun scripts/link-entries.ts",
     "test": "bun test",

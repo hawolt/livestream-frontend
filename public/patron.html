@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en" class="live-host">
+<head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/png" href="/static/img/favicon.png" />
+    <link rel="apple-touch-icon" href="/static/img/icon.png" />
+    <link rel="manifest" href="/site.webmanifest" />
+    <meta name="theme-color" content="#0d0d0d" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Patron | ITZON</title>
+    <link rel="canonical" href="https://itzon.tv/patron" />
+    <meta name="description" content="Support ITZON with a one time, pay what you want donation. Get the permanent Patron badge and a spot on the public patron leaderboard." />
+    <meta property="og:site_name" content="ITZON" />
+    <meta property="og:locale" content="en_US" />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Patron | ITZON" />
+    <meta property="og:description" content="Support ITZON with a one time, pay what you want donation. Get the permanent Patron badge and a spot on the public patron leaderboard." />
+    <meta property="og:url" content="https://itzon.tv/patron" />
+    <meta property="og:image" content="https://itzon.tv/api/live/site-preview.jpg?v=2" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:site" content="@itzonapp" />
+    <meta name="twitter:title" content="Patron | ITZON" />
+    <meta name="twitter:description" content="Support ITZON with a one time, pay what you want donation. Get the permanent Patron badge and a spot on the public patron leaderboard." />
+    <meta name="twitter:image" content="https://itzon.tv/api/live/site-preview.jpg?v=2" />
+    <link rel="preload" href="/fonts/inter-latin.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="stylesheet" href="/static/css/shared.css" />
+    <script>try{var c=document.cookie.match(/(?:^|; )site_accent=([^;]*)/);var a=c?decodeURIComponent(c[1]):localStorage.getItem("site_accent");if(a&&a!=="malachite"){document.documentElement.setAttribute("data-accent",a);var m={"beacon":["/static/img/favicon-beacon.png","/static/img/icon-beacon.png"]}[a];if(m){var i=document.querySelector('link[rel="icon"]');if(i)i.href=m[0];var t=document.querySelector('link[rel="apple-touch-icon"]');if(t)t.href=m[1]}}}catch(e){}</script>
+    <link rel="stylesheet" href="/static/css/site.css" />
+    <style>
+        .patron-page { max-width: 760px; margin: 0 auto; padding: 48px 24px 120px; }
+        .patron-page h1 { font-size: clamp(26px, 6vw, 38px); font-weight: 700; color: #fff; margin: 0 0 14px; }
+        .patron-page h2 { font-size: 20px; font-weight: 700; color: #fff; margin: 0 0 8px; }
+        .patron-page p { color: var(--muted); font-size: 14px; line-height: 1.65; }
+        .patron-lede { max-width: 640px; }
+        .patron-section { margin-top: 44px; }
+        .patron-badge-card { display: flex; align-items: center; gap: 18px; border: 1px solid var(--border); border-radius: 10px; padding: 20px; background: var(--surface); }
+        .patron-badge-card img { width: 64px; height: 64px; flex: 0 0 auto; }
+        .patron-badge-card p { margin: 0; }
+        .patron-cta-card { border: 1px solid var(--border); border-radius: 10px; padding: 22px; background: var(--surface); text-align: center; }
+        .patron-cta-card p { margin: 0 0 16px; }
+        .patron-donate-btn { min-width: 220px; }
+        .patron-me { margin-top: 14px; color: var(--text); font-size: 13px; }
+        .patron-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+        .patron-row { display: flex; align-items: center; gap: 12px; border: 1px solid var(--border); border-radius: 8px; padding: 10px 14px; background: var(--surface); }
+        .patron-rank { width: 24px; text-align: right; color: var(--muted); font-size: 13px; font-weight: 700; flex: 0 0 auto; }
+        .patron-name { flex: 1 1 auto; color: var(--text); font-size: 14px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .patron-amount { color: var(--accent); font-size: 14px; font-weight: 700; flex: 0 0 auto; }
+        .patron-empty { color: var(--muted); font-size: 13px; }
+        .patron-status { color: var(--muted); font-size: 14px; }
+    </style>
+</head>
+<body>
+<header class="site-nav">
+    <a class="site-brand" href="/" aria-label="ITZON"><svg class="brand-o" viewBox="0 0 64 64" aria-hidden="true"><rect x="4" y="4" width="56" height="56" rx="14" fill="currentColor"/><path d="M24 18 L44 32 L24 46 Z" fill="var(--bg)"/></svg><span class="brand-wm">ITZON</span></a>
+    <nav class="site-links">
+        <a class="site-link" href="/" data-nav="browse">Browse</a>
+    </nav>
+    <div class="site-nav-right" id="site-nav-right"></div>
+</header>
+<main class="patron-page">
+    <div class="patron-lede">
+        <h1>Support ITZON</h1>
+        <p>Patronage is a one time, pay what you want donation. There is no subscription, nothing renews and there
+        are no perks attached beyond what is on this page: a permanent badge next to your name in chat and a spot
+        on the leaderboard below. It exists for people who want to help keep the site running and nothing more.
+        Donating requires an account so the badge and the leaderboard entry have somewhere to attach.</p>
+    </div>
+
+    <section class="patron-section">
+        <h2>The badge</h2>
+        <div class="patron-badge-card">
+            <img id="patron-badge-img" src="/static/img/badge-patron.svg" alt="Patron badge" width="64" height="64" />
+            <p>Granted the first time you donate any amount, and yours to keep from then on, in chat, on your
+            profile and everywhere else badges show up. It stays even if the donation is later refunded.</p>
+        </div>
+    </section>
+
+    <section class="patron-section">
+        <h2>Donate</h2>
+        <div class="patron-cta-card">
+            <p id="patron-status" class="patron-status">Loading...</p>
+            <div id="patron-cta" hidden>
+                <p>Choose your own amount on the next page.</p>
+                <button id="patron-donate" class="btn btn-primary patron-donate-btn">Donate</button>
+            </div>
+            <p id="patron-me" class="patron-me" hidden></p>
+        </div>
+    </section>
+
+    <section class="patron-section">
+        <h2>Patrons</h2>
+        <div id="patron-leaderboard"></div>
+    </section>
+</main>
+<script src="/patron-2kfc1gmv.js" type="module"></script>
+</body>
+</html>

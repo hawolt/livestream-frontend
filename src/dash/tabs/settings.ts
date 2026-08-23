@@ -156,6 +156,8 @@ async function loadSettings(generation = activationGeneration): Promise<void> {
         renderBotCard(typeof s.chatBotToken === "string" ? s.chatBotToken : null);
         const liveNotify = document.getElementById("st-live-notify") as HTMLInputElement | null;
         if (liveNotify && !shouldSkipRefresh(liveNotify)) liveNotify.checked = s.liveNotify !== false;
+        const patronPublic = document.getElementById("st-patron-public") as HTMLInputElement | null;
+        if (patronPublic && !shouldSkipRefresh(patronPublic)) patronPublic.checked = s.patronPublic !== false;
         setSettingsLoading(false);
         applyChatColorAllowed(s.chatColorAllowed !== false);
         formatUsernameHint(s);
@@ -672,6 +674,30 @@ export function init(pane: HTMLElement): void {
     trackDirtyOnInput(colorInput);
     pane.querySelector("#st-username-new")?.addEventListener("input", updateUsernameSaveState);
 
+    pane.querySelector("#st-patron-public")?.addEventListener("change", async (e) => {
+        const cb = e.target as HTMLInputElement;
+        const saved = pane.querySelector<HTMLElement>("#st-patron-public-saved");
+        const operation = beginOperation("patron-public");
+        cb.disabled = true;
+        try {
+            await authFetch("/api/settings/patron-visibility", { method: "PUT", body: JSON.stringify({ enabled: cb.checked }) });
+            const current = isCurrentOperation(operation);
+            if (current) {
+                cb.disabled = false;
+                if (saved) { saved.textContent = "Saved"; saved.style.color = "var(--success)"; }
+            }
+            invalidateSettingsLoads();
+            if (!current) return;
+        } catch (err) {
+            if (!isCurrentOperation(operation)) return;
+            cb.checked = !cb.checked;
+            const msg = err instanceof Error ? err.message : String(err);
+            if (saved) { saved.textContent = msg; saved.style.color = "var(--danger)"; }
+            cb.disabled = false;
+        }
+        window.setTimeout(() => { if (saved && isCurrentOperation(operation)) saved.textContent = ""; }, 2500);
+    });
+
     pane.querySelector("#st-live-notify")?.addEventListener("change", async (e) => {
         const cb = e.target as HTMLInputElement;
         const saved = pane.querySelector<HTMLElement>("#st-live-notify-saved");
@@ -808,8 +834,10 @@ export function activate(): void {
     const generation = ++activationGeneration;
     const resend = document.getElementById("btn-resend-verify") as HTMLButtonElement | null;
     const liveNotify = document.getElementById("st-live-notify") as HTMLInputElement | null;
+    const patronPublic = document.getElementById("st-patron-public") as HTMLInputElement | null;
     if (resend) resend.disabled = false;
     if (liveNotify) liveNotify.disabled = false;
+    if (patronPublic) patronPublic.disabled = false;
     document.querySelectorAll<HTMLButtonElement>("#st-bot-body button").forEach(button => { button.disabled = false; });
     const createTokenBtn = document.getElementById("btn-api-token-create") as HTMLButtonElement | null;
     if (createTokenBtn) createTokenBtn.disabled = false;
