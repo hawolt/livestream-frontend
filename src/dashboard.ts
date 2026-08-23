@@ -8,6 +8,7 @@ import {
 } from "./dash/session.ts";
 import { closeDismissibleSurface, openDismissibleSurface } from "./dismissible-surface.ts";
 import { motionScrollBehavior } from "./motion.ts";
+import { readLocalStorage, writeLocalStorage } from "./storage.ts";
 import { studioBaseUrl, studioTabUrl } from "./dash/studio.ts";
 
 const TAB_LOADERS: Record<string, () => Promise<TabModule>> = {
@@ -143,6 +144,7 @@ async function activateTab(tab: string, pushState = true): Promise<void> {
     setNoTabsVisible(false);
 
     syncDashboardNavigation(tab);
+    revealGroupOf(tab);
     const btn = document.querySelector<HTMLElement>(`.dash-side-link[data-tab="${tab}"]`);
     btn?.scrollIntoView({ behavior: motionScrollBehavior(), block: "nearest", inline: "center" });
     if (sidebarToggleLabel) sidebarToggleLabel.textContent = info.label;
@@ -318,27 +320,89 @@ function buildSidebar(tabs: TabInfo[]): void {
     for (const t of tabs) (t.group ? grouped : ungrouped).push(t);
 
     let lastGroup: string | undefined;
+    let target: HTMLElement = list;
     for (const t of grouped) {
         if (showHeaders && t.group !== lastGroup) {
-            const header = document.createElement("div");
-            header.className = "dash-side-group";
-            header.textContent = t.group!;
-            list.appendChild(header);
+            target = appendSidebarGroup(list, t.group!);
             lastGroup = t.group;
         }
-        appendSidebarLink(list, t);
+        appendSidebarLink(target, t);
     }
     for (const t of ungrouped) appendSidebarLink(list, t);
 
     if (studioTabs.length) {
-        if (showHeaders) {
-            const header = document.createElement("div");
-            header.className = "dash-side-group";
-            header.textContent = "In Studio";
-            list.appendChild(header);
-        }
-        for (const t of studioTabs) list.appendChild(makeStudioTabLink(t));
+        const studioTarget = showHeaders ? appendSidebarGroup(list, STUDIO_GROUP) : list;
+        for (const t of studioTabs) studioTarget.appendChild(makeStudioTabLink(t));
     }
+}
+
+const STUDIO_GROUP = "In Studio";
+const OPEN_BY_DEFAULT = new Set(["Membership", STUDIO_GROUP]);
+const SIDEBAR_GROUPS_KEY = "dash-sidebar-groups";
+
+function storedGroupState(): Record<string, boolean> {
+    const raw = readLocalStorage(SIDEBAR_GROUPS_KEY);
+    if (!raw) return {};
+    try {
+        const parsed: unknown = JSON.parse(raw);
+        if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return {};
+        const out: Record<string, boolean> = {};
+        for (const [key, value] of Object.entries(parsed as Record<string, unknown>)) {
+            if (typeof value === "boolean") out[key] = value;
+        }
+        return out;
+    } catch {
+        return {};
+    }
+}
+
+function storeGroupState(label: string, open: boolean): void {
+    const state = storedGroupState();
+    state[label] = open;
+    writeLocalStorage(SIDEBAR_GROUPS_KEY, JSON.stringify(state));
+}
+
+function appendSidebarGroup(list: HTMLElement, label: string): HTMLElement {
+    const section = document.createElement("div");
+    section.className = "dash-side-section";
+    section.dataset["group"] = label;
+
+    const header = document.createElement("button");
+    header.type = "button";
+    header.className = "dash-side-group";
+    const text = document.createElement("span");
+    text.textContent = label;
+    const chevron = document.createElement("span");
+    chevron.className = "dash-side-chevron";
+    chevron.setAttribute("aria-hidden", "true");
+    header.append(text, chevron);
+
+    const items = document.createElement("div");
+    items.className = "dash-side-group-list";
+
+    const stored = storedGroupState()[label];
+    const open = stored ?? OPEN_BY_DEFAULT.has(label);
+    section.classList.toggle("open", open);
+    header.setAttribute("aria-expanded", String(open));
+
+    header.addEventListener("click", () => {
+        const nowOpen = !section.classList.contains("open");
+        section.classList.toggle("open", nowOpen);
+        header.setAttribute("aria-expanded", String(nowOpen));
+        storeGroupState(label, nowOpen);
+    });
+
+    section.append(header, items);
+    list.appendChild(section);
+    return items;
+}
+
+function revealGroupOf(tab: string): void {
+    const link = document.querySelector<HTMLElement>(`.dash-side-link[data-tab="${tab}"]`);
+    const section = link?.closest<HTMLElement>(".dash-side-section");
+    if (!section || section.classList.contains("open")) return;
+    section.classList.add("open");
+    section.querySelector<HTMLElement>(".dash-side-group")?.setAttribute("aria-expanded", "true");
 }
 
 function makeStudioTabLink(t: TabInfo): HTMLAnchorElement {
