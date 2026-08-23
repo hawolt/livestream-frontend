@@ -342,17 +342,14 @@ function addonCardHtml(addon: BillingAddon): string {
 }
 
 function addonsSectionHtml(): string {
-    const addons = addonsCache?.addons ?? [];
+    const addons = (addonsCache?.addons ?? []).filter(addon => !!addon.category);
     if (!addonsCache?.enabled || !addons.length) return "";
     const groups = groupAddonsByCategory(addons, addonsCache.categories ?? []);
     const body = groups.map(group => {
-        const heading = group.label ? `<div class="sub-addon-group-title">${esc(group.label)}</div>` : "";
+        const heading = group.label ? `<div class="section-title">${esc(group.label)}</div>` : "";
         return `${heading}<div class="sub-grid">${group.addons.map(addonCardHtml).join("")}</div>`;
     }).join("");
-    return `<div class="sub-addons-section">
-        <div class="section-title">Add-ons</div>
-        <div class="sub-addon-groups">${body}</div>
-    </div>`;
+    return `<div class="sub-addons-section">${body}</div>`;
 }
 
 async function getAddon(key: string, quantity?: number): Promise<void> {
