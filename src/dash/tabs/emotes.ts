@@ -70,7 +70,7 @@ function buildRenditionCell(emote: EmoteEntry, rendition: Rendition): HTMLElemen
         const fileInput = document.createElement("input");
         fileInput.type = "file";
         fileInput.id = `em-file-${emote.id}-${rendition}`;
-        fileInput.accept = emote.pool === "gif" ? "image/gif,image/webp,image/avif" : "image/png,image/jpeg,image/webp,image/avif";
+        fileInput.accept = emote.pool === "gif" ? "image/gif" : "image/png,image/jpeg";
         fileInput.style.display = "none";
         fileInput.addEventListener("change", () => {
             const file = fileInput.files?.[0] ?? null;
