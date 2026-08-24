@@ -22,3 +22,19 @@ export function emoteCountLabel(count: number): string {
 export function emoteSignature(list: AboutEmote[]): string {
     return `${list.length}:${list[0]?.name ?? ""}:${list[list.length - 1]?.name ?? ""}`;
 }
+
+export function emoteCardTitle(count: number): string {
+    return count === 1 ? "1 Emote" : `${count} Emotes`;
+}
+
+export function matchesEmoteSearch(name: string, query: string): boolean {
+    const needle = query.trim().toLowerCase();
+    if (!needle) return true;
+    return name.toLowerCase().includes(needle);
+}
+
+export function filterEmotes(list: AboutEmote[], query: string): AboutEmote[] {
+    const needle = query.trim();
+    if (!needle) return list;
+    return list.filter((emote) => matchesEmoteSearch(emote.name, needle));
+}

@@ -1108,7 +1108,7 @@
             background: repeating-linear-gradient(45deg, rgba(var(--accent-rgb), .55) 0 2px, rgba(255, 255, 255, .1) 2px 4px);
         }
         .live-activity-cell.future { background: rgba(255, 255, 255, .03); }
-        .live-activity-cell.today { box-shadow: 0 0 0 1px var(--dim); }
+        .live-activity-cell.today { box-shadow: inset 0 0 0 1px var(--dim); }
         .live-activity-cell.pad { background: none; box-shadow: none; }
         .live-activity-history-box { max-width: min(760px, calc(100vw - 32px)); }
         .live-activity-grid-wrap { padding-bottom: 6px; }
@@ -1130,6 +1130,13 @@
         .live-activity-legend-label { font-size: 11px; color: var(--muted); }
         .live-activity-legend .live-activity-legend-label + .live-activity-cell { margin-left: 3px; }
         .live-activity-legend .live-activity-cell + .live-activity-legend-label { margin-left: 3px; }
+        .live-activity-legend-group {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            white-space: nowrap;
+            margin-left: 10px;
+        }
         .live-activity-note { color: var(--muted); font-size: 12.5px; margin: 10px 0 0; }
         .live-about-emote-grid {
             display: flex;
@@ -1146,11 +1153,22 @@
             align-items: center;
             justify-content: center;
             border-radius: 4px;
-            background: var(--bg);
         }
         .live-about-emote img { max-width: 32px; max-height: 32px; display: block; }
         .live-about-emote-note { color: var(--muted); font-size: 12px; margin-top: 10px; }
         .live-about-emote-box { max-width: min(640px, calc(100vw - 32px)); }
+        .live-about-emote-search {
+            width: 100%;
+            margin: 10px 0 12px;
+            padding: 8px 10px;
+            font: inherit;
+            font-size: 13px;
+            color: var(--text);
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+        }
+        .live-about-emote-search:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
         .live-about-emote-all {
             display: flex;
             flex-wrap: wrap;
@@ -2693,6 +2711,6 @@
         </form>
     </div>
 </div>
-<script src="/live-gap8h66f.js" type="module"></script>
+<script src="/live-z7byaykd.js" type="module"></script>
 </body>
 </html>

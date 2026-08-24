@@ -19,7 +19,7 @@ import {
     WEEKDAY_LABELS,
     type ActivityDay,
 } from "./about/activity.ts";
-import { emoteCountLabel, emoteSignature, sortAboutEmotes, type AboutEmote } from "./about/emotes.ts";
+import { emoteCardTitle, emoteSignature, filterEmotes, sortAboutEmotes, type AboutEmote } from "./about/emotes.ts";
 import { ctx as chatCtx, emotes } from "../chat/context.ts";
 import { formatCompactCount } from "./format.ts";
 import { viewerOwnsChannel } from "./points.ts";
@@ -214,10 +214,13 @@ function buildActivityLegend(): HTMLElement {
         legend.appendChild(swatch);
     }
     legend.appendChild(buildActivityLegendLabel("More"));
+    const unknownGroup = document.createElement("span");
+    unknownGroup.className = "live-activity-legend-group";
     const unknown = document.createElement("span");
     unknown.className = "live-activity-cell unknown";
     unknown.title = "was live, duration unknown";
-    legend.append(unknown, buildActivityLegendLabel("duration unknown"));
+    unknownGroup.append(unknown, buildActivityLegendLabel("duration unknown"));
+    legend.appendChild(unknownGroup);
     return legend;
 }
 
@@ -319,23 +322,36 @@ function openEmoteList(list: AboutEmote[]): void {
         if (ev.target === overlay) overlay.remove();
     });
     const heading = document.createElement("h3");
-    heading.textContent = "Emotes";
-    box.append(close, heading);
+    heading.textContent = emoteCardTitle(list.length);
+    const search = document.createElement("input");
+    search.type = "search";
+    search.className = "live-about-emote-search";
+    search.placeholder = "Search emotes";
+    search.setAttribute("aria-label", "Search emotes");
+    box.append(close, heading, search);
     const all = document.createElement("div");
     all.className = "live-about-emote-all";
-    for (const emote of list) {
-        const item = document.createElement("div");
-        item.className = "live-about-emote-item";
-        item.title = emote.name;
-        const name = document.createElement("div");
-        name.className = "live-about-emote-name";
-        name.textContent = emote.name;
-        item.append(buildEmoteTile(emote), name);
-        all.appendChild(item);
-    }
     const note = document.createElement("p");
     note.className = "live-activity-note";
-    note.textContent = emoteCountLabel(list.length);
+    const paint = () => {
+        const shown = filterEmotes(list, search.value);
+        all.replaceChildren();
+        for (const emote of shown) {
+            const item = document.createElement("div");
+            item.className = "live-about-emote-item";
+            item.title = emote.name;
+            const name = document.createElement("div");
+            name.className = "live-about-emote-name";
+            name.textContent = emote.name;
+            item.append(buildEmoteTile(emote), name);
+            all.appendChild(item);
+        }
+        note.textContent = shown.length === list.length
+            ? emoteCardTitle(list.length)
+            : `${shown.length} of ${list.length} emotes`;
+    };
+    paint();
+    search.addEventListener("input", paint);
     box.append(all, note);
     overlay.appendChild(box);
     document.body.appendChild(overlay);
@@ -348,7 +364,7 @@ function buildEmoteCard(list: AboutEmote[]): HTMLElement {
     head.className = "live-activity-head";
     const title = document.createElement("div");
     title.className = "live-about-panel-title";
-    title.textContent = "Emotes";
+    title.textContent = emoteCardTitle(list.length);
     const expand = document.createElement("button");
     expand.type = "button";
     expand.className = "live-activity-expand";
@@ -360,10 +376,7 @@ function buildEmoteCard(list: AboutEmote[]): HTMLElement {
     const grid = document.createElement("div");
     grid.className = "live-about-emote-grid";
     for (const emote of list.slice(0, EMOTE_PREVIEW_MAX)) grid.appendChild(buildEmoteTile(emote));
-    const note = document.createElement("div");
-    note.className = "live-about-emote-note";
-    note.textContent = emoteCountLabel(list.length);
-    card.append(head, grid, note);
+    card.append(head, grid);
     return card;
 }
 
