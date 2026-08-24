@@ -30,6 +30,7 @@ describe("parseExploreData", () => {
                 language: "und",
                 viewers: 4,
                 partner: true,
+                mature: false,
                 mediaBase: undefined,
             }],
             categories: [{ id: 2, name: "Games", liveStreamCount: 1, viewerCount: 0, imageUrl: null }],
@@ -93,6 +94,26 @@ describe("parseExploreData", () => {
             categories: [],
         });
         expect(parsed.streams.map((stream) => stream.partner)).toEqual([
+            false,
+            false,
+            false,
+            false,
+            true,
+        ]);
+    });
+
+    test("defaults mature to false when absent or not a boolean", () => {
+        const parsed = parseExploreData({
+            streams: [
+                { username: "nomature" },
+                { username: "stringmature", mature: "true" },
+                { username: "numbermature", mature: 1 },
+                { username: "explicitfalse", mature: false },
+                { username: "realmature", mature: true },
+            ],
+            categories: [],
+        });
+        expect(parsed.streams.map((stream) => stream.mature)).toEqual([
             false,
             false,
             false,

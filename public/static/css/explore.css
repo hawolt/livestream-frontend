@@ -329,6 +329,26 @@ a.explore-card:hover, a.explore-card:hover * { text-decoration: none; }
     color: #e5e5e5;
 }
 
+.explore-thumb .explore-mature-tag {
+    position: absolute;
+    z-index: 2;
+    top: 8px;
+    right: 8px;
+    background: rgba(0, 0, 0, .72);
+    border-radius: 3px;
+    padding: 2px 8px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .4px;
+    text-transform: uppercase;
+    color: #e5e5e5;
+}
+
+.explore-card-mature .explore-thumb img {
+    filter: blur(20px);
+    transform: scale(1.12);
+}
+
 .explore-viewers svg {
     width: 13px;
     height: 13px;

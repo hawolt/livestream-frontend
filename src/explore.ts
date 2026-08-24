@@ -19,7 +19,8 @@ import {
 } from "./explore/dom.ts";
 import { loadExplore } from "./explore/poll.ts";
 import { applyState, navigate, render } from "./explore/render.ts";
-import { updateModeButtons } from "./explore/stream-cards.ts";
+import { setExploreViewerAge, updateModeButtons } from "./explore/stream-cards.ts";
+import { viewerAge } from "./mature.ts";
 import { resolveCategoryName, stateFromLocation, urlFor } from "./explore/url-state.ts";
 
 const MANUAL_REFRESH_THROTTLE_MS = 10000;
@@ -134,6 +135,10 @@ async function boot(): Promise<void> {
             requestAnimationFrame(follow);
         });
     }
+    void viewerAge().then((age) => {
+        setExploreViewerAge(age);
+        if (ctx.streams.length) render();
+    });
     const initial = stateFromLocation();
     ctx.mode = initial.mode;
     ctx.drillCategoryId = initial.categoryName === undefined ? initial.categoryId : null;

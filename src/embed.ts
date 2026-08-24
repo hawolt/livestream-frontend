@@ -1,13 +1,18 @@
 import { cleanfeedMode, controlsMode, ctx, previewMode } from "./embed/context.ts";
 import { beginTransport, enterTerminal, setPoster, wirePageLifecycle, wireUnmute } from "./embed/lifecycle.ts";
 import { canUseHlsJs, canUseNativeHLS, mseSupported } from "./embed/transport.ts";
-import { video } from "./embed/dom.ts";
+import { stageEl, video } from "./embed/dom.ts";
 import { getCaptchaToken } from "./captcha.ts";
 import { parseViewerClaim } from "./player-shared/viewer-claim.ts";
 import { chooseTransport } from "./player-shared/transport-choice.ts";
 import { readLocalStorage } from "./storage.ts";
 import { TRANSPORT_STORAGE_KEY } from "./embed/constants.ts";
 import { setOverlayChannel, setOverlayOffline, wireOverlay } from "./embed/overlay.ts";
+import { wireWatchBeacon } from "./live/watch-beacon.ts";
+import { matureAccess } from "./mature-decision.ts";
+import { confirmMatureViewer, matureConfirmed, viewerAge } from "./mature.ts";
+import { promptEmbedMatureGate } from "./player-shared/mature-gate.ts";
+import { MATURE_BLOCKED_MESSAGE, MATURE_GATE_MESSAGE } from "./mature-messages.ts";
 
 let bootGeneration = 0;
 let bootRequest: AbortController | null = null;
@@ -44,6 +49,7 @@ async function boot(): Promise<void> {
         wireUnmute();
         wireOverlay();
         wirePageLifecycle();
+        if (!previewMode) wireWatchBeacon(video, "embed", () => ctx.username);
     }
 
     const seg = location.pathname.split("/").filter(Boolean)[1] ?? "";
@@ -58,12 +64,18 @@ async function boot(): Promise<void> {
     bootRequest?.abort();
     bootRequest = request;
     let channelLive = false;
+    let mature = false;
     try {
         const res = await fetch(`/api/live/channel/${encodeURIComponent(ctx.username)}`, { signal: request.signal });
         if (!isCurrentBoot(generation, request)) return;
         if (res.status === 404) {
             bootCompleted = true;
             enterTerminal("Channel not found");
+            return;
+        }
+        if (res.status === 403) {
+            bootCompleted = true;
+            enterTerminal(MATURE_BLOCKED_MESSAGE);
             return;
         }
         if (res.ok) {
@@ -80,6 +92,7 @@ async function boot(): Promise<void> {
             if (info) {
                 ctx.wssBase = typeof info.wssBase === "string" ? info.wssBase.replace(/\/+$/, "") : "";
                 channelLive = info.live === true;
+                mature = info.mature === true;
                 setOverlayChannel(
                     ctx.username,
                     typeof info.username === "string" ? info.username : ctx.username,
@@ -93,6 +106,31 @@ async function boot(): Promise<void> {
         if (bootRequest === request) bootRequest = null;
     }
     if (generation !== bootGeneration) return;
+
+    if (mature) {
+        const access = matureAccess(true, await viewerAge(), matureConfirmed());
+        if (generation !== bootGeneration) return;
+        if (access === "locked") {
+            bootCompleted = true;
+            enterTerminal(MATURE_BLOCKED_MESSAGE);
+            return;
+        }
+        if (access === "confirm") {
+            if (previewMode) {
+                bootCompleted = true;
+                enterTerminal(MATURE_GATE_MESSAGE);
+                return;
+            }
+            const allowed = await promptEmbedMatureGate(stageEl, ctx.username);
+            if (generation !== bootGeneration) return;
+            if (!allowed) {
+                bootCompleted = true;
+                enterTerminal(MATURE_GATE_MESSAGE);
+                return;
+            }
+            confirmMatureViewer();
+        }
+    }
 
     const captchaToken = await getCaptchaToken();
     if (generation !== bootGeneration) return;

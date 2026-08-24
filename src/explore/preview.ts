@@ -1,5 +1,5 @@
 import { ctx } from "./context.ts";
-import { applyDeferredGrid, updateStreamThumbnail, type StreamCard } from "./stream-cards.ts";
+import { applyDeferredGrid, MATURE_CARD_CLASS, updateStreamThumbnail, type StreamCard } from "./stream-cards.ts";
 
 interface StreamPreview {
     card: StreamCard;
@@ -70,6 +70,7 @@ function startStreamPreview(card: StreamCard): void {
 }
 
 export function queueStreamPreview(card: StreamCard): void {
+    if (card.root.classList.contains(MATURE_CARD_CLASS)) return;
     if (!hoverPreviewMedia.matches || pendingPreview === card || activePreview?.card === card) return;
     stopStreamPreview();
     pendingPreview = card;

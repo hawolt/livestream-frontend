@@ -1671,6 +1671,7 @@
         }
         .live-chat-sys.live-chat-sys-hl b { color: var(--accent); }
         .live-chat-sys.live-chat-ad {
+            position: relative;
             font-style: normal;
             display: flex;
             align-items: center;
@@ -1692,9 +1693,27 @@
             padding: 0 4px;
         }
         .live-chat-ad-label { overflow-wrap: anywhere; }
+        .live-chat-ad-advertiser {
+            flex-shrink: 0;
+            font-size: 10px;
+            color: var(--muted);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 40%;
+        }
         .live-chat-ad-cta { flex-shrink: 0; color: var(--accent); font-weight: 600; text-decoration: none; }
         .live-chat-ad-cta:hover { text-decoration: underline; }
+        .live-chat-ad-cta::after {
+            content: "";
+            position: absolute;
+            inset: 0;
+            z-index: 0;
+        }
+        .live-chat-ad-cta:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
         .live-chat-ad-close {
+            position: relative;
+            z-index: 1;
             margin-left: auto;
             flex-shrink: 0;
             border: none;
@@ -1706,6 +1725,13 @@
             padding: 0 2px;
         }
         .live-chat-ad-close:hover { color: var(--text); }
+        .mature-gate-actions {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            align-items: stretch;
+        }
+        .mature-gate-leave { text-align: center; }
         .live-chat-badge-tip {
             position: fixed;
             z-index: 60;
@@ -2463,6 +2489,16 @@
         </form>
     </div>
 </div>
+<div id="mature-gate" class="login-modal" role="dialog" aria-modal="true" aria-labelledby="mature-gate-title" aria-describedby="mature-gate-hint" hidden>
+    <div class="login-modal-box" tabindex="-1">
+        <h3 id="mature-gate-title">Mature content</h3>
+        <p class="stream-pass-hint" id="mature-gate-hint"><span id="mature-gate-channel"></span> is marked as intended for adults. Confirm that you are 18 or older to watch.</p>
+        <div class="mature-gate-actions">
+            <button type="button" id="mature-gate-confirm" class="login-modal-submit">I am 18 or older</button>
+            <a id="mature-gate-leave" class="login-modal-alt mature-gate-leave" href="/">Take me back to browse</a>
+        </div>
+    </div>
+</div>
 <div id="login-modal" class="login-modal" role="dialog" aria-modal="true" aria-labelledby="login-modal-title" hidden>
     <div class="login-modal-box" tabindex="-1">
         <button type="button" id="login-modal-close" class="login-modal-close" aria-label="Close">&times;</button>
@@ -2527,6 +2563,6 @@
         </form>
     </div>
 </div>
-<script src="/live-5w2pn0vr.js" type="module"></script>
+<script src="/live-znyhacfk.js" type="module"></script>
 </body>
 </html>

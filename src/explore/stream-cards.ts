@@ -1,4 +1,5 @@
 import { streamLanguageLabel } from "../stream-languages.ts";
+import { blursMatureThumbnail, type ViewerAge } from "../mature-decision.ts";
 import { ctx, isFramed, NO_CATEGORY_LABEL, type ExploreStream } from "./context.ts";
 import { filterStreamsByLanguage } from "./language-filter.ts";
 import { drillEl, emptyEl, gridEl, modeCategoriesBtn, modeStreamsBtn } from "./dom.ts";
@@ -22,6 +23,21 @@ export function partnerBadgeIcon(): string {
 }
 
 const streamCards = new Map<string, StreamCard>();
+
+export const MATURE_CARD_CLASS = "explore-card-mature";
+
+let exploreViewerAge: ViewerAge = "unknown";
+
+export function setExploreViewerAge(age: ViewerAge): void {
+    exploreViewerAge = age;
+}
+
+export function applyMatureThumbnail(card: StreamCard, mature: boolean, age: ViewerAge): void {
+    const blurred = blursMatureThumbnail(mature, age);
+    card.root.classList.toggle(MATURE_CARD_CLASS, blurred);
+    const badge = card.link.querySelector<HTMLElement>(".explore-mature-tag");
+    if (badge) badge.hidden = !blurred;
+}
 
 export function updateStreamThumbnail(card: StreamCard, s: ExploreStream): void {
     const img = card.image;
@@ -54,6 +70,7 @@ function updateStreamCard(card: StreamCard, s: ExploreStream): void {
         language.textContent = languageLabel ?? "";
         language.hidden = languageLabel === null;
     }
+    applyMatureThumbnail(card, s.mature, exploreViewerAge);
     updateStreamThumbnail(card, s);
 }
 
@@ -77,7 +94,11 @@ function buildStreamCard(s: ExploreStream): StreamCard {
     viewers.className = "explore-viewers";
     viewers.innerHTML = viewersIcon();
     viewers.appendChild(document.createElement("span"));
-    thumb.append(img, tag, viewers);
+    const matureTag = document.createElement("span");
+    matureTag.className = "explore-mature-tag";
+    matureTag.textContent = "Mature";
+    matureTag.hidden = true;
+    thumb.append(img, tag, viewers, matureTag);
     const body = document.createElement("div");
     body.className = "explore-card-body";
     const username = document.createElement("div");

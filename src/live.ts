@@ -4,6 +4,10 @@ import { initSiteNav } from "./nav.ts";
 import { reportVisit } from "./visit-beacon.ts";
 import { getCaptchaToken, warmCaptcha } from "./captcha.ts";
 import { startAdRotation } from "./ads.ts";
+import { matureAccess } from "./mature-decision.ts";
+import { confirmMatureViewer, matureConfirmed, viewerAge } from "./mature.ts";
+import { promptMatureGate } from "./live/mature-gate.ts";
+import { MATURE_BLOCKED_MESSAGE, MATURE_GATE_MESSAGE } from "./mature-messages.ts";
 import {
     browseMiniUsername,
     btnChatToggle,
@@ -114,7 +118,10 @@ async function boot(): Promise<void> {
     if (!chatPopout) {
         startChannelRail();
         warmCaptcha();
-        startAdRotation(chatFeatureSlotEl, "chat", () => document.body.classList.contains("is-vertical"));
+        startAdRotation(chatFeatureSlotEl, "chat", {
+            channel: ctx.username,
+            skip: () => document.body.classList.contains("is-vertical"),
+        });
     }
 
     let title = "";
@@ -123,6 +130,7 @@ async function boot(): Promise<void> {
     let language = "und";
     let emoteTwitchId = "";
     let pointsName = "";
+    let mature = false;
     const request = new AbortController();
     bootRequest?.abort();
     bootRequest = request;
@@ -147,6 +155,11 @@ async function boot(): Promise<void> {
             nameEl.textContent = "No channel";
             bootCompleted = true;
             enterTerminal("No channel");
+            return;
+        }
+        if (res.status === 403) {
+            bootCompleted = true;
+            enterTerminal(MATURE_BLOCKED_MESSAGE);
             return;
         }
         if (res.ok) {
@@ -205,6 +218,7 @@ async function boot(): Promise<void> {
             if (typeof info.startedAt === "number" && info.startedAt > 0) {
                 setStreamStart(info.startedAt);
             }
+            mature = info.mature === true;
         }
     } catch {
         if (!isCurrentBoot(generation, request)) return;
@@ -216,6 +230,25 @@ async function boot(): Promise<void> {
     partnerBadgeEl.hidden = channelPartner !== true;
     document.title = channelPageTitle(ctx.displayUsername, title);
     browseMiniUsername.textContent = ctx.displayUsername;
+    if (mature) {
+        const access = matureAccess(true, await viewerAge(), matureConfirmed());
+        if (generation !== bootGeneration) return;
+        if (access === "locked") {
+            bootCompleted = true;
+            enterTerminal(MATURE_BLOCKED_MESSAGE);
+            return;
+        }
+        if (access === "confirm") {
+            const allowed = await promptMatureGate(ctx.displayUsername, request.signal);
+            if (generation !== bootGeneration) return;
+            if (!allowed) {
+                bootCompleted = true;
+                enterTerminal(MATURE_GATE_MESSAGE);
+                return;
+            }
+            confirmMatureViewer();
+        }
+    }
     if (!chatPopout) {
         void loadProfile(ctx.username).then(profile => {
             if (generation !== bootGeneration) return;
