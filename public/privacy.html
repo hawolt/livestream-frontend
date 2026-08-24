@@ -103,6 +103,50 @@
     invoice through the Platform, we process the contact and transaction details necessary to fulfil and
     document that order in accordance with statutory retention obligations.</p>
 
+<p><strong>3.7 Audience measurement.</strong> We measure how the Platform is used without storing
+    anything on your device and without any cross-site tracking. Instead of an identifier saved in your
+    browser, we derive a pseudonymous value from your IP address using a keyed hash whose secret key
+    changes every day. A second value uses a key that changes every calendar month. IPv6 addresses are
+    truncated to their first 64 bits before hashing. The raw IP address is never written to these records
+    and never appears in a log line for this purpose. Because the daily key rotates, records about the same
+    visitor on two different days cannot be linked together; the monthly key allows counting how many
+    distinct people visited within a single calendar month and supports no longer period than that.
+    Alongside that value we record the date, which kind of page was opened (browse, channel, dashboard or
+    other), the country and network type derived from the address, and a coarse device class (desktop,
+    mobile, tablet, TV or bot) derived from your browser's user agent string. The country is derived from
+    public internet registry data describing which country an address block is registered to, not from a
+    commercial geolocation service, and it is accurate only at country level.</p>
+
+<p><strong>3.8 Viewing statistics.</strong> While a stream, clip or embedded player is playing and the
+    page is visible, your browser periodically tells us which channel is being watched so that watch time
+    and view counts can be measured. For signed-out viewers this is recorded only as an addition to daily
+    per-channel totals broken down by country and player type; no record of an individual viewer is kept.
+    For signed-in viewers, watch time per channel per day is additionally stored against the account,
+    because it drives features such as achievements and channel points.</p>
+
+<p><strong>3.9 Year of birth and terms acceptance.</strong> When you register, and once for accounts
+    created before this was introduced, we ask for your year of birth and for your acceptance of these
+    terms. We store the year of birth as given, the version of the terms accepted, the time of acceptance
+    and the IP address it was accepted from. The year of birth determines whether content marked as mature
+    is shown to you and whether age-restricted advertising may be displayed. You must be at least 13 years
+    old to hold an account.</p>
+
+<p><strong>3.10 Advertising.</strong> Advertising on the Platform is sold and served by us from our own
+    servers. There is no third-party ad network, no advertising cookie, no cross-site tracking and no
+    profiling. Advertisements are not selected on the basis of your personal characteristics or behaviour;
+    the only inputs are which page or channel the advertisement appears on and, for an age-restricted
+    advertisement, whether the account viewing it is old enough. We count when an advertisement actually
+    became visible on screen, when one was clicked, and how many distinct people saw it in a calendar month
+    using the monthly value described in 3.7.</p>
+
+<p><strong>3.11 Security and payment dispute records.</strong> Separately from everything above, and
+    deliberately kept apart from it, we record an entry when an account is registered, signed in to, has
+    its password changed, has its email address changed, or completes a purchase. That entry contains the
+    full IP address, the country, the browser user agent, the time, and the account concerned. Unlike the
+    measurement data described in 3.7, these records do contain your IP address in full. They exist to
+    detect fraudulent use of accounts and payment methods and to allow us to answer a payment dispute or
+    chargeback, and they are accessible only to our operators.</p>
+
 <h2>4. Purposes and Legal Bases</h2>
 <table>
     <tr><th>Purpose</th><th>Legal basis (Art. 6(1) GDPR)</th></tr>
@@ -113,23 +157,48 @@
     <tr><td>Email verification and service notifications</td><td>(b) performance of a contract; (f) legitimate interests</td></tr>
     <tr><td>Optional third-party integrations you activate</td><td>(b) performance of a contract; (a) consent where required</td></tr>
     <tr><td>Orders, invoicing, and statutory bookkeeping</td><td>(b) performance of a contract; (c) legal obligation</td></tr>
+    <tr><td>Measuring audience size and how the Platform is used (3.7, 3.8)</td><td>(f) legitimate interests in understanding and improving the service and in reporting audience figures to advertisers</td></tr>
+    <tr><td>Establishing age to protect minors from unsuitable content (3.9)</td><td>(c) legal obligation under youth protection law; (f) legitimate interests</td></tr>
+    <tr><td>Recording acceptance of the terms (3.9)</td><td>(b) performance of a contract; (f) legitimate interests in being able to evidence acceptance</td></tr>
+    <tr><td>Serving and measuring our own advertising (3.10)</td><td>(f) legitimate interests in funding the service</td></tr>
+    <tr><td>Preventing fraud and answering payment disputes (3.11)</td><td>(f) legitimate interests in preventing fraud and in establishing, exercising or defending legal claims</td></tr>
+    <tr><td>Marketing email, where you have separately opted in</td><td>(a) consent, withdrawable at any time</td></tr>
 </table>
 
 <h2>5. Cookies and Local Storage</h2>
 <p>
-    We use strictly necessary cookies and browser local storage to keep you signed in across the Platform
-    (for example a session/authentication cookie scoped to our domain) and to remember interface preferences
-    (such as a guest chat name, chat layout side, or a per-browser viewer identifier used for viewer counts).
-    These are required for the service to function and are set on the basis of Art. 6(1)(f) GDPR; we do not
-    use advertising or cross-site tracking cookies.
+    We use strictly necessary cookies and browser local storage only, and we do not use advertising or
+    cross-site tracking cookies. The cookies we set keep you signed in across the Platform (a session and
+    authentication cookie scoped to our domain) and record that you have entered the password for a
+    password-protected channel. Local storage is used to remember interface preferences such as a guest
+    chat name or the side chat is displayed on.
+</p>
+<p>
+    Our audience measurement stores nothing on your device at all. It uses no cookie, no local storage and
+    no device fingerprint, which is why the Platform does not ask you to accept or reject cookies for
+    statistical purposes. If you confirm that you wish to view content marked as mature, that confirmation
+    is held in memory for the current page only and is not written to your device.
+</p>
+<p>
+    The registration and sign-in pages load a bot-detection service (hCaptcha, operated by Intuition
+    Machines, Inc.). That service is provided by a third party, receives your IP address, and may set its
+    own storage on your device in order to distinguish automated abuse from real people. It is used solely
+    to protect account creation and sign-in.
 </p>
 
 <h2>6. Recipients and Hosting</h2>
 <p>
     Personal data is processed on servers operated for us by our hosting provider(s) acting as processors
-    under Art. 28 GDPR. We share data with third parties only where necessary to provide the service (for
-    example email delivery, or a third-party account/emote provider you choose to use), where you have
-    consented, or where we are legally required to do so. We do not sell personal data.
+    under Art. 28 GDPR. We share data with third parties only where necessary to provide the service, where
+    you have consented, or where we are legally required to do so. We do not sell personal data, and we do
+    not share the measurement data described in section 3.7 with anyone: advertisers receive aggregate
+    figures only, such as how many people visited in a month and the distribution of countries, never
+    records about individuals.
+</p>
+<p>
+    The recipients we currently rely on are our hosting providers, our email delivery provider, our payment
+    provider for purchases, the bot-detection service described in section 5, and, where a channel enables
+    third-party emotes or you connect a third-party account yourself, the provider concerned.
 </p>
 
 <h2>7. International Transfers</h2>
@@ -150,6 +219,10 @@
     <li>stream session and telemetry data: kept for a limited operational period and then deleted or aggregated;</li>
     <li>chat messages: transient and not stored; moderation records persist until lifted or the account/channel is removed;</li>
     <li>server logs: kept for a short period for security and diagnostics, then deleted;</li>
+    <li>records carrying the pseudonymous visitor value described in 3.7: at most 13 months, after which they are deleted;</li>
+    <li>daily visit counts: 400 days;</li>
+    <li>aggregate statistics that contain no identifier of any kind, such as daily totals per channel or per country: kept indefinitely, because they no longer relate to an identifiable person;</li>
+    <li>security and payment dispute records described in 3.11: 13 months, extended to 24 months for entries relating to a purchase, so that they outlast the period in which a payment can still be disputed;</li>
     <li>order and invoice data: retained for the periods required by applicable tax and commercial law.</li>
 </ul>
 
