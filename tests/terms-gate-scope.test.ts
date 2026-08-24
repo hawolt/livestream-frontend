@@ -2,6 +2,10 @@ import { describe, expect, test } from "bun:test";
 import { termsGateAllowedOn } from "../src/terms-gate.ts";
 
 describe("termsGateAllowedOn", () => {
+    test("runs where a signed-in user could otherwise be stranded by a blocked api call", () => {
+        expect(termsGateAllowedOn("/oauth/authorize")).toBe(true);
+    });
+
     test("runs on the pages a signed-in viewer actually browses", () => {
         expect(termsGateAllowedOn("/")).toBe(true);
         expect(termsGateAllowedOn("/somechannel")).toBe(true);
@@ -21,7 +25,6 @@ describe("termsGateAllowedOn", () => {
         expect(termsGateAllowedOn("/register")).toBe(false);
         expect(termsGateAllowedOn("/verify")).toBe(false);
         expect(termsGateAllowedOn("/reset-password")).toBe(false);
-        expect(termsGateAllowedOn("/oauth/authorize")).toBe(false);
     });
 
     test("never appears inside an OBS source or an embed", () => {

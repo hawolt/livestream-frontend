@@ -9,7 +9,7 @@ import { ageHint, gateIntro, needsTermsGate, type TermsFlags, type TermsStatus }
 
 const EXEMPT_PATHS = new Set([
     "/terms", "/privacy", "/impressum", "/login", "/register",
-    "/verify", "/reset-password", "/oauth/authorize",
+    "/verify", "/reset-password",
 ]);
 
 export function termsGateAllowedOn(pathname: string): boolean {
@@ -150,6 +150,7 @@ async function submit(status: TermsStatus): Promise<void> {
             }),
         });
         close();
+        location.reload();
     } catch (e) {
         const message = (e as Error).message;
         showError(message, consentFieldForMessage(message));
