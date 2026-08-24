@@ -41,7 +41,8 @@ async function showChatAd(): Promise<void> {
     if (!ad || !ctx.joined || !pinnedToLive()) return;
     const id = Number(ad.id);
     if (!Number.isInteger(id) || id < 0) return;
-    append(buildChatAdRow(ad, id, chatAdChannel(), Date.now(), () => {
+    const row = buildChatAdRow(ad, id, chatAdChannel(), Date.now(), () => {
         chatAdState.dismissedUntil = chatAdDismissedUntil(Date.now());
-    }));
+    });
+    if (row) append(row);
 }

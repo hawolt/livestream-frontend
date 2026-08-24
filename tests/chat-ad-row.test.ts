@@ -101,7 +101,7 @@ afterEach(() => {
     globals["IntersectionObserver"] = previousObserver;
 });
 
-const { buildChatAdRow, CHAT_AD_FALLBACK_LABEL } = await import("../src/chat/chat-ad-row.ts");
+const { buildChatAdRow, CHAT_AD_HOUSE_LABEL, chatAdText } = await import("../src/chat/chat-ad-row.ts");
 
 function makeAd(overrides: Partial<AdSpot> = {}): AdSpot {
     return {
@@ -160,7 +160,7 @@ describe("chat ad row markup", () => {
 
     test("falls back to house copy when the spot carries no label", () => {
         const label = buildRow(Date.now(), makeAd({ label: "" })).byClass("live-chat-ad-label")!;
-        expect(label.textContent).toBe(CHAT_AD_FALLBACK_LABEL);
+        expect(label.textContent).toBe(CHAT_AD_HOUSE_LABEL);
     });
 
     test("hostile ad copy stays inert text", () => {
@@ -224,5 +224,21 @@ describe("chat ad dismissal", () => {
         row.byClass("live-chat-ad-close")!.click();
         await settle();
         expect(sent).toEqual([]);
+    });
+});
+
+describe("chatAdText", () => {
+    test("uses the label a spot carries", () => {
+        expect(chatAdText("Half price hosting this week", "Acme")).toBe("Half price hosting this week");
+    });
+
+    test("falls back to house copy only when nobody paid for the spot", () => {
+        expect(chatAdText("", "")).toBe(CHAT_AD_HOUSE_LABEL);
+        expect(chatAdText("   ", "")).toBe(CHAT_AD_HOUSE_LABEL);
+    });
+
+    test("never puts house copy under an advertiser byline", () => {
+        expect(chatAdText("", "Acme")).toBeNull();
+        expect(chatAdText("   ", "Acme")).toBeNull();
     });
 });

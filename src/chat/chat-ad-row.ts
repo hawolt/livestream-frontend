@@ -1,9 +1,17 @@
 import { adVisitUrl, advertiserLine, currentAdLabel, trackAdImpression, type AdSpot } from "../ads.ts";
 import { chatAdClickArmed } from "./chat-ad-pacing.ts";
 
-export const CHAT_AD_FALLBACK_LABEL = "Support the site with a cosmetic subscription.";
+export const CHAT_AD_HOUSE_LABEL = "Support the site with a cosmetic subscription.";
 
-export function buildChatAdRow(ad: AdSpot, id: number, channel: string, insertedAt: number, onDismiss: () => void): HTMLElement {
+export function chatAdText(label: string, advertiserName: string): string | null {
+    const text = label.trim();
+    if (text) return text;
+    return advertiserName.trim() ? null : CHAT_AD_HOUSE_LABEL;
+}
+
+export function buildChatAdRow(ad: AdSpot, id: number, channel: string, insertedAt: number, onDismiss: () => void): HTMLElement | null {
+    const text = chatAdText(ad.label ?? "", ad.advertiserName ?? "");
+    if (text === null) return null;
     const line = document.createElement("div");
     line.className = "live-chat-sys live-chat-ad";
     const tag = document.createElement("span");
@@ -11,7 +19,7 @@ export function buildChatAdRow(ad: AdSpot, id: number, channel: string, inserted
     tag.textContent = currentAdLabel("Ad");
     const label = document.createElement("span");
     label.className = "live-chat-ad-label";
-    label.textContent = ad.label || CHAT_AD_FALLBACK_LABEL;
+    label.textContent = text;
     const byline = advertiserLine(ad.advertiserName);
     const advertiser = document.createElement("span");
     advertiser.className = "live-chat-ad-advertiser";
