@@ -52,8 +52,25 @@
                     <div class="login-hint" id="register-password-hint">At least 8 characters.</div>
                 </div>
                 <div>
+                    <label class="login-field-label" for="birth-year">Year of birth</label>
+                    <select id="birth-year" autocomplete="bday-year" aria-describedby="register-birth-year-hint" required>
+                        <option value="">Select year</option>
+                    </select>
+                    <div class="login-hint" id="register-birth-year-hint">We ask once, to confirm you are old enough for an account.</div>
+                </div>
+                <div>
                     <label class="login-field-label" for="referral">Referral code (optional)</label>
                     <input id="referral" type="text" autocomplete="off" placeholder="Friend's username" />
+                </div>
+                <div class="login-consent">
+                    <label class="login-consent-row">
+                        <input id="terms-accepted" type="checkbox" required />
+                        <span>I accept the <a href="/terms" target="_blank" rel="noopener">Terms of Service</a> and the <a href="/privacy" target="_blank" rel="noopener">Privacy Policy</a>.</span>
+                    </label>
+                    <label class="login-consent-row">
+                        <input id="marketing-opt-in" type="checkbox" />
+                        <span>Email me product news and offers. Optional, and you can unsubscribe at any time.</span>
+                    </label>
                 </div>
             </div>
             <div id="hcaptcha-container" style="margin-top:4px"></div>
@@ -64,7 +81,7 @@
     </div>
 </div>
 <script>window.HCAPTCHA_SITEKEY = "ca58c42a-bf10-4fd4-b2f2-78a23bcccd04";</script>
-<script src="/register-hrwy2hpd.js" type="module"></script>
+<script src="/register-rh7b20n2.js" type="module"></script>
 <script src="https://js.hcaptcha.com/1/api.js?onload=onHCaptchaLoad&render=explicit" async defer></script>
 </body>
 </html>

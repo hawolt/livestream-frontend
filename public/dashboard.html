@@ -35,6 +35,37 @@
     </div>
 </div>
 
-<script src="/dash/dashboard-dkt3j5kg.js" type="module"></script>
+<div id="terms-gate" role="dialog" aria-modal="true" aria-labelledby="terms-gate-title" aria-hidden="true" hidden>
+    <div id="terms-gate-box" tabindex="-1">
+        <h2 id="terms-gate-title">Before you continue</h2>
+        <p id="terms-gate-intro"></p>
+        <form id="terms-gate-form">
+            <div id="terms-gate-birth-year" hidden>
+                <label class="login-field-label" for="terms-gate-year">Year of birth</label>
+                <select id="terms-gate-year" autocomplete="bday-year" required>
+                    <option value="">Select year</option>
+                </select>
+                <div class="login-hint" id="terms-gate-year-hint"></div>
+            </div>
+            <div class="login-consent">
+                <label class="login-consent-row">
+                    <input id="terms-gate-accept" type="checkbox" required />
+                    <span>I accept the <a href="/terms" target="_blank" rel="noopener">Terms of Service</a> and the <a href="/privacy" target="_blank" rel="noopener">Privacy Policy</a>.</span>
+                </label>
+                <label class="login-consent-row">
+                    <input id="terms-gate-marketing" type="checkbox" />
+                    <span>Email me product news and offers. Optional, and you can unsubscribe at any time.</span>
+                </label>
+            </div>
+            <div id="terms-gate-error" role="alert" hidden></div>
+            <div id="terms-gate-actions">
+                <button type="button" id="terms-gate-signout" class="btn">Sign out</button>
+                <button type="submit" id="terms-gate-submit" class="btn btn-primary">Accept and continue</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script src="/dash/dashboard-5y2agg4a.js" type="module"></script>
 </body>
 </html>

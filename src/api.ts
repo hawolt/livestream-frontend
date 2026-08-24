@@ -222,6 +222,7 @@ export interface LiveChannelInfo {
     passwordRequired?: boolean;
     partner?: boolean;
     locked?: boolean;
+    mature?: boolean;
     pointsName?: string | null;
 }
 

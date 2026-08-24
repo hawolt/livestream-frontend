@@ -10,6 +10,7 @@ import { closeDismissibleSurface, openDismissibleSurface } from "./dismissible-s
 import { motionScrollBehavior } from "./motion.ts";
 import { readLocalStorage, writeLocalStorage } from "./storage.ts";
 import { studioBaseUrl, studioTabUrl } from "./dash/studio.ts";
+import { maybeOpenTermsGate } from "./dash/terms-gate.ts";
 
 const TAB_LOADERS: Record<string, () => Promise<TabModule>> = {
     stream:           () => import("./dash/tabs/stream.ts"),
@@ -265,6 +266,7 @@ async function refreshTabs(): Promise<void> {
     }
     if (revision !== refreshRevision) return;
     setMe(refreshed);
+    void maybeOpenTermsGate(refreshed);
     const tabs = (refreshed.tabs ?? []).filter(t => TAB_LOADERS[t.id]);
     const nextStudioTabs = studioOnlyTabs(refreshed.tabs ?? []);
     if (navigationSnapshot(tabs, nextStudioTabs) === navigationSnapshot(allTabs, studioTabs)) return;
@@ -573,6 +575,7 @@ function showSessionProblem(state: "forbidden" | "unavailable"): void {
     }
     setMe(me);
     startSessionRenewal();
+    void maybeOpenTermsGate(me);
     reportVisit("dashboard");
     void initSiteNav("dashboard", [], {
         kind: me.kind,

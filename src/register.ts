@@ -1,6 +1,7 @@
 export {};
 import { API_BASE } from "./api.ts";
 import { initSiteNav } from "./nav.ts";
+import { consentError, consentFieldForMessage, fillBirthYearSelect, type ConsentField } from "./consent.ts";
 
 void initSiteNav(null);
 
@@ -28,9 +29,14 @@ if (referralParam) {
         referralEl.tabIndex = -1;
     }
 }
-const btnEl       = document.getElementById("btn-register")  as HTMLButtonElement;
-const errorEl     = document.getElementById("error")          as HTMLElement;
-const loginLinkEl = document.getElementById("login-link")     as HTMLAnchorElement | null;
+const btnEl       = document.getElementById("btn-register")     as HTMLButtonElement;
+const errorEl     = document.getElementById("error")            as HTMLElement;
+const loginLinkEl = document.getElementById("login-link")       as HTMLAnchorElement | null;
+const birthYearEl = document.getElementById("birth-year")       as HTMLSelectElement;
+const termsEl     = document.getElementById("terms-accepted")   as HTMLInputElement;
+const marketingEl = document.getElementById("marketing-opt-in") as HTMLInputElement;
+
+fillBirthYearSelect(birthYearEl, new Date().getFullYear(), "Select year");
 
 let widgetId: number | null = null;
 
@@ -144,6 +150,12 @@ if (typeof hcaptcha !== "undefined") onHCaptchaLoad();
 form.addEventListener("submit", (e) => {
     e.preventDefault();
     clearError();
+    const consentProblem = consentError(termsEl.checked, birthYearEl.value, true);
+    if (consentProblem) {
+        showError(consentProblem);
+        markConsentField(consentFieldForMessage(consentProblem));
+        return;
+    }
     if (widgetId === null) {
         showError("The captcha is still loading. Wait a moment and try again; if this keeps happening, allow js.hcaptcha.com in your content blocker and reload.");
         return;
@@ -170,6 +182,7 @@ async function doSubmit(captchaToken: string): Promise<void> {
     const email       = (document.getElementById("email")        as HTMLInputElement).value.trim();
     const password    = (document.getElementById("password")     as HTMLInputElement).value;
     const referral    = (document.getElementById("referral")     as HTMLInputElement).value.trim();
+    const birthYear   = Number(birthYearEl.value);
 
     if (!email) {
         showError("Email is required so you can verify your account and reset your password.");
@@ -187,6 +200,9 @@ async function doSubmit(captchaToken: string): Promise<void> {
                 password,
                 email,
                 captchaToken,
+                termsAccepted:  termsEl.checked,
+                birthYear,
+                marketingOptIn: marketingEl.checked,
                 ...(referral ? { referral } : {}),
             }),
         });
@@ -196,7 +212,9 @@ async function doSubmit(captchaToken: string): Promise<void> {
         };
 
         if (!res.ok || !data.token) {
-            showError(data.error ?? "Registration failed");
+            const message = data.error ?? "Registration failed";
+            showError(message);
+            markConsentField(consentFieldForMessage(message));
             resetBtn();
             if (widgetId !== null) hcaptcha.reset(widgetId);
             return;
@@ -218,10 +236,18 @@ function resetBtn(): void {
     btnEl.textContent = "Create your streaming account";
 }
 
+function markConsentField(field: ConsentField | null): void {
+    birthYearEl.setAttribute("aria-invalid", String(field === "birthYear"));
+    termsEl.setAttribute("aria-invalid", String(field === "terms"));
+    if (field === "birthYear") birthYearEl.focus();
+    if (field === "terms") termsEl.focus();
+}
+
 function showError(msg: string): void {
     errorEl.textContent = msg;
     errorEl.style.display = "block";
 }
 function clearError(): void {
     errorEl.style.display = "none";
+    markConsentField(null);
 }
