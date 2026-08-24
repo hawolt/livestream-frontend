@@ -1,5 +1,6 @@
 import { signOut } from "../nav.ts";
 import type { SessionInfo } from "../nav.ts";
+import { buildSocialLinks } from "./social.ts";
 import { wireDropdown } from "./dropdown.ts";
 
 const MENU_ICON = `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/></svg>`;
@@ -83,6 +84,11 @@ export function buildBurger(info: SessionInfo | null, pageControls: HTMLElement[
             panel.appendChild(link("Login", `/login?return=${encodeURIComponent(location.href)}`));
             panel.appendChild(link("Sign up", `/register?return=${encodeURIComponent(location.href)}`));
         }
+
+        const social = document.createElement("div");
+        social.className = "site-burger-social";
+        for (const a of buildSocialLinks()) social.appendChild(a);
+        panel.append(sep(), social);
     }
 
     wrap.append(btn, panel);

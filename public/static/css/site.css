@@ -334,6 +334,14 @@
 }
 .site-social-btn:hover { color: var(--text); text-decoration: none; }
 
+.site-burger-social {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 6px 8px 2px;
+}
+.site-burger-social .site-social-btn { width: 36px; height: 36px; }
+
 .site-more-panel {
     position: absolute;
     top: calc(100% + 8px);
@@ -459,6 +467,7 @@
     .site-auth-cluster,
     .site-account,
     .site-streak,
+    .site-nav-right > .site-social-btn,
     .brand-wm { display: none; }
     .site-burger { display: flex; }
 }
