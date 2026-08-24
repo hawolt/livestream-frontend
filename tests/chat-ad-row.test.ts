@@ -130,8 +130,9 @@ describe("chat ad row markup", () => {
         expect(cta.tagName).toBe("a");
         expect(close.tagName).toBe("button");
         expect(cta.children).toEqual([]);
-        expect(row.children).toContain(cta);
-        expect(row.children).toContain(close);
+        expect(row.descendants()).toContain(cta);
+        expect(row.descendants()).toContain(close);
+        expect(cta.descendants()).not.toContain(close);
     });
 
     test("the dismiss button keeps its own accessible name and button type", () => {
@@ -240,5 +241,50 @@ describe("chatAdText", () => {
     test("never puts house copy under an advertiser byline", () => {
         expect(chatAdText("", "Acme")).toBeNull();
         expect(chatAdText("   ", "Acme")).toBeNull();
+    });
+});
+
+describe("stacked card structure", () => {
+    test("the chip and the dismiss share the top row, away from the copy", () => {
+        const row = buildRow(Date.now());
+        const top = row.byClass("live-chat-ad-top")!;
+        expect(top.children).toContain(row.byClass("live-chat-ad-tag")!);
+        expect(top.children).toContain(row.byClass("live-chat-ad-close")!);
+        expect(top.children).not.toContain(row.byClass("live-chat-ad-label")!);
+    });
+
+    test("the copy sits on its own, sharing a line with nothing", () => {
+        const row = buildRow(Date.now());
+        const label = row.byClass("live-chat-ad-label")!;
+        expect(row.children).toContain(label);
+        expect(label.children).toEqual([]);
+    });
+
+    test("the action row carries the link and the byline", () => {
+        const row = buildRow(Date.now(), makeAd({ advertiserName: "Example GmbH" }));
+        const foot = row.byClass("live-chat-ad-foot")!;
+        expect(foot.children).toContain(row.byClass("live-chat-ad-cta")!);
+        expect(foot.children).toContain(row.byClass("live-chat-ad-advertiser")!);
+    });
+
+    test("the three rows appear in reading order", () => {
+        const row = buildRow(Date.now());
+        expect(row.children.map((c) => c.className)).toEqual([
+            "live-chat-ad-top",
+            "live-chat-ad-label",
+            "live-chat-ad-foot",
+        ]);
+    });
+
+    test("the call to action names the action instead of relying on a glyph alone", () => {
+        const cta = buildRow(Date.now()).byClass("live-chat-ad-cta")!;
+        expect(cta.textContent).toContain("Learn more");
+    });
+
+    test("a house ad renders no paid-for-by line", () => {
+        const advertiser = buildRow(Date.now(), makeAd({ label: "Get a subscription" }))
+            .byClass("live-chat-ad-advertiser")!;
+        expect(advertiser.hidden).toBe(true);
+        expect(advertiser.textContent).toBe("");
     });
 });
