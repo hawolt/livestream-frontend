@@ -61,8 +61,8 @@ function makeAd(overrides: Partial<AdSpot> = {}): AdSpot {
     };
 }
 
-function render(container: StubElement, ads: AdSpot[]): void {
-    renderAdSlot(container as unknown as HTMLElement, ads);
+function render(container: StubElement, ads: AdSpot[], channel = ""): void {
+    renderAdSlot(container as unknown as HTMLElement, ads, channel);
 }
 
 describe("renderAdSlot", () => {
@@ -151,5 +151,30 @@ describe("renderAdSlot", () => {
         render(container, [makeAd()]);
         expect(container.children.length).toBe(1);
         expect(container.children[0]!.tagName).toBe("a");
+    });
+
+    test("carries the channel on the visit link so the surface can be attributed", () => {
+        render(container, [makeAd({ id: 42 })], "alice");
+        expect(container.findTag("a")!.href).toBe("/api/live/spots/visit/42?channel=alice");
+    });
+
+    test("renders the advertiser disclosure the API returns", () => {
+        render(container, [makeAd({ advertiserName: "Example GmbH" })]);
+        const spans = container.descendants().filter(el => el.tagName === "span");
+        expect(spans.map(el => el.textContent)).toEqual(["Anzeige", "Paid for by Example GmbH"]);
+    });
+
+    test("renders no advertiser line when the API returns none", () => {
+        render(container, [makeAd()]);
+        const spans = container.descendants().filter(el => el.tagName === "span");
+        expect(spans.map(el => el.textContent)).toEqual(["Anzeige"]);
+    });
+
+    test("keeps hostile advertiser copy as inert text", () => {
+        const hostile = "<script>window.pwned=1</script>";
+        render(container, [makeAd({ advertiserName: hostile })]);
+        const advertiser = container.descendants().filter(el => el.tagName === "span")[1]!;
+        expect(advertiser.textContent).toBe(`Paid for by ${hostile}`);
+        expect(container.findTag("script")).toBeNull();
     });
 });

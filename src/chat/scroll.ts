@@ -17,6 +17,10 @@ export function restickIfPinned(): void {
     if (pinned) stickToBottom();
 }
 
+export function pinnedToLive(): boolean {
+    return pinned;
+}
+
 export function wireScrollPinning(): void {
     if (scrollPinningWired) return;
     scrollPinningWired = true;
