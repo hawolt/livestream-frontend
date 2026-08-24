@@ -64,17 +64,115 @@
 .site-link.active { color: var(--text); font-weight: bold; }
 
 .site-streak {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+}
+
+.site-streak-btn {
     display: inline-flex;
     align-items: center;
     gap: 4px;
+    padding: 3px 4px;
+    border: none;
+    border-radius: var(--radius);
+    background: none;
+    font-family: inherit;
     font-size: 12.5px;
     font-weight: 700;
     color: var(--text);
     white-space: nowrap;
-    cursor: default;
+    cursor: pointer;
     font-variant-numeric: tabular-nums;
 }
-.site-streak svg { color: #f97316; display: block; }
+.site-streak-btn:hover { background: rgba(255, 255, 255, .06); }
+.site-streak-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.site-streak-flame { display: flex; color: #f97316; }
+.site-streak-flame svg { display: block; }
+
+.site-streak-card {
+    position: absolute;
+    top: calc(100% + 8px);
+    left: 0;
+    width: 232px;
+    max-width: calc(100vw - 24px);
+    padding: 10px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    z-index: 60;
+}
+.site-streak-card[hidden] { display: none; }
+.site-streak-card::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: -9px;
+    height: 9px;
+}
+
+.site-streak-card-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 34px;
+}
+.site-streak-card-flame { display: flex; color: #f97316; }
+.site-streak-card-flame svg { display: block; }
+.site-streak-card-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text);
+    font-variant-numeric: tabular-nums;
+}
+.site-streak-card-note {
+    margin: 8px 0 0 0;
+    font-size: 11px;
+    line-height: 1.4;
+    color: var(--muted);
+}
+
+.site-streak-week {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 4px;
+    margin: 10px 0 0 0;
+    padding: 0;
+    list-style: none;
+}
+.site-streak-day {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+}
+.site-streak-box {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    color: transparent;
+}
+.site-streak-day.visited .site-streak-box {
+    border-color: var(--accent);
+    background: var(--accent-pale);
+    color: var(--accent);
+}
+.site-streak-day.today .site-streak-box { box-shadow: 0 0 0 1px var(--accent); }
+.site-streak-day.future .site-streak-box { opacity: .45; }
+.site-streak-dow {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    color: var(--dim);
+}
+.site-streak-day.visited .site-streak-dow { color: var(--text); }
 
 .site-nav-right {
     margin-left: auto;
@@ -117,6 +215,31 @@
     transition: color .15s, border-color .15s;
 }
 .site-account-btn:hover { color: var(--text); border-color: var(--accent); }
+
+.site-account-btn-avatar { overflow: hidden; }
+
+.site-account-avatar {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    background: var(--bg);
+    color: var(--text);
+    font-size: 13px;
+    font-weight: 700;
+    line-height: 1;
+    text-transform: uppercase;
+}
+
+.site-account-avatar-img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
 
 .site-account-panel {
     position: absolute;
@@ -174,17 +297,30 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 32px;
+    gap: 5px;
     height: 32px;
     border: none;
     border-radius: var(--radius);
     background: none;
     color: var(--dim);
     cursor: pointer;
-    padding: 0;
+    padding: 0 8px 0 6px;
     transition: color .15s;
 }
 .site-more-btn:hover { color: var(--text); }
+
+.site-more-label {
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: bold;
+    line-height: 1;
+    white-space: nowrap;
+}
+
+@media (max-width: 760px) {
+    .site-more-btn { width: 32px; padding: 0; }
+    .site-more-label { display: none; }
+}
 
 .site-social-btn {
     display: flex;
@@ -322,6 +458,7 @@
     .site-nav-controls,
     .site-auth-cluster,
     .site-account,
+    .site-streak,
     .brand-wm { display: none; }
     .site-burger { display: flex; }
 }

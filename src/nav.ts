@@ -5,6 +5,8 @@ import { sessionTokenMetadata } from "./session-token.ts";
 import { buildSignedIn, buildSignedOut, buildViewMenu } from "./nav/account-menu.ts";
 import { buildBurger } from "./nav/burger.ts";
 import { wireDropdown } from "./nav/dropdown.ts";
+import { renderStreak } from "./nav/streak-card.ts";
+import { mountNotificationBell, startNotifications } from "./notifications/index.ts";
 import { initStatusBanner } from "./status-banner.ts";
 import { syncAccent } from "./theme.ts";
 
@@ -121,6 +123,10 @@ function buildMoreMenu(): HTMLElement {
     btn.setAttribute("aria-label", "More");
     btn.title = "More";
     btn.innerHTML = MORE_ICON;
+    const moreLabel = document.createElement("span");
+    moreLabel.className = "site-more-label";
+    moreLabel.textContent = "More";
+    btn.appendChild(moreLabel);
 
     const panel = document.createElement("div");
     panel.className = "site-more-panel";
@@ -137,32 +143,6 @@ function buildMoreMenu(): HTMLElement {
     wrap.append(btn, panel);
     wireDropdown(wrap, btn, panel);
     return wrap;
-}
-
-const FLAME_ICON = `<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg>`;
-
-function renderStreak(streak: number | undefined): void {
-    const existing = document.querySelector<HTMLElement>(".site-streak");
-    if (typeof streak !== "number" || streak < 1) {
-        existing?.remove();
-        return;
-    }
-    if (existing) {
-        const count = existing.querySelector("span");
-        if (count) count.textContent = String(streak);
-        existing.title = `${streak}-day visit streak`;
-        return;
-    }
-    const more = document.querySelector<HTMLElement>(".site-more");
-    if (!more) return;
-    const chip = document.createElement("span");
-    chip.className = "site-streak";
-    chip.title = `${streak}-day visit streak`;
-    chip.innerHTML = FLAME_ICON;
-    const count = document.createElement("span");
-    count.textContent = String(streak);
-    chip.appendChild(count);
-    more.after(chip);
 }
 
 function insertMoreMenu(): void {
@@ -256,6 +236,10 @@ export async function initSiteNav(
     if (signedIn) void maybeOpenTermsGate(info as TermsFlags);
     if (signedIn && knownSession === undefined) storeSessionToken(info as SessionInfo, tokenBeforeRequest);
     if (knownSession === undefined) startSessionRenewal();
+    if (signedIn) {
+        mountNotificationBell(right);
+        startNotifications();
+    }
     right.appendChild(signedIn
         ? buildSignedIn(info as SessionInfo, controlButtons)
         : buildSignedOut());
