@@ -10,7 +10,7 @@ const dashDirectory = join(publicDirectory, "dash");
 const PAGE_ENTRIES = [
     "explore", "live", "embed", "chat-overlay", "follow-alerts", "user-login",
     "register", "verify", "reset-password", "legal", "clip-editor",
-    "clip-embed", "multichat", "oauth-authorize", "status", "pricing", "patron", "content-page",
+    "clip-embed", "multichat", "oauth-authorize", "status", "pricing", "patron", "clips-week", "content-page",
 ];
 const DASH_ENTRIES = ["dashboard"];
 
