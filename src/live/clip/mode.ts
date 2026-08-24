@@ -31,6 +31,10 @@ import { connectViewcount } from "../stream-info.ts";
 import { startChannelRail } from "../channel-rail.ts";
 import { loadProfile, offlineArtUrl } from "../../profile-card.ts";
 import { attemptClipAutoplay, hideClipControls, showClipControls, wireClipPlayer, wireClipUnmute } from "./player.ts";
+import { matureAccess } from "../../mature-decision.ts";
+import { confirmMatureViewer, matureConfirmed, viewerAge } from "../../mature.ts";
+import { promptMatureGate } from "../mature-gate.ts";
+import { MATURE_BLOCKED_MESSAGE, MATURE_GATE_MESSAGE } from "../../mature-messages.ts";
 
 interface ChannelChrome {
     category: string;
@@ -39,6 +43,7 @@ interface ChannelChrome {
     emoteTwitchId: string;
     displayUsername: string;
     live: boolean;
+    mature: boolean;
 }
 
 const EMPTY_CHROME: ChannelChrome = {
@@ -48,6 +53,7 @@ const EMPTY_CHROME: ChannelChrome = {
     emoteTwitchId: "",
     displayUsername: "",
     live: false,
+    mature: false,
 };
 
 let channelChrome: ChannelChrome = EMPTY_CHROME;
@@ -110,6 +116,7 @@ async function fetchChannelChrome(channel: string): Promise<ChannelChrome> {
             emoteTwitchId: typeof info.emoteTwitchId === "string" ? info.emoteTwitchId : "",
             displayUsername: typeof info.username === "string" && info.username ? info.username : channel,
             live: info.live === true,
+            mature: info.mature === true,
         };
     } catch {
         return EMPTY_CHROME;
@@ -192,7 +199,7 @@ export async function bootClipMode(route: ClipRoute): Promise<void> {
 
     startChannelRail();
     warmCaptcha();
-    startAdRotation(chatFeatureSlotEl, "chat");
+    startAdRotation(chatFeatureSlotEl, "chat", { channel: route.channel });
     void loadProfile(route.channel).then(profile => {
         if (profile) clipArtUrl = offlineArtUrl(profile);
         if (!posterEl.classList.contains("hidden")) applyClipArt(true);
@@ -220,5 +227,22 @@ export async function bootClipMode(route: ClipRoute): Promise<void> {
     void initFollow();
     connectViewcount();
 
+    if (!await matureViewerAllowed(route)) return;
     applyResult(route, clipResult);
+}
+
+async function matureViewerAllowed(route: ClipRoute): Promise<boolean> {
+    if (!channelChrome.mature) return true;
+    const access = matureAccess(true, await viewerAge(), matureConfirmed());
+    if (access === "locked") {
+        setClipPoster(MATURE_BLOCKED_MESSAGE, true);
+        return false;
+    }
+    if (access === "play") return true;
+    setClipPoster(MATURE_GATE_MESSAGE, true);
+    const allowed = await promptMatureGate(ctx.displayUsername || route.channel, new AbortController().signal);
+    if (!allowed) return false;
+    confirmMatureViewer();
+    setClipPoster("Loading clip...");
+    return true;
 }

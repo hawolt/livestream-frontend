@@ -174,7 +174,7 @@ export function attachVideoElementListeners(el: HTMLVideoElement): void {
     el.addEventListener("timeupdate", trackPlaybackProgress);
     el.addEventListener("pointerdown", onVideoPointerDown);
     el.addEventListener("click", onVideoClickPause);
-    wireWatchBeacon(el);
+    wireWatchBeacon(el, "channel", () => ctx.username);
 }
 
 let controlsHideTimer: number | null = null;

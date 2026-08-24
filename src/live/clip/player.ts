@@ -1,6 +1,8 @@
 import { btnPlay, clipTimeEl, clipUnmuteEl, seekBarEl, seekProgressEl, seekThumbEl, seekTrackEl, stageEl, video } from "../dom.ts";
 import { isInteractiveTarget, updatePlayIcon, updateVolumeUI, wireChatAndLayoutChrome, wireFullscreenControl, wireKeyboardShortcuts, wireVolumeControl } from "../controls.ts";
 import { clampClipTime, formatClipTime, seekTimeFromFraction } from "./time.ts";
+import { ctx } from "../player/context.ts";
+import { wireWatchBeacon } from "../watch-beacon.ts";
 
 let clipPlayerWired = false;
 let seekDragging = false;
@@ -64,6 +66,7 @@ export function wireClipPlayer(): void {
     video.addEventListener("click", (ev) => {
         if (ev.target === video) toggleClipPlayback();
     });
+    wireWatchBeacon(video, "clip", () => ctx.username);
 
     const onDown = (ev: PointerEvent) => {
         seekDragging = true;
