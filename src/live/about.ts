@@ -4,6 +4,23 @@ import { cardImageError, validateCardForm, type CardType } from "./about/card-fo
 import { subscriberBadgeAssetPath, subscriberBadgeTitle } from "../chat/badges.ts";
 import { loadChannelClips, type AboutClip, type ClipsSort } from "./about/clips.ts";
 import { relativeDate } from "./about/relative-date.ts";
+import {
+    activityDayTitle,
+    activityLevel,
+    activityNote,
+    ACTIVITY_LEVELS,
+    ACTIVITY_LEVEL_LABELS,
+    monthLabel,
+    normalizeActivityPayload,
+    shiftDayKey,
+    todayKey,
+    weekSpan,
+    weekStart,
+    WEEKDAY_LABELS,
+    type ActivityDay,
+} from "./about/activity.ts";
+import { emoteCountLabel, emoteSignature, sortAboutEmotes, type AboutEmote } from "./about/emotes.ts";
+import { ctx as chatCtx, emotes } from "../chat/context.ts";
 import { formatCompactCount } from "./format.ts";
 import { viewerOwnsChannel } from "./points.ts";
 import { API_BASE } from "../api.ts";
@@ -101,47 +118,113 @@ function buildPanelCard(panel: ProfilePanel, owner: boolean): HTMLElement {
 }
 
 
-let activityDays = new Set<string>();
+let activityEntries: ActivityDay[] = [];
+let activityByDay = new Map<string, ActivityDay>();
 let activityLoadedFor = "";
 
 const ACTIVITY_EPOCH = "2026-08-16";
-const DAY_MS = 86400000;
+const ACTIVITY_CARD_WEEKS = 12;
+const ACTIVITY_HISTORY_MIN_WEEKS = 20;
 
 const EXPAND_ICON = `<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>`;
 
-function dayKeyFromTime(t: number): string {
-    return new Date(t).toISOString().slice(0, 10);
-}
-
-function todayKey(): string {
-    return dayKeyFromTime(Date.now());
-}
-
-function dayTime(key: string): number {
-    return new Date(`${key}T00:00:00Z`).getTime();
-}
-
 function buildActivityCell(key: string): HTMLElement {
+    const entry = activityByDay.get(key);
     const today = todayKey();
     const cell = document.createElement("div");
     let cls = "live-activity-cell";
-    if (activityDays.has(key)) cls += " on";
+    if (entry) cls += entry.secondsKnown ? ` on level-${activityLevel(entry.seconds)}` : " unknown";
     else if (key > today) cls += " future";
     if (key === today) cls += " today";
     cell.className = cls;
-    cell.title = activityDays.has(key) ? `${key} - live` : key;
+    cell.title = activityDayTitle(key, entry);
     return cell;
 }
 
-function buildActivityCells(count: number): HTMLElement {
-    const strip = document.createElement("div");
-    strip.className = "live-activity-strip";
-    const epoch = dayTime(ACTIVITY_EPOCH);
-    const windowStart = Math.max(epoch, dayTime(todayKey()) - (count - 1) * DAY_MS);
-    for (let i = 0; i < count; i++) {
-        strip.appendChild(buildActivityCell(dayKeyFromTime(windowStart + i * DAY_MS)));
+function buildActivityPadCell(): HTMLElement {
+    const pad = document.createElement("div");
+    pad.className = "live-activity-cell pad";
+    return pad;
+}
+
+function buildActivityWeekdays(withMonths: boolean): HTMLElement {
+    const column = document.createElement("div");
+    column.className = withMonths ? "live-activity-weekdays has-months" : "live-activity-weekdays";
+    for (const label of WEEKDAY_LABELS) {
+        const item = document.createElement("div");
+        item.className = "live-activity-weekday";
+        item.textContent = label;
+        column.appendChild(item);
     }
-    return strip;
+    return column;
+}
+
+function buildActivityMonths(startKey: string, weeks: number): HTMLElement {
+    const row = document.createElement("div");
+    row.className = "live-activity-months";
+    let previous = "";
+    for (let week = 0; week < weeks; week++) {
+        const key = shiftDayKey(startKey, week * 7);
+        const month = key.slice(0, 7);
+        const cell = document.createElement("div");
+        cell.className = "live-activity-month";
+        if (month !== previous) cell.textContent = monthLabel(key);
+        previous = month;
+        row.appendChild(cell);
+    }
+    return row;
+}
+
+function buildActivityCalendar(startKey: string, weeks: number, withMonths: boolean): HTMLElement {
+    const calendar = document.createElement("div");
+    calendar.className = "live-activity-cal";
+    const scroll = document.createElement("div");
+    scroll.className = "live-activity-cal-scroll";
+    if (withMonths) scroll.appendChild(buildActivityMonths(startKey, weeks));
+    const grid = document.createElement("div");
+    grid.className = "live-activity-grid";
+    grid.setAttribute("role", "img");
+    grid.setAttribute("aria-label", "Stream activity by weekday");
+    for (let week = 0; week < weeks; week++) {
+        for (let weekday = 0; weekday < 7; weekday++) {
+            const key = shiftDayKey(startKey, week * 7 + weekday);
+            grid.appendChild(key < ACTIVITY_EPOCH ? buildActivityPadCell() : buildActivityCell(key));
+        }
+    }
+    scroll.appendChild(grid);
+    calendar.append(buildActivityWeekdays(withMonths), scroll);
+    return calendar;
+}
+
+function buildActivityLegendLabel(text: string): HTMLElement {
+    const label = document.createElement("span");
+    label.className = "live-activity-legend-label";
+    label.textContent = text;
+    return label;
+}
+
+function buildActivityLegend(): HTMLElement {
+    const legend = document.createElement("div");
+    legend.className = "live-activity-legend";
+    legend.appendChild(buildActivityLegendLabel("Less"));
+    for (const level of ACTIVITY_LEVELS) {
+        const swatch = document.createElement("span");
+        swatch.className = `live-activity-cell on level-${level}`;
+        swatch.title = ACTIVITY_LEVEL_LABELS[level] ?? "";
+        legend.appendChild(swatch);
+    }
+    legend.appendChild(buildActivityLegendLabel("More"));
+    const unknown = document.createElement("span");
+    unknown.className = "live-activity-cell unknown";
+    unknown.title = "was live, duration unknown";
+    legend.append(unknown, buildActivityLegendLabel("duration unknown"));
+    return legend;
+}
+
+function activityCardStart(): string {
+    const epochStart = weekStart(ACTIVITY_EPOCH);
+    const windowStart = weekStart(shiftDayKey(todayKey(), -(ACTIVITY_CARD_WEEKS - 1) * 7));
+    return windowStart > epochStart ? windowStart : epochStart;
 }
 
 function openActivityHistory(): void {
@@ -165,29 +248,15 @@ function openActivityHistory(): void {
     const heading = document.createElement("h3");
     heading.textContent = "Stream activity";
     box.append(close, heading);
-    const epoch = dayTime(ACTIVITY_EPOCH);
-    const start = epoch - new Date(epoch).getUTCDay() * DAY_MS;
-    const minEnd = dayTime(todayKey()) + 7 * DAY_MS;
-    const end = Math.max(start + 20 * 7 * DAY_MS, minEnd);
-    const grid = document.createElement("div");
-    grid.className = "live-activity-grid";
-    for (let t = start; t < end; t += DAY_MS) {
-        if (t < epoch) {
-            const pad = document.createElement("div");
-            pad.className = "live-activity-cell pad";
-            grid.appendChild(pad);
-            continue;
-        }
-        grid.appendChild(buildActivityCell(dayKeyFromTime(t)));
-    }
+    const start = weekStart(ACTIVITY_EPOCH);
+    const weeks = Math.max(ACTIVITY_HISTORY_MIN_WEEKS, weekSpan(start, shiftDayKey(todayKey(), 7)));
     const wrap = document.createElement("div");
     wrap.className = "live-activity-grid-wrap";
-    wrap.appendChild(grid);
-    const liveCount = activityDays.size;
+    wrap.appendChild(buildActivityCalendar(start, weeks, true));
     const note = document.createElement("p");
     note.className = "live-activity-note";
-    note.textContent = liveCount === 1 ? "1 day live" : `${liveCount} days live`;
-    box.append(wrap, note);
+    note.textContent = activityNote(activityEntries);
+    box.append(wrap, buildActivityLegend(), note);
     overlay.appendChild(box);
     document.body.appendChild(overlay);
 }
@@ -208,9 +277,137 @@ function buildActivityCard(): HTMLElement {
     expand.innerHTML = EXPAND_ICON;
     expand.addEventListener("click", openActivityHistory);
     head.append(title, expand);
-    card.appendChild(head);
-    card.appendChild(buildActivityCells(30));
+    const start = activityCardStart();
+    card.append(head, buildActivityCalendar(start, weekSpan(start, todayKey()), false), buildActivityLegend());
     return card;
+}
+
+const EMOTE_PREVIEW_MAX = 24;
+const EMOTE_POLL_MS = 500;
+const EMOTE_POLL_TICKS = 40;
+
+function buildEmoteTile(emote: AboutEmote): HTMLElement {
+    const tile = document.createElement("span");
+    tile.className = "live-about-emote";
+    tile.title = emote.name;
+    const img = document.createElement("img");
+    img.src = emote.url;
+    img.referrerPolicy = "no-referrer";
+    img.alt = emote.name;
+    img.title = emote.name;
+    img.loading = "lazy";
+    tile.appendChild(img);
+    return tile;
+}
+
+function openEmoteList(list: AboutEmote[]): void {
+    document.getElementById("live-about-emote-list")?.remove();
+    const overlay = document.createElement("div");
+    overlay.id = "live-about-emote-list";
+    overlay.className = "login-modal";
+    overlay.setAttribute("role", "dialog");
+    overlay.setAttribute("aria-modal", "true");
+    const box = document.createElement("div");
+    box.className = "login-modal-box live-about-emote-box";
+    const close = document.createElement("button");
+    close.type = "button";
+    close.className = "login-modal-close";
+    close.setAttribute("aria-label", "Close");
+    close.textContent = "\u00d7";
+    close.addEventListener("click", () => overlay.remove());
+    overlay.addEventListener("click", (ev) => {
+        if (ev.target === overlay) overlay.remove();
+    });
+    const heading = document.createElement("h3");
+    heading.textContent = "Emotes";
+    box.append(close, heading);
+    const all = document.createElement("div");
+    all.className = "live-about-emote-all";
+    for (const emote of list) {
+        const item = document.createElement("div");
+        item.className = "live-about-emote-item";
+        item.title = emote.name;
+        const name = document.createElement("div");
+        name.className = "live-about-emote-name";
+        name.textContent = emote.name;
+        item.append(buildEmoteTile(emote), name);
+        all.appendChild(item);
+    }
+    const note = document.createElement("p");
+    note.className = "live-activity-note";
+    note.textContent = emoteCountLabel(list.length);
+    box.append(all, note);
+    overlay.appendChild(box);
+    document.body.appendChild(overlay);
+}
+
+function buildEmoteCard(list: AboutEmote[]): HTMLElement {
+    const card = document.createElement("div");
+    card.className = "live-about-panel live-emote-card";
+    const head = document.createElement("div");
+    head.className = "live-activity-head";
+    const title = document.createElement("div");
+    title.className = "live-about-panel-title";
+    title.textContent = "Emotes";
+    const expand = document.createElement("button");
+    expand.type = "button";
+    expand.className = "live-activity-expand";
+    expand.setAttribute("aria-label", "Open the full emote list");
+    expand.title = "Full view";
+    expand.innerHTML = EXPAND_ICON;
+    expand.addEventListener("click", () => openEmoteList(list));
+    head.append(title, expand);
+    const grid = document.createElement("div");
+    grid.className = "live-about-emote-grid";
+    for (const emote of list.slice(0, EMOTE_PREVIEW_MAX)) grid.appendChild(buildEmoteTile(emote));
+    const note = document.createElement("div");
+    note.className = "live-about-emote-note";
+    note.textContent = emoteCountLabel(list.length);
+    card.append(head, grid, note);
+    return card;
+}
+
+let emoteCardRef: HTMLElement | null = null;
+let emoteChannel = "";
+let emoteListSignature = "";
+let emotePollTimer: number | null = null;
+let emotePollTicks = 0;
+
+function channelEmoteList(): AboutEmote[] {
+    if (!chatCtx.channelEmoteTwitchId) return [];
+    return sortAboutEmotes(emotes.channelEntries());
+}
+
+function stopEmotePoll(): void {
+    if (emotePollTimer === null) return;
+    window.clearInterval(emotePollTimer);
+    emotePollTimer = null;
+}
+
+function refreshEmoteCard(): void {
+    const list = channelEmoteList();
+    const signature = emoteSignature(list);
+    if (signature === emoteListSignature) return;
+    emoteListSignature = signature;
+    emoteCardRef = list.length ? buildEmoteCard(list) : null;
+    layoutAboutCards();
+}
+
+function watchChannelEmotes(channel: string): void {
+    if (emoteChannel !== channel) {
+        emoteChannel = channel;
+        emoteCardRef = null;
+        emoteListSignature = "";
+        stopEmotePoll();
+    }
+    refreshEmoteCard();
+    if (emotePollTimer !== null) return;
+    emotePollTicks = 0;
+    emotePollTimer = window.setInterval(() => {
+        emotePollTicks++;
+        refreshEmoteCard();
+        if (emotePollTicks >= EMOTE_POLL_TICKS) stopEmotePoll();
+    }, EMOTE_POLL_MS);
 }
 
 let activityCardRef: HTMLElement | null = null;
@@ -233,6 +430,7 @@ function layoutAboutCards(): void {
     }
     const cards: HTMLElement[] = [];
     if (activityCardRef) cards.push(activityCardRef);
+    if (emoteCardRef) cards.push(emoteCardRef);
     cards.push(...panelCardRefs);
     aboutPanelsEl.replaceChildren();
     if (!cards.length) return;
@@ -267,20 +465,24 @@ function mountActivityCard(): void {
     aboutPanelsSectionEl.hidden = false;
 }
 
+function applyActivityEntries(entries: ActivityDay[]): void {
+    activityEntries = entries.filter(entry => entry.day >= ACTIVITY_EPOCH);
+    activityByDay = new Map(activityEntries.map((entry): [string, ActivityDay] => [entry.day, entry]));
+}
+
 export function loadStreamActivity(username: string): void {
     if (activityLoadedFor === username) {
         mountActivityCard();
         return;
     }
-    activityDays = new Set();
+    applyActivityEntries([]);
     mountActivityCard();
     void fetch(`/api/live/activity/${encodeURIComponent(username)}`)
-        .then(res => res.ok ? res.json() as Promise<{ days?: unknown }> : null)
+        .then(res => res.ok ? res.json() as Promise<unknown> : null)
         .then(data => {
             if (!data) return;
             activityLoadedFor = username;
-            const days = Array.isArray(data.days) ? data.days.filter((d): d is string => typeof d === "string") : [];
-            activityDays = new Set(days.filter(d => d >= ACTIVITY_EPOCH));
+            applyActivityEntries(normalizeActivityPayload(data));
             mountActivityCard();
         })
         .catch(() => {});
@@ -365,6 +567,7 @@ export function mountAboutCard(profile: Profile | null): void {
     if (links) aboutLinksEl.appendChild(links);
     aboutBoxEl.hidden = !profile;
     renderPanels(profile?.panels ?? []);
+    if (username) watchChannelEmotes(username.toLowerCase());
 }
 
 let clipsChannel = "";

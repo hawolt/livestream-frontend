@@ -48,6 +48,10 @@ export class ChatEmoteCatalog {
         return this.combined.keys();
     }
 
+    channelEntries(): IterableIterator<[string, ChatEmote]> {
+        return this.channel.entries();
+    }
+
     get size(): number {
         return this.combined.size;
     }

@@ -844,6 +844,37 @@
         .live-chat-points[hidden] { display: none; }
         .live-chat-points svg { width: 14px; height: 14px; }
         .live-chat-composer-row2 .live-chat-points span { font-size: 11px; font-weight: 600; color: var(--text); }
+        .live-chat-points-group {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+            flex-shrink: 0;
+            gap: 4px;
+            min-width: 0;
+        }
+        .live-chat-redeem-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            gap: 4px;
+            padding: 2px 8px;
+            border: 1px solid var(--border);
+            border-radius: 999px;
+            background: none;
+            color: var(--accent);
+            cursor: pointer;
+            font: inherit;
+        }
+        .live-chat-redeem-btn svg { width: 14px; height: 14px; display: block; }
+        .live-chat-redeem-btn:hover,
+        .live-chat-redeem-btn.active { border-color: var(--accent); background: rgba(var(--accent-rgb), .12); }
+        .live-chat-redeem-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+        .live-chat-redeem-btn[hidden] { display: none; }
+        @media (max-width: 840px) {
+            .live-chat-points, .live-chat-redeem-btn { padding: 5px 10px; }
+            .live-chat-points svg, .live-chat-redeem-btn svg { width: 16px; height: 16px; }
+        }
         .live-chat-head-actions {
             position: relative;
             display: flex;
@@ -1037,30 +1068,104 @@
             padding: 0;
         }
         .live-activity-expand:hover { color: var(--text); }
-        .live-activity-strip { display: flex; flex-wrap: wrap; gap: 5px; }
-        .live-activity-strip .live-activity-cell { width: 17px; height: 17px; border-radius: 3px; }
+        .live-activity-cal { display: flex; align-items: flex-start; gap: 6px; }
+        .live-activity-cal-scroll { overflow-x: auto; padding-bottom: 4px; }
+        .live-activity-weekdays {
+            flex: 0 0 auto;
+            display: grid;
+            grid-template-rows: repeat(7, 12px);
+            gap: 3px;
+        }
+        .live-activity-weekdays.has-months { padding-top: 17px; }
+        .live-activity-weekday {
+            font-size: 9px;
+            line-height: 12px;
+            color: var(--muted);
+            text-align: right;
+            letter-spacing: .2px;
+        }
+        .live-activity-months {
+            display: grid;
+            grid-auto-flow: column;
+            grid-auto-columns: 15px;
+            height: 14px;
+            width: max-content;
+        }
+        .live-activity-month { font-size: 9.5px; line-height: 14px; color: var(--muted); white-space: nowrap; }
         .live-activity-cell {
+            display: block;
             width: 12px;
             height: 12px;
             border-radius: 2px;
             background: rgba(255, 255, 255, .08);
             flex: 0 0 auto;
         }
-        .live-activity-cell.on { background: var(--accent); }
+        .live-activity-cell.on.level-1 { background: rgba(var(--accent-rgb), .3); }
+        .live-activity-cell.on.level-2 { background: rgba(var(--accent-rgb), .52); }
+        .live-activity-cell.on.level-3 { background: rgba(var(--accent-rgb), .76); }
+        .live-activity-cell.on.level-4 { background: var(--accent); }
+        .live-activity-cell.unknown {
+            background: repeating-linear-gradient(45deg, rgba(var(--accent-rgb), .55) 0 2px, rgba(255, 255, 255, .1) 2px 4px);
+        }
         .live-activity-cell.future { background: rgba(255, 255, 255, .03); }
-        .live-activity-cell.today { box-shadow: inset 0 0 0 1px var(--dim); }
-        .live-activity-cell.today.on { box-shadow: none; }
-        .live-activity-cell.pad { background: none; }
+        .live-activity-cell.today { box-shadow: 0 0 0 1px var(--dim); }
+        .live-activity-cell.pad { background: none; box-shadow: none; }
         .live-activity-history-box { max-width: min(760px, calc(100vw - 32px)); }
-        .live-activity-grid-wrap { overflow-x: auto; padding-bottom: 6px; }
+        .live-activity-grid-wrap { padding-bottom: 6px; }
         .live-activity-grid {
             display: grid;
             grid-auto-flow: column;
             grid-template-rows: repeat(7, 12px);
+            grid-auto-columns: 12px;
             gap: 3px;
             width: max-content;
         }
+        .live-activity-legend {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 5px;
+            margin-top: 10px;
+        }
+        .live-activity-legend-label { font-size: 11px; color: var(--muted); }
+        .live-activity-legend .live-activity-legend-label + .live-activity-cell { margin-left: 3px; }
+        .live-activity-legend .live-activity-cell + .live-activity-legend-label { margin-left: 3px; }
         .live-activity-note { color: var(--muted); font-size: 12.5px; margin: 10px 0 0; }
+        .live-about-emote-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            max-height: 76px;
+            overflow: hidden;
+        }
+        .live-about-emote {
+            flex: 0 0 auto;
+            width: 35px;
+            height: 35px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 4px;
+            background: var(--bg);
+        }
+        .live-about-emote img { max-width: 32px; max-height: 32px; display: block; }
+        .live-about-emote-note { color: var(--muted); font-size: 12px; margin-top: 10px; }
+        .live-about-emote-box { max-width: min(640px, calc(100vw - 32px)); }
+        .live-about-emote-all {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            max-height: min(60vh, 460px);
+            overflow-y: auto;
+        }
+        .live-about-emote-item { flex: 0 0 76px; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+        .live-about-emote-name {
+            font-size: 11px;
+            color: var(--muted);
+            text-align: center;
+            line-height: 1.3;
+            overflow-wrap: anywhere;
+        }
         .live-chat-whisper { color: #c084fc; background: rgba(192,132,252,.12); border-radius: 4px; }
         .live-chat-whisper .live-chat-whisper-tag { font-weight: 700; opacity: .9; }
 
@@ -1901,7 +2006,7 @@
         .live-chat-redeem-title { min-width: 0; overflow-wrap: anywhere; }
         .live-chat-redeem-cost { color: var(--accent); font-weight: 700; font-size: 11.5px; flex-shrink: 0; }
         .live-chat-redeem-empty { color: var(--muted); font-size: 12px; padding: 2px 6px; white-space: nowrap; }
-        #btn-chat-redeem[hidden] { display: none; }
+        .live-chat-points-group .live-chat-redeem-pop { left: 0; right: auto; }
 
         .live-chat-redeem-prompt { display: flex; flex-direction: column; gap: 6px; padding: 2px; }
         .live-chat-redeem-prompt-title { font-weight: 700; font-size: 12.5px; overflow-wrap: anywhere; }
@@ -2487,7 +2592,9 @@
                         </button>
                     </div>
                     <div class="live-chat-composer-row2">
-                        <span id="live-chat-points" class="live-chat-points" hidden title="Channel points" aria-label="Channel points"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5.5" stroke-width="1.1" opacity=".6"/><path d="M12 8.3v7.4M10.1 9.9c0-.8.85-1.5 1.9-1.5s1.9.6 1.9 1.4c0 1.8-3.8 1.2-3.8 3 0 .8.85 1.5 1.9 1.5s1.9-.6 1.9-1.5" stroke-width="1.2"/></svg><span id="live-chat-points-value"></span></span>
+                        <div class="live-chat-points-group" id="live-chat-points-group">
+                            <span id="live-chat-points" class="live-chat-points" hidden title="Channel points" aria-label="Channel points"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="6.6" rx="6.5" ry="2.8"/><path d="M5.5 6.6v5c0 1.55 2.91 2.8 6.5 2.8s6.5-1.25 6.5-2.8v-5"/><path d="M5.5 11.6v5c0 1.55 2.91 2.8 6.5 2.8s6.5-1.25 6.5-2.8v-5"/></svg><span id="live-chat-points-value"></span></span>
+                        </div>
                         <div class="live-chat-composer-row2-actions">
                             <button id="btn-chat-settings" type="button" class="live-chat-gear-btn" title="Chat settings" aria-label="Chat settings"></button>
                             <button class="btn btn-sm" id="live-chat-send-btn" disabled>Send</button>
@@ -2586,6 +2693,6 @@
         </form>
     </div>
 </div>
-<script src="/live-2am1wpv3.js" type="module"></script>
+<script src="/live-gap8h66f.js" type="module"></script>
 </body>
 </html>
