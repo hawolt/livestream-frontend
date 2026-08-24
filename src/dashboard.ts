@@ -10,7 +10,7 @@ import { closeDismissibleSurface, openDismissibleSurface } from "./dismissible-s
 import { motionScrollBehavior } from "./motion.ts";
 import { readLocalStorage, writeLocalStorage } from "./storage.ts";
 import { studioBaseUrl, studioTabUrl } from "./dash/studio.ts";
-import { maybeOpenTermsGate } from "./dash/terms-gate.ts";
+import { maybeOpenTermsGate } from "./terms-gate.ts";
 
 const TAB_LOADERS: Record<string, () => Promise<TabModule>> = {
     stream:           () => import("./dash/tabs/stream.ts"),

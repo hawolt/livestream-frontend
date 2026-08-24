@@ -1,3 +1,5 @@
+import { maybeOpenTermsGate } from "./terms-gate.ts";
+import type { TermsFlags } from "./dash/terms-status.ts";
 import { API_BASE } from "./api.ts";
 import { sessionTokenMetadata } from "./session-token.ts";
 import { buildSignedIn, buildSignedOut, buildViewMenu } from "./nav/account-menu.ts";
@@ -9,6 +11,8 @@ import { syncAccent } from "./theme.ts";
 export type NavActive = "browse" | "dashboard" | null;
 
 export interface SessionInfo {
+    needsTerms?: boolean;
+    needsBirthDate?: boolean;
     kind?: string;
     username?: string;
     token?: string;
@@ -249,6 +253,7 @@ export async function initSiteNav(
 
     const signedIn = !!info && info.kind === "user" && typeof info.username === "string";
     if (signedIn) renderStreak((info as SessionInfo).streak);
+    if (signedIn) void maybeOpenTermsGate(info as TermsFlags);
     if (signedIn && knownSession === undefined) storeSessionToken(info as SessionInfo, tokenBeforeRequest);
     if (knownSession === undefined) startSessionRenewal();
     right.appendChild(signedIn

@@ -940,8 +940,16 @@ tr:last-child td { border-bottom: none; }
     color: var(--muted);
     margin: 0 0 18px;
 }
-#terms-gate-birth-year { margin-bottom: 18px; }
-#terms-gate-birth-year[hidden] { display: none; }
+#terms-gate-birth { margin-bottom: 18px; }
+#terms-gate-birth[hidden] { display: none; }
+.birth-date-row,
+#terms-gate-birth-row {
+    display: grid;
+    grid-template-columns: minmax(0, 5fr) minmax(0, 7fr) minmax(0, 5fr);
+    gap: 8px;
+}
+.birth-date-row select,
+#terms-gate-birth-row select { width: 100%; min-width: 0; }
 #terms-gate-error {
     margin-top: 14px;
     font-size: 12.5px;
@@ -956,6 +964,62 @@ tr:last-child td { border-bottom: none; }
     gap: 8px;
     justify-content: flex-end;
     margin-top: 20px;
+}
+
+@media (max-width: 560px) {
+    #terms-gate {
+        padding: 0;
+        align-items: stretch;
+        justify-content: stretch;
+    }
+    #terms-gate-box {
+        width: 100%;
+        max-height: none;
+        min-height: 100dvh;
+        border: 0;
+        border-radius: 0;
+        padding: 24px 18px calc(24px + env(safe-area-inset-bottom));
+        display: flex;
+        flex-direction: column;
+        overscroll-behavior: contain;
+    }
+    #terms-gate-form {
+        display: flex;
+        flex-direction: column;
+        flex: 1;
+    }
+    #terms-gate-title { font-size: 20px; }
+    #terms-gate-intro { font-size: 14px; }
+    .birth-date-row,
+    #terms-gate-birth-row { gap: 6px; }
+    .birth-date-row select,
+    #terms-gate-birth-row select,
+    #terms-gate .login-consent-row input[type="checkbox"] {
+        min-height: 44px;
+    }
+    #terms-gate .login-consent-row {
+        align-items: flex-start;
+        gap: 12px;
+        padding: 6px 0;
+    }
+    #terms-gate .login-consent-row input[type="checkbox"] {
+        width: 22px;
+        height: 22px;
+        min-height: 22px;
+        flex: 0 0 auto;
+        margin-top: 1px;
+    }
+    #terms-gate .login-consent-row span { font-size: 14px; line-height: 1.5; }
+    #terms-gate-actions {
+        margin-top: auto;
+        padding-top: 20px;
+        flex-direction: column-reverse;
+    }
+    #terms-gate-actions .btn {
+        width: 100%;
+        min-height: 48px;
+        font-size: 15px;
+    }
 }
 
 #modal-body .form-grid { margin-bottom: 4px; }

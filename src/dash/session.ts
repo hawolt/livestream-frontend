@@ -11,10 +11,10 @@ export interface MeInfo {
     username?: string;
     tenantId?: number;
     tenantName?: string | null;
-    birthYear?: number | null;
+    birthDate?: string | null;
     termsVersion?: number;
     needsTerms?: boolean;
-    needsBirthYear?: boolean;
+    needsBirthDate?: boolean;
     tabs: TabInfo[];
 }
 

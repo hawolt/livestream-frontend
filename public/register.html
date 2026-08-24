@@ -52,11 +52,13 @@
                     <div class="login-hint" id="register-password-hint">At least 8 characters.</div>
                 </div>
                 <div>
-                    <label class="login-field-label" for="birth-year">Year of birth</label>
-                    <select id="birth-year" autocomplete="bday-year" aria-describedby="register-birth-year-hint" required>
-                        <option value="">Select year</option>
-                    </select>
-                    <div class="login-hint" id="register-birth-year-hint">We ask once, to confirm you are old enough for an account.</div>
+                    <label class="login-field-label" for="birth-day">Date of birth</label>
+                    <div class="birth-date-row">
+                        <select id="birth-day" autocomplete="bday-day" aria-label="Day" required></select>
+                        <select id="birth-month" autocomplete="bday-month" aria-label="Month" required></select>
+                        <select id="birth-year" autocomplete="bday-year" aria-label="Year" aria-describedby="register-birth-hint" required></select>
+                    </div>
+                    <div class="login-hint" id="register-birth-hint">We ask once, to confirm you are old enough for an account and to decide what you can see.</div>
                 </div>
                 <div>
                     <label class="login-field-label" for="referral">Referral code (optional)</label>
@@ -81,7 +83,7 @@
     </div>
 </div>
 <script>window.HCAPTCHA_SITEKEY = "ca58c42a-bf10-4fd4-b2f2-78a23bcccd04";</script>
-<script src="/register-rh7b20n2.js" type="module"></script>
+<script src="/register-5b0zq9gd.js" type="module"></script>
 <script src="https://js.hcaptcha.com/1/api.js?onload=onHCaptchaLoad&render=explicit" async defer></script>
 </body>
 </html>

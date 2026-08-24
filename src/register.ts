@@ -1,7 +1,7 @@
 export {};
 import { API_BASE } from "./api.ts";
 import { initSiteNav } from "./nav.ts";
-import { consentError, consentFieldForMessage, fillBirthYearSelect, type ConsentField } from "./consent.ts";
+import { consentError, consentFieldForMessage, isoBirthDate, wireBirthDateSelects, type ConsentField } from "./consent.ts";
 
 void initSiteNav(null);
 
@@ -32,11 +32,14 @@ if (referralParam) {
 const btnEl       = document.getElementById("btn-register")     as HTMLButtonElement;
 const errorEl     = document.getElementById("error")            as HTMLElement;
 const loginLinkEl = document.getElementById("login-link")       as HTMLAnchorElement | null;
-const birthYearEl = document.getElementById("birth-year")       as HTMLSelectElement;
+const birthDayEl   = document.getElementById("birth-day")   as HTMLSelectElement;
+const birthMonthEl = document.getElementById("birth-month") as HTMLSelectElement;
+const birthYearEl  = document.getElementById("birth-year")  as HTMLSelectElement;
+const birthParts = () => ({ day: birthDayEl.value, month: birthMonthEl.value, year: birthYearEl.value });
 const termsEl     = document.getElementById("terms-accepted")   as HTMLInputElement;
 const marketingEl = document.getElementById("marketing-opt-in") as HTMLInputElement;
 
-fillBirthYearSelect(birthYearEl, new Date().getFullYear(), "Select year");
+wireBirthDateSelects(birthDayEl, birthMonthEl, birthYearEl, new Date().getUTCFullYear());
 
 let widgetId: number | null = null;
 
@@ -150,7 +153,7 @@ if (typeof hcaptcha !== "undefined") onHCaptchaLoad();
 form.addEventListener("submit", (e) => {
     e.preventDefault();
     clearError();
-    const consentProblem = consentError(termsEl.checked, birthYearEl.value, true);
+    const consentProblem = consentError(termsEl.checked, birthParts(), true, new Date());
     if (consentProblem) {
         showError(consentProblem);
         markConsentField(consentFieldForMessage(consentProblem));
@@ -182,7 +185,7 @@ async function doSubmit(captchaToken: string): Promise<void> {
     const email       = (document.getElementById("email")        as HTMLInputElement).value.trim();
     const password    = (document.getElementById("password")     as HTMLInputElement).value;
     const referral    = (document.getElementById("referral")     as HTMLInputElement).value.trim();
-    const birthYear   = Number(birthYearEl.value);
+    const birthDate   = isoBirthDate(birthParts());
 
     if (!email) {
         showError("Email is required so you can verify your account and reset your password.");
@@ -201,7 +204,7 @@ async function doSubmit(captchaToken: string): Promise<void> {
                 email,
                 captchaToken,
                 termsAccepted:  termsEl.checked,
-                birthYear,
+                birthDate,
                 marketingOptIn: marketingEl.checked,
                 ...(referral ? { referral } : {}),
             }),
@@ -237,9 +240,11 @@ function resetBtn(): void {
 }
 
 function markConsentField(field: ConsentField | null): void {
-    birthYearEl.setAttribute("aria-invalid", String(field === "birthYear"));
+    for (const el of [birthDayEl, birthMonthEl, birthYearEl]) {
+        el.setAttribute("aria-invalid", String(field === "birthDate"));
+    }
     termsEl.setAttribute("aria-invalid", String(field === "terms"));
-    if (field === "birthYear") birthYearEl.focus();
+    if (field === "birthDate") birthDayEl.focus();
     if (field === "terms") termsEl.focus();
 }
 
