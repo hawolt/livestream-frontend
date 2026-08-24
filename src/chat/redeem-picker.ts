@@ -17,7 +17,9 @@ import {
     type ViewerReward,
 } from "./redeem-wire.ts";
 
-const REDEEM_ICON = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="8.5" width="17" height="4"/><path d="M5.5 12.5v7.5h13v-7.5M12 8.5v11.5M12 8.5c-1.8 0-4.4-.7-4.4-2.6 0-1.2 1-2 2.1-2 1.7 0 2.3 1.9 2.3 4.6zm0 0c1.8 0 4.4-.7 4.4-2.6 0-1.2-1-2-2.1-2-1.7 0-2.3 1.9-2.3 4.6z"/></svg>`;
+const REDEEM_ICON = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8.4a1.9 1.9 0 0 1 1.9-1.9h12.2a1.9 1.9 0 0 1 1.9 1.9v1.5a2.1 2.1 0 0 0 0 4.2v1.5a1.9 1.9 0 0 1-1.9 1.9H5.9a1.9 1.9 0 0 1-1.9-1.9v-1.5a2.1 2.1 0 0 0 0-4.2Z"/><path d="M14 7.4v1.7M14 11.2v1.6M14 15.4v1.7"/></svg>`;
+
+const POINTS_GROUP_ID = "live-chat-points-group";
 
 const ARM_NOTICE_ID = "redeem-arm";
 const ERROR_NOTICE_ID = "redeem-error";
@@ -310,7 +312,7 @@ export function initRedeemPicker(settingsBtn: HTMLButtonElement): void {
     const btn = document.createElement("button");
     btn.type = "button";
     btn.id = "btn-chat-redeem";
-    btn.className = "live-chat-gear-btn";
+    btn.className = "live-chat-redeem-btn";
     btn.title = "Redeem channel points";
     btn.setAttribute("aria-label", "Redeem channel points");
     btn.setAttribute("aria-haspopup", "dialog");
@@ -318,7 +320,9 @@ export function initRedeemPicker(settingsBtn: HTMLButtonElement): void {
     btn.innerHTML = REDEEM_ICON;
     btn.hidden = true;
     btn.addEventListener("click", togglePop);
-    settingsBtn.parentElement?.insertBefore(btn, settingsBtn);
+    const pointsGroup = document.getElementById(POINTS_GROUP_ID);
+    if (pointsGroup) pointsGroup.appendChild(btn);
+    else settingsBtn.parentElement?.insertBefore(btn, settingsBtn);
     buttonEl = btn;
     syncRedeemPicker();
 }
