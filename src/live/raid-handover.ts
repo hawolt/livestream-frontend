@@ -2,11 +2,11 @@ import { setRaidHandover } from "../chat/raid.ts";
 import { canStartPrewarm } from "./player/handover-decision.ts";
 import { cancelPrewarm, startPrewarm, takeReadyPrewarm, type PrewarmChannel, type PrewarmResult } from "./player/prewarm.ts";
 import { ctx, nextGen } from "./player/context.ts";
-import { browseMiniUsername, nameEl, partnerBadgeEl, setVideoElement, video } from "./dom.ts";
+import { browseMiniUsername, partnerBadgeEl, setVideoElement, video } from "./dom.ts";
 import { beginTransport, clearRetryTimer, fullTeardown, resetRetryBackoff, setOfflineArt } from "./player/lifecycle.ts";
 import { resetStreamInfo, rewatchViewcount } from "./stream-info.ts";
 import { attachVideoElementListeners, updatePlayIcon, updateVolumeUI } from "./controls.ts";
-import { applyChannelChrome } from "./channel-chrome.ts";
+import { applyChannelChrome, setChannelName } from "./channel-chrome.ts";
 import { channelPageTitle } from "./page-title.ts";
 import { startChat } from "../live-chat.ts";
 import { msgsEl } from "../chat/dom.ts";
@@ -60,7 +60,7 @@ function performHandover(result: PrewarmResult): void {
 }
 
 function repointPage(channel: PrewarmChannel): void {
-    nameEl.textContent = ctx.displayUsername;
+    setChannelName(ctx.displayUsername, ctx.username);
     partnerBadgeEl.hidden = !channel.partner;
     document.title = channelPageTitle(ctx.displayUsername);
     browseMiniUsername.textContent = ctx.displayUsername;

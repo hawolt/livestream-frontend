@@ -1,5 +1,11 @@
-import { categoryEl, languageEl, languageSepEl, titleEl } from "./dom.ts";
+import { categoryEl, languageEl, languageSepEl, nameEl, titleEl } from "./dom.ts";
 import { streamLanguageLabel } from "../stream-languages.ts";
+
+export function setChannelName(display: string, username: string | null): void {
+    nameEl.textContent = display;
+    if (username) nameEl.href = `/${encodeURIComponent(username)}`;
+    else nameEl.removeAttribute("href");
+}
 
 export interface ChannelChrome {
     title: string;

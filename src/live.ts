@@ -13,7 +13,6 @@ import {
     btnChatToggle,
     btnLayoutToggle,
     chatFeatureSlotEl,
-    nameEl,
     partnerBadgeEl,
     page,
     titleBar,
@@ -34,7 +33,7 @@ import { initPointsChip } from "./live/points.ts";
 import { parseClipRoute } from "./live/clip/route.ts";
 import { bootClipMode } from "./live/clip/mode.ts";
 import { promptStreamPassword } from "./live/stream-pass-gate.ts";
-import { applyChannelChrome } from "./live/channel-chrome.ts";
+import { applyChannelChrome, setChannelName } from "./live/channel-chrome.ts";
 import { initStreamInfoEdit } from "./live/stream-info-edit.ts";
 import { channelPageTitle, chatPopoutTitle } from "./live/page-title.ts";
 import { installRaidHandover } from "./live/raid-handover.ts";
@@ -105,12 +104,12 @@ async function boot(): Promise<void> {
     ctx.username = seg.toLowerCase();
     ctx.displayUsername = ctx.username;
     if (!/^[a-z0-9_-]{3,32}$/.test(ctx.username)) {
-        nameEl.textContent = "No channel";
+        setChannelName("No channel", null);
         bootCompleted = true;
         enterTerminal("No channel");
         return;
     }
-    nameEl.textContent = ctx.displayUsername;
+    setChannelName(ctx.displayUsername, ctx.username);
     let channelPartner = false;
     partnerBadgeEl.hidden = true;
     document.title = channelPageTitle(ctx.displayUsername);
@@ -146,13 +145,13 @@ async function boot(): Promise<void> {
             } catch {}
             if (!isCurrentBoot(generation, request)) return;
             if (banned) {
-                nameEl.textContent = ctx.displayUsername;
+                setChannelName(ctx.displayUsername, ctx.username);
                 document.title = channelPageTitle(ctx.displayUsername);
                 bootCompleted = true;
                 enterTerminal("Banned");
                 return;
             }
-            nameEl.textContent = "No channel";
+            setChannelName("No channel", null);
             bootCompleted = true;
             enterTerminal("No channel");
             return;
@@ -168,7 +167,7 @@ async function boot(): Promise<void> {
             if (info.locked === true) {
                 if (typeof info.username === "string" && info.username) {
                     ctx.displayUsername = info.username;
-                    nameEl.textContent = ctx.displayUsername;
+                    setChannelName(ctx.displayUsername, ctx.username);
                     document.title = channelPageTitle(ctx.displayUsername);
                 }
                 const unlocked = await promptStreamPassword(ctx.username, request.signal);
@@ -226,7 +225,7 @@ async function boot(): Promise<void> {
         if (bootRequest === request) bootRequest = null;
     }
     if (generation !== bootGeneration) return;
-    nameEl.textContent = ctx.displayUsername;
+    setChannelName(ctx.displayUsername, ctx.username);
     partnerBadgeEl.hidden = channelPartner !== true;
     document.title = channelPageTitle(ctx.displayUsername, title);
     browseMiniUsername.textContent = ctx.displayUsername;

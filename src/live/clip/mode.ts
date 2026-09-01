@@ -1,13 +1,12 @@
 import {
     chatFeatureSlotEl,
     clipWatchLiveEl,
-    nameEl,
     page,
     posterEl,
     titleBar,
     video,
 } from "../dom.ts";
-import { applyChannelChrome } from "../channel-chrome.ts";
+import { applyChannelChrome, setChannelName } from "../channel-chrome.ts";
 import { clipPageTitle } from "../page-title.ts";
 import { initOwnerCards, loadAboutClips, mountAboutCard } from "../about.ts";
 import { syncLayout } from "../layout.ts";
@@ -189,7 +188,7 @@ export async function bootClipMode(route: ClipRoute): Promise<void> {
     video.muted = false;
     video.controls = false;
 
-    nameEl.textContent = route.channel;
+    setChannelName(route.channel, route.channel);
     document.title = clipPageTitle(route.channel);
     setClipPoster("Loading clip...");
 
@@ -216,7 +215,7 @@ export async function bootClipMode(route: ClipRoute): Promise<void> {
     channelChrome = chromeResult;
     if (channelChrome.displayUsername) {
         ctx.displayUsername = channelChrome.displayUsername;
-        nameEl.textContent = channelChrome.displayUsername;
+        setChannelName(channelChrome.displayUsername, ctx.username);
     }
     applyChannelLiveState();
     renderInfoBar();
