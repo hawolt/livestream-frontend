@@ -1,5 +1,6 @@
 import { API_BASE } from "./api.ts";
 import { ICON_CHEVRON_LEFT, ICON_CHEVRON_RIGHT } from "./live/icons.ts";
+import { railCardModel } from "./rail-card.ts";
 import { readLocalStorage, writeLocalStorage } from "./storage.ts";
 
 const RAIL_COLLAPSED_KEY = "live-channel-rail-collapsed";
@@ -40,6 +41,15 @@ interface RailItem {
     name: HTMLElement;
     category: HTMLElement;
     viewers: HTMLElement;
+    stream: ChannelRailStream;
+    offline: boolean;
+}
+
+interface RailCardElements {
+    root: HTMLElement;
+    head: HTMLElement;
+    title: HTMLElement;
+    meta: HTMLElement;
 }
 
 function normalizeStream(value: unknown): ChannelRailStream | null {
@@ -89,6 +99,7 @@ export function createChannelRail(options: ChannelRailOptions): ChannelRailHandl
     let railWasVisible = false;
     let followedChannels = new Map<string, string>();
     let followedLoadedAt = 0;
+    let card: RailCardElements | null = null;
     const railItems = new Map<string, RailItem>();
 
     const compactViewerFormatter = new Intl.NumberFormat(undefined, {
@@ -111,8 +122,9 @@ export function createChannelRail(options: ChannelRailOptions): ChannelRailHandl
         const normalizedUsername = stream.username.toLowerCase();
         const category = stream.category?.trim() || "Other";
         const title = stream.title.trim() || "Untitled stream";
+        item.stream = stream;
+        item.offline = offline;
         item.root.href = `/${encodeURIComponent(normalizedUsername)}`;
-        item.root.title = offline ? `${stream.username} | Offline` : `${stream.username} | ${title} | ${category}`;
         item.root.setAttribute("aria-label", offline
             ? `${stream.username}, offline`
             : `${stream.username}, ${title}, ${category}, ${stream.viewers.toLocaleString()} viewers`);
@@ -136,6 +148,7 @@ export function createChannelRail(options: ChannelRailOptions): ChannelRailHandl
 
         const link = document.createElement("a");
         link.className = "live-channel-item";
+        link.dataset.channel = normalizedUsername;
         if (linkTarget) link.target = linkTarget;
 
         const avatar = document.createElement("span");
@@ -168,10 +181,61 @@ export function createChannelRail(options: ChannelRailOptions): ChannelRailHandl
 
         link.append(avatar, copy);
 
-        const item: RailItem = { root: link, name, category: categoryEl, viewers: viewerCount };
+        const item: RailItem = { root: link, name, category: categoryEl, viewers: viewerCount, stream, offline };
         railItems.set(normalizedUsername, item);
         updateRailItem(item, stream, offline);
         return link;
+    }
+
+    function ensureCard(): RailCardElements {
+        if (card) return card;
+        const root = document.createElement("div");
+        root.className = "live-channel-card";
+        root.hidden = true;
+        const head = document.createElement("div");
+        head.className = "live-channel-card-head";
+        const title = document.createElement("div");
+        title.className = "live-channel-card-title";
+        const meta = document.createElement("div");
+        meta.className = "live-channel-card-meta";
+        root.append(head, title, meta);
+        document.body.appendChild(root);
+        card = { root, head, title, meta };
+        return card;
+    }
+
+    function hideCard(): void {
+        if (card) card.root.hidden = true;
+    }
+
+    function showCard(item: RailItem): void {
+        const model = railCardModel({
+            username: item.stream.username,
+            title: item.stream.title,
+            category: item.stream.category,
+            viewers: item.stream.viewers,
+            offline: item.offline,
+            collapsed: document.body.classList.contains("rail-collapsed"),
+        });
+        if (!model) {
+            hideCard();
+            return;
+        }
+        const parts = ensureCard();
+        parts.head.textContent = model.head;
+        parts.head.hidden = model.head === "";
+        parts.title.textContent = model.title;
+        parts.title.hidden = model.title === "";
+        parts.meta.textContent = model.live
+            ? `Live | ${compactViewerFormatter.format(model.viewers)} viewers`
+            : item.offline ? "Offline" : "";
+        parts.meta.hidden = parts.meta.textContent === "";
+        parts.root.hidden = false;
+        const rect = item.root.getBoundingClientRect();
+        parts.root.style.left = `${Math.round(rect.right + 8)}px`;
+        parts.root.style.top = "0px";
+        const lowest = Math.max(8, window.innerHeight - parts.root.offsetHeight - 8);
+        parts.root.style.top = `${Math.round(Math.min(Math.max(8, rect.top), lowest))}px`;
     }
 
     function setRailStatus(label: string | null): void {
@@ -288,6 +352,7 @@ export function createChannelRail(options: ChannelRailOptions): ChannelRailHandl
     }
 
     function setRailCollapsed(collapsed: boolean): void {
+        hideCard();
         document.body.classList.toggle("rail-collapsed", collapsed);
         elements.toggle.setAttribute("aria-expanded", String(!collapsed));
         const label = collapsed ? "Expand live channels" : "Collapse live channels";
@@ -305,6 +370,15 @@ export function createChannelRail(options: ChannelRailOptions): ChannelRailHandl
         elements.toggle.addEventListener("click", () => {
             setRailCollapsed(!document.body.classList.contains("rail-collapsed"));
         });
+        elements.list.addEventListener("mouseover", (ev) => {
+            const hovered = ev.target instanceof Element ? ev.target.closest(".live-channel-item") : null;
+            const item = hovered instanceof HTMLElement ? railItems.get(hovered.dataset.channel ?? "") : undefined;
+            if (item) showCard(item);
+            else hideCard();
+        });
+        elements.list.addEventListener("mouseleave", hideCard);
+        elements.list.addEventListener("scroll", hideCard, { passive: true });
+        window.addEventListener("blur", hideCard);
         elements.rail.addEventListener("transitionend", (ev) => {
             if (ev.target === elements.rail && ev.propertyName === "width") onCollapsedChange?.();
         });
