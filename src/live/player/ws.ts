@@ -24,7 +24,7 @@ import { setStreamDimensions, setStreamFps, setStreamStart, updateQuality } from
 import { attachMediaSource, pruneBuffer, pump } from "./mse.ts";
 import { startChase } from "./chase.ts";
 import { attachVideoFailureListeners } from "./health.ts";
-import { enterTerminal, fullTeardown, goOffline, nextRetryDelay, renderPlayerUI, restartAfterFailure, scheduleRestart, setPoster, setState } from "./lifecycle.ts";
+import { enterTerminal, fullTeardown, goOffline, nextRetryDelay, playOutThenOffline, renderPlayerUI, restartAfterFailure, scheduleRestart, setPoster, setState } from "./lifecycle.ts";
 import { mediaWsUrl as sharedMediaWsUrl } from "../../player-shared/ws-url.ts";
 import { chooseTransportBase, markDirectFailed, shouldMarkDirectFailed } from "../../player-shared/transport-fallback.ts";
 
@@ -40,9 +40,27 @@ export function withCaptchaHint<T>(g: number, p: Promise<T>): Promise<T> {
     return p.finally(() => window.clearTimeout(t));
 }
 
+function detachWebSocket(): void {
+    if (!ctx.ws) return;
+    ctx.ws.onopen = null;
+    ctx.ws.onmessage = null;
+    ctx.ws.onclose = null;
+    ctx.ws.onerror = null;
+    try {
+        ctx.ws.close();
+    } catch {}
+    ctx.ws = null;
+}
+
 export function handleWSClose(g: number, ev: CloseEvent, direct = false, joined = true): void {
     const wasPlaying = ctx.state === "playing";
     const attemptedQuality = ctx.requestedQuality;
+    if (ev.code === 1000 && wasPlaying && !shouldMarkDirectFailed(direct, joined)) {
+        console.log("live: stream ended, playing out buffered media");
+        detachWebSocket();
+        playOutThenOffline(g);
+        return;
+    }
     fullTeardown();
     if (shouldMarkDirectFailed(direct, joined)) {
         markDirectFailed(ctx.wssBase);
@@ -108,7 +126,7 @@ export function handleWSClose(g: number, ev: CloseEvent, direct = false, joined 
         setState("reconnecting");
         scheduleRestart(ctx.overflowReconnects <= 1 ? 100 : nextRetryDelay(), g);
     } else if (ev.code === 1000) {
-        console.log(wasPlaying ? "live: stream ended, waiting for next" : "live: channel offline, retrying");
+        console.log("live: channel offline, retrying");
         goOffline(g);
     } else {
         console.warn("live: connection lost, retrying", ev.code);

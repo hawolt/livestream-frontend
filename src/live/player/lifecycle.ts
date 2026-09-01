@@ -1,6 +1,15 @@
 import { badgeEl, behindReadoutEl, btnClip, btnLiveChip, posterEl, seekBarEl, stageEl, video } from "../dom.ts";
 import { ctx, isCurrent, nextGen, runGenCleanup, type PlayerState } from "./context.ts";
-import { PRUNE_KEEP_S, RETRY_MAX_MS, RETRY_MIN_MS, RETRY_MULT } from "../constants.ts";
+import {
+    PLAYOUT_DRAIN_MAX_MS,
+    PLAYOUT_DRAIN_MIN_S,
+    PLAYOUT_DRAIN_POLL_MS,
+    PLAYOUT_DRAIN_STALL_TICKS,
+    PRUNE_KEEP_S,
+    RETRY_MAX_MS,
+    RETRY_MIN_MS,
+    RETRY_MULT,
+} from "../constants.ts";
 import { QUALITY_SOURCE } from "../../quality.ts";
 import { stopChase } from "./chase.ts";
 import { hidePlayerControls } from "./controls-decision.ts";
@@ -236,6 +245,54 @@ export function goOffline(g: number): void {
     renderQualityMenu();
     setState("offline");
     scheduleRestart(nextRetryDelay(), g);
+}
+
+function bufferedAheadSeconds(): number {
+    const ranges = video.buffered;
+    if (ranges.length === 0) return 0;
+    return Math.max(0, ranges.end(ranges.length - 1) - video.currentTime);
+}
+
+export function playOutThenOffline(g: number): void {
+    if (!isCurrent(g)) return;
+    if (video.paused || bufferedAheadSeconds() <= PLAYOUT_DRAIN_MIN_S) {
+        fullTeardown();
+        goOffline(g);
+        return;
+    }
+    stopChase();
+    stopHealthTimer();
+    clearWaitingTimer();
+    let settled = false;
+    let lastTime = video.currentTime;
+    let stalledTicks = 0;
+    const finish = (): void => {
+        if (settled) return;
+        settled = true;
+        window.clearTimeout(deadline);
+        window.clearInterval(poll);
+        video.removeEventListener("ended", finish);
+        video.removeEventListener("error", finish);
+        if (!isCurrent(g)) return;
+        fullTeardown();
+        goOffline(g);
+    };
+    const deadline = window.setTimeout(finish, PLAYOUT_DRAIN_MAX_MS);
+    const poll = window.setInterval(() => {
+        if (!isCurrent(g)) {
+            finish();
+            return;
+        }
+        const advanced = video.currentTime > lastTime + 0.01;
+        lastTime = video.currentTime;
+        if (advanced || bufferedAheadSeconds() > PLAYOUT_DRAIN_MIN_S) {
+            stalledTicks = 0;
+            return;
+        }
+        if (++stalledTicks >= PLAYOUT_DRAIN_STALL_TICKS) finish();
+    }, PLAYOUT_DRAIN_POLL_MS);
+    video.addEventListener("ended", finish);
+    video.addEventListener("error", finish);
 }
 
 async function verifyChannelLive(g: number): Promise<void> {

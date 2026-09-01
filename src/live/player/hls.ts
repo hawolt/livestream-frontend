@@ -219,12 +219,7 @@ function startHlsJsPlayer(g: number, src: string, originLL: boolean, rttMs: numb
     hls.on(Hls.Events.LEVEL_LOADED, (_event, data) => {
         if (!isCurrent(g) || hlsInstance !== hls) return;
         if (data.details.live === false) {
-            console.log("live: playlist is finalized, going offline");
-            window.setTimeout(() => {
-                if (!isCurrent(g) || hlsInstance !== hls) return;
-                fullTeardown();
-                goOffline(g);
-            }, 0);
+            console.log("live: playlist is finalized, playing out remaining media");
             return;
         }
         const base = tier === "far"
