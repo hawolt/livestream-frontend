@@ -216,7 +216,7 @@
 }
 .site-account-btn:hover { color: var(--text); border-color: var(--accent); }
 
-.site-account-btn-avatar { overflow: hidden; }
+.site-account-btn-avatar { overflow: hidden; border-radius: 50%; }
 
 .site-account-avatar {
     position: relative;
