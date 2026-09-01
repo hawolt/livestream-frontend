@@ -87,7 +87,7 @@ export function createChannelRail(options: ChannelRailOptions): ChannelRailHandl
     let railReloadRequested = false;
     let railStarted = false;
     let railWasVisible = false;
-    let followedUsernames = new Set<string>();
+    let followedChannels = new Map<string, string>();
     let followedLoadedAt = 0;
     const railItems = new Map<string, RailItem>();
 
@@ -98,34 +98,39 @@ export function createChannelRail(options: ChannelRailOptions): ChannelRailHandl
 
     const followedRow = sectionRow("Following");
     const liveRow = sectionRow("Live channels");
+    const offlineRow = sectionRow("Offline");
     const railDivider = sectionDivider();
+    const offlineDivider = sectionDivider();
 
     function withToggle(row: HTMLElement): HTMLElement {
         row.appendChild(elements.toggle);
         return row;
     }
 
-    function updateRailItem(item: RailItem, stream: ChannelRailStream): void {
+    function updateRailItem(item: RailItem, stream: ChannelRailStream, offline: boolean): void {
         const normalizedUsername = stream.username.toLowerCase();
         const category = stream.category?.trim() || "Other";
         const title = stream.title.trim() || "Untitled stream";
         item.root.href = `/${encodeURIComponent(normalizedUsername)}`;
-        item.root.title = `${stream.username} | ${title} | ${category}`;
-        item.root.setAttribute("aria-label", `${stream.username}, ${title}, ${category}, ${stream.viewers.toLocaleString()} viewers`);
+        item.root.title = offline ? `${stream.username} | Offline` : `${stream.username} | ${title} | ${category}`;
+        item.root.setAttribute("aria-label", offline
+            ? `${stream.username}, offline`
+            : `${stream.username}, ${title}, ${category}, ${stream.viewers.toLocaleString()} viewers`);
+        item.root.classList.toggle("live-channel-item-offline", offline);
         const active = normalizedUsername === getActiveUsername();
         item.root.classList.toggle("active", active);
         if (active) item.root.setAttribute("aria-current", "page");
         else item.root.removeAttribute("aria-current");
         item.name.textContent = stream.username;
-        item.category.textContent = category;
-        item.viewers.textContent = compactViewerFormatter.format(stream.viewers);
+        item.category.textContent = offline ? "Offline" : category;
+        item.viewers.textContent = offline ? "" : compactViewerFormatter.format(stream.viewers);
     }
 
-    function railItem(stream: ChannelRailStream): HTMLAnchorElement {
+    function railItem(stream: ChannelRailStream, offline = false): HTMLAnchorElement {
         const normalizedUsername = stream.username.toLowerCase();
         const existing = railItems.get(normalizedUsername);
         if (existing) {
-            updateRailItem(existing, stream);
+            updateRailItem(existing, stream, offline);
             return existing.root;
         }
 
@@ -165,7 +170,7 @@ export function createChannelRail(options: ChannelRailOptions): ChannelRailHandl
 
         const item: RailItem = { root: link, name, category: categoryEl, viewers: viewerCount };
         railItems.set(normalizedUsername, item);
-        updateRailItem(item, stream);
+        updateRailItem(item, stream, offline);
         return link;
     }
 
@@ -191,24 +196,33 @@ export function createChannelRail(options: ChannelRailOptions): ChannelRailHandl
     }
 
     function renderRail(streams: ChannelRailStream[]): void {
-        const followed = streams.filter((stream) => followedUsernames.has(stream.username.toLowerCase()));
-        const others = streams.filter((stream) => !followedUsernames.has(stream.username.toLowerCase()));
+        const followed = streams.filter((stream) => followedChannels.has(stream.username.toLowerCase()));
+        const others = streams.filter((stream) => !followedChannels.has(stream.username.toLowerCase()));
         followed.sort(byViewersThenName);
         others.sort(byViewersThenName);
+        const liveUsernames = new Set(streams.map((stream) => stream.username.toLowerCase()));
+        const offline: ChannelRailStream[] = [...followedChannels]
+            .filter(([normalized]) => !liveUsernames.has(normalized))
+            .map(([, display]) => ({ username: display, title: "", category: null, viewers: 0 }))
+            .sort((a, b) => a.username.toLowerCase().localeCompare(b.username.toLowerCase()));
         const nodes: Node[] = [];
         if (followed.length > 0) {
-            nodes.push(withToggle(followedRow), ...followed.map(railItem));
+            nodes.push(withToggle(followedRow), ...followed.map((stream) => railItem(stream)));
             if (others.length > 0) nodes.push(railDivider, liveRow);
         } else {
             nodes.push(withToggle(liveRow));
         }
-        nodes.push(...others.map(railItem));
-        const liveUsernames = new Set(streams.map((stream) => stream.username.toLowerCase()));
+        nodes.push(...others.map((stream) => railItem(stream)));
+        if (offline.length > 0) {
+            nodes.push(offlineDivider, offlineRow, ...offline.map((stream) => railItem(stream, true)));
+        }
+        const retained = new Set(liveUsernames);
+        for (const stream of offline) retained.add(stream.username.toLowerCase());
         for (const username of railItems.keys()) {
-            if (!liveUsernames.has(username)) railItems.delete(username);
+            if (!retained.has(username)) railItems.delete(username);
         }
         reconcileRailChildren(nodes);
-        setRailStatus(streams.length === 0 ? "No one is live right now" : null);
+        setRailStatus(streams.length === 0 && offline.length === 0 ? "No one is live right now" : null);
     }
 
     async function loadFollowedUsernames(): Promise<void> {
@@ -218,14 +232,14 @@ export function createChannelRail(options: ChannelRailOptions): ChannelRailHandl
         try {
             const res = await fetch(`${API_BASE}/follows/mine`, { credentials: "include" });
             if (!res.ok) {
-                if (res.status === 401) followedUsernames = new Set();
+                if (res.status === 401) followedChannels = new Map();
                 return;
             }
             const data = await res.json() as { following?: unknown };
             const values = Array.isArray(data.following) ? data.following : [];
-            followedUsernames = new Set(values
-                .filter((value): value is string => typeof value === "string")
-                .map((value) => value.toLowerCase()));
+            followedChannels = new Map(values
+                .filter((value): value is string => typeof value === "string" && value.trim().length > 0)
+                .map((value) => [value.trim().toLowerCase(), value.trim()]));
         } catch {}
     }
 
