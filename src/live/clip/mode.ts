@@ -8,7 +8,7 @@ import {
 } from "../dom.ts";
 import { applyChannelChrome, setChannelName } from "../channel-chrome.ts";
 import { clipPageTitle } from "../page-title.ts";
-import { initOwnerCards, loadAboutClips, mountAboutCard } from "../about.ts";
+import { initOwnerCards, loadAboutClips, loadStreamActivity, mountAboutCard } from "../about.ts";
 import { syncLayout } from "../layout.ts";
 import {
     clipStatusPollingActive,
@@ -205,6 +205,7 @@ export async function bootClipMode(route: ClipRoute): Promise<void> {
         mountAboutCard(profile);
     });
     loadAboutClips(route.channel);
+    loadStreamActivity(route.channel);
     initOwnerCards(route.channel);
 
     const [chromeResult, clipResult] = await Promise.all([
