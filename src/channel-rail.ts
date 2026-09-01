@@ -6,6 +6,7 @@ import { readLocalStorage, writeLocalStorage } from "./storage.ts";
 const RAIL_COLLAPSED_KEY = "live-channel-rail-collapsed";
 const RAIL_POLL_MS = 180000;
 const FOLLOW_REFRESH_MS = 60000;
+const SCROLLBAR_MIN_PX = 24;
 
 export interface ChannelRailElements {
     rail: HTMLElement;
@@ -100,6 +101,7 @@ export function createChannelRail(options: ChannelRailOptions): ChannelRailHandl
     let followedChannels = new Map<string, string>();
     let followedLoadedAt = 0;
     let card: RailCardElements | null = null;
+    let scrollbar: HTMLElement | null = null;
     const railItems = new Map<string, RailItem>();
 
     const compactViewerFormatter = new Intl.NumberFormat(undefined, {
@@ -238,6 +240,35 @@ export function createChannelRail(options: ChannelRailOptions): ChannelRailHandl
         parts.root.style.top = `${Math.round(Math.min(Math.max(8, rect.top), lowest))}px`;
     }
 
+    function ensureScrollbar(): HTMLElement | null {
+        if (scrollbar) return scrollbar;
+        const host = elements.list.parentElement;
+        if (!host) return null;
+        const bar = document.createElement("div");
+        bar.className = "live-channel-scrollbar";
+        bar.hidden = true;
+        host.appendChild(bar);
+        scrollbar = bar;
+        return bar;
+    }
+
+    function syncScrollbar(): void {
+        const bar = ensureScrollbar();
+        if (!bar) return;
+        const track = elements.list.clientHeight;
+        const content = elements.list.scrollHeight;
+        if (track <= 0 || content <= track + 1) {
+            bar.hidden = true;
+            return;
+        }
+        const height = Math.max(SCROLLBAR_MIN_PX, Math.round(track * track / content));
+        const span = Math.max(0, track - height);
+        const progress = Math.min(1, Math.max(0, elements.list.scrollTop / (content - track)));
+        bar.hidden = false;
+        bar.style.height = `${height}px`;
+        bar.style.transform = `translateY(${Math.round(progress * span)}px)`;
+    }
+
     function setRailStatus(label: string | null): void {
         elements.status.textContent = label ?? "";
         elements.status.hidden = label === null;
@@ -286,6 +317,7 @@ export function createChannelRail(options: ChannelRailOptions): ChannelRailHandl
             if (!retained.has(username)) railItems.delete(username);
         }
         reconcileRailChildren(nodes);
+        syncScrollbar();
         setRailStatus(streams.length === 0 && offline.length === 0 ? "No one is live right now" : null);
     }
 
@@ -377,10 +409,16 @@ export function createChannelRail(options: ChannelRailOptions): ChannelRailHandl
             else hideCard();
         });
         elements.list.addEventListener("mouseleave", hideCard);
-        elements.list.addEventListener("scroll", hideCard, { passive: true });
+        elements.list.addEventListener("scroll", () => {
+            hideCard();
+            syncScrollbar();
+        }, { passive: true });
         window.addEventListener("blur", hideCard);
+        window.addEventListener("resize", syncScrollbar);
         elements.rail.addEventListener("transitionend", (ev) => {
-            if (ev.target === elements.rail && ev.propertyName === "width") onCollapsedChange?.();
+            if (ev.target !== elements.rail || ev.propertyName !== "width") return;
+            onCollapsedChange?.();
+            syncScrollbar();
         });
         document.addEventListener("visibilitychange", syncVisibility);
         window.addEventListener("follow-changed", () => {

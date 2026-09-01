@@ -816,16 +816,22 @@ body.rail-collapsed .live-channel-rail { width: 57px; }
     overflow-y: auto;
     overscroll-behavior: contain;
     padding: 5px 0;
-    scrollbar-gutter: stable;
-    scrollbar-width: thin;
-    scrollbar-color: transparent transparent;
+    scrollbar-width: none;
 }
-.live-channel-rail:hover .live-channel-list { scrollbar-color: rgba(255,255,255,.2) transparent; }
-.live-channel-list::-webkit-scrollbar { width: 3px; }
-.live-channel-list::-webkit-scrollbar-track { background: transparent; }
-.live-channel-list::-webkit-scrollbar-thumb { background: transparent; border-radius: 3px; }
-.live-channel-rail:hover .live-channel-list::-webkit-scrollbar-thumb { background: rgba(255,255,255,.2); }
-.live-channel-rail:hover .live-channel-list::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,.35); }
+.live-channel-list::-webkit-scrollbar { width: 0; height: 0; }
+.live-channel-scrollbar {
+    position: absolute;
+    top: 0;
+    right: 1px;
+    width: 3px;
+    border-radius: 3px;
+    background: rgba(255,255,255,.2);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .12s ease;
+}
+.live-channel-scrollbar[hidden] { display: none; }
+.live-channel-rail:hover .live-channel-scrollbar { opacity: 1; }
 .live-channel-item {
     display: grid;
     grid-template-columns: 38px minmax(0, 1fr);
