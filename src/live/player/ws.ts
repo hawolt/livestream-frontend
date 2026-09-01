@@ -33,6 +33,21 @@ export function mediaWsUrl(base: string, path: string): string {
     return sharedMediaWsUrl(base, path, `${proto}://${location.host}`, location.protocol);
 }
 
+let streamEndedSignalled = false;
+
+function isStreamEndedFrame(msg: unknown): boolean {
+    return !!msg && typeof msg === "object" && (msg as { type?: unknown }).type === "end";
+}
+
+function endMediaSourceStream(): void {
+    const source = ctx.mediaSource;
+    if (!source || source.readyState !== "open") return;
+    if (ctx.appendQueue.length > 0 || ctx.sourceBuffer?.updating) return;
+    try {
+        source.endOfStream();
+    } catch {}
+}
+
 export function withCaptchaHint<T>(g: number, p: Promise<T>): Promise<T> {
     const t = window.setTimeout(() => {
         if (isCurrent(g) && !ctx.terminal) setPoster("Checking access", false, true);
@@ -56,8 +71,11 @@ export function handleWSClose(g: number, ev: CloseEvent, direct = false, joined 
     const wasPlaying = ctx.state === "playing";
     const attemptedQuality = ctx.requestedQuality;
     if (ev.code === 1000 && wasPlaying && !shouldMarkDirectFailed(direct, joined)) {
-        console.log("live: stream ended, playing out buffered media");
+        console.log(streamEndedSignalled
+            ? "live: stream ended, playing out buffered media"
+            : "live: connection closed while playing, playing out buffered media");
         detachWebSocket();
+        if (streamEndedSignalled) endMediaSourceStream();
         playOutThenOffline(g);
         return;
     }
@@ -137,6 +155,7 @@ export function handleWSClose(g: number, ev: CloseEvent, direct = false, joined 
 
 export function adoptWSTransport(g: number, a: AdoptedTransport): void {
     attachVideoFailureListeners(g);
+    streamEndedSignalled = false;
     ctx.ws = a.sock;
     ctx.mediaSource = a.mediaSource;
     ctx.sourceBuffer = a.sourceBuffer;
@@ -159,6 +178,10 @@ export function adoptWSTransport(g: number, a: AdoptedTransport): void {
             try {
                 msg = JSON.parse(ev.data);
             } catch {}
+            if (isStreamEndedFrame(msg)) {
+                streamEndedSignalled = true;
+                return;
+            }
             if (isQualityOnlyFrame(msg)) {
                 const list = parseQualitiesFrame(msg);
                 if (list && list.length) applyQualityList(list);
@@ -199,6 +222,7 @@ export function startWSTransport(g: number): void {
             allowedSubset(ctx.qualityLadder, ctx.lockedQualities), ctx.qualityLadderKnown, ctx.activeQuality);
         const qParam = qualityWsParam(ctx.requestedQuality);
         const { base, direct } = chooseTransportBase(ctx.wssBase, ctx.mediaBase);
+        streamEndedSignalled = false;
         let joined = false;
         const path = `/ws/live?u=${encodeURIComponent(ctx.username)}&viewer_id=${encodeURIComponent(vid)}${tq}${qParam}`;
         let sock: WebSocket;
@@ -219,6 +243,10 @@ export function startWSTransport(g: number): void {
                 try {
                     msg = JSON.parse(ev.data);
                 } catch {}
+                if (isStreamEndedFrame(msg)) {
+                    streamEndedSignalled = true;
+                    return;
+                }
                 if (isQualityLockedFrame(msg)) {
                     const list = parseQualitiesFrame(msg);
                     if (list && list.length) {
