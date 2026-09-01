@@ -229,8 +229,9 @@ export function createChannelRail(options: ChannelRailOptions): ChannelRailHandl
         parts.title.textContent = model.title;
         parts.title.hidden = model.title === "";
         parts.meta.textContent = model.live
-            ? `Live | ${compactViewerFormatter.format(model.viewers)} viewers`
+            ? `${compactViewerFormatter.format(model.viewers)} ${model.viewers === 1 ? "viewer" : "viewers"}`
             : item.offline ? "Offline" : "";
+        parts.meta.classList.toggle("live-channel-card-meta-live", model.live);
         parts.meta.hidden = parts.meta.textContent === "";
         parts.root.hidden = false;
         const rect = item.root.getBoundingClientRect();
