@@ -816,7 +816,14 @@ body.rail-collapsed .live-channel-rail { width: 57px; }
     overflow-y: auto;
     overscroll-behavior: contain;
     padding: 5px 0;
+    scrollbar-gutter: stable;
+    scrollbar-width: thin;
+    scrollbar-color: var(--dim) transparent;
 }
+.live-channel-list::-webkit-scrollbar { width: 3px; }
+.live-channel-list::-webkit-scrollbar-track { background: transparent; }
+.live-channel-list::-webkit-scrollbar-thumb { background: var(--dim); border-radius: 3px; }
+.live-channel-list::-webkit-scrollbar-thumb:hover { background: var(--accent); }
 .live-channel-item {
     display: grid;
     grid-template-columns: 38px minmax(0, 1fr);
