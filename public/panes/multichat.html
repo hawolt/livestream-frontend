@@ -48,8 +48,8 @@
                     <span>Size</span>
                     <select id="mc-size">
                         <option value="s">Small</option>
-                        <option value="m" selected>Medium</option>
-                        <option value="l">Large</option>
+                        <option value="m">Medium</option>
+                        <option value="l" selected>Large</option>
                         <option value="xl">Extra large</option>
                         <option value="custom">Custom</option>
                     </select>
@@ -57,8 +57,8 @@
                 <label>
                     <span>Font</span>
                     <select id="mc-font">
-                        <option value="system" selected>System default</option>
-                        <option value="roboto">Roboto</option>
+                        <option value="system">System default</option>
+                        <option value="roboto" selected>Roboto</option>
                         <option value="sans">Sans-serif</option>
                         <option value="serif">Serif</option>
                         <option value="mono">Monospace</option>
@@ -69,10 +69,10 @@
                 <label>
                     <span>Weight</span>
                     <select id="mc-weight">
-                        <option value="default" selected>Default</option>
+                        <option value="default">Default</option>
                         <option value="normal">Normal</option>
                         <option value="bold">Bold</option>
-                        <option value="extrabold">Extra bold</option>
+                        <option value="extrabold" selected>Extra bold</option>
                     </select>
                     <div class="hint">Applies to the whole line, name and text together.</div>
                 </label>
@@ -89,7 +89,7 @@
                     <span>Fade</span>
                     <div class="stepper">
                         <button type="button" class="stepper-btn" data-step="-1" aria-label="Decrease">&minus;</button>
-                        <input id="mc-fade" type="number" min="0" max="600" value="0">
+                        <input id="mc-fade" type="number" min="0" max="600" value="30">
                         <button type="button" class="stepper-btn" data-step="1" aria-label="Increase">+</button>
                     </div>
                     <div class="hint">Seconds before a message disappears. 0 = never.</div>
@@ -127,7 +127,7 @@
                     <div class="hint">Overlay mode only. Drop tiers halo badges and emotes too.</div>
                 </label>
                 <label class="ov-toggle ov-span-2">
-                    <input type="checkbox" id="mc-linebg">
+                    <input type="checkbox" id="mc-linebg" checked>
                     <span>
                         <span class="ov-toggle-name">Line background</span>
                         <div class="hint">Dark pill behind each line, for readability on bright video.</div>
