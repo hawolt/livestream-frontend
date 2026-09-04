@@ -9,6 +9,6 @@ export function bufferedAheadOf(ranges: Array<{ start: number; end: number }>, p
     return last ? Math.max(0, last.end - position) : 0;
 }
 
-export function startupHoldOver(aheadS: number, heldMs: number): boolean {
-    return aheadS >= STARTUP_RUNWAY_S || heldMs >= STARTUP_HOLD_MAX_MS;
+export function startupHoldOver(aheadS: number, heldMs: number, runwayS = STARTUP_RUNWAY_S): boolean {
+    return aheadS >= runwayS || heldMs >= STARTUP_HOLD_MAX_MS;
 }

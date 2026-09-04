@@ -4,6 +4,15 @@ import { HEALTH_CHECK_INTERVAL_MS, HEALTH_STALE_MS, HEALTH_STUCK_MS, WAITING_STA
 import { beginTransport, clearRetryTimer, restartAfterFailure } from "./lifecycle.ts";
 
 let waitingTimer: number | null = null;
+let stallGraceMs = WAITING_STALL_MS;
+
+export function setStallGraceMs(ms: number): void {
+    stallGraceMs = ms;
+}
+
+export function resetStallGraceMs(): void {
+    stallGraceMs = WAITING_STALL_MS;
+}
 
 export function clearWaitingTimer(): void {
     if (waitingTimer !== null) {
@@ -64,7 +73,7 @@ export function attachVideoFailureListeners(g: number): void {
             waitingTimer = null;
             if (!isCurrent(g)) return;
             if (video.readyState < 3) restartAfterFailure(g);
-        }, WAITING_STALL_MS);
+        }, stallGraceMs);
     };
     const onRecovered = () => clearWaitingTimer();
 

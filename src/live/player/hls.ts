@@ -1,7 +1,7 @@
 import Hls from "hls.js";
 import { video } from "../dom.ts";
 import { ctx, isCurrent, track } from "./context.ts";
-import { HLS_BEACON_INTERVAL_MS, HLS_QUALITY_STORAGE_KEY, PAUSE_SUSPEND_MS, PRUNE_KEEP_S } from "../constants.ts";
+import { HLS_BEACON_INTERVAL_MS, HLS_QUALITY_STORAGE_KEY, PAUSE_SUSPEND_MS, PRUNE_KEEP_S, WAITING_STALL_MS } from "../constants.ts";
 import { readLocalStorage } from "../../storage.ts";
 import { ensureViewerId } from "../../player-shared/viewer-id.ts";
 import { needsCredentials } from "../../player-shared/needs-credentials.ts";
@@ -9,12 +9,13 @@ import { captchaQuery } from "../../captcha.ts";
 import { beginTransport, enterTerminal, fullTeardown, goOffline, resetRetryBackoff, restartAfterFailure, setState, suspendForPause } from "./lifecycle.ts";
 import { closeQualityUpsell, enterQualityLockedTerminal } from "../quality-upsell.ts";
 import { withCaptchaHint } from "./ws.ts";
-import { attachVideoFailureListeners } from "./health.ts";
+import { attachVideoFailureListeners, setStallGraceMs } from "./health.ts";
 import { renderQualityMenu } from "../quality-menu.ts";
 import { streamQualityText } from "../../quality.ts";
 import { canUseHlsJs, canUseNativeHLS } from "./hls-support.ts";
 import { clampToAdvertisedWindow, farWindowFor, isPhoneUA, latencyTierFor, latencyWindowFor, type LatencyWindow } from "./latency-window.ts";
-import { bufferedAheadOf, startupHoldOver } from "./startup-hold.ts";
+import { abrEstimateFor, stallGraceMsFor, startupRunwayFor } from "./far-tier.ts";
+import { bufferedAheadOf, STARTUP_RUNWAY_S, startupHoldOver } from "./startup-hold.ts";
 import { updateSeekBar } from "../seekbar.ts";
 
 export interface HlsLevelEntry {
@@ -177,13 +178,15 @@ function startHlsJsPlayer(g: number, src: string, originLL: boolean, rttMs: numb
     const phone = isPhone();
     const tier = latencyTierFor(rttMs, originLL, phone);
     console.log("live: hls latency tier", tier, rttMs === null ? "unmeasured" : `${Math.round(rttMs)}ms`, phone ? "phone" : "desktop");
+    setStallGraceMs(stallGraceMsFor(tier, WAITING_STALL_MS));
+    const startupRunwayS = startupRunwayFor(tier, STARTUP_RUNWAY_S);
     let normalLiveWindow: LatencyWindow = tier === "near"
         ? TIGHT_LIVE_WINDOW
         : tier === "far" ? FAR_LIVE_WINDOW : DEFAULT_LIVE_WINDOW;
     let dvrHoldActive = false;
     const hls = new Hls({
         lowLatencyMode: tier === "near",
-        abrEwmaDefaultEstimate: 10_000_000,
+        abrEwmaDefaultEstimate: abrEstimateFor(tier),
         backBufferLength: PRUNE_KEEP_S,
         liveSyncDuration: normalLiveWindow.sync,
         liveMaxLatencyDuration: normalLiveWindow.max,
@@ -258,7 +261,7 @@ function startHlsJsPlayer(g: number, src: string, originLL: boolean, rttMs: numb
         for (let i = 0; i < video.buffered.length; i++) {
             ranges.push({ start: video.buffered.start(i), end: video.buffered.end(i) });
         }
-        if (!startupHoldOver(bufferedAheadOf(ranges, video.currentTime), Date.now() - holdStarted)) return;
+        if (!startupHoldOver(bufferedAheadOf(ranges, video.currentTime), Date.now() - holdStarted, startupRunwayS)) return;
         window.clearInterval(holdTimer);
         void video.play().catch(() => {});
     }, 200);
