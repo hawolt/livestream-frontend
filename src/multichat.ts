@@ -1,5 +1,6 @@
 import { ChatEmoteCatalog, type ChatEmoteScope } from "./chat-emotes.ts";
 import { buildPersonalEmoteImg, parsePersonalEmoteTag, splicePersonalEmotes, type PersonalEmoteGroup } from "./chat-personal-emotes.ts";
+import { canUnpin, isNearBottom, pinnedAfterScroll, type ScrollGeometry } from "./multichat-pin.ts";
 import { parseOverlayFont } from "./overlay-font.ts";
 import { parseOverlayShadow } from "./overlay-shadow.ts";
 import { parseOverlaySize } from "./overlay-size.ts";
@@ -215,18 +216,40 @@ function makeBadgeSvg(path: string, color: string, title: string): HTMLSpanEleme
     return wrap;
 }
 
+function geometry(): ScrollGeometry {
+    return {
+        scrollHeight: scrollEl.scrollHeight,
+        scrollTop: scrollEl.scrollTop,
+        clientHeight: scrollEl.clientHeight,
+    };
+}
+
 function nearBottom(): boolean {
-    return scrollEl.scrollHeight - scrollEl.scrollTop - scrollEl.clientHeight < 40;
+    return isNearBottom(geometry());
 }
 
 function scrollToBottom(): void {
     scrollEl.scrollTop = scrollEl.scrollHeight;
 }
 
+function unpinFromUser(): void {
+    if (!canUnpin(document.body.dataset["overlay"] === "1", geometry())) return;
+    pinned = false;
+    resumeEl.classList.add("show");
+}
+
 scrollEl.addEventListener("scroll", () => {
-    pinned = nearBottom();
+    pinned = pinnedAfterScroll(pinned, geometry());
     resumeEl.classList.toggle("show", !pinned);
 });
+
+scrollEl.addEventListener("wheel", (ev) => {
+    if (ev.deltaY < 0) unpinFromUser();
+}, { passive: true });
+
+scrollEl.addEventListener("touchmove", () => {
+    if (!nearBottom()) unpinFromUser();
+}, { passive: true });
 
 resumeEl.addEventListener("click", () => {
     pinned = true;
@@ -307,6 +330,9 @@ function buildEmoteImg(token: string, url: string): HTMLImageElement {
     img.src = url;
     img.alt = token;
     img.title = token;
+    img.addEventListener("load", () => {
+        if (pinned) scrollToBottom();
+    }, { once: true });
     return img;
 }
 
@@ -378,6 +404,7 @@ function refreshEmoteRendering(): void {
     for (const body of Array.from(msgsEl.querySelectorAll<HTMLElement>(`.${RENDERED_BODY_CLASS}`))) {
         body.replaceChildren(renderSevenTvBody(body.dataset["rawText"] ?? "", personalEmotesByBody.get(body) ?? []));
     }
+    if (pinned) scrollToBottom();
 }
 
 async function loadEmoteSet(url: string, scope: ChatEmoteScope): Promise<void> {
