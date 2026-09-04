@@ -506,6 +506,10 @@ interface IrcLine {
     tags: Map<string, string>;
 }
 
+function messageBody(params: string[]): string {
+    return params.slice(1).join(" ");
+}
+
 function parseIrc(line: string): IrcLine | null {
     let rest = line;
     let from = "";
@@ -687,7 +691,7 @@ function startItzon(channelName: string): void {
                 if (color && /^#[0-9a-fA-F]{6}$/.test(color)) meta.color = color;
                 const msgid = line.tags.get("msgid");
                 if (msgid) meta.id = msgid;
-                addChat("itzon", line.nick, buildRenderedBody(line.params[1], line.tags.get("personal-emotes")), meta);
+                addChat("itzon", line.nick, buildRenderedBody(messageBody(line.params), line.tags.get("personal-emotes")), meta);
                 return;
             }
             case "REDACT": {
@@ -847,7 +851,7 @@ function startTwitch(channelName: string): void {
             }
             case "PRIVMSG": {
                 if (line.params[0]?.toLowerCase() !== channel || !line.params[1]) return;
-                let body = line.params[1];
+                let body = messageBody(line.params);
                 if (body.startsWith("\u0001ACTION ") && body.endsWith("\u0001")) body = body.slice(8, -1);
                 const meta: MessageMeta = {
                     login: line.nick,
