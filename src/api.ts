@@ -169,6 +169,9 @@ export interface LiveInfo {
     hasThumbnail: boolean;
     thumbnailVersion: number | null;
     passwordProtected: boolean;
+    effectivePrivate?: boolean;
+    pendingPrivate?: boolean;
+    appliesNextStream?: boolean;
     thumbnailAllowed?: boolean;
     privateAllowed?: boolean;
     maxImageBytes?: number;

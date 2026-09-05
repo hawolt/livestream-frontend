@@ -431,6 +431,7 @@ function renderPrivate(): void {
     if (!el || !liveCache) return;
     const allowed = liveCache.privateAllowed === true;
     const active = liveCache.passwordProtected === true;
+    const pending = liveCache.pendingPrivate === true;
     const lock = !allowed && !active ? lockedAddon("private") : null;
     applyCardLock("live-private-body", lock);
     if (lock) {
@@ -440,6 +441,7 @@ function renderPrivate(): void {
     el.innerHTML = `
         ${allowed || active ? "" : `<p style="color:var(--muted);font-size:13px;margin:0 0 12px">A subscription is required to make your stream private. <a href="/dashboard/subscription" data-switch-tab="subscription">See subscription plans</a>.</p>`}
         ${active ? `<div style="font-size:13px;color:var(--success);margin-bottom:10px">Password protection is on. Your channel is hidden from Browse.</div>` : ""}
+        ${pending ? `<div style="font-size:13px;color:var(--red);margin-bottom:10px">Your current broadcast is still public. The password applies from your next stream start, so end this stream before sending private content.</div>` : ""}
         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
             <input id="live-private-pass" type="password" placeholder="${active ? "New stream password" : "Stream password"}" minlength="4" maxlength="64" autocomplete="new-password" style="width:220px;max-width:240px;flex:none" ${allowed ? "" : "disabled"}>
             <button class="btn btn-primary" id="live-private-save" ${allowed ? "" : "disabled"}>${active ? "Change" : "Enable"}</button>
