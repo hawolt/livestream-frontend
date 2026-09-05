@@ -13,7 +13,7 @@ function parseParams(): void {
     const path = location.pathname.split("/").filter(Boolean);
     channel = (path[path.length - 1] ?? "").toLowerCase();
     const qs = new URLSearchParams(location.search);
-    if (qs.get("bg") === "1") document.body.dataset["bg"] = "1";
+    if (qs.get("bg") === "0") document.body.dataset["bg"] = "0";
     if (qs.get("viewers") === "0") document.body.dataset["noviewers"] = "1";
 }
 
