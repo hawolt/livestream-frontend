@@ -1,3 +1,4 @@
+import { segmentPrefetchLoader } from "./segment-prefetch.ts";
 import Hls from "hls.js";
 import { video } from "../dom.ts";
 import { ctx, isCurrent, track } from "./context.ts";
@@ -127,7 +128,7 @@ export function fallbackFromMSE(g: number): void {
 
 async function buildMasterUrl(): Promise<string> {
     const tq = await captchaQuery();
-    return `${ctx.mediaBase}/hls/${encodeURIComponent(ctx.username)}/master.m3u8?ll=1${tq}`;
+    return `${ctx.mediaBase}/hls/${encodeURIComponent(ctx.username)}/master.m3u8?prefetch=1${tq}`;
 }
 
 function wireVideoLifecycle(g: number): void {
@@ -184,8 +185,11 @@ function startHlsJsPlayer(g: number, src: string, originLL: boolean, rttMs: numb
         ? TIGHT_LIVE_WINDOW
         : tier === "far" ? FAR_LIVE_WINDOW : DEFAULT_LIVE_WINDOW;
     let dvrHoldActive = false;
+    const prefetch = segmentPrefetchLoader(Hls.DefaultConfig.loader);
+    track(prefetch.clear);
     const hls = new Hls({
-        lowLatencyMode: tier === "near",
+        loader: prefetch.loader,
+        lowLatencyMode: false,
         abrEwmaDefaultEstimate: abrEstimateFor(tier),
         backBufferLength: PRUNE_KEEP_S,
         liveSyncDuration: normalLiveWindow.sync,
@@ -321,7 +325,7 @@ export function startHLSTransport(g: number): void {
                     if ((JSON.parse(body) as { error?: unknown }).error === "quality-locked") locked = true;
                 } catch {}
             }
-            if (probe.ok) originLL = body.includes("ll=1");
+            if (probe.ok) originLL = body.includes("ll=1") || body.includes("prefetch=1");
             if (probe.status === 404 || probe.status === 410) missing = true;
         } catch {}
         if (!isCurrent(g)) return;
