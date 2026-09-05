@@ -45,6 +45,14 @@ function render(): void {
         row.append(type, text, time);
         stage.appendChild(row);
     }
+    trimToFit();
+}
+
+function trimToFit(): void {
+    let guard = MAX_ROWS;
+    while (stage.scrollHeight > stage.clientHeight && stage.lastElementChild && guard-- > 0) {
+        stage.removeChild(stage.lastElementChild);
+    }
 }
 
 async function loadSnapshot(): Promise<void> {
@@ -127,6 +135,8 @@ function connect(): void {
     };
     s.onerror = () => s.close();
 }
+
+window.addEventListener("resize", () => { if (token) render(); });
 
 parseParams();
 if (!token) {

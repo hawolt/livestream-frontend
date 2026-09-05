@@ -10,10 +10,10 @@
     <script>try{var c=document.cookie.match(/(?:^|; )site_accent=([^;]*)/);var a=c?decodeURIComponent(c[1]):localStorage.getItem("site_accent");if(a&&a!=="malachite"){document.documentElement.setAttribute("data-accent",a);var m={"beacon":["/static/img/favicon-beacon.png","/static/img/icon-beacon.png"]}[a];if(m){var i=document.querySelector('link[rel="icon"]');if(i)i.href=m[0];var t=document.querySelector('link[rel="apple-touch-icon"]');if(t)t.href=m[1]}}}catch(e){}</script>
     <link rel="stylesheet" href="/static/css/site.css" />
     <style>
-        body { margin: 0; padding: 12px; box-sizing: border-box; min-height: 100vh; background: var(--bg); }
-        #act-dock { max-width: 640px; margin: 0 auto; }
-        #act-dock .card { display: flex; flex-direction: column; min-height: 0 }
-        #act-stage { margin-top: 10px; overflow-y: auto; scrollbar-gutter: stable }
+        html, body { margin: 0; padding: 0; height: 100%; background: var(--bg); overflow: hidden; }
+        #act-dock { height: 100vh; display: flex; flex-direction: column; box-sizing: border-box; padding: 12px; min-height: 0; }
+        #act-dock .card { flex: 1; display: flex; flex-direction: column; min-height: 0; border: 0; border-radius: 0; background: transparent; padding: 0; margin: 0; }
+        #act-stage { flex: 1; margin-top: 10px; overflow: hidden; min-height: 0 }
         .act-ev { display: grid; grid-template-columns: 84px minmax(0, 1fr) auto; gap: 10px; align-items: baseline; padding: 5px 0; border-bottom: 1px solid rgba(46, 46, 46, .5); font-size: 12.5px }
         .act-ev:last-child { border-bottom: 0 }
         .act-ev-type { justify-self: start; font-size: 10px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; white-space: nowrap; color: var(--dim); border: 1px solid var(--border); border-radius: 3px; padding: 1px 6px; max-width: 84px; overflow: hidden; text-overflow: ellipsis }
@@ -33,6 +33,6 @@
         <div id="act-stage">Loading...</div>
     </div>
 </div>
-<script src="/activity-card-bxjg6rk0.js" type="module"></script>
+<script src="/activity-card-fzcshgvg.js" type="module"></script>
 </body>
 </html>

@@ -10,8 +10,9 @@
     <script>try{var c=document.cookie.match(/(?:^|; )site_accent=([^;]*)/);var a=c?decodeURIComponent(c[1]):localStorage.getItem("site_accent");if(a&&a!=="malachite"){document.documentElement.setAttribute("data-accent",a);var m={"beacon":["/static/img/favicon-beacon.png","/static/img/icon-beacon.png"]}[a];if(m){var i=document.querySelector('link[rel="icon"]');if(i)i.href=m[0];var t=document.querySelector('link[rel="apple-touch-icon"]');if(t)t.href=m[1]}}}catch(e){}</script>
     <link rel="stylesheet" href="/static/css/site.css" />
     <style>
-        body { margin: 0; padding: 12px; box-sizing: border-box; min-height: 100vh; background: var(--bg); }
-        #info-dock { max-width: 640px; margin: 0 auto; }
+        html, body { margin: 0; padding: 0; height: 100%; background: var(--bg); }
+        #info-dock { box-sizing: border-box; padding: 12px; }
+        #info-dock .card { border: 0; border-radius: 0; background: transparent; padding: 0; margin: 0; }
     </style>
 </head>
 <body>
