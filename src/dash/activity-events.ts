@@ -38,6 +38,25 @@ export function eventTypeClass(type: string): string {
     return key ? `act-ev-type act-ev-type-${key}` : "act-ev-type";
 }
 
+export function isStreamEvent(type: string): boolean {
+    return type === "reject" || type === "warn";
+}
+
+export function eventTypeLabel(type: string): string {
+    if (isStreamEvent(type)) return "STREAM";
+    if (type === "points.redeem") return "REDEEM";
+    return type.toUpperCase();
+}
+
+export function eventTextLabel(e: FollowEvent): string {
+    if (e.type === "raid" && typeof e.viewers === "number") {
+        return `${e.username} with ${e.viewers} ${e.viewers === 1 ? "viewer" : "viewers"}`;
+    }
+    if (isStreamEvent(e.type)) return rejectEventLabel(e);
+    if (e.type === "points.redeem") return `${e.username} redeemed ${e.detail?.trim() || "a reward"}`;
+    return e.username;
+}
+
 export function viewerCountLabel(viewers: number | null, live: boolean | null): string {
     if (viewers === null) return "-";
     if (live === false) return "Offline";

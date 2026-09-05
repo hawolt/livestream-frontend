@@ -111,6 +111,10 @@
                                 <span>Volume</span>
                                 <input type="range" class="ov-range" id="act-sound-volume" min="0" max="100" step="5" style="width:110px">
                             </div>
+                            <div class="sound-pop-row">
+                                <span>OBS card</span>
+                                <button class="btn btn-sm" id="act-copy-activity-url" type="button" title="Copy a pre-authenticated overlay URL for OBS" disabled>Copy</button>
+                            </div>
                         </div>
                     </span>
                 </div>
@@ -144,7 +148,20 @@
                         <svg class="act-grip" width="12" height="14" viewBox="0 0 24 24" fill="currentColor"><circle cx="8" cy="5" r="1.8"/><circle cx="8" cy="12" r="1.8"/><circle cx="8" cy="19" r="1.8"/><circle cx="16" cy="5" r="1.8"/><circle cx="16" cy="12" r="1.8"/><circle cx="16" cy="19" r="1.8"/></svg>
                         <span>Stream info</span>
                     </span>
-                    <button class="btn btn-sm" id="act-preview-toggle" type="button" aria-pressed="false" disabled>Live preview</button>
+                    <span style="display:flex;align-items:center;gap:8px">
+                        <button class="btn btn-sm" id="act-preview-toggle" type="button" aria-pressed="false" disabled>Live preview</button>
+                        <span class="sound-pop-wrap">
+                            <button class="btn btn-sm" id="act-info-settings" type="button" title="Stream info card settings" aria-haspopup="true">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:block"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+                            </button>
+                            <div class="sound-pop" id="act-info-pop">
+                                <div class="sound-pop-row">
+                                    <span>OBS card</span>
+                                    <button class="btn btn-sm" id="act-copy-info-url" type="button" title="Copy the stream info overlay URL for OBS">Copy</button>
+                                </div>
+                            </div>
+                        </span>
+                    </span>
                 </div>
                 <div id="live-info-body" style="overflow-y:auto;min-height:0">Loading...</div>
             </div>

@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="referrer" content="no-referrer" />
+    <meta name="robots" content="noindex,nofollow" />
+    <title>Stream info overlay</title>
+    <style>
+        html, body {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            background: transparent;
+            overflow: hidden;
+        }
+        * { scrollbar-width: none; }
+        *::-webkit-scrollbar { display: none; }
+        body {
+            font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            color: #fff;
+        }
+        body[data-bg="1"] #info-stage { background: rgba(12, 14, 20, 0.82); border-radius: 10px; }
+        #info-stage {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            gap: 6px;
+            padding: 14px 16px;
+            box-sizing: border-box;
+            text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
+        }
+        #info-title {
+            font-size: 26px;
+            font-weight: 800;
+            line-height: 1.2;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+        }
+        #info-meta {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            opacity: 0.92;
+        }
+        #info-viewers-wrap { display: flex; align-items: center; gap: 6px; }
+        #info-viewers-dot {
+            width: 9px;
+            height: 9px;
+            border-radius: 50%;
+            background: #ef4444;
+        }
+    </style>
+</head>
+<body>
+<div id="info-stage">
+    <div id="info-title"></div>
+    <div id="info-meta">
+        <span id="info-category"></span>
+        <span id="info-viewers-wrap"><span id="info-viewers-dot"></span><span id="info-viewers">0</span></span>
+    </div>
+</div>
+<script src="/info-card-rsx3t430.js" type="module"></script>
+</body>
+</html>

@@ -3,7 +3,7 @@ import { STREAM_LANGUAGE_OPTIONS, streamLanguageCodes } from "../../stream-langu
 import { attachTypeahead, type TypeaheadOption } from "../../typeahead.ts";
 import { esc, fmtDate, fmtTime } from "../format.ts";
 import { authFetch, getMe, token } from "../session.ts";
-import { countNewFollowerEvents, eventTypeClass, followEventKey, mergeFollowEvents, rejectEventLabel, viewerCountLabel, type FollowEvent } from "../activity-events.ts";
+import { countNewFollowerEvents, eventTextLabel, eventTypeClass, eventTypeLabel, followEventKey, isStreamEvent, mergeFollowEvents, viewerCountLabel, type FollowEvent } from "../activity-events.ts";
 import {
     ACTIVITY_BLOCK_IDS,
     ACTIVITY_LAYOUT_KEY,
@@ -22,6 +22,7 @@ import {
     type ActivityLayoutState,
 } from "../activity-layout.ts";
 import { shouldPreviewRun } from "../activity-preview.ts";
+import { wireCopy } from "../overlay-shared.ts";
 
 interface RecentFollowsResponse {
     events: FollowEvent[];
@@ -401,19 +402,11 @@ function buildEventRow(e: FollowEvent): HTMLElement {
     row.className = "act-ev";
     const type = document.createElement("span");
     type.className = eventTypeClass(e.type);
-    const streamEvent = e.type === "reject" || e.type === "warn";
-    const redeemEvent = e.type === "points.redeem";
-    type.textContent = streamEvent ? "STREAM" : redeemEvent ? "REDEEM" : e.type.toUpperCase();
+    const streamEvent = isStreamEvent(e.type);
+    type.textContent = eventTypeLabel(e.type);
     const text = document.createElement("span");
     text.className = "act-ev-text";
-    let label = e.username;
-    if (e.type === "raid" && typeof e.viewers === "number") {
-        label = `${e.username} with ${e.viewers} ${e.viewers === 1 ? "viewer" : "viewers"}`;
-    } else if (streamEvent) {
-        label = rejectEventLabel(e);
-    } else if (redeemEvent) {
-        label = `${e.username} redeemed ${e.detail?.trim() || "a reward"}`;
-    }
+    const label = eventTextLabel(e);
     text.textContent = label;
     text.title = label;
     if (streamEvent) {
@@ -711,6 +704,47 @@ function playFollowSound(): void {
     void alertAudio.play().catch(() => {});
 }
 
+let overlayToken: string | null = null;
+
+function activityCardUrl(): string {
+    const user = getMe()?.username;
+    if (!user || !overlayToken) return "";
+    return `${location.origin}/activity/${encodeURIComponent(user.toLowerCase())}#token=${overlayToken}`;
+}
+
+function infoCardUrl(): string {
+    const user = getMe()?.username;
+    if (!user) return "";
+    return `${location.origin}/info/${encodeURIComponent(user.toLowerCase())}`;
+}
+
+function wirePopover(buttonId: string, popId: string): void {
+    const button = document.getElementById(buttonId);
+    const pop = document.getElementById(popId);
+    button?.addEventListener("click", (ev) => {
+        ev.stopPropagation();
+        pop?.classList.toggle("open");
+    });
+    document.addEventListener("pointerdown", (ev) => {
+        if (!pop?.classList.contains("open")) return;
+        const wrap = button?.parentElement;
+        if (wrap && ev.target instanceof Node && !wrap.contains(ev.target)) {
+            pop.classList.remove("open");
+        }
+    });
+}
+
+function initCardUrls(): void {
+    wirePopover("act-info-settings", "act-info-pop");
+    wireCopy("act-copy-activity-url", activityCardUrl);
+    wireCopy("act-copy-info-url", infoCardUrl);
+    void authFetch<{ overlayToken?: string }>("/api/settings").then((s) => {
+        overlayToken = typeof s.overlayToken === "string" ? s.overlayToken : null;
+        const copyBtn = document.getElementById("act-copy-activity-url") as HTMLButtonElement | null;
+        if (copyBtn) copyBtn.disabled = overlayToken === null;
+    }).catch(() => {});
+}
+
 export function init(): void {
     const soundButton = document.getElementById("act-sound-settings");
     const soundPop = document.getElementById("act-sound-pop");
@@ -725,6 +759,7 @@ export function init(): void {
             soundPop.classList.remove("open");
         }
     });
+    initCardUrls();
     const soundOn = document.getElementById("act-sound-on") as HTMLInputElement | null;
     if (soundOn) {
         soundOn.checked = soundPrefOn();

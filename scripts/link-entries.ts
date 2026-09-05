@@ -11,6 +11,7 @@ const PAGE_ENTRIES = [
     "explore", "live", "embed", "chat-overlay", "follow-alerts", "user-login",
     "register", "verify", "reset-password", "legal", "clip-editor",
     "clip-embed", "multichat", "oauth-authorize", "status", "pricing", "patron", "clips-week", "content-page",
+    "activity-card", "info-card",
 ];
 const DASH_ENTRIES = ["dashboard"];
 
