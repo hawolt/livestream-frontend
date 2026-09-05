@@ -1,4 +1,6 @@
+import { API_BASE } from "./api.ts";
 import { eventTextLabel, eventTypeClass, eventTypeLabel, mergeFollowEvents, type FollowEvent } from "./dash/activity-events.ts";
+import { fmtDate, fmtTime } from "./dash/format.ts";
 import { scrubOverlayToken } from "./url-secrets.ts";
 
 const RETRY_MS = 5000;
@@ -16,12 +18,17 @@ function parseParams(): void {
     const scrubbed = scrubOverlayToken(location.href);
     token = scrubbed.token;
     if (scrubbed.replacement) history.replaceState(history.state, "", scrubbed.replacement);
-    const qs = new URLSearchParams(location.search);
-    if (qs.get("bg") === "0") document.body.dataset["bg"] = "0";
 }
 
 function render(): void {
     stage.replaceChildren();
+    if (events.length === 0) {
+        const empty = document.createElement("div");
+        empty.className = "act-ev-empty";
+        empty.textContent = "No recent activity yet.";
+        stage.appendChild(empty);
+        return;
+    }
     for (const e of events.slice(0, MAX_ROWS)) {
         const row = document.createElement("div");
         row.className = "act-ev";
@@ -31,7 +38,11 @@ function render(): void {
         const text = document.createElement("span");
         text.className = "act-ev-text";
         text.textContent = eventTextLabel(e);
-        row.append(type, text);
+        const time = document.createElement("span");
+        time.className = "act-ev-time";
+        const at = new Date(e.at * 1000);
+        time.textContent = `${fmtTime(at)} ${fmtDate(at)}`;
+        row.append(type, text, time);
         stage.appendChild(row);
     }
 }
@@ -39,7 +50,7 @@ function render(): void {
 async function loadSnapshot(): Promise<void> {
     if (!token) return;
     try {
-        const res = await fetch(`/api/events/recent?overlay=${encodeURIComponent(token)}&limit=${MAX_ROWS}`);
+        const res = await fetch(`${API_BASE}/events/recent?overlay=${encodeURIComponent(token)}&limit=${MAX_ROWS}`);
         if (!res.ok) return;
         const body = await res.json() as { events?: FollowEvent[] };
         if (Array.isArray(body.events)) {
@@ -58,7 +69,8 @@ function toFollowEvent(data: Record<string, unknown>): FollowEvent | null {
     const type = typeof data.type === "string" ? data.type : "";
     const username = typeof data.username === "string" ? data.username : "";
     if (!type || !username) return null;
-    const e: FollowEvent = { type, username, at: Date.now() };
+    const at = typeof data.at === "number" ? data.at : Math.floor(Date.now() / 1000);
+    const e: FollowEvent = { type, username, at };
     if (typeof data.viewers === "number") e.viewers = data.viewers;
     if (typeof data.reward === "string") e.detail = data.reward;
     if (typeof data.detail === "string") e.detail = data.detail;
@@ -117,5 +129,10 @@ function connect(): void {
 }
 
 parseParams();
-void loadSnapshot();
-connect();
+if (!token) {
+    stage.textContent = "This panel needs its dock URL from the dashboard. Use Copy card url on the Activity tab.";
+} else {
+    render();
+    void loadSnapshot();
+    connect();
+}

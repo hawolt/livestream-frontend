@@ -1,97 +1,121 @@
-const RETRY_MS = 5000;
+import type { LiveInfo, LiveCategory } from "./api.ts";
+import { STREAM_LANGUAGE_OPTIONS, streamLanguageCodes } from "./stream-languages.ts";
+import { attachTypeahead, type TypeaheadOption } from "./typeahead.ts";
+import { esc } from "./dash/format.ts";
+import { authFetch, loadDashboardSession, setMe, startSessionRenewal } from "./dash/session.ts";
 
-const titleEl = document.getElementById("info-title") as HTMLElement;
-const categoryEl = document.getElementById("info-category") as HTMLElement;
-const viewersEl = document.getElementById("info-viewers") as HTMLElement;
-const viewersWrap = document.getElementById("info-viewers-wrap") as HTMLElement;
+const root = document.getElementById("info-dock") as HTMLElement;
 
-let channel = "";
-let sock: WebSocket | null = null;
-let retryTimer: number | null = null;
+let liveCache: LiveInfo | null = null;
+let categoriesCache: LiveCategory[] = [];
 
-function parseParams(): void {
-    const path = location.pathname.split("/").filter(Boolean);
-    channel = (path[path.length - 1] ?? "").toLowerCase();
-    const qs = new URLSearchParams(location.search);
-    if (qs.get("bg") === "0") document.body.dataset["bg"] = "0";
-    if (qs.get("viewers") === "0") document.body.dataset["noviewers"] = "1";
+function showMessage(html: string): void {
+    root.innerHTML = `<div class="card">${html}</div>`;
 }
 
-function setTitle(title: string): void {
-    titleEl.textContent = title || "";
-    titleEl.style.display = title ? "" : "none";
+function renderEditor(): void {
+    if (!liveCache) return;
+    const currentCodes = streamLanguageCodes(liveCache.language);
+    const primaryCode = currentCodes[0] ?? "und";
+    const secondaryCode = currentCodes[1] ?? "und";
+    root.innerHTML = `
+        <div class="card">
+            <div class="section-title">Stream info</div>
+            <div class="form-grid">
+                <label class="span2"><span>Title</span><input id="info-title" type="text" maxlength="200" placeholder="Now streaming..." value="${esc(liveCache.title)}"></label>
+                <label><span>Category</span><input id="info-category" type="text" placeholder="Other (no category)"></label>
+                <label><span>Language</span><input id="info-language" type="text" placeholder="Unspecified"></label>
+                <label><span>Second language</span><input id="info-language2" type="text" placeholder="None"></label>
+            </div>
+            <div style="font-size:12px;color:var(--muted);margin-top:6px">
+                Shown with your stream on the channel page and explorer. Categories are also used to group streams.
+            </div>
+            <div id="info-error" style="color:var(--red);font-size:13px;margin-top:8px"></div>
+            <div class="card-actions" style="align-items:center">
+                <button class="btn btn-primary" id="info-save">Save Stream Info</button>
+                <span id="info-saved" style="font-size:13px;color:var(--success)"></span>
+            </div>
+        </div>`;
+
+    const categoryOptions: TypeaheadOption[] = [{ value: "", label: "Other (no category)" }]
+        .concat(categoriesCache.map(c => ({ value: String(c.id), label: c.name })));
+    const categoryField = attachTypeahead(
+        document.getElementById("info-category") as HTMLInputElement, categoryOptions);
+    categoryField.setValue(liveCache.categoryId === null ? "" : String(liveCache.categoryId));
+
+    const primaryOptions: TypeaheadOption[] = STREAM_LANGUAGE_OPTIONS.map(({ code, label }) => ({ value: code, label }));
+    const secondaryOptions: TypeaheadOption[] = STREAM_LANGUAGE_OPTIONS.map(({ code, label }) =>
+        ({ value: code, label: code === "und" ? "None" : label }));
+    const primaryField = attachTypeahead(
+        document.getElementById("info-language") as HTMLInputElement, primaryOptions);
+    primaryField.setValue(primaryCode);
+    const secondaryField = attachTypeahead(
+        document.getElementById("info-language2") as HTMLInputElement, secondaryOptions);
+    secondaryField.setValue(secondaryCode);
+
+    document.getElementById("info-save")?.addEventListener("click", async () => {
+        if (!liveCache) return;
+        const btn = document.getElementById("info-save") as HTMLButtonElement;
+        const errEl = document.getElementById("info-error")!;
+        const savedEl = document.getElementById("info-saved")!;
+        const title = (document.getElementById("info-title") as HTMLInputElement).value;
+        const catVal = categoryField.value();
+        const categoryId = catVal === "" ? null : Number(catVal);
+        const codes = [primaryField.value(), secondaryField.value()]
+            .filter((code, i, all) => code !== "und" && all.indexOf(code) === i);
+        const language = codes.length ? codes.join(",") : "und";
+        errEl.textContent = "";
+        savedEl.textContent = "";
+        btn.disabled = true;
+        try {
+            liveCache = await authFetch<LiveInfo>("/api/live/info", {
+                method: "PUT",
+                body: JSON.stringify({ title, categoryId, language }),
+            });
+            renderEditor();
+            const savedNow = document.getElementById("info-saved");
+            if (savedNow) {
+                savedNow.textContent = "Saved";
+                setTimeout(() => { savedNow.textContent = ""; }, 2500);
+            }
+        } catch (e) {
+            errEl.textContent = e instanceof Error ? e.message : String(e);
+            btn.disabled = false;
+        }
+    });
 }
 
-function setCategory(category: string | null): void {
-    categoryEl.textContent = category || "";
-    categoryEl.style.display = category ? "" : "none";
+async function loadEditor(): Promise<void> {
+    try {
+        const [info, cats] = await Promise.all([
+            authFetch<LiveInfo>("/api/live"),
+            authFetch<{ categories: LiveCategory[] }>("/api/live/categories"),
+        ]);
+        liveCache = info;
+        categoriesCache = cats.categories;
+        renderEditor();
+    } catch (e) {
+        showMessage(`<div style="color:var(--red)">${esc(e instanceof Error ? e.message : String(e))}</div>`);
+    }
 }
 
-function setViewers(viewers: number | null, live: boolean | null): void {
-    if (document.body.dataset["noviewers"] === "1" || viewers === null || live === false) {
-        viewersWrap.style.display = "none";
+async function boot(): Promise<void> {
+    showMessage("Loading...");
+    const session = await loadDashboardSession();
+    if (session.state === "ready") {
+        setMe(session.me);
+        startSessionRenewal();
+        void loadEditor();
         return;
     }
-    viewersWrap.style.display = "";
-    viewersEl.textContent = String(viewers);
+    if (session.state === "unavailable") {
+        showMessage("Dashboard is temporarily unavailable. This panel retries when you reload.");
+        return;
+    }
+    const returnTo = encodeURIComponent(location.pathname);
+    showMessage(`<div class="section-title">Log in to edit your stream info</div>
+        <div style="font-size:13px;color:var(--muted);margin-bottom:12px">This panel stays signed in after you log in once.</div>
+        <a class="btn btn-primary" href="/login?return=${returnTo}">Log in</a>`);
 }
 
-async function loadInitial(): Promise<void> {
-    try {
-        const res = await fetch(`/api/live/channel/${encodeURIComponent(channel)}`);
-        if (!res.ok) return;
-        const body = await res.json() as { title?: string; category?: string | null; live?: boolean };
-        setTitle(typeof body.title === "string" ? body.title : "");
-        setCategory(typeof body.category === "string" ? body.category : null);
-        if (body.live === false) setViewers(null, false);
-    } catch {}
-}
-
-function scheduleRetry(): void {
-    if (retryTimer !== null) return;
-    retryTimer = window.setTimeout(() => {
-        retryTimer = null;
-        connect();
-    }, RETRY_MS);
-}
-
-function connect(): void {
-    if (!channel) return;
-    if (sock && (sock.readyState === WebSocket.CONNECTING || sock.readyState === WebSocket.OPEN)) return;
-    const proto = location.protocol === "https:" ? "wss" : "ws";
-    const s = new WebSocket(`${proto}://${location.host}/ws/events`);
-    sock = s;
-    s.onopen = () => {
-        if (sock !== s) return;
-        s.send(JSON.stringify({ watch: channel }));
-    };
-    s.onmessage = (ev) => {
-        if (sock !== s || typeof ev.data !== "string") return;
-        let msg: unknown;
-        try {
-            msg = JSON.parse(ev.data);
-        } catch {
-            return;
-        }
-        if (!msg || typeof msg !== "object") return;
-        const data = msg as Record<string, unknown>;
-        if (data.type === "stream-info") {
-            if (typeof data.title === "string") setTitle(data.title);
-            setCategory(typeof data.category === "string" ? data.category : null);
-        } else if (data.type === "viewcount") {
-            const viewers = typeof data.viewers === "number" ? data.viewers : null;
-            const live = typeof data.live === "boolean" ? data.live : true;
-            setViewers(viewers, live);
-        }
-    };
-    s.onclose = () => {
-        if (sock !== s) return;
-        sock = null;
-        scheduleRetry();
-    };
-    s.onerror = () => s.close();
-}
-
-parseParams();
-void loadInitial();
-connect();
+void boot();
