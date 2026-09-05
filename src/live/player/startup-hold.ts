@@ -5,8 +5,7 @@ export function bufferedAheadOf(ranges: Array<{ start: number; end: number }>, p
     for (const range of ranges) {
         if (position >= range.start - 0.5 && position <= range.end) return range.end - position;
     }
-    const last = ranges[ranges.length - 1];
-    return last ? Math.max(0, last.end - position) : 0;
+    return 0;
 }
 
 export function startupHoldOver(aheadS: number, heldMs: number, runwayS = STARTUP_RUNWAY_S): boolean {

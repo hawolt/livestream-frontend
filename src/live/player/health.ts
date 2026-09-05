@@ -1,3 +1,4 @@
+import { recoveryDeadlineMs } from "./recovery-deadline.ts";
 import { video } from "../dom.ts";
 import { ctx, isCurrent, track } from "./context.ts";
 import { HEALTH_CHECK_INTERVAL_MS, HEALTH_STALE_MS, HEALTH_STUCK_MS, WAITING_STALL_MS } from "../constants.ts";
@@ -34,7 +35,7 @@ export function healthCheck(): void {
     if (ctx.state === "playing") {
         if (video.paused) return;
         const mediaStale = ctx.transportKind === "ws" && now - ctx.lastMediaArrivalAt > HEALTH_STALE_MS;
-        const progressStale = !video.paused && now - ctx.lastProgressAt > HEALTH_STALE_MS;
+        const progressStale = !video.paused && now - ctx.lastProgressAt > recoveryDeadlineMs(HEALTH_STALE_MS, stallGraceMs);
         if (mediaStale || progressStale) healthRestart("stale-playing");
         return;
     }
@@ -42,7 +43,7 @@ export function healthCheck(): void {
         || ctx.state === "buffering"
         || ctx.state === "reconnecting"
         || (ctx.state === "offline" && ctx.startedOnce);
-    if (awaitingTransport && now - ctx.lastStateChangeAt > HEALTH_STUCK_MS) healthRestart(`stuck-${ctx.state}`);
+    if (awaitingTransport && now - ctx.lastStateChangeAt > recoveryDeadlineMs(HEALTH_STUCK_MS, stallGraceMs)) healthRestart(`stuck-${ctx.state}`);
 }
 
 let healthTimer: number | null = null;
@@ -68,7 +69,7 @@ export function attachVideoFailureListeners(g: number): void {
     };
     const onWaiting = () => {
         if (!isCurrent(g)) return;
-        clearWaitingTimer();
+        if (waitingTimer !== null) return;
         waitingTimer = window.setTimeout(() => {
             waitingTimer = null;
             if (!isCurrent(g)) return;

@@ -19,6 +19,12 @@ test("no buffer means no runway", () => {
     expect(bufferedAheadOf([], 0)).toBe(0);
 });
 
+test("future media and discontinuities are not playable runway", () => {
+    expect(bufferedAheadOf([{ start: 100, end: 104 }], 0)).toBe(0);
+    expect(bufferedAheadOf([{ start: 0, end: 3 }, { start: 10, end: 14 }], 5)).toBe(0);
+    expect(bufferedAheadOf([{ start: 0, end: 3 }, { start: 10, end: 14 }], 2)).toBe(1);
+});
+
 test("hold releases on runway or on timeout", () => {
     expect(startupHoldOver(0.4, 1000)).toBe(false);
     expect(startupHoldOver(STARTUP_RUNWAY_S, 0)).toBe(true);
