@@ -34,6 +34,7 @@ export function segmentPrefetchLoader(Base: LoaderConstructor) {
         private delegate: Loader<LoaderContext>;
         private attached: Entry | null = null;
         private stopped = false;
+        private destroyed = false;
         constructor(private hlsConfig: HlsConfig) {
             this.delegate = new Base(hlsConfig);
         }
@@ -41,6 +42,7 @@ export function segmentPrefetchLoader(Base: LoaderConstructor) {
         getCacheAge(): number | null { return this.delegate.getCacheAge?.() ?? null; }
         getResponseHeader(name: string): string | null { return this.delegate.getResponseHeader?.(name) ?? null; }
         abort(): void {
+            if (this.stopped || this.destroyed) return;
             this.stopped = true;
             if (this.attached) {
                 this.attached.deliver = undefined;
@@ -49,10 +51,18 @@ export function segmentPrefetchLoader(Base: LoaderConstructor) {
             this.delegate.abort();
         }
         destroy(): void {
-            this.abort();
+            if (this.destroyed) return;
+            this.destroyed = true;
+            this.stopped = true;
+            if (this.attached) {
+                this.attached.deliver = undefined;
+                this.attached.fail = undefined;
+                this.attached = null;
+            }
             this.delegate.destroy();
         }
         load(context: LoaderContext, config: LoaderConfiguration, callbacks: LoaderCallbacks<LoaderContext>): void {
+            if (this.destroyed) return;
             this.context = context;
             this.stopped = false;
             const cached = context.responseType === "arraybuffer" && !context.rangeStart && !context.rangeEnd

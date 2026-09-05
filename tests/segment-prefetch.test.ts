@@ -134,3 +134,56 @@ test("repeated hints are deduplicated and old unused requests are evicted", () =
     expect(FakeLoader.requests[1].aborted).toBe(true);
     factory.clear();
 });
+
+class AbortCallbackLoader extends FakeLoader {
+    abortCalls = 0;
+    destroyCalls = 0;
+    abort() {
+        this.abortCalls++;
+        this.aborted = true;
+        this.callbacks?.onAbort?.(this.stats, this.context!, null);
+    }
+    destroy() {
+        this.destroyCalls++;
+        this.aborted = true;
+    }
+}
+
+test("abort permits hls.js to synchronously destroy the loader without recursion", () => {
+    FakeLoader.requests = [];
+    const factory = segmentPrefetchLoader(AbortCallbackLoader);
+    const loader = new factory.loader(config);
+    let aborts = 0;
+    loader.load({ url: playlist, responseType: "text" }, loadConfig, {
+        ...callbacks(),
+        onAbort: () => {
+            aborts++;
+            if (aborts > 2) throw new Error("recursive abort");
+            loader.destroy();
+        },
+    });
+    const delegate = FakeLoader.requests[0] as AbortCallbackLoader;
+    loader.abort();
+    loader.abort();
+    loader.destroy();
+    expect(aborts).toBe(1);
+    expect(delegate.abortCalls).toBe(1);
+    expect(delegate.destroyCalls).toBe(1);
+});
+
+test("destroy is silent and idempotent", () => {
+    FakeLoader.requests = [];
+    const factory = segmentPrefetchLoader(AbortCallbackLoader);
+    const loader = new factory.loader(config);
+    let aborts = 0;
+    loader.load({ url: playlist, responseType: "text" }, loadConfig, {
+        ...callbacks(), onAbort: () => aborts++,
+    });
+    const delegate = FakeLoader.requests[0] as AbortCallbackLoader;
+    loader.destroy();
+    loader.destroy();
+    loader.abort();
+    expect(aborts).toBe(0);
+    expect(delegate.abortCalls).toBe(0);
+    expect(delegate.destroyCalls).toBe(1);
+});
