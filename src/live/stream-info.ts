@@ -8,56 +8,9 @@ import { parseStreamInfoFrame } from "./stream-info-wire.ts";
 import { applyChannelChrome } from "./channel-chrome.ts";
 import { channelPageTitle } from "./page-title.ts";
 import { syncStreamInfoState } from "./stream-info-edit.ts";
+import { clearOdometer, renderOdometer } from "./odometer.ts";
 
 export function updateInfoBar(): void {}
-
-function renderOdometer(el: HTMLElement, value: number): void {
-    const chars = value.toLocaleString().split("");
-    const pattern = chars.map((c) => (/\d/.test(c) ? "d" : c)).join("");
-    const fresh = el.dataset.odoPattern !== pattern;
-    if (fresh) {
-        el.dataset.odoPattern = pattern;
-        el.replaceChildren();
-        for (const c of chars) {
-            if (/\d/.test(c)) {
-                const col = document.createElement("span");
-                col.className = "odo-col";
-                const strip = document.createElement("span");
-                strip.className = "odo-strip no-anim";
-                for (let d = 0; d <= 9; d++) {
-                    const cell = document.createElement("span");
-                    cell.textContent = String(d);
-                    strip.appendChild(cell);
-                }
-                col.appendChild(strip);
-                el.appendChild(col);
-            } else {
-                const sep = document.createElement("span");
-                sep.className = "odo-sep";
-                sep.textContent = c;
-                el.appendChild(sep);
-            }
-        }
-    }
-    const cols = el.querySelectorAll<HTMLElement>(".odo-strip");
-    const firstCell = cols[0]?.firstElementChild as HTMLElement | null;
-    const cellPx = firstCell ? firstCell.getBoundingClientRect().height : 0;
-    let i = 0;
-    for (const c of chars) {
-        if (!/\d/.test(c)) continue;
-        const strip = cols[i++];
-        if (!strip) continue;
-        strip.style.transform = cellPx > 0
-            ? `translateY(-${Number(c) * cellPx}px)`
-            : `translateY(-${Number(c) * 1.25}em)`;
-    }
-    if (fresh) {
-        el.getBoundingClientRect();
-        requestAnimationFrame(() => {
-            el.querySelectorAll<HTMLElement>(".odo-strip").forEach((strip) => strip.classList.remove("no-anim"));
-        });
-    }
-}
 
 function setAccessibleViewerCount(container: HTMLElement, count: HTMLElement, value: number | null): void {
     count.setAttribute("aria-hidden", "true");
@@ -70,11 +23,11 @@ function setAccessibleViewerCount(container: HTMLElement, count: HTMLElement, va
     }
     accessible.textContent = value === null
         ? ""
-        : `${value.toLocaleString()} viewer${value === 1 ? "" : "s"}`;
+        : `${value} viewer${value === 1 ? "" : "s"}`;
 }
 
 export function setViewers(n: number | null): void {
-    if (typeof n === "number" && n >= 0) {
+    if (typeof n === "number" && Number.isSafeInteger(n) && n >= 0) {
         renderOdometer(viewersCountEl, n);
         setAccessibleViewerCount(viewersEl, viewersCountEl, n);
         viewersEl.classList.remove("hidden");
@@ -82,12 +35,10 @@ export function setViewers(n: number | null): void {
         setAccessibleViewerCount(viewersHeaderEl, viewersHeaderCountEl, n);
         viewersHeaderEl.classList.remove("hidden");
     } else {
-        viewersCountEl.replaceChildren();
-        delete viewersCountEl.dataset.odoPattern;
+        clearOdometer(viewersCountEl);
         setAccessibleViewerCount(viewersEl, viewersCountEl, null);
         viewersEl.classList.add("hidden");
-        viewersHeaderCountEl.replaceChildren();
-        delete viewersHeaderCountEl.dataset.odoPattern;
+        clearOdometer(viewersHeaderCountEl);
         setAccessibleViewerCount(viewersHeaderEl, viewersHeaderCountEl, null);
         viewersHeaderEl.classList.add("hidden");
     }

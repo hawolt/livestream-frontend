@@ -2240,34 +2240,36 @@
         body.is-vertical #live-chat-feature { display: none; }
 
         #live-viewers-count, #live-viewers-header-count {
-            display: inline-flex;
-            align-items: stretch;
-            line-height: 1;
-            height: 1.25em;
-            font-variant-numeric: tabular-nums;
-        }
-        #live-viewers svg, #live-viewers-header svg { display: block; }
-        .odo-col {
-            display: block;
+            display: inline-block;
+            line-height: 1.25;
             height: 1.25em;
             overflow: hidden;
+            vertical-align: middle;
+            white-space: nowrap;
+            font-variant-numeric: tabular-nums;
+            transition-property: none;
         }
-        .odo-strip {
-            display: block;
-            transition: transform .5s cubic-bezier(.25, .7, .3, 1);
-            will-change: transform;
-        }
-        .odo-strip.no-anim { transition: none; }
-        .odo-strip span {
-            display: block;
+        #live-viewers svg, #live-viewers-header svg { display: block; }
+        .odo-place {
+            position: relative;
+            display: inline-block;
+            width: 1ch;
             height: 1.25em;
-            line-height: 1.25em;
-            text-align: center;
+            overflow: hidden;
+            vertical-align: top;
+            transition-property: none;
         }
-        .odo-sep {
-            display: flex;
-            align-items: center;
-            height: 1.25em;
+        .odo-digit.odo-outgoing {
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+        .odo-digit {
+            position: relative;
+            top: 0;
+            display: inline-block;
+            vertical-align: top;
+            transition-property: none;
         }
 
         #live-viewers-header { display: none; }
@@ -2728,6 +2730,6 @@
         </form>
     </div>
 </div>
-<script src="/live-0vcmfx4q.js" type="module"></script>
+<script src="/live-x8qt2gjg.js" type="module"></script>
 </body>
 </html>
