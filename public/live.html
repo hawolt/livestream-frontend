@@ -592,8 +592,10 @@
             flex-direction: column;
             gap: 12px;
         }
+        .login-modal-box.is-signup { max-width: 380px; }
         .login-modal-box h3 { margin: 0; font-size: 16px; color: var(--text); }
         .login-modal-box input,
+        .login-modal-box select,
         .login-modal-box textarea {
             width: 100%;
             padding: 9px 11px;
@@ -608,6 +610,32 @@
         .login-modal-form { display: flex; flex-direction: column; gap: 10px; }
         .login-modal-form[hidden] { display: none; }
         .login-modal-hcaptcha { margin-top: 4px; }
+        .login-modal-field-label {
+            display: block;
+            font-size: 11px;
+            color: var(--muted);
+            margin-bottom: 5px;
+        }
+        .login-modal-birth {
+            display: grid;
+            grid-template-columns: minmax(0, 5fr) minmax(0, 7fr) minmax(0, 5fr);
+            gap: 6px;
+        }
+        .login-modal-birth select { min-width: 0; }
+        .login-modal-consent { display: flex; flex-direction: column; gap: 8px; }
+        .login-modal-consent-row {
+            display: flex;
+            align-items: flex-start;
+            gap: 9px;
+            font-size: 12px;
+            line-height: 1.45;
+            color: var(--muted);
+            cursor: pointer;
+        }
+        .login-modal-consent-row input[type="checkbox"] { width: auto; margin-top: 2px; flex: 0 0 auto; }
+        .login-modal-consent-row a { color: var(--accent); }
+        .login-modal-box select[aria-invalid="true"],
+        .login-modal-box input[aria-invalid="true"] { border-color: var(--red); }
         .login-modal-submit {
             padding: 9px 12px;
             border-radius: 6px;
@@ -2681,6 +2709,24 @@
             <input id="signup-modal-user" type="text" placeholder="Username" aria-label="Username" autocomplete="username" required />
             <input id="signup-modal-email" type="email" placeholder="Email address" aria-label="Email address" autocomplete="email" required />
             <input id="signup-modal-pass" type="password" placeholder="Password" aria-label="Password" autocomplete="new-password" minlength="8" required />
+            <div>
+                <label class="login-modal-field-label" for="signup-modal-birth-day">Date of birth</label>
+                <div class="login-modal-birth">
+                    <select id="signup-modal-birth-day" autocomplete="bday-day" aria-label="Day" required></select>
+                    <select id="signup-modal-birth-month" autocomplete="bday-month" aria-label="Month" required></select>
+                    <select id="signup-modal-birth-year" autocomplete="bday-year" aria-label="Year" required></select>
+                </div>
+            </div>
+            <div class="login-modal-consent">
+                <label class="login-modal-consent-row">
+                    <input id="signup-modal-terms" type="checkbox" required />
+                    <span>I accept the <a href="/terms" target="_blank" rel="noopener">Terms of Service</a> and the <a href="/privacy" target="_blank" rel="noopener">Privacy Policy</a>.</span>
+                </label>
+                <label class="login-modal-consent-row">
+                    <input id="signup-modal-marketing" type="checkbox" />
+                    <span>Email me product news and offers. Optional.</span>
+                </label>
+            </div>
             <div id="signup-modal-hcaptcha" class="login-modal-hcaptcha"></div>
             <div id="signup-modal-error" class="login-modal-error" role="alert" aria-live="polite" aria-atomic="true"></div>
             <button type="submit" id="signup-modal-submit" class="login-modal-submit">Create account</button>
@@ -2730,6 +2776,6 @@
         </form>
     </div>
 </div>
-<script src="/live-x8qt2gjg.js" type="module"></script>
+<script src="/live-bak6takk.js" type="module"></script>
 </body>
 </html>

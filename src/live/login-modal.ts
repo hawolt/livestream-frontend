@@ -13,15 +13,21 @@ import {
     loginModalUserEl,
     signupModalAltEl,
     signupModalBackEl,
+    signupModalBirthDayEl,
+    signupModalBirthMonthEl,
+    signupModalBirthYearEl,
     signupModalCaptchaEl,
     signupModalEmailEl,
     signupModalErrorEl,
     signupModalFallbackEl,
     signupModalFormEl,
+    signupModalMarketingEl,
     signupModalPassEl,
     signupModalSubmitEl,
+    signupModalTermsEl,
     signupModalUserEl,
 } from "./dom.ts";
+import { consentError, consentFieldForMessage, isoBirthDate, wireBirthDateSelects, type ConsentField } from "../consent.ts";
 import { ctx } from "./player/context.ts";
 import { API_BASE } from "../api.ts";
 import { reconnectChatAfterLogin } from "../live-chat.ts";
@@ -71,9 +77,29 @@ function loginTitleForIntent(intent: LoginIntent): string {
         : "Log in to chat";
 }
 
+function signupBirthParts() {
+    return { day: signupModalBirthDayEl.value, month: signupModalBirthMonthEl.value, year: signupModalBirthYearEl.value };
+}
+
+function markSignupConsentField(field: ConsentField | null): void {
+    for (const el of [signupModalBirthDayEl, signupModalBirthMonthEl, signupModalBirthYearEl]) {
+        el.setAttribute("aria-invalid", String(field === "birthDate"));
+    }
+    signupModalTermsEl.setAttribute("aria-invalid", String(field === "terms"));
+    if (field === "birthDate") signupModalBirthDayEl.focus();
+    if (field === "terms") signupModalTermsEl.focus();
+}
+
+function showSignupError(message: string): void {
+    signupModalErrorEl.textContent = message;
+    markSignupConsentField(consentFieldForMessage(message));
+}
+
 function setLoginModalView(view: LoginModalView): void {
     loginModalErrorEl.textContent = "";
     signupModalErrorEl.textContent = "";
+    markSignupConsentField(null);
+    loginModalBoxEl.classList.toggle("is-signup", view === "signup");
     loginModalFormEl.hidden = view !== "login";
     loginModalAltEl.hidden = view !== "login";
     signupModalFormEl.hidden = view !== "signup";
@@ -135,7 +161,7 @@ function closeLoginModal(): void {
 
 function trapLoginFocus(event: KeyboardEvent): void {
     const focusable = Array.from(loginModalBoxEl.querySelectorAll<HTMLElement>(
-        "button:not([disabled]), input:not([disabled]), a[href], [tabindex]:not([tabindex='-1'])",
+        "button:not([disabled]), input:not([disabled]), select:not([disabled]), a[href], [tabindex]:not([tabindex='-1'])",
     )).filter(el => el.offsetParent !== null);
     if (!focusable.length) {
         event.preventDefault();
@@ -223,14 +249,22 @@ async function submitSignup(captchaToken: string): Promise<void> {
         const res = await fetch(`${API_BASE}/auth/register`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ username, password, email, captchaToken }),
+            body: JSON.stringify({
+                username,
+                password,
+                email,
+                captchaToken,
+                termsAccepted: signupModalTermsEl.checked,
+                birthDate: isoBirthDate(signupBirthParts()),
+                marketingOptIn: signupModalMarketingEl.checked,
+            }),
             signal: controller.signal,
         });
         const data = await res.json().catch(() => ({})) as {
             token?: string; error?: string; kind?: string;
         };
         if (!res.ok || !data.token) {
-            signupModalErrorEl.textContent = data.error ?? "Registration failed";
+            showSignupError(data.error ?? "Registration failed");
             setSignupBusy(false);
             if (signupWidgetId !== null) hcaptcha.reset(signupWidgetId);
             return;
@@ -258,6 +292,7 @@ async function submitSignup(captchaToken: string): Promise<void> {
 export function wireLoginModal(): void {
     if (loginModalWired) return;
     loginModalWired = true;
+    wireBirthDateSelects(signupModalBirthDayEl, signupModalBirthMonthEl, signupModalBirthYearEl, new Date().getUTCFullYear());
     loginModalCloseEl.addEventListener("click", () => closeLoginModal());
     loginModalEl.addEventListener("click", (e) => {
         if (e.target === loginModalEl) closeLoginModal();
@@ -280,6 +315,12 @@ export function wireLoginModal(): void {
     signupModalFormEl.addEventListener("submit", (e) => {
         e.preventDefault();
         signupModalErrorEl.textContent = "";
+        markSignupConsentField(null);
+        const consentProblem = consentError(signupModalTermsEl.checked, signupBirthParts(), true, new Date());
+        if (consentProblem) {
+            showSignupError(consentProblem);
+            return;
+        }
         if (signupWidgetId === null) {
             signupModalErrorEl.textContent = "The captcha is still loading. Wait a moment and try again; if this keeps happening, allow js.hcaptcha.com in your content blocker and reload.";
             return;
