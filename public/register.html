@@ -27,9 +27,6 @@
     <link rel="stylesheet" href="/static/css/shared.css" />
     <script>try{var c=document.cookie.match(/(?:^|; )site_accent=([^;]*)/);var a=c?decodeURIComponent(c[1]):localStorage.getItem("site_accent");if(a&&a!=="malachite"){document.documentElement.setAttribute("data-accent",a);var m={"beacon":["/static/img/favicon-beacon.png","/static/img/icon-beacon.png"]}[a];if(m){var i=document.querySelector('link[rel="icon"]');if(i)i.href=m[0];var t=document.querySelector('link[rel="apple-touch-icon"]');if(t)t.href=m[1]}}}catch(e){}</script>
     <link rel="stylesheet" href="/static/css/site.css" />
-    <style>
-        .auth-page { min-height: calc(100dvh - 52px); }
-    </style>
 </head>
 <body>
 <header class="site-nav">
@@ -39,16 +36,33 @@
     </nav>
     <div class="site-nav-right" id="site-nav-right"></div>
 </header>
-<div class="auth-page">
-    <div class="login-wrap">
-        <div class="login-eyebrow">Streaming Solutions</div>
-        <h1 class="login-heading">ITZON</h1>
+<div class="auth-split">
+    <aside class="auth-panel">
+        <a class="auth-panel-brand" href="/" aria-label="ITZON home">ITZON</a>
+        <div class="auth-panel-copy">
+            <div class="auth-panel-eyebrow">Streaming Solutions</div>
+            <p class="auth-panel-heading">Go live in up to <br>4K at 240 FPS.</p>
+            <p>Stream, watch and chat with low latency. Nothing to download, nothing to install.</p>
+            <p class="auth-panel-note">Free to start. No card needed.</p>
+        </div>
+        <span class="auth-panel-rule" aria-hidden="true"></span>
+    </aside>
+    <main class="auth-card">
+        <h1 class="auth-card-heading">Create your account</h1>
+        <p class="auth-card-sub">Start streaming, or follow channels and chat. It only takes a minute.</p>
         <form id="register-form">
             <div class="login-fields">
-                <input id="username" type="text" autocomplete="username" placeholder="Username" aria-label="Username" required />
-                <input id="email" type="email" autocomplete="email" placeholder="Email address" aria-label="Email address" required />
                 <div>
-                    <input id="password" type="password" autocomplete="new-password" placeholder="Password" aria-label="Password" aria-describedby="register-password-hint" required minlength="8" />
+                    <label class="login-field-label" for="username">Username</label>
+                    <input id="username" type="text" autocomplete="username" placeholder="Username" required />
+                </div>
+                <div>
+                    <label class="login-field-label" for="email">Email</label>
+                    <input id="email" type="email" autocomplete="email" placeholder="Email address" required />
+                </div>
+                <div>
+                    <label class="login-field-label" for="password">Password</label>
+                    <input id="password" type="password" autocomplete="new-password" placeholder="Password" aria-describedby="register-password-hint" required minlength="8" />
                     <div class="login-hint" id="register-password-hint">At least 8 characters.</div>
                 </div>
                 <div>
@@ -80,7 +94,14 @@
             <div id="error" role="alert"></div>
         </form>
         <div class="login-footer">Already have an account? <a id="login-link" href="/login">Sign in</a></div>
-    </div>
+        <div class="auth-legal">
+            <div class="auth-legal-links">
+                <a href="/terms">Terms</a>
+                <a href="/privacy">Privacy</a>
+                <a href="/impressum">Impressum</a>
+            </div>
+        </div>
+    </main>
 </div>
 <script>window.HCAPTCHA_SITEKEY = "ca58c42a-bf10-4fd4-b2f2-78a23bcccd04";</script>
 <script src="/register-tbzaxb1h.js" type="module"></script>
