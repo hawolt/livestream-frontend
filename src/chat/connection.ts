@@ -445,9 +445,10 @@ function openChatSocket(chatWssBase: string): void {
 
     s.onopen = () => {
         if (ctx.sock !== s) return;
-        ctx.pendingCapRequests = 2;
+        ctx.pendingCapRequests = 3;
         s.send("CAP REQ :message-tags echo-message draft/message-redaction");
         s.send("CAP REQ :server-time");
+        s.send("CAP REQ :itzon.tv/history");
         s.send(`NICK ${ctx.nick}`);
         s.send(`USER ${ctx.nick} 0 * :${ctx.nick}`);
     };

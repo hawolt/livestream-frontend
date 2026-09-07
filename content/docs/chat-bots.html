@@ -39,8 +39,10 @@ PONG :go-irc</code></pre>
     and <code>PING</code> may arrive with a server prefix; parse both forms.
 </p>
 <p>
-    Joining a channel delivers the member list (<code>353</code>/<code>366</code>), a replay of the last
-    10 messages, and any pinned messages. Each name in the <code>353</code> list carries a role prefix:
+    Joining a channel delivers the member list (<code>353</code>/<code>366</code>) and any pinned messages.
+    A replay of the last 10 messages follows only when the <code>itzon.tv/history</code> capability was
+    negotiated (see Tags below); without it a join delivers live messages only.
+    Each name in the <code>353</code> list carries a role prefix:
 </p>
 <table>
     <tr><th>Prefix</th><th>Role</th></tr>
@@ -55,6 +57,11 @@ PONG :go-irc</code></pre>
 
 <h2>Tags</h2>
 <p><code>CAP REQ :message-tags echo-message draft/message-redaction</code> before registration, then <code>CAP END</code>.</p>
+<p>
+    <code>server-time</code> adds a <code>time</code> tag to every message and <code>itzon.tv/history</code>
+    opts into the 10-message replay on join. Request each in its own <code>CAP REQ</code>: a request
+    naming any capability the server does not know is refused as a whole.
+</p>
 <table>
     <tr><th>Tag</th><th>Meaning</th></tr>
     <tr><td><code>msgid</code></td><td>stable message id (replies, deletion)</td></tr>

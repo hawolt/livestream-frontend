@@ -569,6 +569,7 @@ function startItzon(channelName: string): void {
     const knownMembers = new Set<string>();
     let sock: WebSocket | null = null;
     let nick = "";
+    let pendingCapRequests = 0;
 
     const send = (line: string): void => {
         if (sock && sock.readyState === WebSocket.OPEN) sock.send(line);
@@ -643,7 +644,10 @@ function startItzon(channelName: string): void {
                 return;
             case "CAP": {
                 const sub = (line.params[1] ?? "").toUpperCase();
-                if (sub === "ACK" || sub === "NAK") send("CAP END");
+                if (sub === "ACK" || sub === "NAK") {
+                    pendingCapRequests = Math.max(0, pendingCapRequests - 1);
+                    if (pendingCapRequests === 0) send("CAP END");
+                }
                 return;
             }
             case "001":
@@ -715,7 +719,9 @@ function startItzon(channelName: string): void {
         const s = new WebSocket(`${proto}://${location.host}/ws/irc`);
         sock = s;
         s.onopen = () => {
+            pendingCapRequests = 2;
             send("CAP REQ :message-tags draft/message-redaction");
+            send("CAP REQ :itzon.tv/history");
             send(`NICK ${nick}`);
             send(`USER ${nick} 0 * :${nick}`);
         };
