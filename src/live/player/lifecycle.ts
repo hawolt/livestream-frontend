@@ -7,6 +7,7 @@ import { clearWaitingTimer, healthCheck, startHealthTimer, stopHealthTimer } fro
 import { resetStreamInfo, setViewers } from "../stream-info.ts";
 import { renderQualityMenu } from "../quality-menu.ts";
 import { resetSeekDrag } from "../seekbar.ts";
+import { resetSignedViewerId } from "../../player-shared/viewer-id.ts";
 
 let retryTimer: number | null = null;
 let retryDelay = RETRY_MIN_MS;
@@ -180,6 +181,7 @@ export function fullTeardown(): void {
 
 export function goOffline(g: number): void {
     if (ctx.state !== "offline") resetRetryBackoff();
+    resetSignedViewerId();
     resetStreamInfo();
     renderQualityMenu();
     setState("offline");
@@ -198,6 +200,7 @@ async function verifyChannelLive(g: number): Promise<void> {
 
 export function restartAfterFailure(g: number): void {
     if (!isCurrent(g)) return;
+    resetSignedViewerId();
     fullTeardown();
     setState("reconnecting");
     scheduleRestart(nextRetryDelay(), g);

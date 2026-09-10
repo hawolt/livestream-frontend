@@ -4,6 +4,7 @@ import { PREVIEW_MESSAGE_TYPE, RETRY_MAX_MS, RETRY_MIN_MS, RETRY_MULT } from "./
 import { destroyHls, startHLSTransport, stopHLSBeacon } from "./transport.ts";
 import { healthCheck, startHealthTimer, stopHealthTimer } from "./health.ts";
 import { hasAudioInteraction, isUserPaused, overlayContains, setOverlayOffline } from "./overlay.ts";
+import { resetSignedViewerId } from "../player-shared/viewer-id.ts";
 
 function notifyPreview(state: "connecting" | "playing" | "unavailable"): void {
     if (!previewMode || window.parent === window) return;
@@ -101,6 +102,7 @@ export function setPlaying(): void {
 export function goOffline(g: number): void {
     if (!isCurrent(g)) return;
     if (!ctx.offline) resetRetryBackoff();
+    resetSignedViewerId();
     ctx.offline = true;
     const retryGeneration = nextGen();
     fullTeardown();
@@ -114,6 +116,7 @@ export function goOffline(g: number): void {
 
 export function restartAfterFailure(g: number, immediate = false): void {
     if (!isCurrent(g)) return;
+    resetSignedViewerId();
     const retryGeneration = nextGen();
     fullTeardown();
     ctx.state = "retrying";

@@ -21,22 +21,34 @@ export function getViewerId(): string {
 const SIGNED_VIEWER_ID = /^[0-9a-f]{16}\.[0-9a-f]{64}$/;
 
 let signedViewerId = "";
+let signedFor = "";
 let signedViewerIdPending: Promise<string> | null = null;
+let pendingFor = "";
+
+export function resetSignedViewerId(): void {
+    signedViewerId = "";
+    signedFor = "";
+}
 
 export function ensureViewerId(mediaBase: string, username: string): Promise<string> {
-    if (signedViewerId) return Promise.resolve(signedViewerId);
-    if (signedViewerIdPending) return signedViewerIdPending;
+    if (signedViewerId && signedFor === mediaBase) return Promise.resolve(signedViewerId);
+    if (signedViewerIdPending && pendingFor === mediaBase) return signedViewerIdPending;
     const url = `${mediaBase}/hls/${encodeURIComponent(username)}/vid`;
-    signedViewerIdPending = fetch(url, { credentials: "include" })
+    pendingFor = mediaBase;
+    const pending = fetch(url, { credentials: "include" })
         .then((res) => (res.ok ? res.json() : null))
         .then((body: { id?: string } | null) => {
             const minted = body?.id ?? "";
-            if (SIGNED_VIEWER_ID.test(minted)) signedViewerId = minted;
-            return signedViewerId || getViewerId();
+            if (SIGNED_VIEWER_ID.test(minted)) {
+                signedViewerId = minted;
+                signedFor = mediaBase;
+            }
+            return signedFor === mediaBase && signedViewerId ? signedViewerId : getViewerId();
         })
         .catch(() => getViewerId())
         .finally(() => {
-            signedViewerIdPending = null;
+            if (signedViewerIdPending === pending) signedViewerIdPending = null;
         });
-    return signedViewerIdPending;
+    signedViewerIdPending = pending;
+    return pending;
 }
