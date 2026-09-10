@@ -218,6 +218,7 @@ export interface LiveChannelInfo {
     categoryId: number | null;
     language: string;
     mediaBase: string;
+    edge?: boolean;
     hlsBase?: string;
     emoteTwitchId: string | null;
     startedAt?: number;

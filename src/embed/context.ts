@@ -12,6 +12,7 @@ export const cleanfeedMode = modes.cleanfeed;
 export const ctx = {
     username: "",
     mediaBase: "",
+    edgeServed: false,
     transportKind: "none" as EmbedTransportKind,
 
     gen: 0,

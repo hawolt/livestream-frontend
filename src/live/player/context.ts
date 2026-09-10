@@ -19,6 +19,7 @@ export const ctx = {
     lastStateChangeAt: 0,
 
     mediaBase: "",
+    edgeServed: false,
     username: "",
     displayUsername: "",
     clipsDisabled: false,

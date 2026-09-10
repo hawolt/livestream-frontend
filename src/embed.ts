@@ -87,6 +87,7 @@ async function boot(): Promise<void> {
                 ctx.mediaBase = info.mediaBase.replace(/\/+$/, "");
             }
             if (info) {
+                ctx.edgeServed = info.edge === true;
                 channelLive = info.live === true;
                 mature = info.mature === true;
                 setOverlayChannel(

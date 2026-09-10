@@ -70,7 +70,7 @@ function startNativeHLS(g: number, src: string): void {
 }
 
 function startHlsJsPlayer(g: number, src: string, rttMs: number | null): void {
-    const tier = latencyTierFor(rttMs, false);
+    const tier = ctx.edgeServed ? "far" : latencyTierFor(rttMs, false);
     const hls = new Hls({
         lowLatencyMode: false,
         backBufferLength: 30,

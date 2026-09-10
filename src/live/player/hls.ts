@@ -165,8 +165,8 @@ function isPhone(): boolean {
 
 function startHlsJsPlayer(g: number, src: string, originLL: boolean, rttMs: number | null): void {
     const phone = isPhone();
-    const tier = latencyTierFor(rttMs, originLL, phone);
-    console.log("live: hls latency tier", tier, rttMs === null ? "unmeasured" : `${Math.round(rttMs)}ms`, phone ? "phone" : "desktop");
+    const tier = ctx.edgeServed ? "far" : latencyTierFor(rttMs, originLL, phone);
+    console.log("live: hls latency tier", tier, rttMs === null ? "unmeasured" : `${Math.round(rttMs)}ms`, phone ? "phone" : "desktop", ctx.edgeServed ? "edge" : "origin");
     setStallGraceMs(stallGraceMsFor(tier, WAITING_STALL_MS));
     const startupRunwayS = startupRunwayFor(tier, STARTUP_RUNWAY_S);
     let normalLiveWindow: LatencyWindow = tier === "near"
