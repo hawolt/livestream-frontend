@@ -1,6 +1,6 @@
 import { btnClip } from "../dom.ts";
 import { ctx } from "../player/context.ts";
-import { bufferedEnd, bufferedStart } from "../player/mse.ts";
+import { bufferedEnd, bufferedStart } from "../player/buffered.ts";
 import { CLIP_MIN_CAPTURE_S } from "../constants.ts";
 import { sessionTokenMetadata } from "../../session-token.ts";
 import { openLoginModal } from "../login-modal.ts";

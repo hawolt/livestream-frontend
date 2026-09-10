@@ -24,14 +24,12 @@ import {
     CHAT_SIDE_KEY,
     COMPACT_MAX_WIDTH_PX,
     CONTROLS_HIDE_MS,
-    HEALTH_STALE_MS,
     START_BEHIND_S,
     VOLUME_KEY,
 } from "./constants.ts";
 import { ICON_CINEMA, ICON_CLIP, ICON_FULLSCREEN, ICON_MUTE, ICON_PAUSE, ICON_PLAY, ICON_VOLUME, ICON_VOLUME_LOW } from "./icons.ts";
 import { wireClipButton } from "./clip/button.ts";
-import { bufferedEnd } from "./player/mse.ts";
-import { healthRestart } from "./player/health.ts";
+import { bufferedEnd } from "./player/buffered.ts";
 import { cycleLayout, fitChat, setChatCollapsed, syncLayout, toggleChat, wireLayoutQuery } from "./layout.ts";
 import {
     enterFullscreen,
@@ -140,15 +138,7 @@ function snapToEdgeOnPlay(): void {
         ctx.pauseSuspended = false;
         resumeHlsLoad();
     }
-    if (ctx.transportKind === "ws" && ctx.pauseSuspended) {
-        healthRestart("resume-after-pause");
-        return;
-    }
-    if (ctx.transportKind === "ws" && ctx.lastMediaArrivalAt > 0 && Date.now() - ctx.lastMediaArrivalAt > HEALTH_STALE_MS) {
-        healthRestart("resume-stale");
-        return;
-    }
-    if ((ctx.transportKind === "ws" || ctx.transportKind === "hls-js") && ctx.behindLive) return;
+    if (ctx.transportKind === "hls-js" && ctx.behindLive) return;
     const edge = bufferedEnd();
     if (edge > 0) {
         video.currentTime = Math.max(0, edge - START_BEHIND_S);

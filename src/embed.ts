@@ -1,12 +1,9 @@
 import { cleanfeedMode, controlsMode, ctx, previewMode } from "./embed/context.ts";
 import { beginTransport, enterTerminal, setPoster, wirePageLifecycle, wireUnmute } from "./embed/lifecycle.ts";
-import { canUseHlsJs, canUseNativeHLS, mseSupported } from "./embed/transport.ts";
+import { canUseHlsJs, canUseNativeHLS } from "./embed/transport.ts";
 import { stageEl, video } from "./embed/dom.ts";
 import { getCaptchaToken } from "./captcha.ts";
-import { parseViewerClaim } from "./player-shared/viewer-claim.ts";
 import { chooseTransport } from "./player-shared/transport-choice.ts";
-import { readLocalStorage } from "./storage.ts";
-import { TRANSPORT_STORAGE_KEY } from "./embed/constants.ts";
 import { setOverlayChannel, setOverlayOffline, wireOverlay } from "./embed/overlay.ts";
 import { wireWatchBeacon } from "./live/watch-beacon.ts";
 import { matureAccess } from "./mature-decision.ts";
@@ -90,7 +87,6 @@ async function boot(): Promise<void> {
                 ctx.mediaBase = info.mediaBase.replace(/\/+$/, "");
             }
             if (info) {
-                ctx.wssBase = typeof info.wssBase === "string" ? info.wssBase.replace(/\/+$/, "") : "";
                 channelLive = info.live === true;
                 mature = info.mature === true;
                 setOverlayChannel(
@@ -132,16 +128,11 @@ async function boot(): Promise<void> {
         }
     }
 
-    const captchaToken = await getCaptchaToken();
+    await getCaptchaToken();
     if (generation !== bootGeneration) return;
-    const { lowLatency } = parseViewerClaim(captchaToken || null);
     const transport = chooseTransport({
-        mseSupported: mseSupported(),
         nativeHls: canUseNativeHLS(),
         hlsJsSupported: canUseHlsJs(),
-        lowLatency,
-        llDenied: ctx.llDenied,
-        override: readLocalStorage(TRANSPORT_STORAGE_KEY),
     });
     if (transport === "unsupported") {
         bootCompleted = true;

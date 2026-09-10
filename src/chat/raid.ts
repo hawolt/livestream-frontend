@@ -13,18 +13,6 @@ let countdownEl: HTMLElement | null = null;
 let countEl: HTMLElement | null = null;
 let countWordEl: HTMLElement | null = null;
 
-export interface RaidHandover {
-    begin(target: string): void;
-    cancel(): void;
-    join(target: string): boolean;
-}
-
-let handover: RaidHandover | null = null;
-
-export function setRaidHandover(h: RaidHandover | null): void {
-    handover = h;
-}
-
 function remainingSeconds(): number {
     return Math.max(0, Math.ceil((deadline - Date.now()) / 1000));
 }
@@ -57,7 +45,6 @@ function transfer(): void {
     const target = currentTarget;
     reset();
     if (!target) return;
-    if (handover && handover.join(target)) return;
     window.location.assign(`/${target}`);
 }
 
@@ -73,7 +60,6 @@ function onStay(): void {
     send(`PRIVMSG ${ctx.channel} :.raidstay`);
     stayed = true;
     stopTimer();
-    handover?.cancel();
     removeNotice("raid");
 }
 
@@ -127,7 +113,6 @@ export function showRaidStart(target: string, seconds: number, count: number): v
     renderLive();
     stopTimer();
     timer = window.setInterval(tick, TICK_MS);
-    handover?.begin(target);
 }
 
 export function updateRaidCount(count: number): void {
@@ -147,5 +132,4 @@ export function raidGo(target: string): void {
 
 export function hideRaidBanner(): void {
     reset();
-    handover?.cancel();
 }

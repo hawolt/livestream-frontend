@@ -3,7 +3,7 @@
 Frontend for the itzon.tv livestreaming site. It provides every public surface of the site:
 
 - a stream **explorer** with category browsing and hover previews
-- a **channel viewer** with low-latency playback, DVR rewind, live chat, and clip playback (the same page also serves clip URLs)
+- a **channel viewer** with HLS playback through the CDN, DVR rewind, live chat, and clip playback (the same page also serves clip URLs)
 - a dedicated **clip editor** page for creating a clip in a new tab
 - an **embeddable player** for any channel
 - a transparent **OBS chat overlay**
@@ -54,9 +54,9 @@ Build outputs (`public/*.js`, `public/dash/`, `public/guides/`, `public/docs/`, 
 | Page | Entry | HTML | What it does |
 |---|---|---|---|
 | Explorer | `src/explore.ts` | `explore.html` | Live stream and category grid at `/`, hover live previews |
-| Channel viewer | `src/live.ts` | `live.html` | `/<username>`: WS+MSE playback for the `watch_ll` perk, HLS (hls.js or native Safari) via the BunnyCDN-fronted origin otherwise, DVR rewind (WS only), cinema mode, browse picture-in-picture, chat; also serves clip playback at `/<username>/clip/<code>` in a reduced clip mode |
+| Channel viewer | `src/live.ts` | `live.html` | `/<username>`: HLS playback (hls.js or native Safari) with the media playlist and segments served by the region's BunnyCDN zone, DVR rewind (hls.js), cinema mode, browse picture-in-picture, chat; also serves clip playback at `/<username>/clip/<code>` in a reduced clip mode |
 | Chat client | `src/live-chat.ts` | (part of `live.html`) | IRC over WebSocket: badges, 7TV emotes, replies, mentions, whispers, pins, moderation actions |
-| Embed player | `src/embed.ts` | `embed.html` | `/embed/<username>`: minimal muted-autoplay player (same WS/HLS transport selection as the channel viewer), click to unmute, preview mode for the explorer |
+| Embed player | `src/embed.ts` | `embed.html` | `/embed/<username>`: minimal muted-autoplay player (same HLS transport selection as the channel viewer), click to unmute, preview mode for the explorer |
 | Chat overlay | `src/chat-overlay.ts` | `chat.html` | `/chat/<username>`: transparent read-only chat for OBS browser sources, styled via URL params |
 | Follow alerts | `src/follow-alerts.ts` | `alerts.html` | `/alerts/<username>`: transparent OBS overlay popping up an animated card on new follows |
 | Login | `src/user-login.ts` | `user-login.html` | Sign in, forgot-password flow, lockout countdown, `?return=` redirect |

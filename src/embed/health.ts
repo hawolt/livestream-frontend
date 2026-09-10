@@ -17,10 +17,8 @@ export function healthCheck(): void {
     if (ctx.terminal || document.visibilityState !== "visible") return;
     const reason = decideEmbedHealth({
         state: ctx.state,
-        transportKind: ctx.transportKind,
         now: Date.now(),
         lastStateChangeAt: ctx.lastStateChangeAt,
-        lastMediaArrivalAt: ctx.lastMediaArrivalAt,
         lastProgressAt: ctx.lastProgressAt,
         paused: video.paused,
         staleMs: HEALTH_STALE_MS,

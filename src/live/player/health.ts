@@ -34,9 +34,8 @@ export function healthCheck(): void {
     const now = Date.now();
     if (ctx.state === "playing") {
         if (video.paused) return;
-        const mediaStale = ctx.transportKind === "ws" && now - ctx.lastMediaArrivalAt > HEALTH_STALE_MS;
         const progressStale = !video.paused && now - ctx.lastProgressAt > recoveryDeadlineMs(HEALTH_STALE_MS, stallGraceMs);
-        if (mediaStale || progressStale) healthRestart("stale-playing");
+        if (progressStale) healthRestart("stale-playing");
         return;
     }
     const awaitingTransport = ctx.state === "connecting"

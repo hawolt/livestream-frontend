@@ -7,8 +7,3 @@ export function toWsOrigin(mediaBase: string, pageProtocol: string): string {
     if (/^https?:\/\//.test(mediaBase)) return mediaBase.replace(/^http/, "ws");
     return mediaBase;
 }
-
-export function mediaWsUrl(mediaBase: string, path: string, fallbackOrigin: string, pageProtocol = "https:"): string {
-    if (mediaBase) return toWsOrigin(mediaBase, pageProtocol) + path;
-    return `${fallbackOrigin}${path}`;
-}

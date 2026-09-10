@@ -1,23 +1,11 @@
 import { badgeEl, behindReadoutEl, btnClip, btnLiveChip, posterEl, seekBarEl, stageEl, video } from "../dom.ts";
 import { ctx, isCurrent, nextGen, runGenCleanup, type PlayerState } from "./context.ts";
-import {
-    PLAYOUT_DRAIN_MAX_MS,
-    PLAYOUT_DRAIN_MIN_S,
-    PLAYOUT_DRAIN_POLL_MS,
-    PLAYOUT_DRAIN_STALL_TICKS,
-    PRUNE_KEEP_S,
-    RETRY_MAX_MS,
-    RETRY_MIN_MS,
-    RETRY_MULT,
-} from "../constants.ts";
-import { QUALITY_SOURCE } from "../../quality.ts";
-import { stopChase } from "./chase.ts";
+import { RETRY_MAX_MS, RETRY_MIN_MS, RETRY_MULT } from "../constants.ts";
 import { hidePlayerControls } from "./controls-decision.ts";
 import { destroyHls, stopHlsLoad, stopHLSBeacon, startHLSTransport } from "./hls.ts";
 import { clearWaitingTimer, healthCheck, startHealthTimer, stopHealthTimer } from "./health.ts";
 import { resetStreamInfo, setViewers } from "../stream-info.ts";
 import { renderQualityMenu } from "../quality-menu.ts";
-import { adoptWSTransport, startWSTransport } from "./ws.ts";
 import { resetSeekDrag } from "../seekbar.ts";
 
 let retryTimer: number | null = null;
@@ -53,7 +41,6 @@ export async function refreshMediaBase(): Promise<void> {
         if (info && typeof info.mediaBase === "string") {
             ctx.mediaBase = info.mediaBase.replace(/\/+$/, "");
         }
-        if (info) ctx.wssBase = typeof info.wssBase === "string" ? info.wssBase.replace(/\/+$/, "") : "";
     } catch {}
 }
 
@@ -164,20 +151,6 @@ export function renderPlayerUI(): void {
 
 export function suspendForPause(): void {
     if (ctx.pauseSuspended) return;
-    if (ctx.transportKind === "ws") {
-        if (!ctx.ws) return;
-        ctx.pauseSuspended = true;
-        ctx.ws.onmessage = null;
-        ctx.ws.onclose = null;
-        ctx.ws.onerror = null;
-        try {
-            ctx.ws.close();
-        } catch {}
-        ctx.ws = null;
-        ctx.appendQueue = [];
-        console.log("live: paused, suspending stream transport");
-        return;
-    }
     if (ctx.transportKind === "hls-js") {
         if (!stopHlsLoad()) return;
         ctx.pauseSuspended = true;
@@ -186,39 +159,10 @@ export function suspendForPause(): void {
 }
 
 export function fullTeardown(): void {
-    stopChase();
     stopHLSBeacon();
     destroyHls();
     clearWaitingTimer();
-    if (ctx.ws) {
-        ctx.ws.onopen = null;
-        ctx.ws.onmessage = null;
-        ctx.ws.onclose = null;
-        ctx.ws.onerror = null;
-        try {
-            ctx.ws.close();
-        } catch {}
-    }
-    ctx.ws = null;
-    if (ctx.sourceBuffer) {
-        try {
-            if (ctx.sourceBuffer.updating) ctx.sourceBuffer.abort();
-        } catch {}
-        if (ctx.mediaSource && ctx.mediaSource.readyState === "open") {
-            try {
-                ctx.mediaSource.removeSourceBuffer(ctx.sourceBuffer);
-            } catch {}
-        }
-    }
-    ctx.sourceBuffer = null;
-    ctx.mediaSource = null;
-    ctx.appendQueue = [];
-    ctx.startedPlayback = false;
     ctx.pauseSuspended = false;
-    if (ctx.objectUrl) {
-        URL.revokeObjectURL(ctx.objectUrl);
-        ctx.objectUrl = null;
-    }
     runGenCleanup();
     video.pause();
     video.removeAttribute("src");
@@ -227,8 +171,6 @@ export function fullTeardown(): void {
     setViewers(null);
     ctx.behindLive = false;
     resetSeekDrag();
-    ctx.quotaKeepS = PRUNE_KEEP_S;
-    ctx.quotaFailStreak = 0;
     seekBarEl.hidden = true;
     behindReadoutEl.hidden = true;
     btnLiveChip.hidden = true;
@@ -238,61 +180,9 @@ export function fullTeardown(): void {
 export function goOffline(g: number): void {
     if (ctx.state !== "offline") resetRetryBackoff();
     resetStreamInfo();
-    ctx.qualityLadder = [];
-    ctx.qualityLadderKnown = false;
-    ctx.activeQuality = QUALITY_SOURCE;
-    ctx.requestedQuality = QUALITY_SOURCE;
     renderQualityMenu();
     setState("offline");
     scheduleRestart(nextRetryDelay(), g);
-}
-
-function bufferedAheadSeconds(): number {
-    const ranges = video.buffered;
-    if (ranges.length === 0) return 0;
-    return Math.max(0, ranges.end(ranges.length - 1) - video.currentTime);
-}
-
-export function playOutThenOffline(g: number): void {
-    if (!isCurrent(g)) return;
-    if (video.paused || bufferedAheadSeconds() <= PLAYOUT_DRAIN_MIN_S) {
-        fullTeardown();
-        goOffline(g);
-        return;
-    }
-    stopChase();
-    stopHealthTimer();
-    clearWaitingTimer();
-    let settled = false;
-    let lastTime = video.currentTime;
-    let stalledTicks = 0;
-    const finish = (): void => {
-        if (settled) return;
-        settled = true;
-        window.clearTimeout(deadline);
-        window.clearInterval(poll);
-        video.removeEventListener("ended", finish);
-        video.removeEventListener("error", finish);
-        if (!isCurrent(g)) return;
-        fullTeardown();
-        goOffline(g);
-    };
-    const deadline = window.setTimeout(finish, PLAYOUT_DRAIN_MAX_MS);
-    const poll = window.setInterval(() => {
-        if (!isCurrent(g)) {
-            finish();
-            return;
-        }
-        const advanced = video.currentTime > lastTime + 0.01;
-        lastTime = video.currentTime;
-        if (advanced || bufferedAheadSeconds() > PLAYOUT_DRAIN_MIN_S) {
-            stalledTicks = 0;
-            return;
-        }
-        if (++stalledTicks >= PLAYOUT_DRAIN_STALL_TICKS) finish();
-    }, PLAYOUT_DRAIN_POLL_MS);
-    video.addEventListener("ended", finish);
-    video.addEventListener("error", finish);
 }
 
 async function verifyChannelLive(g: number): Promise<void> {
@@ -319,29 +209,15 @@ export function beginTransport(): void {
     clearRetryTimer();
     ctx.pauseSuspended = false;
     const g = nextGen();
-    const adoption = ctx.adopt;
-    if (adoption && ctx.transportKind === "ws") {
-        ctx.adopt = null;
-        ctx.lastStateChangeAt = Date.now();
-        ctx.lastMediaArrivalAt = Date.now();
-        ctx.lastProgressAt = Date.now();
-        ctx.lastObservedTime = video.currentTime;
-        ctx.startedOnce = true;
-        adoptWSTransport(g, adoption);
-        return;
-    }
-    ctx.adopt = null;
     fullTeardown();
     ctx.lastStateChangeAt = Date.now();
-    ctx.lastMediaArrivalAt = Date.now();
     ctx.lastProgressAt = Date.now();
     ctx.lastObservedTime = video.currentTime;
     if (!ctx.startedOnce || (ctx.state !== "offline" && ctx.state !== "reconnecting")) {
         setState("connecting");
     }
     ctx.startedOnce = true;
-    if (ctx.transportKind === "ws") startWSTransport(g);
-    else if (ctx.transportKind === "hls-native" || ctx.transportKind === "hls-js") startHLSTransport(g);
+    if (ctx.transportKind === "hls-native" || ctx.transportKind === "hls-js") startHLSTransport(g);
 }
 
 let pageHideTornDown = false;

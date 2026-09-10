@@ -1,8 +1,7 @@
 import { posterEl, stageEl, unmuteBtn, video } from "./dom.ts";
 import { cleanfeedMode, controlsMode, ctx, isCurrent, nextGen, previewMode, runGenCleanup } from "./context.ts";
 import { PREVIEW_MESSAGE_TYPE, RETRY_MAX_MS, RETRY_MIN_MS, RETRY_MULT } from "./constants.ts";
-import { stopChase } from "./chase.ts";
-import { destroyHls, startHLSTransport, startWSTransport, stopHLSBeacon } from "./transport.ts";
+import { destroyHls, startHLSTransport, stopHLSBeacon } from "./transport.ts";
 import { healthCheck, startHealthTimer, stopHealthTimer } from "./health.ts";
 import { hasAudioInteraction, isUserPaused, overlayContains, setOverlayOffline } from "./overlay.ts";
 
@@ -44,7 +43,6 @@ async function refreshMediaBase(): Promise<void> {
         if (info && typeof info.mediaBase === "string") {
             ctx.mediaBase = info.mediaBase.replace(/\/+$/, "");
         }
-        if (info) ctx.wssBase = typeof info.wssBase === "string" ? info.wssBase.replace(/\/+$/, "") : "";
     } catch {}
 }
 
@@ -79,37 +77,8 @@ export function showUnmute(show: boolean): void {
 
 export function fullTeardown(): void {
     runGenCleanup();
-    stopChase();
     stopHLSBeacon();
     destroyHls();
-    if (ctx.ws) {
-        ctx.ws.onopen = null;
-        ctx.ws.onmessage = null;
-        ctx.ws.onclose = null;
-        ctx.ws.onerror = null;
-        try {
-            ctx.ws.close();
-        } catch {}
-    }
-    ctx.ws = null;
-    if (ctx.sourceBuffer) {
-        try {
-            if (ctx.sourceBuffer.updating) ctx.sourceBuffer.abort();
-        } catch {}
-        if (ctx.mediaSource && ctx.mediaSource.readyState === "open") {
-            try {
-                ctx.mediaSource.removeSourceBuffer(ctx.sourceBuffer);
-            } catch {}
-        }
-    }
-    ctx.sourceBuffer = null;
-    ctx.mediaSource = null;
-    ctx.appendQueue = [];
-    ctx.startedPlayback = false;
-    if (ctx.objectUrl) {
-        URL.revokeObjectURL(ctx.objectUrl);
-        ctx.objectUrl = null;
-    }
     video.pause();
     video.removeAttribute("src");
     video.load();
@@ -162,12 +131,10 @@ export function beginTransport(): void {
     const now = Date.now();
     ctx.state = "connecting";
     ctx.lastStateChangeAt = now;
-    ctx.lastMediaArrivalAt = now;
     ctx.lastProgressAt = now;
     ctx.lastObservedTime = video.currentTime;
     notifyPreview("connecting");
-    if (ctx.transportKind === "ws") startWSTransport(g);
-    else if (ctx.transportKind === "hls-native" || ctx.transportKind === "hls-js") startHLSTransport(g);
+    if (ctx.transportKind === "hls-native" || ctx.transportKind === "hls-js") startHLSTransport(g);
     else goOffline(g);
 }
 

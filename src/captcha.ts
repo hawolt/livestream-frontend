@@ -58,13 +58,6 @@ export function captchaRequired(): boolean {
     return configLoaded && enabled;
 }
 
-export async function freshCaptchaQuery(): Promise<string> {
-    await loadConfig();
-    if (!enabled) return "";
-    const t = await mint();
-    return t ? `&t=${encodeURIComponent(t)}` : "";
-}
-
 export function warmCaptcha(): void {
     void getCaptchaToken();
 }

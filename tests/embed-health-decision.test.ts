@@ -3,10 +3,8 @@ import { decideEmbedHealth, type EmbedHealthInput } from "../src/embed/health-de
 
 const base: EmbedHealthInput = {
     state: "playing",
-    transportKind: "ws",
     now: 30000,
     lastStateChangeAt: 25000,
-    lastMediaArrivalAt: 25000,
     lastProgressAt: 25000,
     paused: false,
     staleMs: 15000,
@@ -23,18 +21,9 @@ describe("embed health decision", () => {
         })).toBe("stuck-connecting");
     });
 
-    test("restarts WebSocket playback when media stops arriving", () => {
-        expect(decideEmbedHealth({
-            ...base,
-            now: 41001,
-            lastMediaArrivalAt: 25000,
-        })).toBe("stale-media");
-    });
-
     test("restarts active playback when its clock stops", () => {
         expect(decideEmbedHealth({
             ...base,
-            transportKind: "hls-native",
             now: 41001,
             lastProgressAt: 25000,
         })).toBe("stale-progress");
@@ -43,11 +32,14 @@ describe("embed health decision", () => {
     test("does not treat intentional paused playback as stale progress", () => {
         expect(decideEmbedHealth({
             ...base,
-            transportKind: "hls-native",
             now: 41001,
             lastProgressAt: 25000,
             paused: true,
         })).toBeNull();
+    });
+
+    test("leaves healthy playback alone", () => {
+        expect(decideEmbedHealth(base)).toBeNull();
     });
 
     test("ignores retry and offline states", () => {

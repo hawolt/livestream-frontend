@@ -10,10 +10,7 @@ export const partnerBadgeEl = document.getElementById("live-partner-badge") as H
 export const badgeEl = document.getElementById("live-badge") as HTMLElement;
 export const posterEl = document.getElementById("live-poster") as HTMLElement;
 export const stageEl = document.getElementById("live-stage") as HTMLElement;
-export let video = document.getElementById("live-video") as HTMLVideoElement;
-export function setVideoElement(el: HTMLVideoElement): void {
-    video = el;
-}
+export const video = document.getElementById("live-video") as HTMLVideoElement;
 export const titleBar = document.getElementById("live-info-bar") as HTMLElement;
 export const channelAvatarWrapEl = document.getElementById("live-channel-avatar-wrap") as HTMLElement;
 export const aboutEl = document.getElementById("live-about") as HTMLElement;

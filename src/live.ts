@@ -25,7 +25,7 @@ import { syncLayout } from "./live/layout.ts";
 import { beginTransport, enterTerminal, setOfflineArt } from "./live/player/lifecycle.ts";
 import { loadProfile, offlineArtUrl } from "./profile-card.ts";
 import { initOwnerCards, loadAboutClips, loadStreamActivity, mountAboutCard } from "./live/about.ts";
-import { canUseHlsJs, canUseNativeHLS, mseSupported } from "./live/player/hls-support.ts";
+import { canUseHlsJs, canUseNativeHLS } from "./live/player/hls-support.ts";
 import { openLoginModal, wireLoginModal } from "./live/login-modal.ts";
 import { initFollow } from "./live/follow.ts";
 import { connectViewcount, enableWatchAuth, resumeViewcount, setStreamStart, suspendViewcount } from "./live/stream-info.ts";
@@ -36,11 +36,7 @@ import { promptStreamPassword } from "./live/stream-pass-gate.ts";
 import { applyChannelChrome, setChannelName } from "./live/channel-chrome.ts";
 import { initStreamInfoEdit } from "./live/stream-info-edit.ts";
 import { channelPageTitle, chatPopoutTitle } from "./live/page-title.ts";
-import { installRaidHandover } from "./live/raid-handover.ts";
-import { parseViewerClaim } from "./player-shared/viewer-claim.ts";
 import { chooseTransport } from "./player-shared/transport-choice.ts";
-import { readLocalStorage } from "./storage.ts";
-import { TRANSPORT_STORAGE_KEY } from "./live/constants.ts";
 
 const chatPopout = new URLSearchParams(location.search).get("chat") === "popout";
 reportVisit(parseClipRoute(location.pathname) ? "other" : "channel");
@@ -95,7 +91,6 @@ async function boot(): Promise<void> {
         } else {
             wireControls();
             syncLayout();
-            installRaidHandover();
             void initSiteNav(null, [viewersHeaderEl, btnLayoutToggle, btnChatToggle]);
         }
     }
@@ -207,7 +202,6 @@ async function boot(): Promise<void> {
             if (typeof info.mediaBase === "string") {
                 ctx.mediaBase = info.mediaBase.replace(/\/+$/, "");
             }
-            ctx.wssBase = typeof info.wssBase === "string" ? info.wssBase.replace(/\/+$/, "") : "";
             if (typeof info.emoteTwitchId === "string") {
                 emoteTwitchId = info.emoteTwitchId;
             }
@@ -275,16 +269,11 @@ async function boot(): Promise<void> {
     initPointsChip(ctx.username, pointsName);
     connectViewcount();
 
-    const captchaToken = await getCaptchaToken();
+    await getCaptchaToken();
     if (generation !== bootGeneration) return;
-    const { lowLatency } = parseViewerClaim(captchaToken || null);
     const transport = chooseTransport({
-        mseSupported: mseSupported(),
         nativeHls: canUseNativeHLS(),
         hlsJsSupported: canUseHlsJs(),
-        lowLatency,
-        llDenied: ctx.llDenied,
-        override: readLocalStorage(TRANSPORT_STORAGE_KEY),
     });
     if (transport === "unsupported") {
         bootCompleted = true;

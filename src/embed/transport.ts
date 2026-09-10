@@ -1,23 +1,13 @@
 import Hls from "hls.js";
 import { video } from "./dom.ts";
 import { ctx, isCurrent, track } from "./context.ts";
-import { HLS_BEACON_INTERVAL_MS, TRANSPORT_STORAGE_KEY } from "./constants.ts";
+import { HLS_BEACON_INTERVAL_MS } from "./constants.ts";
 import { captchaQuery, getCaptchaToken } from "../captcha.ts";
 import { ensureViewerId } from "../player-shared/viewer-id.ts";
 import { needsCredentials } from "../player-shared/needs-credentials.ts";
-import { mediaWsUrl as sharedMediaWsUrl } from "../player-shared/ws-url.ts";
-import { chooseTransport } from "../player-shared/transport-choice.ts";
-import { chooseTransportBase, markDirectFailed, shouldMarkDirectFailed } from "../player-shared/transport-fallback.ts";
-import { readLocalStorage } from "../storage.ts";
-import { beginTransport, enterTerminal, goOffline, resetRetryBackoff, restartAfterFailure, setPlaying } from "./lifecycle.ts";
+import { goOffline, resetRetryBackoff, restartAfterFailure, setPlaying } from "./lifecycle.ts";
 import { latencyTierFor } from "../live/player/latency-window.ts";
-import { attachMediaSource, pump } from "./mse.ts";
 import { attachVideoFailureListeners } from "./health.ts";
-
-function mediaWsUrl(base: string, path: string): string {
-    const proto = location.protocol === "https:" ? "wss" : "ws";
-    return sharedMediaWsUrl(base, path, `${proto}://${location.host}`, location.protocol);
-}
 
 function sendHLSBeat(g: number): void {
     void Promise.all([captchaQuery(), ensureViewerId(ctx.mediaBase, ctx.username)]).then(([tq, vid]) => {
@@ -49,10 +39,6 @@ export function startHLSBeacon(g: number): void {
     hlsBeaconTimer = window.setInterval(beat, HLS_BEACON_INTERVAL_MS);
 }
 
-export function mseSupported(): boolean {
-    return typeof MediaSource === "function" && typeof MediaSource.isTypeSupported === "function";
-}
-
 export function canUseNativeHLS(): boolean {
     return video.canPlayType("application/vnd.apple.mpegurl") !== "";
 }
@@ -72,103 +58,9 @@ export function destroyHls(): void {
     }
 }
 
-export function fallbackFromMSE(g: number): void {
-    if (!isCurrent(g)) return;
-    if (canUseNativeHLS()) {
-        ctx.transportKind = "hls-native";
-    } else if (canUseHlsJs()) {
-        ctx.transportKind = "hls-js";
-    } else {
-        enterTerminal("Playback not supported");
-        return;
-    }
-    beginTransport();
-}
-
-function handleWSClose(g: number, ev: CloseEvent, direct: boolean, joined: boolean): void {
-    if (shouldMarkDirectFailed(direct, joined)) {
-        markDirectFailed(ctx.wssBase);
-        restartAfterFailure(g, true);
-        return;
-    }
-    if (ev.code === 4428) {
-        ctx.llDenied = true;
-        const next = chooseTransport({
-            mseSupported: mseSupported(),
-            nativeHls: canUseNativeHLS(),
-            hlsJsSupported: canUseHlsJs(),
-            lowLatency: false,
-            llDenied: true,
-            override: readLocalStorage(TRANSPORT_STORAGE_KEY),
-        });
-        if (next === "unsupported") {
-            enterTerminal("Playback not supported");
-            return;
-        }
-        ctx.transportKind = next;
-        restartAfterFailure(g, true);
-        return;
-    }
-    if (ev.code === 4404 || ev.code === 1000) {
-        goOffline(g);
-    } else {
-        restartAfterFailure(g);
-    }
-}
-
-export function startWSTransport(g: number): void {
-    attachVideoFailureListeners(g);
-    void Promise.all([captchaQuery(), ensureViewerId(ctx.mediaBase, ctx.username)]).then(([tq, vid]) => {
-        if (!isCurrent(g)) return;
-        const { base, direct } = chooseTransportBase(ctx.wssBase, ctx.mediaBase);
-        let joined = false;
-        const path = `/ws/live?u=${encodeURIComponent(ctx.username)}&viewer_id=${encodeURIComponent(vid)}${tq}`;
-        let sock: WebSocket;
-        try {
-            sock = new WebSocket(mediaWsUrl(base, path));
-        } catch {
-            restartAfterFailure(g);
-            return;
-        }
-        ctx.ws = sock;
-        sock.binaryType = "arraybuffer";
-
-        sock.onmessage = (ev) => {
-            if (!isCurrent(g)) return;
-            if (typeof ev.data === "string") {
-                let msg: any = {};
-                try {
-                    msg = JSON.parse(ev.data);
-                } catch {}
-                const codecs = typeof msg.codecs === "string" ? msg.codecs : "";
-                if (codecs) {
-                    joined = true;
-                    attachMediaSource(g, codecs);
-                }
-                return;
-            }
-            ctx.lastMediaArrivalAt = Date.now();
-            ctx.appendQueue.push(ev.data as ArrayBuffer);
-            pump(g);
-        };
-
-        sock.onclose = (ev) => {
-            if (!isCurrent(g)) return;
-            handleWSClose(g, ev, direct, joined);
-        };
-
-        sock.onerror = () => {
-            if (!isCurrent(g)) return;
-            try {
-                sock.close();
-            } catch {}
-        };
-    });
-}
-
 async function masterUrl(): Promise<string> {
     const tq = await captchaQuery();
-    return `${ctx.mediaBase}/hls/${encodeURIComponent(ctx.username)}/master.m3u8?ll=1${tq}`;
+    return `${ctx.mediaBase}/hls/${encodeURIComponent(ctx.username)}/master.m3u8?prefetch=1${tq}`;
 }
 
 function startNativeHLS(g: number, src: string): void {
@@ -178,9 +70,9 @@ function startNativeHLS(g: number, src: string): void {
 }
 
 function startHlsJsPlayer(g: number, src: string, rttMs: number | null): void {
-    const tier = latencyTierFor(rttMs, true);
+    const tier = latencyTierFor(rttMs, false);
     const hls = new Hls({
-        lowLatencyMode: tier === "near",
+        lowLatencyMode: false,
         backBufferLength: 30,
         ...(tier === "far"
             ? { liveSyncDurationCount: 3, liveMaxLatencyDurationCount: 8 }

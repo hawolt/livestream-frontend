@@ -7,13 +7,11 @@ import { readLocalStorage } from "../../storage.ts";
 import { ensureViewerId } from "../../player-shared/viewer-id.ts";
 import { needsCredentials } from "../../player-shared/needs-credentials.ts";
 import { captchaQuery } from "../../captcha.ts";
-import { beginTransport, enterTerminal, fullTeardown, goOffline, resetRetryBackoff, restartAfterFailure, setState, suspendForPause } from "./lifecycle.ts";
+import { beginTransport, fullTeardown, goOffline, resetRetryBackoff, restartAfterFailure, setPoster, setState, suspendForPause } from "./lifecycle.ts";
 import { closeQualityUpsell, enterQualityLockedTerminal } from "../quality-upsell.ts";
-import { withCaptchaHint } from "./ws.ts";
 import { attachVideoFailureListeners, setStallGraceMs } from "./health.ts";
 import { renderQualityMenu } from "../quality-menu.ts";
 import { streamQualityText } from "../../quality.ts";
-import { canUseHlsJs, canUseNativeHLS } from "./hls-support.ts";
 import { clampToAdvertisedWindow, farWindowFor, isPhoneUA, latencyTierFor, latencyWindowFor, type LatencyWindow } from "./latency-window.ts";
 import { abrEstimateFor, stallGraceMsFor, startupRunwayFor } from "./far-tier.ts";
 import { bufferedAheadOf, STARTUP_RUNWAY_S, startupHoldOver } from "./startup-hold.ts";
@@ -110,20 +108,11 @@ export function resumeHlsLoad(): void {
     } catch {}
 }
 
-export function fallbackFromMSE(g: number): void {
-    if (!isCurrent(g)) return;
-    if (canUseNativeHLS()) {
-        ctx.transportKind = "hls-native";
-    } else if (canUseHlsJs()) {
-        ctx.transportKind = "hls-js";
-    } else {
-        enterTerminal("Playback not supported");
-        return;
-    }
-    ctx.qualityLadder = [];
-    ctx.qualityLadderKnown = false;
-    renderQualityMenu();
-    beginTransport();
+function withCaptchaHint<T>(g: number, p: Promise<T>): Promise<T> {
+    const t = window.setTimeout(() => {
+        if (isCurrent(g) && !ctx.terminal) setPoster("Checking access", false, true);
+    }, 300);
+    return p.finally(() => window.clearTimeout(t));
 }
 
 async function buildMasterUrl(): Promise<string> {
@@ -134,7 +123,6 @@ async function buildMasterUrl(): Promise<string> {
 function wireVideoLifecycle(g: number): void {
     const onPlaying = () => {
         if (!isCurrent(g)) return;
-        ctx.lastMediaArrivalAt = Date.now();
         resetRetryBackoff();
         setState("playing");
         renderQualityMenu();
