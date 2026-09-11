@@ -4,7 +4,7 @@ import { qualityRowParts } from "../quality.ts";
 import { HLS_QUALITY_STORAGE_KEY } from "./constants.ts";
 import { writeLocalStorage } from "../storage.ts";
 import { closeDismissibleSurface, openDismissibleSurface } from "../dismissible-surface.ts";
-import { hlsAutoEnabled, hlsCurrentLevel, hlsLevelLabel, hlsLevels, setHlsLevel } from "./player/hls.ts";
+import { hlsAutoEnabled, hlsCurrentLevel, hlsLevelLabel, hlsLevels, lowLatencyAvailable, lowLatencyPreferred, setHlsLevel, setLowLatencyPreferred } from "./player/hls.ts";
 
 export function qualityButtonLabel(): string {
     if (ctx.transportKind === "hls-js") return hlsLevelLabel();
@@ -49,21 +49,39 @@ function selectHlsLevel(index: number): void {
     renderQualityMenu();
 }
 
+function showLowLatencyRow(): boolean {
+    return lowLatencyAvailable() && !ctx.terminal && ctx.state !== "offline";
+}
+
+function appendLowLatencyRow(): void {
+    const on = lowLatencyPreferred();
+    appendQualityRow({
+        label: "Low latency",
+        active: on,
+        onClick: () => {
+            closeQualityPopup(true);
+            setLowLatencyPreferred(!on);
+        },
+    });
+}
+
 export function renderQualityPopupItems(): void {
     qualityPopupEl.replaceChildren();
-    if (ctx.transportKind !== "hls-js") return;
-    appendQualityRow({
-        label: "Auto",
-        active: hlsAutoEnabled(),
-        onClick: () => selectHlsLevel(-1),
-    });
-    for (const entry of hlsLevels()) {
+    if (ctx.transportKind === "hls-js") {
         appendQualityRow({
-            label: entry.label,
-            active: !hlsAutoEnabled() && hlsCurrentLevel() === entry.index,
-            onClick: () => selectHlsLevel(entry.index),
+            label: "Auto",
+            active: hlsAutoEnabled(),
+            onClick: () => selectHlsLevel(-1),
         });
+        for (const entry of hlsLevels()) {
+            appendQualityRow({
+                label: entry.label,
+                active: !hlsAutoEnabled() && hlsCurrentLevel() === entry.index,
+                onClick: () => selectHlsLevel(entry.index),
+            });
+        }
     }
+    if (showLowLatencyRow()) appendLowLatencyRow();
 }
 
 function onOutsideQualityClick(ev: MouseEvent): void {
@@ -93,7 +111,7 @@ function toggleQualityPopup(): void {
 }
 
 export function renderQualityMenu(): void {
-    const show = ctx.transportKind === "hls-js";
+    const show = ctx.transportKind === "hls-js" || showLowLatencyRow();
     qualitySelectEl.hidden = !show;
     if (!show) {
         closeQualityPopup();

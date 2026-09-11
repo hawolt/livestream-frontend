@@ -28,6 +28,7 @@ export const HLS_BEACON_INTERVAL_MS = 10000;
 export const VIEWCOUNT_RETRY_MS = 5000;
 export const VOLUME_KEY = "live-volume";
 export const HLS_QUALITY_STORAGE_KEY = "live-hls-quality";
+export const LOW_LATENCY_STORAGE_KEY = "live-low-latency";
 export const CLIP_MIN_CAPTURE_S = 10;
 export const SUBSCRIPTION_TAB_URL = "/dashboard/subscription";
 export const HCAPTCHA_SITEKEY = "ca58c42a-bf10-4fd4-b2f2-78a23bcccd04";

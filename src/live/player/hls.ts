@@ -2,8 +2,8 @@ import { segmentPrefetchLoader } from "./segment-prefetch.ts";
 import Hls from "hls.js";
 import { video } from "../dom.ts";
 import { ctx, isCurrent, track } from "./context.ts";
-import { HLS_BEACON_INTERVAL_MS, HLS_QUALITY_STORAGE_KEY, PAUSE_SUSPEND_MS, PRUNE_KEEP_S, WAITING_STALL_MS } from "../constants.ts";
-import { readLocalStorage } from "../../storage.ts";
+import { HLS_BEACON_INTERVAL_MS, HLS_QUALITY_STORAGE_KEY, LOW_LATENCY_STORAGE_KEY, PAUSE_SUSPEND_MS, PRUNE_KEEP_S, WAITING_STALL_MS } from "../constants.ts";
+import { readLocalStorage, writeLocalStorage } from "../../storage.ts";
 import { ensureViewerId } from "../../player-shared/viewer-id.ts";
 import { needsCredentials } from "../../player-shared/needs-credentials.ts";
 import { captchaQuery } from "../../captcha.ts";
@@ -115,22 +115,34 @@ function withCaptchaHint<T>(g: number, p: Promise<T>): Promise<T> {
     return p.finally(() => window.clearTimeout(t));
 }
 
-const LL_EXPERIMENT_KEY = "live-hls-ll";
+export function lowLatencyAvailable(): boolean {
+    return ctx.lowLatencyEntitled && !ctx.edgeServed;
+}
 
-function llExperiment(): boolean {
-    return readLocalStorage(LL_EXPERIMENT_KEY) === "1";
+export function lowLatencyPreferred(): boolean {
+    return readLocalStorage(LOW_LATENCY_STORAGE_KEY) !== "0";
+}
+
+export function lowLatencyWanted(): boolean {
+    return lowLatencyAvailable() && lowLatencyPreferred();
+}
+
+export function setLowLatencyPreferred(on: boolean): void {
+    writeLocalStorage(LOW_LATENCY_STORAGE_KEY, on ? "1" : "0");
+    if (ctx.terminal || ctx.transportKind === "none" || ctx.transportKind === "unsupported") return;
+    beginTransport();
 }
 
 async function buildMasterUrl(): Promise<string> {
     const tq = await captchaQuery();
-    const mode = llExperiment() ? "ll=1" : "prefetch=1";
+    const mode = lowLatencyWanted() ? "ll=1" : "prefetch=1";
     return `${ctx.mediaBase}/hls/${encodeURIComponent(ctx.username)}/master.m3u8?${mode}${tq}`;
 }
 
 const LL_STARTUP_RUNWAY_S = 1;
 
 function startLowLatencyPlayer(g: number, src: string): void {
-    console.log("live: hls low latency experiment, parts via cdn, blocking playlist on origin");
+    console.log("live: hls low latency, parts via cdn, blocking playlist on origin");
     const hls = new Hls({
         lowLatencyMode: true,
         backBufferLength: PRUNE_KEEP_S,
@@ -410,7 +422,7 @@ export function startHLSTransport(g: number): void {
             rttMs = performance.now() - t0;
         } catch {}
         if (!isCurrent(g)) return;
-        if (llExperiment() && !ctx.edgeServed) {
+        if (lowLatencyWanted()) {
             startLowLatencyPlayer(g, src);
             return;
         }

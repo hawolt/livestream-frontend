@@ -20,6 +20,7 @@ export const ctx = {
 
     mediaBase: "",
     edgeServed: false,
+    lowLatencyEntitled: false,
     username: "",
     displayUsername: "",
     clipsDisabled: false,

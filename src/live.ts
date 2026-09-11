@@ -37,6 +37,7 @@ import { applyChannelChrome, setChannelName } from "./live/channel-chrome.ts";
 import { initStreamInfoEdit } from "./live/stream-info-edit.ts";
 import { channelPageTitle, chatPopoutTitle } from "./live/page-title.ts";
 import { chooseTransport } from "./player-shared/transport-choice.ts";
+import { tokenCarriesLowLatency } from "./player-shared/viewer-claim.ts";
 
 const chatPopout = new URLSearchParams(location.search).get("chat") === "popout";
 reportVisit(parseClipRoute(location.pathname) ? "other" : "channel");
@@ -270,8 +271,9 @@ async function boot(): Promise<void> {
     initPointsChip(ctx.username, pointsName);
     connectViewcount();
 
-    await getCaptchaToken();
+    const captchaToken = await getCaptchaToken();
     if (generation !== bootGeneration) return;
+    ctx.lowLatencyEntitled = tokenCarriesLowLatency(captchaToken || null);
     const transport = chooseTransport({
         nativeHls: canUseNativeHLS(),
         hlsJsSupported: canUseHlsJs(),
