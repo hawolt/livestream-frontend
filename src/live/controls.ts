@@ -24,12 +24,11 @@ import {
     CHAT_SIDE_KEY,
     COMPACT_MAX_WIDTH_PX,
     CONTROLS_HIDE_MS,
-    START_BEHIND_S,
+    LIVE_EDGE_SNAP_S,
     VOLUME_KEY,
 } from "./constants.ts";
 import { ICON_CINEMA, ICON_CLIP, ICON_FULLSCREEN, ICON_MUTE, ICON_PAUSE, ICON_PLAY, ICON_VOLUME, ICON_VOLUME_LOW } from "./icons.ts";
 import { wireClipButton } from "./clip/button.ts";
-import { bufferedEnd } from "./player/buffered.ts";
 import { cycleLayout, fitChat, setChatCollapsed, syncLayout, toggleChat, wireLayoutQuery } from "./layout.ts";
 import {
     enterFullscreen,
@@ -47,7 +46,7 @@ import {
 import { isCinemaMode, exitCinemaMode, toggleCinemaMode } from "./cinema.ts";
 import { isBrowseMode, wireBrowseMode } from "./browse-mini.ts";
 import { wirePageLifecycle } from "./player/lifecycle.ts";
-import { resumeHlsLoad } from "./player/hls.ts";
+import { hlsLiveSyncPosition, resumeHlsLoad } from "./player/hls.ts";
 import { renderQualityMenu, wireQualityMenu } from "./quality-menu.ts";
 import { startFpsMeter, updateQuality } from "./stream-info.ts";
 import { wireSeekBar } from "./seekbar.ts";
@@ -134,15 +133,15 @@ function onVideoClickPause(ev: MouseEvent): void {
 }
 
 function snapToEdgeOnPlay(): void {
-    if (ctx.transportKind === "hls-js" && ctx.pauseSuspended) {
+    if (ctx.transportKind !== "hls-js") return;
+    if (ctx.pauseSuspended) {
         ctx.pauseSuspended = false;
         resumeHlsLoad();
     }
-    if (ctx.transportKind === "hls-js" && ctx.behindLive) return;
-    const edge = bufferedEnd();
-    if (edge > 0) {
-        video.currentTime = Math.max(0, edge - START_BEHIND_S);
-    }
+    if (ctx.behindLive) return;
+    const sync = hlsLiveSyncPosition();
+    if (sync === null || sync <= 0) return;
+    if (video.currentTime < sync - LIVE_EDGE_SNAP_S) video.currentTime = sync;
 }
 
 function trackPlaybackProgress(): void {

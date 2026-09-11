@@ -1,6 +1,5 @@
 export const CHAT_SIDE_KEY = "live-chat-side";
 
-export const START_BEHIND_S = 0.8;
 export const PRUNE_KEEP_S = 300;
 export const LIVE_EDGE_SNAP_S = 2;
 export const SEEK_BAR_MIN_SPAN_S = 10;
