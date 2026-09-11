@@ -115,9 +115,83 @@ function withCaptchaHint<T>(g: number, p: Promise<T>): Promise<T> {
     return p.finally(() => window.clearTimeout(t));
 }
 
+const LL_EXPERIMENT_KEY = "live-hls-ll";
+
+function llExperiment(): boolean {
+    return readLocalStorage(LL_EXPERIMENT_KEY) === "1";
+}
+
 async function buildMasterUrl(): Promise<string> {
     const tq = await captchaQuery();
-    return `${ctx.mediaBase}/hls/${encodeURIComponent(ctx.username)}/master.m3u8?prefetch=1${tq}`;
+    const mode = llExperiment() ? "ll=1" : "prefetch=1";
+    return `${ctx.mediaBase}/hls/${encodeURIComponent(ctx.username)}/master.m3u8?${mode}${tq}`;
+}
+
+const LL_STARTUP_RUNWAY_S = 1;
+
+function startLowLatencyPlayer(g: number, src: string): void {
+    console.log("live: hls low latency experiment, parts via cdn, blocking playlist on origin");
+    const hls = new Hls({
+        lowLatencyMode: true,
+        backBufferLength: PRUNE_KEEP_S,
+        maxLiveSyncPlaybackRate: 1.05,
+        enableWorker: true,
+        xhrSetup: (xhr, url) => {
+            xhr.withCredentials = needsCredentials(url, ctx.mediaBase, location.origin);
+        },
+    });
+    hlsInstance = hls;
+    hlsLevelEntries = [];
+    hls.on(Hls.Events.MANIFEST_PARSED, () => {
+        if (!isCurrent(g) || hlsInstance !== hls) return;
+        hlsLevelEntries = hls.levels.map((level, index) => ({
+            index,
+            label: streamQualityText(level.width ?? 0, level.height ?? 0, level.frameRate ?? 0),
+        }));
+        renderQualityMenu();
+    });
+    hls.on(Hls.Events.LEVEL_SWITCHED, () => {
+        if (!isCurrent(g) || hlsInstance !== hls) return;
+        renderQualityMenu();
+    });
+    hls.on(Hls.Events.ERROR, (_event, data) => {
+        if (!isCurrent(g) || hlsInstance !== hls) return;
+        if (data.details === Hls.ErrorDetails.BUFFER_FULL_ERROR) return;
+        if (!data.fatal) return;
+        console.warn("live: hls.js fatal error, restarting", data);
+        restartAfterFailure(g);
+    });
+    hls.on(Hls.Events.MEDIA_ATTACHED, () => {
+        if (!isCurrent(g) || hlsInstance !== hls) return;
+        hls.loadSource(src);
+    });
+    hls.attachMedia(video);
+    const holdStarted = Date.now();
+    const holdTimer = window.setInterval(() => {
+        if (!isCurrent(g) || hlsInstance !== hls) {
+            window.clearInterval(holdTimer);
+            return;
+        }
+        const ranges: Array<{ start: number; end: number }> = [];
+        for (let i = 0; i < video.buffered.length; i++) {
+            ranges.push({ start: video.buffered.start(i), end: video.buffered.end(i) });
+        }
+        if (!startupHoldOver(bufferedAheadOf(ranges, video.currentTime), Date.now() - holdStarted, LL_STARTUP_RUNWAY_S)) return;
+        window.clearInterval(holdTimer);
+        void video.play().catch(() => {});
+    }, 200);
+    track(() => window.clearInterval(holdTimer));
+    startHLSBeacon(g);
+    startLadderWatch(g, src);
+    const dvrTimer = window.setInterval(() => {
+        if (!isCurrent(g) || hlsInstance !== hls) {
+            window.clearInterval(dvrTimer);
+            return;
+        }
+        if (video.paused && Date.now() - ctx.lastProgressAt > PAUSE_SUSPEND_MS) suspendForPause();
+        updateSeekBar();
+    }, HLS_DVR_TICK_MS);
+    track(() => window.clearInterval(dvrTimer));
 }
 
 function wireVideoLifecycle(g: number): void {
@@ -336,6 +410,10 @@ export function startHLSTransport(g: number): void {
             rttMs = performance.now() - t0;
         } catch {}
         if (!isCurrent(g)) return;
+        if (llExperiment() && !ctx.edgeServed) {
+            startLowLatencyPlayer(g, src);
+            return;
+        }
         startHlsJsPlayer(g, src, originLL, rttMs);
     });
 }
