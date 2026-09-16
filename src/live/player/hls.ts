@@ -116,7 +116,7 @@ function withCaptchaHint<T>(g: number, p: Promise<T>): Promise<T> {
 }
 
 export function lowLatencyAvailable(): boolean {
-    return ctx.lowLatencyEntitled && !ctx.edgeServed;
+    return ctx.lowLatencyEntitled;
 }
 
 export function lowLatencyPreferred(): boolean {
