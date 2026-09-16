@@ -251,13 +251,16 @@ function isPhone(): boolean {
 
 function startHlsJsPlayer(g: number, src: string, originLL: boolean, rttMs: number | null): void {
     const phone = isPhone();
-    const tier = ctx.edgeServed ? "far" : latencyTierFor(rttMs, originLL, phone);
-    console.log("live: hls latency tier", tier, rttMs === null ? "unmeasured" : `${Math.round(rttMs)}ms`, phone ? "phone" : "desktop", ctx.edgeServed ? "edge" : "origin");
+    const edgeServed = ctx.edgeServed;
+    const tier = edgeServed ? "far" : latencyTierFor(rttMs, originLL, phone);
+    console.log("live: hls latency tier", tier, rttMs === null ? "unmeasured" : `${Math.round(rttMs)}ms`, phone ? "phone" : "desktop", edgeServed ? "edge" : "origin");
     setStallGraceMs(stallGraceMsFor(tier, WAITING_STALL_MS));
     const startupRunwayS = startupRunwayFor(tier, STARTUP_RUNWAY_S);
-    let normalLiveWindow: LatencyWindow = tier === "near"
-        ? TIGHT_LIVE_WINDOW
-        : tier === "far" ? FAR_LIVE_WINDOW : DEFAULT_LIVE_WINDOW;
+    let normalLiveWindow: LatencyWindow = edgeServed
+        ? DEFAULT_LIVE_WINDOW
+        : tier === "near"
+            ? TIGHT_LIVE_WINDOW
+            : tier === "far" ? FAR_LIVE_WINDOW : DEFAULT_LIVE_WINDOW;
     let dvrHoldActive = false;
     const prefetch = segmentPrefetchLoader(Hls.DefaultConfig.loader);
     track(prefetch.clear);
@@ -303,9 +306,11 @@ function startHlsJsPlayer(g: number, src: string, originLL: boolean, rttMs: numb
             console.log("live: playlist is finalized, playing out remaining media");
             return;
         }
-        const base = tier === "far"
-            ? farWindowFor(data.details.targetduration) ?? FAR_LIVE_WINDOW
-            : tier === "near" && data.details.url.startsWith(ctx.mediaBase) ? TIGHT_LIVE_WINDOW : DEFAULT_LIVE_WINDOW;
+        const base = edgeServed
+            ? DEFAULT_LIVE_WINDOW
+            : tier === "far"
+                ? farWindowFor(data.details.targetduration) ?? FAR_LIVE_WINDOW
+                : tier === "near" && data.details.url.startsWith(ctx.mediaBase) ? TIGHT_LIVE_WINDOW : DEFAULT_LIVE_WINDOW;
         const widened = latencyWindowFor(data.details.targetduration);
         const target = clampToAdvertisedWindow(
             widened && widened.sync > base.sync ? widened : base,
