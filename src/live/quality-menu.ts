@@ -4,7 +4,8 @@ import { qualityRowParts } from "../quality.ts";
 import { HLS_QUALITY_STORAGE_KEY } from "./constants.ts";
 import { writeLocalStorage } from "../storage.ts";
 import { closeDismissibleSurface, openDismissibleSurface } from "../dismissible-surface.ts";
-import { hlsAutoEnabled, hlsCurrentLevel, hlsLevelLabel, hlsLevels, lowLatencyAvailable, lowLatencyPreferred, setHlsLevel, setLowLatencyPreferred } from "./player/hls.ts";
+import { hlsAutoEnabled, hlsCurrentLevel, hlsLevelLabel, hlsLevels, setHlsLevel } from "./player/hls.ts";
+import { openQualityUpsell } from "./quality-upsell.ts";
 
 export function qualityButtonLabel(): string {
     if (ctx.transportKind === "hls-js") return hlsLevelLabel();
@@ -14,7 +15,33 @@ export function qualityButtonLabel(): string {
 interface QualityRowSpec {
     label: string;
     active?: boolean;
+    locked?: boolean;
     onClick: () => void;
+}
+
+const SVG_NS = "http://www.w3.org/2000/svg";
+
+function padlock(): SVGSVGElement {
+    const svg = document.createElementNS(SVG_NS, "svg");
+    svg.classList.add("live-quality-lock-mini");
+    svg.setAttribute("viewBox", "0 0 24 24");
+    svg.setAttribute("width", "13");
+    svg.setAttribute("height", "13");
+    svg.setAttribute("fill", "none");
+    svg.setAttribute("stroke", "currentColor");
+    svg.setAttribute("stroke-width", "1.8");
+    svg.setAttribute("stroke-linecap", "round");
+    svg.setAttribute("stroke-linejoin", "round");
+    const body = document.createElementNS(SVG_NS, "rect");
+    body.setAttribute("x", "4");
+    body.setAttribute("y", "11");
+    body.setAttribute("width", "16");
+    body.setAttribute("height", "10");
+    body.setAttribute("rx", "2");
+    const shackle = document.createElementNS(SVG_NS, "path");
+    shackle.setAttribute("d", "M8 11V7a4 4 0 0 1 8 0v4");
+    svg.append(body, shackle);
+    return svg;
 }
 
 function appendQualityRow(spec: QualityRowSpec): void {
@@ -22,6 +49,7 @@ function appendQualityRow(spec: QualityRowSpec): void {
     item.type = "button";
     item.className = "live-quality-item";
     item.classList.toggle("active", spec.active === true);
+    item.classList.toggle("locked", spec.locked === true);
     item.setAttribute("aria-pressed", String(spec.active === true));
     const checkEl = document.createElement("span");
     checkEl.className = "live-quality-check";
@@ -32,7 +60,9 @@ function appendQualityRow(spec: QualityRowSpec): void {
     resEl.className = "live-quality-res";
     resEl.textContent = parts.res;
     item.appendChild(resEl);
-    if (parts.fps !== null) {
+    if (spec.locked) {
+        item.appendChild(padlock());
+    } else if (parts.fps !== null) {
         const fpsEl = document.createElement("span");
         fpsEl.className = "live-quality-fps";
         fpsEl.textContent = parts.fps;
@@ -49,20 +79,8 @@ function selectHlsLevel(index: number): void {
     renderQualityMenu();
 }
 
-function showLowLatencyRow(): boolean {
-    return lowLatencyAvailable() && !ctx.terminal && ctx.state !== "offline";
-}
-
-function appendLowLatencyRow(): void {
-    const on = lowLatencyPreferred();
-    appendQualityRow({
-        label: "Low latency",
-        active: on,
-        onClick: () => {
-            closeQualityPopup(true);
-            setLowLatencyPreferred(!on);
-        },
-    });
+function showLockedRows(): boolean {
+    return ctx.lockedQualities.length > 0 && !ctx.terminal && ctx.state !== "offline";
 }
 
 export function renderQualityPopupItems(): void {
@@ -81,7 +99,18 @@ export function renderQualityPopupItems(): void {
             });
         }
     }
-    if (showLowLatencyRow()) appendLowLatencyRow();
+    if (showLockedRows()) {
+        for (const label of ctx.lockedQualities) {
+            appendQualityRow({
+                label,
+                locked: true,
+                onClick: () => {
+                    closeQualityPopup(true);
+                    openQualityUpsell();
+                },
+            });
+        }
+    }
 }
 
 function onOutsideQualityClick(ev: MouseEvent): void {
@@ -111,7 +140,7 @@ function toggleQualityPopup(): void {
 }
 
 export function renderQualityMenu(): void {
-    const show = ctx.transportKind === "hls-js" || showLowLatencyRow();
+    const show = ctx.transportKind === "hls-js" || showLockedRows();
     qualitySelectEl.hidden = !show;
     if (!show) {
         closeQualityPopup();

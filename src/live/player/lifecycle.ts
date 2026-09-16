@@ -172,6 +172,7 @@ export function fullTeardown(): void {
     setBadge(false);
     setViewers(null);
     ctx.behindLive = false;
+    ctx.lockedQualities = [];
     resetSeekDrag();
     seekBarEl.hidden = true;
     behindReadoutEl.hidden = true;

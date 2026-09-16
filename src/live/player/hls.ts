@@ -11,7 +11,7 @@ import { beginTransport, fullTeardown, goOffline, resetRetryBackoff, restartAfte
 import { closeQualityUpsell, enterQualityLockedTerminal } from "../quality-upsell.ts";
 import { attachVideoFailureListeners, setStallGraceMs } from "./health.ts";
 import { renderQualityMenu } from "../quality-menu.ts";
-import { streamQualityText } from "../../quality.ts";
+import { parseLockedVariants, streamQualityText } from "../../quality.ts";
 import { clampToAdvertisedWindow, farWindowFor, isPhoneUA, latencyTierFor, latencyWindowFor, type LatencyWindow } from "./latency-window.ts";
 import { abrEstimateFor, stallGraceMsFor, startupRunwayFor } from "./far-tier.ts";
 import { bufferedAheadOf, STARTUP_RUNWAY_S, startupHoldOver } from "./startup-hold.ts";
@@ -404,7 +404,10 @@ export function startHLSTransport(g: number): void {
                     if ((JSON.parse(body) as { error?: unknown }).error === "quality-locked") locked = true;
                 } catch {}
             }
-            if (probe.ok) originLL = body.includes("ll=1") || body.includes("prefetch=1");
+            if (probe.ok) {
+                originLL = body.includes("ll=1") || body.includes("prefetch=1");
+                ctx.lockedQualities = parseLockedVariants(body);
+            }
             if (probe.status === 404 || probe.status === 410) missing = true;
         } catch {}
         if (!isCurrent(g)) return;

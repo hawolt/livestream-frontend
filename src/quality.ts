@@ -11,3 +11,16 @@ export function streamQualityText(width: number, height: number, fps: number): s
     if (!res) return "high quality";
     return rate ? `${res}${rate}` : res;
 }
+
+export function parseLockedVariants(masterBody: string): string[] {
+    const out: string[] = [];
+    for (const line of masterBody.split(/\r?\n/)) {
+        if (!line.startsWith("#EXT-X-ITZON-LOCKED:")) continue;
+        const res = /RESOLUTION=(\d+)x(\d+)/.exec(line);
+        if (!res) continue;
+        const fpsMatch = /FRAME-RATE=([\d.]+)/.exec(line);
+        const label = streamQualityText(Number(res[1]), Number(res[2]), fpsMatch ? Number(fpsMatch[1]) : 0);
+        if (label && label !== "high quality" && !out.includes(label)) out.push(label);
+    }
+    return out;
+}
